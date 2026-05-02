@@ -32,6 +32,12 @@ const OPENAI_USAGE_URL: &str = "https://chatgpt.com/backend-api/wham/usage";
 /// Cache duration (refresh every 5 minutes - usage data is slow-changing)
 const CACHE_DURATION: Duration = Duration::from_secs(300);
 
+/// OpenAI/ChatGPT limits are user-visible in the sidebar and can change after
+/// every model call. Keep this much fresher than Anthropic's cache so the
+/// sidebar updates during an existing Kcode session instead of only after a new
+/// session starts.
+const OPENAI_CACHE_DURATION: Duration = Duration::from_secs(30);
+
 /// Error backoff duration (wait 5 minutes before retrying after auth/credential errors)
 const ERROR_BACKOFF: Duration = Duration::from_secs(300);
 
@@ -289,7 +295,7 @@ impl OpenAIUsageData {
                 } else if self.last_error.is_some() {
                     ERROR_BACKOFF
                 } else {
-                    CACHE_DURATION
+                    OPENAI_CACHE_DURATION
                 };
                 t.elapsed() > ttl
             }

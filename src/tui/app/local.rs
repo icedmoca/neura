@@ -365,6 +365,7 @@ pub(super) fn finish_turn(app: &mut App) {
     app.total_input_tokens += app.streaming_input_tokens;
     app.total_output_tokens += app.streaming_output_tokens;
     app.update_cost_impl();
+    crate::usage::request_openai_usage_refresh();
     app.is_processing = false;
     app.status = ProcessingStatus::Idle;
     app.stream_message_ended = false;

@@ -123,6 +123,20 @@ fn try_spawn_openai_refresh(usage: Arc<RwLock<OpenAIUsageData>>) {
     });
 }
 
+pub fn request_openai_usage_refresh() {
+    if let Some(usage) = OPENAI_USAGE.get() {
+        try_spawn_openai_refresh(usage.clone());
+        return;
+    }
+
+    if tokio::runtime::Handle::try_current().is_ok() {
+        tokio::spawn(async {
+            let usage = get_openai_usage_cell().await;
+            try_spawn_openai_refresh(usage);
+        });
+    }
+}
+
 pub async fn get_openai_usage() -> OpenAIUsageData {
     let usage = get_openai_usage_cell().await;
 

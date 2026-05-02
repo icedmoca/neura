@@ -17,14 +17,17 @@ const ENV_ENABLE: &str = "KCODE_INTERLANG_COMPACT";
 const ENV_MODE: &str = "KCODE_INTERLANG_MODE";
 const ENV_TOKENIZER_JSON: &str = "KCODE_INTERLANG_TOKENIZER_JSON";
 const ENV_CONTEXT_DIET: &str = "KCODE_CONTEXT_DIET";
+const ENV_CONTEXT_DIET_TRIGGER_TOKENS: &str = "KCODE_CONTEXT_DIET_TRIGGER_TOKENS";
+const ENV_CONTEXT_DIET_RECENT_MESSAGES: &str = "KCODE_CONTEXT_DIET_RECENT_MESSAGES";
+const ENV_CONTEXT_DIET_MIN_BLOCK_CHARS: &str = "KCODE_CONTEXT_DIET_MIN_BLOCK_CHARS";
 const DEFAULT_TOKENIZER_JSON: &str = "/home/dad/.kcode/models/all-MiniLM-L6-v2/tokenizer.json";
 const MIN_TEXT_CHARS: usize = 900;
 const MIN_SAVED_CHARS: usize = 240;
 const MIN_SEEN_REF_CHARS: usize = 2_400;
-const MIN_VAULT_REF_CHARS: usize = 8_000;
-const CONTEXT_DIET_TRIGGER_TOKENS: usize = 48_000;
-const CONTEXT_DIET_RECENT_MESSAGES: usize = 16;
-const CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 700;
+const MIN_VAULT_REF_CHARS: usize = 4_000;
+const DEFAULT_CONTEXT_DIET_TRIGGER_TOKENS: usize = 24_000;
+const DEFAULT_CONTEXT_DIET_RECENT_MESSAGES: usize = 8;
+const DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 420;
 const APPROX_CHARS_PER_TOKEN: usize = 4;
 
 #[derive(Debug, Clone)]
@@ -395,11 +398,46 @@ fn context_diet_enabled() -> bool {
         .unwrap_or(true)
 }
 
+fn env_usize(name: &str, default: usize, min: usize, max: usize) -> usize {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.trim().parse::<usize>().ok())
+        .map(|value| value.clamp(min, max))
+        .unwrap_or(default)
+}
+
+fn context_diet_trigger_tokens() -> usize {
+    env_usize(
+        ENV_CONTEXT_DIET_TRIGGER_TOKENS,
+        DEFAULT_CONTEXT_DIET_TRIGGER_TOKENS,
+        8_000,
+        200_000,
+    )
+}
+
+fn context_diet_recent_messages() -> usize {
+    env_usize(
+        ENV_CONTEXT_DIET_RECENT_MESSAGES,
+        DEFAULT_CONTEXT_DIET_RECENT_MESSAGES,
+        4,
+        64,
+    )
+}
+
+fn context_diet_min_block_chars() -> usize {
+    env_usize(
+        ENV_CONTEXT_DIET_MIN_BLOCK_CHARS,
+        DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS,
+        240,
+        8_000,
+    )
+}
+
 fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, InterlangStats) {
     let mut stats = InterlangStats::default();
     if !context_diet_enabled()
         || mode() != InterlangMode::Ultra
-        || messages.len() <= CONTEXT_DIET_RECENT_MESSAGES
+        || messages.len() <= context_diet_recent_messages()
     {
         return (messages.to_vec(), stats);
     }
@@ -407,11 +445,11 @@ fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, Interlang
     let total_text: usize = messages.iter().map(message_visible_chars).sum();
     let total_tokens =
         exact_token_count_messages(messages).unwrap_or_else(|| estimate_tokens(total_text));
-    if total_tokens < CONTEXT_DIET_TRIGGER_TOKENS {
+    if total_tokens < context_diet_trigger_tokens() {
         return (messages.to_vec(), stats);
     }
 
-    let cutoff = messages.len().saturating_sub(CONTEXT_DIET_RECENT_MESSAGES);
+    let cutoff = messages.len().saturating_sub(context_diet_recent_messages());
     let mut out = Vec::with_capacity(messages.len());
     for (idx, message) in messages.iter().enumerate() {
         if idx >= cutoff {
@@ -430,7 +468,7 @@ fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, Interlang
                     *content = encode_context_diet_ref(content, "old-tool-result", &mut stats);
                     changed = true;
                 }
-                ContentBlock::Reasoning { text } if text.len() > CONTEXT_DIET_MIN_BLOCK_CHARS => {
+                ContentBlock::Reasoning { text } if text.len() > context_diet_min_block_chars() => {
                     *text = encode_context_diet_ref(text, "old-reasoning", &mut stats);
                     changed = true;
                 }
@@ -446,14 +484,14 @@ fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, Interlang
 }
 
 fn should_diet_text(text: &str) -> bool {
-    text.len() >= CONTEXT_DIET_MIN_BLOCK_CHARS
+    text.len() >= context_diet_min_block_chars()
         && !text.contains("<ctx")
         && !text.contains("<il:")
         && !text.contains("<system-reminder>")
 }
 
 fn should_diet_tool_result(content: &str) -> bool {
-    content.len() >= 420 && !content.contains("<ctx") && !content.contains("<il:")
+    content.len() >= context_diet_min_block_chars() && !content.contains("<ctx") && !content.contains("<il:")
 }
 
 fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -> String {
