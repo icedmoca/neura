@@ -2,6 +2,8 @@
 
 Kcode is a local-first coding agent harness with a terminal UI, tool orchestration, memory/context management, and an optional local GGUF sidecar model.
 
+For a detailed architecture explanation, see [ABOUT.md](ABOUT.md).
+
 ## One-command install
 
 Run this in a terminal:
