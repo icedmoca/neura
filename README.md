@@ -108,6 +108,35 @@ extension source, and packaged extension zip. Chrome still requires one manual
 browser step after install: open `chrome://extensions`, enable Developer mode,
 choose **Load unpacked**, and select `~/.kcode/chromium-agent-bridge/extension`.
 
+## Context diet and usage refresh knobs
+
+Kcode enables interlang/context-diet compression by default. In ultra mode, old
+large context is replaced with local `<ctx>` references while recent task context
+stays exact. Useful runtime overrides:
+
+```bash
+# Disable interlang/context-diet compression
+KCODE_INTERLANG_COMPACT=0 kcode
+
+# Compression mode: safe, verified, aggressive, ultra
+KCODE_INTERLANG_MODE=ultra kcode
+
+# Start dieting after this approximate prompt size. Default: 24000.
+KCODE_CONTEXT_DIET_TRIGGER_TOKENS=24000 kcode
+
+# Keep this many newest messages exact. Default: 8.
+KCODE_CONTEXT_DIET_RECENT_MESSAGES=8 kcode
+
+# Minimum old block size eligible for context diet. Default: 420 chars.
+KCODE_CONTEXT_DIET_MIN_BLOCK_CHARS=420 kcode
+```
+
+Token-savings accounting is appended to `~/.kcode/interlang-stats.jsonl`. OpenAI
+ChatGPT limit data is refreshed aggressively for the sidebar: Kcode treats the
+OpenAI usage cache as stale after about 30 seconds and requests a refresh after
+completed turns, so 5-hour and weekly usage can update during an existing
+session.
+
 ## Local sidecar model
 
 The default local model identity is:

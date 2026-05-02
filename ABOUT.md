@@ -98,6 +98,17 @@ Kcode has an interlang/context compression path with modes such as safe, verifie
 4. **The model can request exact text.** If a summary is insufficient, it can request `.ctx_get id=...`.
 5. **Kcode records accounting.** It logs original chars, encoded chars, saved chars, estimated saved tokens, and exact local-tokenizer estimates when available.
 
+Current ultra-mode defaults are tuned for long GPT-5.5 style coding sessions:
+
+| Setting | Default | Purpose |
+|---|---:|---|
+| `KCODE_CONTEXT_DIET_TRIGGER_TOKENS` | `24000` | Start replacing old bulky blocks once the prompt is roughly this large. |
+| `KCODE_CONTEXT_DIET_RECENT_MESSAGES` | `8` | Keep the newest messages exact so current task details remain visible. |
+| `KCODE_CONTEXT_DIET_MIN_BLOCK_CHARS` | `420` | Old text/tool/reasoning blocks at or above this size can become `<ctx>` refs. |
+
+These can be overridden per session. Lower values save more tokens but may cause
+more `.ctx_get` rehydration requests when exact old content becomes important.
+
 ```mermaid
 sequenceDiagram
     participant A as Kcode Agent
