@@ -95,6 +95,13 @@ This combats hallucination because the model is told:
 - a stable id/hash identifies it,
 - and it should request exact text instead of inventing details.
 
+Current ultra-mode defaults are deliberately tuned for long tool-heavy coding
+sessions: begin context diet at roughly `24,000` prompt tokens, keep the newest
+`8` messages exact, and allow old text/tool/reasoning blocks of `420+` chars to
+be replaced by `<ctx>` references. Those defaults save more tokens than the
+earlier conservative diet while preserving the current task and a rehydration
+escape hatch.
+
 ---
 
 ## 4. Exact rehydration: the anti-guessing escape hatch
@@ -219,38 +226,38 @@ But file contents, command output, tests, and exact rehydrated context remain mo
 
 ## 8. Real Kcode data from live context-diet accounting
 
-The following data was measured from the local Kcode `interlang-stats.jsonl` on this machine during real usage.
+The following data was measured from the local Kcode `interlang-stats.jsonl` on this machine during real usage after the more aggressive ultra-mode context-diet tuning.
 
 ### Recent 50 compaction events
 
 | Metric | Value |
 |---|---:|
 | Total compaction events analyzed | 50 |
-| Total original chars compacted | 36,069,596 |
-| Total encoded chars sent for those blocks | 3,462,697 |
-| Average char reduction | 90.42% |
-| Estimated tokens saved, total | 8,151,726 |
-| Estimated tokens saved, average/event | 163,034.52 |
-| Exact local-tokenizer tokens saved, total | 12,551,016 |
-| Exact local-tokenizer tokens saved, average/event | 251,020.32 |
-| Total blocks encoded | 6,039 |
-| Average blocks encoded/event | 120.78 |
+| Total original chars compacted | 16,709,366 |
+| Total encoded chars sent for those blocks | 1,372,721 |
+| Average char reduction | 91.78% |
+| Estimated tokens saved, total | 3,834,161 |
+| Estimated tokens saved, average/event | 76,683.22 |
+| Exact local-tokenizer tokens saved, total | 5,914,442 |
+| Exact local-tokenizer tokens saved, average/event | 118,288.84 |
+| Total blocks encoded | 2,372 |
+| Average blocks encoded/event | 47.44 |
 
 ### Latest observed compaction event
 
 | Metric | Value |
 |---|---:|
-| Blocks encoded | 140 |
-| Original chars | 766,131 |
-| Encoded chars | 79,903 |
-| Saved chars | 686,228 |
-| Estimated saved tokens | 171,557 |
-| Exact original tokens | 296,971 |
-| Exact encoded tokens | 34,315 |
-| Exact saved tokens | 262,656 |
-| Diet blocks | 137 |
-| Seen-ref blocks | 3 |
-| Raw context avoided, estimated tokens | 191,533 |
+| Blocks encoded | 65 |
+| Original chars | 377,444 |
+| Encoded chars | 36,544 |
+| Saved chars | 340,900 |
+| Estimated saved tokens | 85,225 |
+| Exact original tokens | 143,681 |
+| Exact encoded tokens | 15,503 |
+| Exact saved tokens | 128,178 |
+| Diet blocks | 63 |
+| Seen-ref blocks | 2 |
+| Raw context avoided, estimated tokens | 94,361 |
 
 ### Visualized
 
@@ -258,22 +265,22 @@ The following data was measured from the local Kcode `interlang-stats.jsonl` on 
 xychart-beta
     title "Latest observed compaction event"
     x-axis ["Original chars", "Encoded chars", "Saved chars"]
-    y-axis "Characters" 0 --> 800000
-    bar [766131, 79903, 686228]
+    y-axis "Characters" 0 --> 400000
+    bar [377444, 36544, 340900]
 ```
 
 ```mermaid
 xychart-beta
     title "Latest observed token accounting"
     x-axis ["Exact original", "Exact encoded", "Exact saved"]
-    y-axis "Tokens" 0 --> 300000
-    bar [296971, 34315, 262656]
+    y-axis "Tokens" 0 --> 150000
+    bar [143681, 15503, 128178]
 ```
 
 ```mermaid
 pie title Recent 50 events: original vs encoded chars
-    "Encoded chars sent" : 3462697
-    "Chars avoided" : 32606900
+    "Encoded chars sent" : 1372721
+    "Chars avoided" : 15336645
 ```
 
 These numbers matter for hallucination because they show that Kcode is not just truncating huge context. It is converting old context into compact references while keeping exact content locally recoverable.
