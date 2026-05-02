@@ -528,10 +528,11 @@ impl AuthStatus {
         }
 
         // Fall back to env var (or combine with OAuth)
-        if std::env::var("OPENAI_API_KEY")
-            .ok()
-            .map(|v| !v.trim().is_empty())
-            .unwrap_or(false)
+        if codex::has_stored_api_key()
+            || std::env::var("OPENAI_API_KEY")
+                .ok()
+                .map(|v| !v.trim().is_empty())
+                .unwrap_or(false)
         {
             status.openai_has_api_key = true;
             status.openai = AuthState::Available;

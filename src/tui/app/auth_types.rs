@@ -128,6 +128,8 @@ pub(crate) enum AccountCommand {
     SetDefaultProvider(Option<String>),
     SetDefaultModel(Option<String>),
     SetOpenAiTransport(Option<String>),
+    SetOpenAiAuthMode(Option<String>),
+    SetOpenAiApiKey(Option<String>),
     SetOpenAiEffort(Option<String>),
     SetOpenAiFast(bool),
     SetCopilotPremium(Option<String>),

@@ -17,6 +17,39 @@ pub struct CodexCredentials {
     pub expires_at: Option<i64>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OpenAiAuthPreference {
+    OAuth,
+    ApiKey,
+    Auto,
+}
+
+impl Default for OpenAiAuthPreference {
+    fn default() -> Self {
+        Self::Auto
+    }
+}
+
+impl OpenAiAuthPreference {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "oauth" | "chatgpt" | "subscription" => Some(Self::OAuth),
+            "api" | "api_key" | "apikey" | "key" | "platform" => Some(Self::ApiKey),
+            "auto" | "failover" | "fallback" => Some(Self::Auto),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::OAuth => "oauth",
+            Self::ApiKey => "api_key",
+            Self::Auto => "auto",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAiAccount {
     pub label: String,
@@ -38,6 +71,10 @@ pub struct KcodeOpenAiAuthFile {
     pub openai_accounts: Vec<OpenAiAccount>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_openai_account: Option<String>,
+    #[serde(default)]
+    pub openai_auth_preference: OpenAiAuthPreference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub openai_api_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,6 +224,8 @@ pub fn save_auth_file(auth: &KcodeOpenAiAuthFile) -> Result<()> {
     let clean = KcodeOpenAiAuthFile {
         openai_accounts: auth.openai_accounts.clone(),
         active_openai_account: auth.active_openai_account.clone(),
+        openai_auth_preference: auth.openai_auth_preference,
+        openai_api_key: auth.openai_api_key.clone(),
     };
 
     crate::storage::write_json_secret(&auth_path, &clean)?;
@@ -196,6 +235,66 @@ pub fn save_auth_file(auth: &KcodeOpenAiAuthFile) -> Result<()> {
 pub fn list_accounts() -> Result<Vec<OpenAiAccount>> {
     let auth = load_auth_file()?;
     Ok(auth.openai_accounts)
+}
+
+pub fn auth_preference() -> OpenAiAuthPreference {
+    load_auth_file()
+        .map(|auth| auth.openai_auth_preference)
+        .unwrap_or_default()
+}
+
+pub fn set_auth_preference(preference: OpenAiAuthPreference) -> Result<()> {
+    let mut auth = load_auth_file().unwrap_or_default();
+    auth.openai_auth_preference = preference;
+    save_auth_file(&auth)?;
+    super::AuthStatus::invalidate_cache();
+    Ok(())
+}
+
+pub fn has_stored_api_key() -> bool {
+    load_auth_file()
+        .ok()
+        .and_then(|auth| auth.openai_api_key)
+        .map(|key| !key.trim().is_empty())
+        .unwrap_or(false)
+}
+
+pub fn set_stored_api_key(api_key: Option<String>) -> Result<()> {
+    let mut auth = load_auth_file().unwrap_or_default();
+    auth.openai_api_key = api_key
+        .map(|key| key.trim().to_string())
+        .filter(|key| !key.is_empty());
+    save_auth_file(&auth)?;
+    super::AuthStatus::invalidate_cache();
+    Ok(())
+}
+
+pub fn load_api_key_credentials() -> Result<CodexCredentials> {
+    let stored = load_auth_file()
+        .ok()
+        .and_then(|auth| auth.openai_api_key)
+        .map(|key| key.trim().to_string())
+        .filter(|key| !key.is_empty());
+    let legacy = if legacy_auth_allowed() {
+        load_legacy_api_key_credentials()
+            .ok()
+            .map(|creds| creds.access_token)
+    } else {
+        None
+    };
+    let api_key = stored
+        .or_else(|| std::env::var("OPENAI_API_KEY").ok())
+        .or(legacy)
+        .map(|key| key.trim().to_string())
+        .filter(|key| !key.is_empty())
+        .context("No OpenAI API key found in ~/.kcode/openai-auth.json or OPENAI_API_KEY")?;
+    Ok(CodexCredentials {
+        access_token: api_key,
+        refresh_token: String::new(),
+        id_token: None,
+        account_id: None,
+        expires_at: None,
+    })
 }
 
 pub fn active_account_label() -> Option<String> {
@@ -308,7 +407,16 @@ pub fn update_account_profile(label: &str, email: Option<String>) -> Result<()> 
 }
 
 pub fn load_credentials() -> Result<CodexCredentials> {
-    let env_api_key = load_env_api_key();
+    match auth_preference() {
+        OpenAiAuthPreference::ApiKey => return load_api_key_credentials(),
+        OpenAiAuthPreference::OAuth => return load_oauth_credentials_only(),
+        OpenAiAuthPreference::Auto => {}
+    }
+
+    load_oauth_credentials_only().or_else(|_| load_api_key_credentials())
+}
+
+fn load_oauth_credentials_only() -> Result<CodexCredentials> {
     let now_ms = chrono::Utc::now().timestamp_millis();
     let mut expired_candidates: Vec<(&str, CodexCredentials)> = Vec::new();
     let legacy_allowed = legacy_auth_allowed();
@@ -336,9 +444,8 @@ pub fn load_credentials() -> Result<CodexCredentials> {
             expired_candidates.push(("legacy", creds));
         }
 
-        if let Ok(creds) = load_legacy_api_key_credentials() {
-            return Ok(creds);
-        }
+        // Legacy API keys are handled by load_api_key_credentials() so the
+        // preference/failover policy is centralized.
     }
 
     if let Some(tokens) = crate::auth::external::load_openai_oauth_tokens() {
@@ -359,21 +466,11 @@ pub fn load_credentials() -> Result<CodexCredentials> {
         expired_candidates.push(("external", creds));
     }
 
-    if let Some(api_key) = env_api_key {
-        return Ok(CodexCredentials {
-            access_token: api_key,
-            refresh_token: String::new(),
-            id_token: None,
-            account_id: None,
-            expires_at: None,
-        });
-    }
-
     if let Some((_source, creds)) = expired_candidates.into_iter().next() {
         return Ok(creds);
     }
 
-    anyhow::bail!("No OpenAI tokens or API key found")
+    anyhow::bail!("No OpenAI OAuth tokens found")
 }
 
 pub fn load_credentials_for_account(label: &str) -> Result<CodexCredentials> {
@@ -498,13 +595,6 @@ fn account_from_credentials(
         expires_at: credentials.expires_at,
         email,
     }
-}
-
-fn load_env_api_key() -> Option<String> {
-    std::env::var("OPENAI_API_KEY")
-        .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
 }
 
 pub fn extract_account_id(id_token: &str) -> Option<String> {

@@ -143,6 +143,28 @@ exact excerpt before the next model call instead of relying only on the model to
 notice the summary and request `.ctx_get`. Sensitive-looking content is not
 auto-injected; it still requires an explicit exact-context request.
 
+## OpenAI OAuth, API keys, and failover
+
+Kcode can use OpenAI through ChatGPT/Codex OAuth accounts stored in
+`~/.kcode/openai-auth.json`, a stored OpenAI platform API key, or automatic
+failover. Manage this from the account command UI:
+
+```bash
+# Choose credential behavior
+/account openai auth-mode oauth     # OAuth/subscription only
+/account openai auth-mode api_key   # platform API key only
+/account openai auth-mode auto      # OAuth first, retry with API key on clear limit errors
+
+# Store or clear a platform API key in ~/.kcode/openai-auth.json (0600)
+/account openai api-key sk-...
+/account openai api-key clear
+```
+
+In `auto` mode, Kcode retries a failed OAuth/subscription request once through
+`https://api.openai.com/...` Bearer auth when the error clearly looks like an
+OAuth/subscription limit or quota response. It does not silently use the API key
+when auth mode is `oauth`.
+
 ## Local sidecar model
 
 The default local model identity is:

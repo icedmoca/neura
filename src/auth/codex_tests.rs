@@ -237,8 +237,7 @@ fn load_credentials_ignores_legacy_oauth_without_consent() {
 
     let err = load_credentials().unwrap_err();
     assert!(
-        err.to_string()
-            .contains("No OpenAI tokens or API key found"),
+        err.to_string().contains("No OpenAI API key found"),
         "unexpected error: {err:#}"
     );
 

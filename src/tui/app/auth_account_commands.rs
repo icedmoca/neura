@@ -208,6 +208,22 @@ fn parse_account_command(trimmed: &str) -> Option<Result<AccountCommand, String>
                 }
                 AccountCommand::SetOpenAiTransport(normalize_clearish_value(value))
             }
+            "auth-mode" | "auth" if provider.id == "openai" => {
+                if value.is_empty() {
+                    return Some(Err(
+                        "Usage: `/account openai auth-mode <oauth|api_key|auto>`".to_string(),
+                    ));
+                }
+                AccountCommand::SetOpenAiAuthMode(Some(value.to_string()))
+            }
+            "api-key" if provider.id == "openai" => {
+                if value.is_empty() {
+                    return Some(Err(
+                        "Usage: `/account openai api-key <sk-...|clear>`".to_string()
+                    ));
+                }
+                AccountCommand::SetOpenAiApiKey(normalize_clearish_value(value))
+            }
             "effort" if provider.id == "openai" => {
                 if value.is_empty() {
                     return Some(Err(
@@ -338,6 +354,12 @@ fn execute_account_command_local(app: &mut App, command: AccountCommand) {
         AccountCommand::SetDefaultModel(model) => save_default_model_setting(app, model.as_deref()),
         AccountCommand::SetOpenAiTransport(value) => {
             save_openai_transport_setting_local(app, value.as_deref())
+        }
+        AccountCommand::SetOpenAiAuthMode(value) => {
+            save_openai_auth_mode_setting_local(app, value.as_deref())
+        }
+        AccountCommand::SetOpenAiApiKey(value) => {
+            save_openai_api_key_setting_local(app, value.as_deref())
         }
         AccountCommand::SetOpenAiEffort(value) => {
             save_openai_effort_setting_local(app, value.as_deref())
@@ -627,6 +649,52 @@ fn save_openai_transport_setting_local(app: &mut App, value: Option<&str>) {
     }
 }
 
+fn save_openai_auth_mode_setting_local(app: &mut App, value: Option<&str>) {
+    let Some(value) = value else {
+        app.push_display_message(DisplayMessage::error(
+            "OpenAI auth mode must be `oauth`, `api_key`, or `auto`.".to_string(),
+        ));
+        return;
+    };
+    let Some(preference) = crate::auth::codex::OpenAiAuthPreference::parse(value) else {
+        app.push_display_message(DisplayMessage::error(
+            "OpenAI auth mode must be `oauth`, `api_key`, or `auto`.".to_string(),
+        ));
+        return;
+    };
+    match crate::auth::codex::set_auth_preference(preference) {
+        Ok(()) => {
+            app.provider.on_auth_changed();
+            app.push_display_message(DisplayMessage::system(format!(
+                "Saved OpenAI auth mode: **{}**.",
+                preference.as_str()
+            )));
+        }
+        Err(err) => app.push_display_message(DisplayMessage::error(format!(
+            "Failed to save OpenAI auth mode: {}",
+            err
+        ))),
+    }
+}
+
+fn save_openai_api_key_setting_local(app: &mut App, value: Option<&str>) {
+    match crate::auth::codex::set_stored_api_key(value.map(str::to_string)) {
+        Ok(()) => {
+            app.provider.on_auth_changed();
+            let msg = if value.is_some() {
+                "Saved OpenAI API key in ~/.kcode/openai-auth.json (0600)."
+            } else {
+                "Cleared stored OpenAI API key."
+            };
+            app.push_display_message(DisplayMessage::system(msg.to_string()));
+        }
+        Err(err) => app.push_display_message(DisplayMessage::error(format!(
+            "Failed to save OpenAI API key: {}",
+            err
+        ))),
+    }
+}
+
 fn save_openai_effort_setting_local(app: &mut App, value: Option<&str>) {
     if let Some(value) = value
         && !matches!(value, "none" | "low" | "medium" | "high" | "xhigh")
@@ -887,6 +955,18 @@ fn render_provider_settings_markdown(app: &App, provider_id: &str) -> String {
             lines.push(String::new());
             lines.push("**Settings**".to_string());
             lines.push(format!(
+                "- Auth mode: `{}`",
+                crate::auth::codex::auth_preference().as_str()
+            ));
+            lines.push(format!(
+                "- Stored API key: `{}`",
+                if crate::auth::codex::has_stored_api_key() {
+                    "configured"
+                } else {
+                    "not configured"
+                }
+            ));
+            lines.push(format!(
                 "- Transport: `{}`",
                 cfg.provider.openai_transport.as_deref().unwrap_or("auto")
             ));
@@ -905,6 +985,8 @@ fn render_provider_settings_markdown(app: &App, provider_id: &str) -> String {
                     "off"
                 }
             ));
+            lines.push("- `/account openai auth-mode <oauth|api_key|auto>`".to_string());
+            lines.push("- `/account openai api-key <sk-...|clear>`".to_string());
             lines.push("- `/account openai transport <auto|https|websocket>`".to_string());
             lines.push("- `/account openai effort <none|low|medium|high|xhigh|clear>`".to_string());
             lines.push("- `/account openai fast <on|off>`".to_string());

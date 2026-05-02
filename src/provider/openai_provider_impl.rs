@@ -127,6 +127,7 @@ impl Provider for OpenAIProvider {
             let mut last_error = None;
             let mut force_https_for_request = false;
             let mut skip_backoff_once = false;
+            let mut api_key_failover_used = false;
 
             for attempt in 0..MAX_RETRIES {
                 if attempt > 0 {
@@ -281,6 +282,29 @@ impl Provider for OpenAIProvider {
                     Err(OpenAIStreamFailure::Other(error)) => {
                         let elapsed_ms = attempt_started.elapsed().as_millis();
                         let error_str = error.to_string().to_lowercase();
+                        if !api_key_failover_used
+                            && crate::auth::codex::auth_preference()
+                                == crate::auth::codex::OpenAiAuthPreference::Auto
+                            && oauth_limit_error_allows_api_key_failover(&error_str)
+                            && credentials.read().await.refresh_token.is_empty().eq(&false)
+                            && let Ok(api_key_creds) =
+                                crate::auth::codex::load_api_key_credentials()
+                        {
+                            crate::logging::warn(
+                                "OpenAI OAuth/subscription route appears limited; retrying once with stored API key",
+                            );
+                            emit_status_detail(
+                                &tx,
+                                "OAuth limited; retrying with OpenAI API key".to_string(),
+                            )
+                            .await;
+                            *credentials.write().await = api_key_creds;
+                            api_key_failover_used = true;
+                            force_https_for_request = true;
+                            skip_backoff_once = true;
+                            last_error = Some(error);
+                            continue;
+                        }
                         if is_retryable_error(&error_str) && attempt + 1 < MAX_RETRIES {
                             crate::logging::info(&format!(
                                 "Transient error after {}ms, will retry: {}",
@@ -617,4 +641,23 @@ impl Provider for OpenAIProvider {
 
         self.clear_persistent_ws("credentials invalidated").await;
     }
+}
+
+fn oauth_limit_error_allows_api_key_failover(error: &str) -> bool {
+    let status_limited = error.contains("429")
+        || error.contains("rate limited")
+        || error.contains("rate_limit")
+        || error.contains("too many requests")
+        || error.contains("usage limit")
+        || error.contains("limit reached")
+        || error.contains("quota")
+        || error.contains("subscription")
+        || error.contains("temporarily unavailable");
+    let auth_limited = error.contains("chatgpt")
+        || error.contains("codex")
+        || error.contains("oauth")
+        || error.contains("subscription")
+        || error.contains("5-hour")
+        || error.contains("weekly");
+    status_limited && auth_limited
 }
