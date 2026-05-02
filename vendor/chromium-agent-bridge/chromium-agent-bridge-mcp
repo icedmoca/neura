@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""MCP stdio server for Chromium Agent Bridge."""
+import json, os, subprocess, sys, traceback
+from pathlib import Path
+
+BRIDGE = os.environ.get('KCODE_CHROMIUM_BRIDGE_BIN', str(Path(__file__).resolve().parent/'chromium-agent-bridge'))
+
+def send(obj):
+    sys.stdout.write(json.dumps(obj, separators=(',', ':'))+'\n')
+    sys.stdout.flush()
+
+def result(id, value): send({'jsonrpc':'2.0','id':id,'result':value})
+def error(id, code, msg): send({'jsonrpc':'2.0','id':id,'error':{'code':code,'message':msg}})
+
+def run_bridge(action, params):
+    p = subprocess.run([BRIDGE, action, json.dumps(params or {})], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=35)
+    if p.returncode != 0:
+        raise RuntimeError((p.stderr or p.stdout).strip() or f'bridge exited {p.returncode}')
+    out=(p.stdout or '').strip()
+    return json.loads(out) if out else {}
+
+TOOLS = [
+    {'name':'chromium_ping','description':'Ping the Chromium Agent Bridge extension/server.','inputSchema':{'type':'object','properties':{}}},
+    {'name':'chromium_list_tabs','description':'List tabs/windows visible to the Chromium bridge.','inputSchema':{'type':'object','properties':{}}},
+    {'name':'chromium_navigate','description':'Navigate active or specified Chromium tab.','inputSchema':{'type':'object','properties':{'url':{'type':'string'},'tabId':{'type':'number'},'newTab':{'type':'boolean'},'wait':{'type':'boolean'}},'required':['url']}},
+    {'name':'chromium_new_tab','description':'Open a new Chromium tab/session.','inputSchema':{'type':'object','properties':{'url':{'type':'string'},'active':{'type':'boolean'}}}},
+    {'name':'chromium_close_tab','description':'Close a Chromium tab.','inputSchema':{'type':'object','properties':{'tabId':{'type':'number'}},'required':['tabId']}},
+    {'name':'chromium_get_content','description':'Get content from active or specified Chromium tab.','inputSchema':{'type':'object','properties':{'format':{'type':'string','enum':['text','html','annotated']},'tabId':{'type':'number'}}}},
+    {'name':'chromium_click','description':'Click an element by selector, text, or coordinates.','inputSchema':{'type':'object','properties':{'selector':{'type':'string'},'text':{'type':'string'},'x':{'type':'number'},'y':{'type':'number'},'tabId':{'type':'number'}}}},
+    {'name':'chromium_type','description':'Type into an editable element.','inputSchema':{'type':'object','properties':{'selector':{'type':'string'},'text':{'type':'string'},'submit':{'type':'boolean'},'tabId':{'type':'number'}},'required':['text']}},
+    {'name':'chromium_screenshot','description':'Capture visible Chromium tab screenshot as data URL.','inputSchema':{'type':'object','properties':{'tabId':{'type':'number'},'format':{'type':'string'}}}},
+]
+ACTION = {
+ 'chromium_ping':'ping', 'chromium_list_tabs':'listTabs', 'chromium_navigate':'navigate', 'chromium_new_tab':'newSession',
+ 'chromium_close_tab':'closeTab', 'chromium_get_content':'getContent', 'chromium_click':'click', 'chromium_type':'type', 'chromium_screenshot':'screenshot'
+}
+
+def handle(req):
+    mid=req.get('id'); method=req.get('method'); params=req.get('params') or {}
+    if method == 'initialize':
+        return result(mid, {'protocolVersion':'2024-11-05','capabilities':{'tools':{}},'serverInfo':{'name':'chromium-agent-bridge-mcp','version':'0.1.0'}})
+    if method == 'notifications/initialized':
+        return
+    if method == 'tools/list':
+        return result(mid, {'tools':TOOLS})
+    if method == 'tools/call':
+        name=params.get('name'); args=params.get('arguments') or {}
+        if name not in ACTION: return error(mid, -32602, f'Unknown tool {name}')
+        try:
+            val=run_bridge(ACTION[name], args)
+            return result(mid, {'content':[{'type':'text','text':json.dumps(val, indent=2)}], 'isError': False})
+        except Exception as e:
+            return result(mid, {'content':[{'type':'text','text':str(e)}], 'isError': True})
+    return error(mid, -32601, f'Method not found: {method}')
+
+for line in sys.stdin:
+    try:
+        if not line.strip(): continue
+        handle(json.loads(line))
+    except Exception as e:
+        traceback.print_exc(file=sys.stderr)
+        try: error(None, -32603, str(e))
+        except Exception: pass

@@ -10,6 +10,7 @@ MODEL_DIR="$KCODE_HOME/models/gguf"
 BIN_DIR="${KCODE_BIN_DIR:-$HOME/.local/bin}"
 BUILD_PROFILE="${KCODE_BUILD_PROFILE:-release}"
 SKIP_MODEL="${KCODE_SKIP_MODEL:-0}"
+SKIP_CHROMIUM_MCP="${KCODE_SKIP_CHROMIUM_MCP:-0}"
 
 log() { printf '\033[1;32m[kcode install]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[kcode install]\033[0m %s\n' "$*" >&2; }
@@ -34,6 +35,7 @@ EOF
 
 for cmd in git curl; do have "$cmd" || { install_deps_hint; fail "missing command: $cmd"; }; done
 if ! have cargo; then install_deps_hint; fail "missing command: cargo"; fi
+if [ "$SKIP_CHROMIUM_MCP" != "1" ] && ! have python3; then fail "missing command: python3 (needed for bundled Chromium MCP bridge; set KCODE_SKIP_CHROMIUM_MCP=1 to skip)"; fi
 
 mkdir -p "$KCODE_HOME" "$MODEL_DIR" "$BIN_DIR"
 
@@ -92,6 +94,42 @@ mv -f "$KCODE_HOME/builds/stable/jcode.new" "$KCODE_HOME/builds/stable/jcode"
 ln -sfn "versions/$VERSION" "$KCODE_HOME/builds/current"
 printf '%s\n' "$VERSION" > "$KCODE_HOME/builds/current-version"
 printf '%s\n' "$VERSION" > "$KCODE_HOME/builds/stable-version"
+
+if [ "$SKIP_CHROMIUM_MCP" != "1" ] && [ -d "$SRC_DIR/vendor/chromium-agent-bridge" ]; then
+  BRIDGE_DIR="$KCODE_HOME/chromium-agent-bridge"
+  log "installing Chromium MCP bridge -> $BRIDGE_DIR"
+  rm -rf "$BRIDGE_DIR.tmp"
+  mkdir -p "$BRIDGE_DIR.tmp"
+  cp -R "$SRC_DIR/vendor/chromium-agent-bridge/." "$BRIDGE_DIR.tmp/"
+  chmod +x "$BRIDGE_DIR.tmp/chromium-agent-bridge" "$BRIDGE_DIR.tmp/chromium-agent-bridge-mcp"
+  rm -rf "$BRIDGE_DIR"
+  mv "$BRIDGE_DIR.tmp" "$BRIDGE_DIR"
+
+  MCP_JSON="$KCODE_HOME/mcp.json" BRIDGE_MCP="$BRIDGE_DIR/chromium-agent-bridge-mcp" python3 <<'PY'
+import json, os
+from pathlib import Path
+
+path = Path(os.environ['MCP_JSON'])
+bridge_mcp = os.environ['BRIDGE_MCP']
+try:
+    data = json.loads(path.read_text()) if path.exists() else {}
+except json.JSONDecodeError:
+    backup = path.with_suffix(path.suffix + '.bak')
+    path.replace(backup)
+    data = {}
+
+servers = data.setdefault('servers', {})
+servers['chromium-agent-bridge'] = {
+    'command': bridge_mcp,
+    'args': [],
+    'env': {},
+    'shared': True,
+}
+path.write_text(json.dumps(data, indent=2) + '\n')
+PY
+  log "registered MCP server: chromium-agent-bridge"
+  warn "Chrome requires one manual step: load unpacked extension from $BRIDGE_DIR/extension"
+fi
 
 cat > "$BIN_DIR/kcode" <<EOF
 #!/usr/bin/env bash

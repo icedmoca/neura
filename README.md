@@ -28,7 +28,8 @@ The installer will:
 3. Store the model inside your Kcode home at:
    `~/.kcode/models/gguf/kcode-oss-20b-mxfp4.gguf`.
 4. Build the `kcode` binary with Cargo.
-5. Install command wrappers into `~/.local/bin/kcode` and `~/.local/bin/jcode`.
+5. Install and register the bundled Chromium MCP bridge.
+6. Install command wrappers into `~/.local/bin/kcode` and `~/.local/bin/jcode`.
 
 After install:
 
@@ -76,9 +77,36 @@ KCODE_REPO_URL="https://github.com/yourname/kcode.git" bash install/install.sh
 # Skip downloading the model
 KCODE_SKIP_MODEL=1 bash install/install.sh
 
+# Skip installing the bundled Chromium MCP bridge
+KCODE_SKIP_CHROMIUM_MCP=1 bash install/install.sh
+
 # Debug build instead of release
 KCODE_BUILD_PROFILE=debug bash install/install.sh
 ```
+
+## Bundled Chromium MCP bridge
+
+The repository includes the Chromium MCP bridge in `vendor/chromium-agent-bridge`.
+The installer copies it into `~/.kcode/chromium-agent-bridge` and writes this MCP
+registration to `~/.kcode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "chromium-agent-bridge": {
+      "command": "~/.kcode/chromium-agent-bridge/chromium-agent-bridge-mcp",
+      "args": [],
+      "env": {},
+      "shared": true
+    }
+  }
+}
+```
+
+The bundled bridge includes the MCP server script, local WebSocket bridge, Chrome
+extension source, and packaged extension zip. Chrome still requires one manual
+browser step after install: open `chrome://extensions`, enable Developer mode,
+choose **Load unpacked**, and select `~/.kcode/chromium-agent-bridge/extension`.
 
 ## Local sidecar model
 

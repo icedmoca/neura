@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""Chromium Agent Bridge local server/CLI.
+
+Usage:
+  chromium-agent-bridge serve
+  chromium-agent-bridge ping
+  chromium-agent-bridge listTabs
+  chromium-agent-bridge navigate '{"url":"https://example.com"}'
+  chromium-agent-bridge closeTab '{"tabId":123}'
+"""
+import base64, hashlib, json, os, queue, socket, struct, sys, threading, time, subprocess, signal
+from pathlib import Path
+
+HOST='127.0.0.1'; PORT=8767; GUID='258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+BASE=Path(os.environ.get('KCODE_CHROMIUM_BRIDGE_HOME', Path(__file__).resolve().parent))
+PID=BASE/'server.pid'; LOG=BASE/'server.log'
+clients=set(); clients_lock=threading.Lock(); pending={}; pending_lock=threading.Lock(); counter=0
+
+def log(s):
+    BASE.mkdir(parents=True, exist_ok=True)
+    with open(LOG,'a') as f: f.write(time.strftime('%F %T ')+s+'\n')
+
+def nid():
+    global counter; counter+=1; return f'cli_{int(time.time()*1000)}_{counter}'
+
+def recv_exact(sock,n):
+    b=bytearray()
+    while len(b)<n:
+        c=sock.recv(n-len(b))
+        if not c: raise ConnectionError('closed')
+        b.extend(c)
+    return bytes(b)
+
+def ws_send(sock, payload, opcode=1):
+    if isinstance(payload,dict): payload=json.dumps(payload,separators=(',',':'))
+    if isinstance(payload,str): payload=payload.encode()
+    l=len(payload); h=bytearray([0x80|opcode])
+    if l<126: h.append(l)
+    elif l<65536: h += bytes([126])+struct.pack('!H',l)
+    else: h += bytes([127])+struct.pack('!Q',l)
+    sock.sendall(bytes(h)+payload)
+
+def ws_recv(sock):
+    h=sock.recv(2)
+    if not h: return None
+    b1,b2=h[0],h[1]; op=b1&15; masked=b2&128; l=b2&127
+    if l==126: l=struct.unpack('!H',recv_exact(sock,2))[0]
+    elif l==127: l=struct.unpack('!Q',recv_exact(sock,8))[0]
+    mask=recv_exact(sock,4) if masked else b''
+    p=bytearray(recv_exact(sock,l)) if l else bytearray()
+    if masked:
+        for i in range(len(p)): p[i]^=mask[i%4]
+    if op==8: return None
+    if op==9: ws_send(sock,bytes(p),10); return ''
+    if op!=1: return ''
+    return p.decode()
+
+def handshake(conn):
+    req=b''
+    while b'\r\n\r\n' not in req:
+        c=conn.recv(4096)
+        if not c: return None
+        req+=c
+        if len(req)>65536: return None
+    lines=req.decode('iso-8859-1','replace').split('\r\n')
+    first=lines[0].split(' ')[1] if lines and ' ' in lines[0] else '/'
+    key=None
+    for line in lines:
+        if line.lower().startswith('sec-websocket-key:'): key=line.split(':',1)[1].strip()
+    if not key: return None
+    accept=base64.b64encode(hashlib.sha1((key+GUID).encode()).digest()).decode()
+    conn.sendall((f'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n').encode())
+    return first
+
+class Client:
+    def __init__(self,sock,role):
+        self.sock=sock; self.role=role; self.q=queue.Queue(); self.alive=True
+        threading.Thread(target=self.writer,daemon=True).start()
+    def send(self,msg):
+        if self.alive: self.q.put(msg)
+    def writer(self):
+        while self.alive:
+            m=self.q.get()
+            if m is None: break
+            try: ws_send(self.sock,m)
+            except Exception as e: log(f'writer {self.role}: {e}'); self.alive=False; break
+    def close(self):
+        self.alive=False
+        try: self.q.put(None); self.sock.close()
+        except Exception: pass
+
+def extension_client():
+    with clients_lock:
+        for c in clients:
+            if c.role=='extension' and c.alive: return c
+    return None
+
+def handle(conn,addr):
+    c=None
+    try:
+        path=handshake(conn)
+        role='extension' if path and 'extension' in path else 'cli'
+        c=Client(conn,role)
+        with clients_lock: clients.add(c)
+        c.send({'type':'ready','role':role,'port':PORT})
+        while c.alive:
+            text=ws_recv(conn)
+            if text is None: break
+            if not text: continue
+            msg=json.loads(text)
+            if role=='extension':
+                mid=msg.get('id')
+                if mid:
+                    with pending_lock: dest=pending.pop(mid,None)
+                    if dest: dest.send(msg)
+                else:
+                    log('extension '+json.dumps(msg)[:500])
+            else:
+                ext=extension_client()
+                if not ext:
+                    c.send({'id':msg.get('id'),'ok':False,'error':'Chromium extension not connected. Load the extension from ~/.kcode/chromium-agent-bridge/extension'})
+                    continue
+                mid=msg.get('id') or nid(); msg['id']=mid
+                with pending_lock: pending[mid]=c
+                ext.send(msg)
+    except Exception as e: log(f'client {addr}: {e}')
+    finally:
+        if c:
+            with clients_lock: clients.discard(c)
+            c.close()
+
+def serve():
+    BASE.mkdir(parents=True, exist_ok=True); PID.write_text(str(os.getpid()))
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    s=socket.socket(); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); s.bind((HOST,PORT)); s.listen(50)
+    log(f'listening ws://{HOST}:{PORT}')
+    while True:
+        conn,addr=s.accept(); threading.Thread(target=handle,args=(conn,addr),daemon=True).start()
+
+def server_alive():
+    if not PID.exists(): return False
+    try: os.kill(int(PID.read_text().strip()),0); return True
+    except Exception: return False
+
+def start_server():
+    if server_alive(): return
+    subprocess.Popen([sys.executable, __file__, 'serve'], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    for _ in range(30):
+        if server_alive(): return
+        time.sleep(.1)
+
+def ws_client(action, params):
+    start_server()
+    sock=socket.create_connection((HOST,PORT), timeout=5)
+    key=base64.b64encode(os.urandom(16)).decode()
+    sock.sendall((f'GET /cli HTTP/1.1\r\nHost: {HOST}:{PORT}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n').encode())
+    data=b''
+    while b'\r\n\r\n' not in data: data+=sock.recv(4096)
+    rid=nid(); ws_send(sock, {'id':rid,'action':action,'params':params})
+    deadline=time.time()+30
+    while time.time()<deadline:
+        t=ws_recv(sock)
+        if not t: continue
+        msg=json.loads(t)
+        if msg.get('id')==rid:
+            return msg
+    return {'id':rid,'ok':False,'error':'timeout'}
+
+def status():
+    start_server()
+    ext = False
+    # ask server by trying ping through extension
+    r=ws_client('ping',{})
+    print(json.dumps({'server':server_alive(),'extensionConnected':bool(r.get('ok')), 'ping':r}, indent=2))
+    return 0 if r.get('ok') else 1
+
+def main():
+    if len(sys.argv)<2 or sys.argv[1] in ('help','--help','-h'):
+        print(__doc__.strip()); return 0
+    cmd=sys.argv[1]
+    if cmd=='serve': serve(); return 0
+    if cmd=='start': start_server(); print('started' if server_alive() else 'failed'); return 0 if server_alive() else 1
+    if cmd=='status': return status()
+    params={}
+    if len(sys.argv)>2:
+        params=json.loads(sys.argv[2])
+    r=ws_client(cmd,params)
+    if r.get('ok'):
+        print(json.dumps(r.get('result'), indent=2)); return 0
+    print('Error: '+str(r.get('error')), file=sys.stderr); return 1
+if __name__=='__main__': raise SystemExit(main())
