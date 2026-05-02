@@ -10,6 +10,8 @@ Kcode is a local first coding agent harness with a terminal UI, tool orchestrati
 
 For a detailed architecture explanation, see [ABOUT.md](ABOUT.md).
 
+For details on hallucination mitigation, exact context rehydration, and real token-saving data, see [HALLUCINATION_MITIGATION.md](HALLUCINATION_MITIGATION.md).
+
 ## One-command install
 
 Run this in a terminal:
