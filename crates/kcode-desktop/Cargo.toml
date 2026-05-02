@@ -1,0 +1,16 @@
+[package]
+name = "kcode-desktop"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+anyhow = "1"
+bytemuck = { version = "1", features = ["derive"] }
+glyphon = "0.5"
+libc = "0.2"
+pollster = "0.3"
+pulldown-cmark = "0.12"
+serde_json = "1"
+wgpu = "0.19"
+winit = "0.29"

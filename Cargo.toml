@@ -1,0 +1,188 @@
+[package]
+name = "kcode"
+version = "0.10.3"
+description = "Possibly the greatest coding agent ever built — blazing-fast TUI, multi-model, swarm coordination, 30+ tools"
+edition = "2024"
+
+[workspace]
+members = [
+    ".",
+    "crates/kcode-agent-runtime",
+    "crates/kcode-embedding",
+    "crates/kcode-pdf",
+    "crates/kcode-azure-auth",
+    "crates/kcode-notify-email",
+    "crates/kcode-provider-metadata",
+    "crates/kcode-provider-core",
+    "crates/kcode-provider-openrouter",
+    "crates/kcode-provider-gemini",
+    "crates/kcode-tui-workspace",
+    "crates/kcode-mobile-core",
+    "crates/kcode-mobile-sim",
+    "crates/kcode-desktop",
+]
+
+[lib]
+name = "kcode"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kcode"
+path = "src/main.rs"
+
+[[bin]]
+name = "test_api"
+path = "src/bin/test_api.rs"
+
+[[bin]]
+name = "kcode-harness"
+path = "src/bin/harness.rs"
+
+[dependencies]
+# Memory allocator (reduces fragmentation for long-running server)
+tikv-jemallocator = { version = "0.6", features = ["unprefixed_malloc_on_supported_platforms"], optional = true }
+tikv-jemalloc-ctl = { version = "0.6", optional = true }
+tikv-jemalloc-sys = { version = "0.6", optional = true }
+
+# Async runtime
+tokio = { version = "1", features = ["full", "process"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "stream", "blocking"] }
+tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "rustls-tls-native-roots"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokenizers = "0.21.4"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# File operations
+glob = "0.3"
+ignore = "0.4"           # gitignore-aware file walking
+walkdir = "2"
+similar = "2"            # diffing for edits
+
+# Utilities
+dirs = "5"               # home directory
+anyhow = "1"
+thiserror = "1"
+libc = "0.2"             # Unix system calls (flock)
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1"
+urlencoding = "2"        # URL encoding for web search
+uuid = { version = "1", features = ["v4", "v5"] }
+proctitle = "0.1"
+
+# Embeddings (local inference) - behind feature flag (163 crates, slow to compile)
+kcode-embedding = { path = "crates/kcode-embedding", optional = true }
+
+# OAuth
+base64 = "0.22"
+sha2 = "0.10"
+rand = "0.9.3"
+hex = "0.4"
+url = "2"
+open = "5"               # Open URLs in browser
+kcode-azure-auth = { path = "crates/kcode-azure-auth" }
+kcode-agent-runtime = { path = "crates/kcode-agent-runtime" }
+kcode-notify-email = { path = "crates/kcode-notify-email" }
+kcode-provider-metadata = { path = "crates/kcode-provider-metadata" }
+kcode-provider-core = { path = "crates/kcode-provider-core" }
+kcode-provider-openrouter = { path = "crates/kcode-provider-openrouter" }
+kcode-provider-gemini = { path = "crates/kcode-provider-gemini" }
+kcode-tui-workspace = { path = "crates/kcode-tui-workspace" }
+
+# Streaming
+tokio-stream = "0.1"
+bytes = "1"
+
+# TUI
+ratatui = "0.30"
+crossterm = { version = "0.28", features = ["event-stream"] }
+arboard = "3"              # Clipboard support
+ratatui-image = { version = "10.0.6", default-features = false, features = ["crossterm"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }  # Only PNG/JPEG (skip avif/rav1e, exr, gif, tiff, etc)
+resvg = "0.46"
+usvg = "0.46"
+
+# Markdown & syntax highlighting
+syntect = { version = "5", default-features = false, features = ["default-syntaxes", "default-themes", "regex-fancy"] }
+pulldown-cmark = "0.12"
+unicode-width = "0.2"   # Unicode character display width
+
+# PDF parsing (behind feature flag)
+kcode-pdf = { path = "crates/kcode-pdf", optional = true }
+
+# Archive extraction (for auto-update)
+flate2 = "1"
+tar = "0.4"
+tempfile = "3"
+
+# Mermaid diagram rendering (stable v0.2.0 tag)
+mermaid-rs-renderer = { git = "https://github.com/1jehuang/mermaid-rs-renderer.git", tag = "v0.2.1" }
+agentgrep = { git = "https://github.com/1jehuang/agentgrep.git", tag = "v0.1.2" }
+qr2term = "0.3.3"
+
+[features]
+default = ["embeddings", "pdf"]
+jemalloc = [
+    "dep:tikv-jemallocator",
+    "dep:tikv-jemalloc-ctl",
+    "dep:tikv-jemalloc-sys",
+    "tikv-jemallocator/stats",
+    "tikv-jemalloc-ctl/stats",
+]
+jemalloc-prof = [
+    "jemalloc",
+    "tikv-jemallocator/profiling",
+    "tikv-jemalloc-ctl/profiling",
+]
+embeddings = ["dep:kcode-embedding"]
+pdf = ["dep:kcode-pdf"]
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+global-hotkey = "0.7"
+
+[profile.release]
+opt-level = 1
+debug = 0
+codegen-units = 256
+incremental = true
+
+[profile.selfdev]
+inherits = "release"
+opt-level = 0
+
+# Full LTO release for stable/distribution builds
+[profile.release-lto]
+inherits = "release"
+lto = "thin"
+codegen-units = 16
+incremental = false
+
+[profile.dev]
+debug = 0
+incremental = true
+
+[profile.dev.package."*"]
+opt-level = 0
+
+[profile.test]
+debug = 0
+incremental = true
+codegen-units = 256
+
+[dev-dependencies]
+async-stream = "0.3"
+
+[build-dependencies]

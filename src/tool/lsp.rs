@@ -1,0 +1,94 @@
+use super::{Tool, ToolContext, ToolOutput};
+use anyhow::Result;
+use async_trait::async_trait;
+use serde::Deserialize;
+use serde_json::{Value, json};
+use std::path::Path;
+
+const OPERATIONS: &[&str] = &[
+    "goToDefinition",
+    "findReferences",
+    "hover",
+    "documentSymbol",
+    "workspaceSymbol",
+    "goToImplementation",
+    "prepareCallHierarchy",
+    "incomingCalls",
+    "outgoingCalls",
+];
+
+pub struct LspTool;
+
+impl LspTool {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+#[derive(Deserialize)]
+struct LspInput {
+    operation: String,
+    file_path: String,
+    line: u32,
+    character: u32,
+}
+
+#[async_trait]
+impl Tool for LspTool {
+    fn name(&self) -> &str {
+        "lsp"
+    }
+
+    fn description(&self) -> &str {
+        "Run an LSP operation. Stub only: LSP is not integrated yet, so prefer agentgrep/read for symbol inspection."
+    }
+
+    fn parameters_schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "required": ["operation", "file_path", "line", "character"],
+            "properties": {
+                "intent": super::intent_schema_property(),
+                "operation": {
+                    "type": "string",
+                    "enum": OPERATIONS,
+                    "description": "LSP operation."
+                },
+                "file_path": {
+                    "type": "string",
+                    "description": "File path."
+                },
+                "line": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "1-based line."
+                },
+                "character": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "1-based character."
+                }
+            }
+        })
+    }
+
+    async fn execute(&self, input: Value, ctx: ToolContext) -> Result<ToolOutput> {
+        let params: LspInput = serde_json::from_value(input)?;
+        if !OPERATIONS.contains(&params.operation.as_str()) {
+            return Err(anyhow::anyhow!(
+                "Unsupported LSP operation: {}",
+                params.operation
+            ));
+        }
+
+        let path = ctx.resolve_path(Path::new(&params.file_path));
+        if !path.exists() {
+            return Err(anyhow::anyhow!("File not found: {}", params.file_path));
+        }
+
+        Ok(ToolOutput::new(format!(
+            "LSP is not integrated in kcode yet. Requested: {} at {}:{}:{}.\nUse grep or read to inspect symbols.",
+            params.operation, params.file_path, params.line, params.character
+        )))
+    }
+}

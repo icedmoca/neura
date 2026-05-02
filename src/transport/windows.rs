@@ -1,0 +1,421 @@
+use sha2::{Digest, Sha256};
+use std::io;
+use std::path::Path;
+use std::sync::Arc;
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::net::windows::named_pipe::{
+    ClientOptions, NamedPipeClient, NamedPipeServer, ServerOptions,
+};
+use tokio::sync::Mutex;
+
+/// Convert a filesystem path to a Windows named pipe path.
+///
+/// e.g. `/run/user/1000/kcode.sock` -> `\\.\pipe\kcode`
+/// e.g. `/run/user/1000/kcode/myserver.sock` -> `\\.\pipe\kcode-myserver`
+fn path_to_pipe_name(path: &Path) -> String {
+    let stem: String = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("kcode")
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_'))
+        .take(32)
+        .collect();
+    let stem = if stem.is_empty() { "kcode" } else { &stem };
+    let normalized = path
+        .to_string_lossy()
+        .replace('\\', "/")
+        .to_ascii_lowercase();
+    let digest = Sha256::digest(normalized.as_bytes());
+    let hash = hex::encode(digest);
+    format!(r"\\.\pipe\{}-{}", stem, &hash[..16])
+}
+
+/// Listener wraps a Windows named pipe server, providing an accept loop
+/// that matches the UnixListener interface.
+pub struct Listener {
+    pipe_name: String,
+    current_server: NamedPipeServer,
+}
+
+impl Listener {
+    pub fn bind(path: &Path) -> io::Result<Self> {
+        let pipe_name = path_to_pipe_name(path);
+        match ServerOptions::new()
+            .first_pipe_instance(true)
+            .create(&pipe_name)
+        {
+            Ok(server) => Ok(Self {
+                pipe_name,
+                current_server: server,
+            }),
+            Err(e)
+                if e.raw_os_error()
+                    == Some(windows_sys::Win32::Foundation::ERROR_ACCESS_DENIED as i32) =>
+            {
+                eprintln!(
+                    "[windows] Named pipe {} busy (access denied), retrying without first_pipe_instance",
+                    pipe_name
+                );
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                let server = ServerOptions::new().create(&pipe_name)?;
+                Ok(Self {
+                    pipe_name,
+                    current_server: server,
+                })
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    pub async fn accept(&mut self) -> io::Result<(Stream, PipeAddr)> {
+        self.current_server.connect().await?;
+
+        let connected = std::mem::replace(
+            &mut self.current_server,
+            ServerOptions::new().create(&self.pipe_name)?,
+        );
+
+        Ok((Stream::Server(connected), PipeAddr))
+    }
+}
+
+/// Placeholder for the "address" of a named pipe connection.
+pub struct PipeAddr;
+
+/// Stream wraps either a NamedPipeServer (accepted connection) or
+/// NamedPipeClient (outgoing connection).
+pub enum Stream {
+    Server(NamedPipeServer),
+    Client(NamedPipeClient),
+}
+
+impl Stream {
+    pub async fn connect(path: impl AsRef<Path>) -> io::Result<Self> {
+        let pipe_name = path_to_pipe_name(path.as_ref());
+        loop {
+            match ClientOptions::new().open(&pipe_name) {
+                Ok(client) => return Ok(Stream::Client(client)),
+                Err(e)
+                    if e.raw_os_error()
+                        == Some(windows_sys::Win32::Foundation::ERROR_PIPE_BUSY as i32) =>
+                {
+                    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    pub fn into_split(self) -> (ReadHalf, WriteHalf) {
+        let shared = Arc::new(Mutex::new(self));
+        (
+            ReadHalf {
+                inner: Arc::clone(&shared),
+            },
+            WriteHalf { inner: shared },
+        )
+    }
+
+    pub fn split(&mut self) -> (SplitReadRef<'_>, SplitWriteRef<'_>) {
+        let ptr = self as *mut Stream;
+        unsafe {
+            (
+                SplitReadRef { stream: &mut *ptr },
+                SplitWriteRef { stream: &mut *ptr },
+            )
+        }
+    }
+
+    pub fn pair() -> io::Result<(Self, Self)> {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static PAIR_COUNTER: AtomicU64 = AtomicU64::new(0);
+        let counter = PAIR_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let pipe_name = format!(r"\\.\pipe\kcode-pair-{}-{}", std::process::id(), counter);
+        let mut server = ServerOptions::new()
+            .first_pipe_instance(true)
+            .create(&pipe_name)?;
+        let client = ClientOptions::new().open(&pipe_name)?;
+
+        // The client connected when we opened it above, but the server must
+        // call connect() to transition into the connected state.  For an
+        // already-connected client this returns immediately.
+        //
+        // We use a short-lived runtime-free poll: since the client already
+        // connected synchronously, the server's connect future will resolve
+        // on the first poll.
+        use std::future::Future;
+        use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+        fn dummy_raw_waker() -> RawWaker {
+            fn no_op(_: *const ()) {}
+            fn clone(p: *const ()) -> RawWaker {
+                RawWaker::new(p, &VTABLE)
+            }
+            const VTABLE: RawWakerVTable = RawWakerVTable::new(clone, no_op, no_op, no_op);
+            RawWaker::new(std::ptr::null(), &VTABLE)
+        }
+        let waker = unsafe { Waker::from_raw(dummy_raw_waker()) };
+        let mut cx = Context::from_waker(&waker);
+        let mut fut = server.connect();
+        let pinned = unsafe { std::pin::Pin::new_unchecked(&mut fut) };
+        match pinned.poll(&mut cx) {
+            Poll::Ready(Ok(())) => {}
+            Poll::Ready(Err(e)) => return Err(e),
+            Poll::Pending => {
+                // Should not happen since the client already connected.
+                // Drop the future and proceed - the pipe is still usable.
+            }
+        }
+        drop(fut);
+
+        Ok((Stream::Server(server), Stream::Client(client)))
+    }
+}
+
+impl AsyncRead for Stream {
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        match self.get_mut() {
+            Stream::Server(s) => std::pin::Pin::new(s).poll_read(cx, buf),
+            Stream::Client(c) => std::pin::Pin::new(c).poll_read(cx, buf),
+        }
+    }
+}
+
+impl AsyncWrite for Stream {
+    fn poll_write(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<io::Result<usize>> {
+        match self.get_mut() {
+            Stream::Server(s) => std::pin::Pin::new(s).poll_write(cx, buf),
+            Stream::Client(c) => std::pin::Pin::new(c).poll_write(cx, buf),
+        }
+    }
+
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        match self.get_mut() {
+            Stream::Server(s) => std::pin::Pin::new(s).poll_flush(cx),
+            Stream::Client(c) => std::pin::Pin::new(c).poll_flush(cx),
+        }
+    }
+
+    fn poll_shutdown(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        match self.get_mut() {
+            Stream::Server(s) => std::pin::Pin::new(s).poll_shutdown(cx),
+            Stream::Client(c) => std::pin::Pin::new(c).poll_shutdown(cx),
+        }
+    }
+}
+
+/// Owned read half of a Stream, created by `into_split()`.
+/// Uses a shared Arc<Mutex<Stream>> since named pipes don't support native splitting.
+pub struct ReadHalf {
+    inner: Arc<Mutex<Stream>>,
+}
+
+impl AsyncRead for ReadHalf {
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        let mut guard = match self.inner.try_lock() {
+            Ok(g) => g,
+            Err(_) => return std::task::Poll::Pending,
+        };
+        std::pin::Pin::new(&mut *guard).poll_read(cx, buf)
+    }
+}
+
+/// Owned write half of a Stream, created by `into_split()`.
+pub struct WriteHalf {
+    inner: Arc<Mutex<Stream>>,
+}
+
+impl AsyncWrite for WriteHalf {
+    fn poll_write(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<io::Result<usize>> {
+        let mut guard = match self.inner.try_lock() {
+            Ok(g) => g,
+            Err(_) => return std::task::Poll::Pending,
+        };
+        std::pin::Pin::new(&mut *guard).poll_write(cx, buf)
+    }
+
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        let mut guard = match self.inner.try_lock() {
+            Ok(g) => g,
+            Err(_) => return std::task::Poll::Pending,
+        };
+        std::pin::Pin::new(&mut *guard).poll_flush(cx)
+    }
+
+    fn poll_shutdown(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        let mut guard = match self.inner.try_lock() {
+            Ok(g) => g,
+            Err(_) => return std::task::Poll::Pending,
+        };
+        std::pin::Pin::new(&mut *guard).poll_shutdown(cx)
+    }
+}
+
+/// Borrowed read reference for `stream.split()`.
+pub struct SplitReadRef<'a> {
+    stream: &'a mut Stream,
+}
+
+impl<'a> AsyncRead for SplitReadRef<'a> {
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        std::pin::Pin::new(&mut *self.get_mut().stream).poll_read(cx, buf)
+    }
+}
+
+/// Borrowed write reference for `stream.split()`.
+pub struct SplitWriteRef<'a> {
+    stream: &'a mut Stream,
+}
+
+impl<'a> AsyncWrite for SplitWriteRef<'a> {
+    fn poll_write(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<io::Result<usize>> {
+        std::pin::Pin::new(&mut *self.get_mut().stream).poll_write(cx, buf)
+    }
+
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        std::pin::Pin::new(&mut *self.get_mut().stream).poll_flush(cx)
+    }
+
+    fn poll_shutdown(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<io::Result<()>> {
+        std::pin::Pin::new(&mut *self.get_mut().stream).poll_shutdown(cx)
+    }
+}
+
+/// Synchronous named pipe stream for blocking IPC (used by communicate tool).
+pub struct SyncStream {
+    handle: std::fs::File,
+}
+
+impl SyncStream {
+    pub fn connect(path: &Path) -> io::Result<Self> {
+        use std::fs::OpenOptions;
+        let pipe_name = path_to_pipe_name(path);
+        let file = OpenOptions::new().read(true).write(true).open(&pipe_name)?;
+        Ok(Self { handle: file })
+    }
+
+    pub fn set_read_timeout(&self, timeout: Option<std::time::Duration>) -> io::Result<()> {
+        let _ = timeout;
+        // std::fs::File-backed named pipes do not expose socket-style read timeouts.
+        // The communicate tool only uses this to avoid hanging forever; on Windows
+        // we currently rely on the server side to respond promptly.
+        Ok(())
+    }
+}
+
+impl io::Read for SyncStream {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.handle.read(buf)
+    }
+}
+
+impl io::Write for SyncStream {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.handle.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.handle.flush()
+    }
+}
+
+pub fn is_socket_path(path: &Path) -> bool {
+    let pipe_name = path_to_pipe_name(path);
+    ClientOptions::new().open(&pipe_name).is_ok()
+}
+
+pub fn remove_socket(path: &Path) {
+    let pipe_name = path_to_pipe_name(path);
+    if ClientOptions::new().open(&pipe_name).is_ok() {
+        eprintln!(
+            "[windows] Named pipe {} still open, will be replaced by new server",
+            pipe_name
+        );
+    }
+}
+
+pub fn stream_pair() -> io::Result<(Stream, Stream)> {
+    Stream::pair()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[test]
+    fn pipe_name_is_stable_and_normalizes_case_and_separators() {
+        let a = path_to_pipe_name(Path::new(r"C:\Temp\Kcode\server.sock"));
+        let b = path_to_pipe_name(Path::new("c:/temp/kcode/server.sock"));
+        assert_eq!(a, b, "pipe names should be normalized consistently");
+        assert!(
+            a.starts_with(r"\\.\pipe\server-"),
+            "unexpected pipe name: {}",
+            a
+        );
+    }
+
+    #[test]
+    fn pipe_name_falls_back_when_stem_is_empty() {
+        let name = path_to_pipe_name(Path::new("..."));
+        assert!(
+            name.starts_with(r"\\.\pipe\kcode-"),
+            "unexpected pipe name: {}",
+            name
+        );
+    }
+
+    #[tokio::test]
+    async fn stream_pair_round_trips_bytes() {
+        let (mut a, mut b) = stream_pair().expect("create stream pair");
+        a.write_all(b"ping").await.expect("write to pipe");
+        a.flush().await.expect("flush pipe");
+
+        let mut buf = [0u8; 4];
+        b.read_exact(&mut buf).await.expect("read from pipe");
+        assert_eq!(&buf, b"ping");
+    }
+}

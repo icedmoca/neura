@@ -1,0 +1,757 @@
+{
+  "actions": [
+    {
+      "node_id": "pair.submit",
+      "type": "tap_node"
+    },
+    {
+      "type": "set_draft",
+      "value": "hello replay"
+    },
+    {
+      "node_id": "chat.send",
+      "type": "tap_node"
+    }
+  ],
+  "effects": [
+    {
+      "effect": {
+        "device_name": "kcode simulator",
+        "host": "devbox.tailnet.ts.net",
+        "pair_code": "123456",
+        "port": "7643",
+        "type": "pair_and_connect"
+      },
+      "seq": 1,
+      "timestamp_ms": 2
+    },
+    {
+      "effect": {
+        "text": "hello replay",
+        "type": "send_message"
+      },
+      "seq": 5,
+      "timestamp_ms": 7
+    }
+  ],
+  "final_state": {
+    "active_session_id": "session_sim_1",
+    "available_models": [
+      "gpt-5",
+      "claude-sonnet-4"
+    ],
+    "connection_state": "connected",
+    "draft_message": "",
+    "error_message": null,
+    "is_processing": false,
+    "messages": [
+      {
+        "id": "msg-system-connected",
+        "role": "system",
+        "text": "Simulator connected. Send a message to begin."
+      },
+      {
+        "id": "msg-user-2",
+        "role": "user",
+        "text": "hello replay"
+      },
+      {
+        "id": "msg-assistant-3",
+        "role": "assistant",
+        "text": "Simulated response to: hello replay"
+      }
+    ],
+    "model_name": "gpt-5",
+    "pairing": {
+      "device_name": "kcode simulator",
+      "host": "devbox.tailnet.ts.net",
+      "pair_code": "123456",
+      "port": "7643"
+    },
+    "saved_servers": [
+      {
+        "host": "devbox.tailnet.ts.net",
+        "port": "7643",
+        "server_name": "kcode",
+        "server_version": "0.1.0"
+      }
+    ],
+    "screen": "chat",
+    "selected_server": {
+      "host": "devbox.tailnet.ts.net",
+      "port": "7643",
+      "server_name": "kcode",
+      "server_version": "0.1.0"
+    },
+    "sessions": [
+      "session_sim_1"
+    ],
+    "status_message": "Simulated turn finished."
+  },
+  "initial_state": {
+    "active_session_id": null,
+    "available_models": [],
+    "connection_state": "disconnected",
+    "draft_message": "",
+    "error_message": null,
+    "is_processing": false,
+    "messages": [],
+    "model_name": null,
+    "pairing": {
+      "device_name": "kcode simulator",
+      "host": "devbox.tailnet.ts.net",
+      "pair_code": "123456",
+      "port": "7643"
+    },
+    "saved_servers": [],
+    "screen": "onboarding",
+    "selected_server": null,
+    "sessions": [],
+    "status_message": "Fields prefilled for simulated pairing."
+  },
+  "name": "pairing-ready-chat-send",
+  "schema_version": 1,
+  "transitions": [
+    {
+      "action": {
+        "node_id": "pair.submit",
+        "type": "tap_node"
+      },
+      "after": {
+        "active_session_id": null,
+        "available_models": [],
+        "connection_state": "connecting",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [],
+        "model_name": null,
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [],
+        "screen": "pairing",
+        "selected_server": null,
+        "sessions": [],
+        "status_message": "Pairing to devbox.tailnet.ts.net:7643..."
+      },
+      "before": {
+        "active_session_id": null,
+        "available_models": [],
+        "connection_state": "disconnected",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [],
+        "model_name": null,
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [],
+        "screen": "onboarding",
+        "selected_server": null,
+        "sessions": [],
+        "status_message": "Fields prefilled for simulated pairing."
+      },
+      "effects": [
+        {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643",
+          "type": "pair_and_connect"
+        }
+      ],
+      "seq": 1,
+      "timestamp_ms": 1
+    },
+    {
+      "action": {
+        "server_name": "kcode",
+        "server_version": "0.1.0",
+        "type": "pairing_succeeded"
+      },
+      "after": {
+        "active_session_id": null,
+        "available_models": [],
+        "connection_state": "connecting",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [],
+        "model_name": null,
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "pairing",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [],
+        "status_message": "Simulated pairing succeeded."
+      },
+      "before": {
+        "active_session_id": null,
+        "available_models": [],
+        "connection_state": "connecting",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [],
+        "model_name": null,
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [],
+        "screen": "pairing",
+        "selected_server": null,
+        "sessions": [],
+        "status_message": "Pairing to devbox.tailnet.ts.net:7643..."
+      },
+      "effects": [],
+      "seq": 2,
+      "timestamp_ms": 3
+    },
+    {
+      "action": {
+        "session_id": "session_sim_1",
+        "type": "connected"
+      },
+      "after": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Connected to simulated kcode server."
+      },
+      "before": {
+        "active_session_id": null,
+        "available_models": [],
+        "connection_state": "connecting",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [],
+        "model_name": null,
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "pairing",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [],
+        "status_message": "Simulated pairing succeeded."
+      },
+      "effects": [],
+      "seq": 3,
+      "timestamp_ms": 4
+    },
+    {
+      "action": {
+        "type": "set_draft",
+        "value": "hello replay"
+      },
+      "after": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "hello replay",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Connected to simulated kcode server."
+      },
+      "before": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Connected to simulated kcode server."
+      },
+      "effects": [],
+      "seq": 4,
+      "timestamp_ms": 5
+    },
+    {
+      "action": {
+        "node_id": "chat.send",
+        "type": "tap_node"
+      },
+      "after": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": true,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          },
+          {
+            "id": "msg-user-2",
+            "role": "user",
+            "text": "hello replay"
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Sending simulated message..."
+      },
+      "before": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "hello replay",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Connected to simulated kcode server."
+      },
+      "effects": [
+        {
+          "text": "hello replay",
+          "type": "send_message"
+        }
+      ],
+      "seq": 5,
+      "timestamp_ms": 6
+    },
+    {
+      "action": {
+        "text": "Simulated response to: hello replay",
+        "type": "append_assistant_text"
+      },
+      "after": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": true,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          },
+          {
+            "id": "msg-user-2",
+            "role": "user",
+            "text": "hello replay"
+          },
+          {
+            "id": "msg-assistant-3",
+            "role": "assistant",
+            "text": "Simulated response to: hello replay"
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Sending simulated message..."
+      },
+      "before": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": true,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          },
+          {
+            "id": "msg-user-2",
+            "role": "user",
+            "text": "hello replay"
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Sending simulated message..."
+      },
+      "effects": [],
+      "seq": 6,
+      "timestamp_ms": 8
+    },
+    {
+      "action": {
+        "type": "finish_turn"
+      },
+      "after": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": false,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          },
+          {
+            "id": "msg-user-2",
+            "role": "user",
+            "text": "hello replay"
+          },
+          {
+            "id": "msg-assistant-3",
+            "role": "assistant",
+            "text": "Simulated response to: hello replay"
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Simulated turn finished."
+      },
+      "before": {
+        "active_session_id": "session_sim_1",
+        "available_models": [
+          "gpt-5",
+          "claude-sonnet-4"
+        ],
+        "connection_state": "connected",
+        "draft_message": "",
+        "error_message": null,
+        "is_processing": true,
+        "messages": [
+          {
+            "id": "msg-system-connected",
+            "role": "system",
+            "text": "Simulator connected. Send a message to begin."
+          },
+          {
+            "id": "msg-user-2",
+            "role": "user",
+            "text": "hello replay"
+          },
+          {
+            "id": "msg-assistant-3",
+            "role": "assistant",
+            "text": "Simulated response to: hello replay"
+          }
+        ],
+        "model_name": "gpt-5",
+        "pairing": {
+          "device_name": "kcode simulator",
+          "host": "devbox.tailnet.ts.net",
+          "pair_code": "123456",
+          "port": "7643"
+        },
+        "saved_servers": [
+          {
+            "host": "devbox.tailnet.ts.net",
+            "port": "7643",
+            "server_name": "kcode",
+            "server_version": "0.1.0"
+          }
+        ],
+        "screen": "chat",
+        "selected_server": {
+          "host": "devbox.tailnet.ts.net",
+          "port": "7643",
+          "server_name": "kcode",
+          "server_version": "0.1.0"
+        },
+        "sessions": [
+          "session_sim_1"
+        ],
+        "status_message": "Sending simulated message..."
+      },
+      "effects": [],
+      "seq": 7,
+      "timestamp_ms": 9
+    }
+  ]
+}

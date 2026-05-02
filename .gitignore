@@ -1,0 +1,54 @@
+# Build outputs
+/target/
+**/target/
+
+# Runtime homes and generated installs
+/builds/
+/models/
+/local-model-bridge/
+/memory-store/
+/session-logs/
+/logs/
+/tmp/
+/cache/
+*.sock
+*.pid
+*.active
+*.status.json
+*.output
+
+# Large model files
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.tiktoken
+
+# Secrets and local credentials
+.env
+*.env
+auth.json
+.credentials.json
+credentials.json
+secrets.json
+*token*
+*secret*
+*.key
+*.pem
+
+# Local/generated state
+*.log
+*.jsonl
+interlang-stats.jsonl
+api-exchanges.jsonl
+promoted-memory.jsonl
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo

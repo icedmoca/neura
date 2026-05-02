@@ -1,0 +1,11 @@
+[package]
+name = "kcode-provider-metadata"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "kcode_provider_metadata"
+path = "src/lib.rs"
+
+[dependencies]
+url = "2"
