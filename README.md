@@ -1,6 +1,12 @@
 # Kcode
 
-Kcode is a local-first coding agent harness with a terminal UI, tool orchestration, memory/context management, and an optional local GGUF sidecar model.
+> Kcode lets you run long, tool heavy coding sessions without blowing up token costs by compressing and rehydrating context intelligently.
+
+---
+
+Kcode is a local first coding agent harness with a terminal UI, tool orchestration, memory/context management, and an optional local GGUF sidecar model.
+
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-icedmoca%2Fkcode--oss--20b--mxfp4-yellow?logo=huggingface)](https://huggingface.co/icedmoca/kcode-oss-20b-mxfp4)
 
 For a detailed architecture explanation, see [ABOUT.md](ABOUT.md).
 
