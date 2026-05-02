@@ -255,38 +255,6 @@ pub(crate) fn passes_relevance_gate(
     false
 }
 
-pub(crate) fn predictive_memory_hint(entries: &[MemoryEntry], query_text: &str) -> Option<String> {
-    let query_terms = keyword_terms(query_text);
-    if query_terms.is_empty() {
-        return None;
-    }
-    let mut related: Vec<&MemoryEntry> = entries
-        .iter()
-        .filter(|entry| !memory_is_sensitive(entry))
-        .filter(|entry| {
-            let tags = entry.tags.join(" ");
-            query_terms
-                .iter()
-                .any(|term| tags.contains(term) || entry.searchable_text().contains(term))
-        })
-        .take(3)
-        .collect();
-    if related.is_empty() {
-        return None;
-    }
-    related.sort_by(|a, b| {
-        b.confidence
-            .partial_cmp(&a.confidence)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-    let items = related
-        .into_iter()
-        .map(|entry| format!("- {}", crate::util::truncate_str(&entry.content, 180)))
-        .collect::<Vec<_>>()
-        .join("\n");
-    Some(format!("Predictive related memories:\n{}", items))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
