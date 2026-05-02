@@ -119,7 +119,11 @@ sequenceDiagram
     A->>D: Prepare messages for next turn
     D->>D: Keep recent context exact
     D->>V: Store exact old block by hash
+    D->>D: Score confidence + priority
     D-->>A: Replace old block with compact ctx ref
+    opt Low confidence or high priority
+        D-->>A: Auto-inject small exact excerpt
+    end
     A->>R: Send smaller prompt
     R-->>A: Response
     alt Remote needs exact old block

@@ -69,10 +69,14 @@ Kcode avoids that by replacing old low-value blocks with structured references:
 flowchart LR
     Big[Huge old block] --> Hash[Stable hash]
     Big --> Summary[Deterministic summary]
+    Big --> Score[Confidence + priority score]
     Big --> Vault[Exact local vault]
     Hash --> Ctx[Compact ctx reference]
     Summary --> Ctx
+    Score --> Ctx
+    Score --> Auto[Auto exact excerpt when confidence is low]
     Ctx --> Prompt[Smaller prompt]
+    Auto --> Prompt
     Vault --> Rehydrate[Exact retrieval if needed]
 ```
 
@@ -83,6 +87,9 @@ A `<ctx>` reference is intentionally explicit:
   id="ctx:..."
   hash="..."
   original_chars="..."
+  confidence="0.52"
+  priority="high"
+  auto_rehydrate="true"
   summary="lines=...; chars=...; files=[...]; first=..."
   policy="memory-safe context diet: old low-value context is summarized; request exact only if necessary"
   request_exact=".ctx_get id=ctx:... reason=<why exact old context is needed>" />
@@ -93,7 +100,14 @@ This combats hallucination because the model is told:
 - this is a summary, not exact text,
 - exact content exists locally,
 - a stable id/hash identifies it,
+- Kcode has scored confidence and priority,
 - and it should request exact text instead of inventing details.
+
+If Kcode itself decides a compacted block is low-confidence or high-priority, it
+can proactively inject a bounded exact excerpt before the next model call. This
+reduces dependence on the model perfectly obeying the `.ctx_get` protocol while
+still preserving most token savings. Sensitive-looking content is excluded from
+automatic exact injection and remains explicit-request only.
 
 Current ultra-mode defaults are deliberately tuned for long tool-heavy coding
 sessions: begin context diet at roughly `24,000` prompt tokens, keep the newest

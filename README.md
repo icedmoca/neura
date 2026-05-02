@@ -137,6 +137,12 @@ OpenAI usage cache as stale after about 30 seconds and requests a refresh after
 completed turns, so 5-hour and weekly usage can update during an existing
 session.
 
+Kcode also adds confidence and priority metadata to context references. When a
+summary is low-confidence or high-priority, Kcode can proactively inject a small
+exact excerpt before the next model call instead of relying only on the model to
+notice the summary and request `.ctx_get`. Sensitive-looking content is not
+auto-injected; it still requires an explicit exact-context request.
+
 ## Local sidecar model
 
 The default local model identity is:

@@ -162,7 +162,11 @@ fn profile_path(profile: LocalModelProfile) -> String {
         profile
             .id
             .chars()
-            .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_uppercase() } else { '_' })
+            .map(|c| if c.is_ascii_alphanumeric() {
+                c.to_ascii_uppercase()
+            } else {
+                '_'
+            })
             .collect::<String>()
     );
     std::env::var(&key)

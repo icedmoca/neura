@@ -29,12 +29,45 @@ const DEFAULT_CONTEXT_DIET_TRIGGER_TOKENS: usize = 24_000;
 const DEFAULT_CONTEXT_DIET_RECENT_MESSAGES: usize = 8;
 const DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 420;
 const APPROX_CHARS_PER_TOKEN: usize = 4;
+const AUTO_REHYDRATE_CONFIDENCE_THRESHOLD: f32 = 0.56;
+const AUTO_REHYDRATE_MAX_BLOCKS: usize = 3;
+const AUTO_REHYDRATE_MAX_CHARS: usize = 6_000;
 
 #[derive(Debug, Clone)]
 struct SeenBlock {
     original_chars: usize,
     summary: String,
     exact: String,
+    confidence: f32,
+    priority: ContextPriority,
+    sensitive: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ContextPriority {
+    Low,
+    Normal,
+    High,
+    Verify,
+}
+
+impl ContextPriority {
+    fn as_str(self) -> &'static str {
+        match self {
+            ContextPriority::Low => "low",
+            ContextPriority::Normal => "normal",
+            ContextPriority::High => "high",
+            ContextPriority::Verify => "verify",
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ContextMetadata {
+    confidence: f32,
+    priority: ContextPriority,
+    sensitive: bool,
+    topics: Vec<&'static str>,
 }
 
 fn seen_blocks() -> &'static Mutex<HashMap<String, SeenBlock>> {
@@ -133,6 +166,9 @@ pub struct InterlangStats {
     pub diet_blocks: usize,
     pub diet_original_chars: usize,
     pub diet_encoded_chars: usize,
+    pub low_confidence_blocks: usize,
+    pub auto_rehydrated_blocks: usize,
+    pub auto_rehydrated_chars: usize,
 }
 
 impl InterlangStats {
@@ -147,6 +183,9 @@ impl InterlangStats {
             && self.diet_blocks == 0
             && self.diet_original_chars == 0
             && self.diet_encoded_chars == 0
+            && self.low_confidence_blocks == 0
+            && self.auto_rehydrated_blocks == 0
+            && self.auto_rehydrated_chars == 0
     }
 
     pub fn saved_chars(self) -> isize {
@@ -246,6 +285,10 @@ pub fn record_stats(stats: InterlangStats) {
         "diet_encoded_chars": stats.diet_encoded_chars,
         "diet_saved_chars": stats.diet_original_chars as isize - stats.diet_encoded_chars as isize,
         "diet_saved_tokens_estimate": estimate_tokens(stats.diet_original_chars).saturating_sub(estimate_tokens(stats.diet_encoded_chars)),
+        "low_confidence_blocks": stats.low_confidence_blocks,
+        "auto_rehydrated_blocks": stats.auto_rehydrated_blocks,
+        "auto_rehydrated_chars": stats.auto_rehydrated_chars,
+        "auto_rehydrated_tokens_estimate": estimate_tokens(stats.auto_rehydrated_chars),
         "seen_ref_blocks": stats.seen_ref_blocks,
         "raw_context_avoided_chars": stats.raw_context_avoided_chars,
         "raw_context_avoided_tokens_estimate": stats.raw_context_avoided_tokens_estimate(),
@@ -369,8 +412,9 @@ pub fn maybe_compact_messages(messages: &[Message]) -> (Vec<Message>, InterlangS
         return (messages.to_vec(), InterlangStats::default());
     }
     let (dieted, mut stats) = maybe_context_diet_messages(messages);
-    let (compacted, compact_stats) = compact_messages_for_test(&dieted);
+    let (mut compacted, compact_stats) = compact_messages_for_test(&dieted);
     merge_stats(&mut stats, compact_stats);
+    maybe_append_auto_rehydration(&mut compacted, &mut stats);
     (compacted, stats)
 }
 
@@ -385,6 +429,9 @@ fn merge_stats(into: &mut InterlangStats, other: InterlangStats) {
     into.diet_blocks += other.diet_blocks;
     into.diet_original_chars += other.diet_original_chars;
     into.diet_encoded_chars += other.diet_encoded_chars;
+    into.low_confidence_blocks += other.low_confidence_blocks;
+    into.auto_rehydrated_blocks += other.auto_rehydrated_blocks;
+    into.auto_rehydrated_chars += other.auto_rehydrated_chars;
 }
 
 fn context_diet_enabled() -> bool {
@@ -449,7 +496,9 @@ fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, Interlang
         return (messages.to_vec(), stats);
     }
 
-    let cutoff = messages.len().saturating_sub(context_diet_recent_messages());
+    let cutoff = messages
+        .len()
+        .saturating_sub(context_diet_recent_messages());
     let mut out = Vec::with_capacity(messages.len());
     for (idx, message) in messages.iter().enumerate() {
         if idx >= cutoff {
@@ -491,29 +540,42 @@ fn should_diet_text(text: &str) -> bool {
 }
 
 fn should_diet_tool_result(content: &str) -> bool {
-    content.len() >= context_diet_min_block_chars() && !content.contains("<ctx") && !content.contains("<il:")
+    content.len() >= context_diet_min_block_chars()
+        && !content.contains("<ctx")
+        && !content.contains("<il:")
 }
 
 fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -> String {
     let hash = stable_hash(text);
     let summary = memory_safe_summary(text);
+    let meta = context_metadata(text, kind);
     if let Ok(mut seen) = seen_blocks().lock() {
         seen.entry(hash.clone()).or_insert_with(|| SeenBlock {
             original_chars: text.len(),
             summary: summary.clone(),
             exact: text.to_string(),
+            confidence: meta.confidence,
+            priority: meta.priority,
+            sensitive: meta.sensitive,
         });
     }
     let id = format!("ctx:{}", hash);
     let encoded = format!(
-        "<ctx v=1 diet=1 kind=\"{}\" id=\"{}\" hash=\"{}\" original_chars={} summary=\"{}\" policy=\"memory-safe context diet: old low-value context is summarized; request exact only if necessary\" request_exact=\".ctx_get id={} reason=&lt;why exact old context is needed&gt;\" />",
+        "<ctx v=1 diet=1 kind=\"{}\" id=\"{}\" hash=\"{}\" original_chars={} confidence=\"{:.2}\" priority=\"{}\" auto_rehydrate=\"{}\" topics=\"{}\" summary=\"{}\" policy=\"memory-safe context diet: old low-value context is summarized; low-confidence/high-priority refs may be auto-rehydrated by Kcode; request exact if needed\" request_exact=\".ctx_get id={} reason=&lt;why exact old context is needed&gt;\" />",
         kind,
         id,
         hash,
         text.len(),
+        meta.confidence,
+        meta.priority.as_str(),
+        should_auto_rehydrate(&meta),
+        meta.topics.join(","),
         escape_attr(&summary),
         id
     );
+    if should_auto_rehydrate(&meta) {
+        stats.low_confidence_blocks += 1;
+    }
     stats.original_chars += text.len();
     stats.encoded_chars += encoded.len();
     stats.raw_context_avoided_chars += text.len();
@@ -592,6 +654,183 @@ fn memory_safe_summary(text: &str) -> String {
         summary.push_str(&format!("; semantic_hints=[{}]", hints.join(",")));
     }
     summary
+}
+
+fn context_metadata(text: &str, kind: &str) -> ContextMetadata {
+    let lower = text.to_ascii_lowercase();
+    let mut confidence = 0.78f32;
+    let mut topics = Vec::new();
+    let mut priority = ContextPriority::Normal;
+
+    let markers = [
+        ("error", "error"),
+        ("failed", "failure"),
+        ("panic", "panic"),
+        ("diff --git", "diff"),
+        ("todo", "todo"),
+        ("token", "token"),
+        ("auth", "auth"),
+        ("limit", "limit"),
+        ("test", "test"),
+        ("build", "build"),
+    ];
+    for (needle, topic) in markers {
+        if lower.contains(needle) {
+            topics.push(topic);
+        }
+    }
+
+    if text.len() > 80_000 {
+        confidence -= 0.18;
+    } else if text.len() > 24_000 {
+        confidence -= 0.10;
+    }
+    if text.lines().count() > 400 {
+        confidence -= 0.08;
+    }
+    if lower.contains("diff --git") || lower.contains("error") || lower.contains("panic") {
+        confidence -= 0.12;
+        priority = ContextPriority::High;
+    }
+    if lower.contains("security") || lower.contains("auth") || lower.contains("credential") {
+        confidence -= 0.10;
+        priority = ContextPriority::Verify;
+    }
+    if kind.contains("reasoning") {
+        confidence -= 0.06;
+    }
+
+    let sensitive = looks_sensitive(&lower);
+    if sensitive {
+        priority = ContextPriority::Verify;
+        // Do not auto-inject exact sensitive content. The model can still ask for
+        // a deliberate `.ctx_get`, which keeps the decision explicit.
+        confidence = confidence.min(0.49);
+    }
+    if topics.is_empty() && text.len() < 8_000 {
+        priority = ContextPriority::Low;
+        confidence += 0.06;
+    }
+
+    topics.sort_unstable();
+    topics.dedup();
+    ContextMetadata {
+        confidence: confidence.clamp(0.05, 0.98),
+        priority,
+        sensitive,
+        topics,
+    }
+}
+
+fn looks_sensitive(lower: &str) -> bool {
+    lower.contains("ghp_")
+        || lower.contains("api_key")
+        || lower.contains("api-key")
+        || lower.contains("password")
+        || lower.contains("secret")
+        || lower.contains("authorization: bearer")
+        || lower.contains("private key")
+}
+
+fn should_auto_rehydrate(meta: &ContextMetadata) -> bool {
+    !meta.sensitive
+        && (meta.confidence <= AUTO_REHYDRATE_CONFIDENCE_THRESHOLD
+            || meta.priority == ContextPriority::High)
+}
+
+fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut InterlangStats) {
+    if mode() != InterlangMode::Ultra || stats.low_confidence_blocks == 0 {
+        return;
+    }
+    let Ok(seen) = seen_blocks().lock() else {
+        return;
+    };
+    let mut candidates: Vec<(&String, &SeenBlock)> = seen
+        .iter()
+        .filter(|(_, block)| {
+            !block.sensitive
+                && (block.confidence <= AUTO_REHYDRATE_CONFIDENCE_THRESHOLD
+                    || block.priority == ContextPriority::High)
+        })
+        .collect();
+    candidates.sort_by(|(_, a), (_, b)| {
+        a.confidence
+            .partial_cmp(&b.confidence)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| b.original_chars.cmp(&a.original_chars))
+    });
+
+    let mut remaining = AUTO_REHYDRATE_MAX_CHARS;
+    let mut sections = Vec::new();
+    for (hash, block) in candidates.into_iter().take(AUTO_REHYDRATE_MAX_BLOCKS) {
+        if remaining < 400 {
+            break;
+        }
+        let excerpt = exact_excerpt(&block.exact, remaining.min(2_200));
+        if excerpt.trim().is_empty() {
+            continue;
+        }
+        remaining = remaining.saturating_sub(excerpt.len());
+        stats.auto_rehydrated_blocks += 1;
+        stats.auto_rehydrated_chars += excerpt.len();
+        sections.push(format!(
+            "<ctx_auto_exact id=\"ctx:{}\" hash=\"{}\" confidence=\"{:.2}\" priority=\"{}\" original_chars=\"{}\">\n{}\n</ctx_auto_exact>",
+            hash,
+            hash,
+            block.confidence,
+            block.priority.as_str(),
+            block.original_chars,
+            excerpt
+        ));
+    }
+    if sections.is_empty() {
+        return;
+    }
+
+    let text = format!(
+        "<system-reminder>\nKcode proactive ctx rehydration: the following exact excerpts were auto-injected because their <ctx> summaries were low-confidence or high-priority. Treat these exact excerpts as authoritative evidence. If more exact old context is needed, request `.ctx_get id=ctx:<hash> reason=<why>`.\n\n{}\n</system-reminder>",
+        sections.join("\n\n")
+    );
+    messages.push(Message::user(&text));
+}
+
+fn exact_excerpt(text: &str, max_chars: usize) -> String {
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let lower = line.to_ascii_lowercase();
+        if lower.contains("error")
+            || lower.contains("failed")
+            || lower.contains("panic")
+            || lower.contains("diff --git")
+            || lower.contains("fn ")
+            || lower.contains("struct ")
+            || lower.contains("impl ")
+            || lower.contains("todo")
+        {
+            out.push(line);
+        }
+        if out.join("\n").len() >= max_chars / 2 {
+            break;
+        }
+    }
+    if out.is_empty() {
+        out.extend(text.lines().take(24));
+    }
+    let mut excerpt = out.join("\n");
+    if excerpt.len() < max_chars / 2 && text.len() > excerpt.len() {
+        excerpt.push_str("\n...\n");
+        let tail_len = max_chars.saturating_sub(excerpt.len()).min(text.len());
+        let tail: String = text
+            .chars()
+            .rev()
+            .take(tail_len)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect();
+        excerpt.push_str(&tail);
+    }
+    crate::util::truncate_str(&excerpt, max_chars).to_string()
 }
 
 pub fn compact_messages_for_test(messages: &[Message]) -> (Vec<Message>, InterlangStats) {
@@ -675,6 +914,7 @@ fn encode_seen_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
             return Some(encoded);
         }
     } else {
+        let meta = context_metadata(text, "seen");
         // First sighting: remember exact content locally for later turns, but do
         // not replace it yet. The provider receives exact or self-contained
         // compressed content at least once before <il:seen> references appear.
@@ -684,6 +924,9 @@ fn encode_seen_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
                 original_chars: text.len(),
                 summary: deterministic_summary(text),
                 exact: text.to_string(),
+                confidence: meta.confidence,
+                priority: meta.priority,
+                sensitive: meta.sensitive,
             },
         );
     }
@@ -700,19 +943,27 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
     }
     let hash = stable_hash(text);
     let summary = deterministic_summary(text);
+    let meta = context_metadata(text, "vault");
     if let Ok(mut seen) = seen_blocks().lock() {
         seen.entry(hash.clone()).or_insert_with(|| SeenBlock {
             original_chars: text.len(),
             summary: summary.clone(),
             exact: text.to_string(),
+            confidence: meta.confidence,
+            priority: meta.priority,
+            sensitive: meta.sensitive,
         });
     }
     let id = format!("ctx:{}", hash);
     let encoded = format!(
-        "<ctx v=1 id=\"{}\" hash=\"{}\" original_chars={} summary=\"{}\" request_exact=\".ctx_get id={} reason=<why exact text is needed>\" />",
+        "<ctx v=1 id=\"{}\" hash=\"{}\" original_chars={} confidence=\"{:.2}\" priority=\"{}\" auto_rehydrate=\"{}\" topics=\"{}\" summary=\"{}\" request_exact=\".ctx_get id={} reason=<why exact text is needed>\" />",
         id,
         hash,
         text.len(),
+        meta.confidence,
+        meta.priority.as_str(),
+        should_auto_rehydrate(&meta),
+        meta.topics.join(","),
         escape_attr(&summary),
         id
     );
@@ -720,6 +971,9 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
     if saved >= MIN_SAVED_CHARS as isize {
         stats.seen_ref_blocks += 1;
         stats.raw_context_avoided_chars += text.len();
+        if should_auto_rehydrate(&meta) {
+            stats.low_confidence_blocks += 1;
+        }
         Some(encoded)
     } else {
         None
