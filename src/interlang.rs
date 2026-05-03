@@ -772,20 +772,26 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
         return false;
     }
 
-    let exact_intent = latest_user.contains("exact")
+    let concrete_exact_intent = latest_user.contains("exact")
         || latest_user.contains("show")
         || latest_user.contains("look at")
         || latest_user.contains("why")
         || latest_user.contains("debug")
         || latest_user.contains("fix")
-        || latest_user.contains("failing")
-        || latest_user.contains("failed")
-        || latest_user.contains("error")
-        || latest_user.contains("panic")
-        || latest_user.contains("build")
-        || latest_user.contains("test")
         || latest_user.contains("ctx_get")
         || latest_user.contains("rehydrat");
+    let failure_intent = latest_user.contains("failing")
+        || latest_user.contains("failed")
+        || latest_user.contains("failure")
+        || latest_user.contains("error")
+        || latest_user.contains("panic")
+        || latest_user.contains("broken")
+        || latest_user.contains("regression")
+        || latest_user.contains("traceback");
+    let build_or_test_failure_intent = (latest_user.contains("build")
+        || latest_user.contains("test"))
+        && failure_intent;
+    let exact_intent = concrete_exact_intent || failure_intent || build_or_test_failure_intent;
 
     let mut score = 0u8;
     for topic in &block.topics {
@@ -798,11 +804,11 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
         }
     }
 
-    // For proactive exact text, require either a concrete exact/debug/fix intent
-    // plus topic overlap, or multiple independent topic hits. This avoids
-    // spending tokens on exact old code just because a generic word like
-    // "memory" or "token" appears in a strategy/documentation turn.
-    (exact_intent && score >= 2) || score >= 4
+    // For proactive exact text, require concrete exact/debug/fix/failure intent
+    // plus topic overlap. Do not restore exact old code just because a generic
+    // word like "memory", "token", "build", or "test" appears in a
+    // strategy/documentation/self-test turn.
+    exact_intent && score >= 2
 }
 
 fn auto_rehydrate_debug_enabled() -> bool {
@@ -1521,6 +1527,34 @@ mod tests {
             messages.len(),
             1,
             "unrelated installer block should stay summarized"
+        );
+        assert_eq!(stats.auto_rehydrated_blocks, 0);
+    }
+
+    #[test]
+    fn auto_rehydration_ignores_self_test_statistics_turn() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let old_prompt_memory_code =
+            "fn build_memory_prompt_nonblocking() { /* token memory context test build error */ }\n"
+                .repeat(160);
+        let mut stats = InterlangStats::default();
+        let _ = encode_context_diet_ref(&old_prompt_memory_code, "old-text", &mut stats);
+        assert!(stats.low_confidence_blocks > 0);
+
+        let mut messages = vec![Message::user(
+            "ok i reloaded you, do a self test and update the statistics",
+        )];
+        maybe_append_auto_rehydration(&mut messages, &mut stats);
+        assert_eq!(
+            messages.len(),
+            1,
+            "self-test/statistics turns should not auto-restore generic old code"
         );
         assert_eq!(stats.auto_rehydrated_blocks, 0);
     }
