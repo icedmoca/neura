@@ -127,6 +127,63 @@ sequenceDiagram
     end
 ```
 
+### How retrieval selection works
+
+Kcode's retrieval system is designed to feel like a much larger effective context window while avoiding the cost and distraction of sending every historical token every turn. The key idea is that context diet is **lossless at the vault layer** and **selective at the active-prompt layer**.
+
+There are three different states for old context:
+
+| State | What the remote model sees | What Kcode keeps locally | When it is used |
+|---|---|---|---|
+| Recent exact context | Full text | Full text | Current task, newest turns, important active details. |
+| Compact reference | `<ctx ... />` metadata, topics, summary, hash, ID | Full original text in the local vault | Old bulky logs, tool output, repeated text, stale details. |
+| Rehydrated exact context | A bounded exact excerpt or full fetched block | Full original text remains stored | Debugging, fixing, failure analysis, explicit `.ctx_get`, or high-confidence relevance. |
+
+```mermaid
+flowchart TD
+    U[Latest real user turn] --> Intent[Intent detection]
+    U --> Topics[Topic extraction]
+
+    Old[Old bulky context block] --> Meta[Metadata extraction<br/>kind, files, first line, topics, size]
+    Old --> Vault[Local context vault<br/>exact original text by ctx ID]
+    Meta --> Ref[Compact ctx ref in prompt]
+
+    Intent --> Gate{Concrete retrieval intent?<br/>exact, show, debug, fix, failure}
+    Topics --> Match{Topic overlap with ctx ref?}
+    Ref --> Match
+
+    Gate -->|no| Compact[Keep compact only]
+    Match -->|no| Compact
+    Gate -->|yes| Budget{Within safety and token budget?}
+    Match -->|yes| Budget
+
+    Budget -->|yes| Auto[Auto-rehydrate bounded exact excerpt]
+    Budget -->|no| Compact
+
+    Compact --> Prompt[Remote prompt]
+    Auto --> Prompt
+    Prompt --> Model[Remote model]
+    Model --> Need{Needs more exact evidence?}
+    Need -->|yes| CtxGet[Request .ctx_get id=ctx:...]
+    CtxGet --> Vault
+    Vault --> Exact[Exact original text<br/>no summary drift]
+    Exact --> Prompt
+    Need -->|no| Answer[Answer / tool call]
+```
+
+Retrieval selection is intentionally conservative:
+
+1. **Keep the active work exact.** Kcode keeps the newest and most task-relevant messages readable without retrieval.
+2. **Vault old bulky blocks.** When old content becomes expensive, Kcode stores the exact original text by stable ID/hash and sends a compact `<ctx>` ref.
+3. **Expose useful breadcrumbs.** The ref includes type, size, priority, confidence, topics, files, and a deterministic summary so the model knows what exists.
+4. **Avoid generic false positives.** Words like `test`, `build`, `token`, or `memory` do not by themselves cause exact old code/logs to be injected.
+5. **Require concrete retrieval intent.** Proactive exact restore now requires an intent such as exact inspection, showing context, debugging, fixing, or investigating a failure.
+6. **Require topic overlap.** The latest user turn must match the old block's semantic topics before Kcode spends prompt budget on exact rehydration.
+7. **Cap proactive restore.** Kcode restores at most a small bounded excerpt automatically so one old block cannot flood the prompt.
+8. **Preserve explicit perfect recall.** If exact lines matter, `.ctx_get id=...` retrieves the original vaulted text, not a regenerated summary.
+
+This makes Kcode different from ordinary summarization. Summaries can drift over time; Kcode's compact refs are pointers to exact stored evidence. The model does not always have every old token in the active prompt, but it has stable handles to retrieve exact old evidence when needed. In practice, this gives Kcode a large retrieval-backed effective context window with much lower token cost and less distraction.
+
 ### Why prompts are still not tiny
 
 Even after large savings, a final prompt may still be tens of thousands of characters because it includes:
