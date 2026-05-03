@@ -502,7 +502,7 @@ impl Registry {
 
     /// Maximum fraction of context budget a single tool output may occupy.
     /// Even if we have room, a single output shouldn't dominate the context.
-    const SINGLE_OUTPUT_MAX_FRACTION: f32 = 0.30;
+    const SINGLE_OUTPUT_MAX_FRACTION: f32 = 0.15;
 
     /// Execute a tool by name
     pub async fn execute(&self, name: &str, input: Value, ctx: ToolContext) -> Result<ToolOutput> {
@@ -584,30 +584,20 @@ impl Registry {
 
         // Truncate the output, keeping the beginning (usually most relevant)
         let truncated = if max_chars > 200 {
-            // Keep beginning of output + truncation notice
-            let kept = &output.output[..output.output.floor_char_boundary(max_chars - 150)];
-            format!(
-                "{}\n\n⚠️ OUTPUT TRUNCATED: This tool output was {:.0}k tokens which would \
-                 exceed the context window ({:.0}k/{}k tokens used, {}k budget). \
-                 Only the first ~{:.0}k tokens are shown. Use more targeted queries \
-                 (e.g., smaller line ranges, specific grep patterns) to get the content \
-                 you need without exceeding context limits.",
-                kept,
+            let notice = format!(
+                "
+
+[truncated: output ~{:.0}k tokens; kept first ~{:.0}k. Re-run with a narrower query/range for exact text.]",
                 output_tokens as f32 / 1000.0,
-                current_tokens as f32 / 1000.0,
-                budget / 1000,
-                budget / 1000,
                 max_tokens as f32 / 1000.0,
-            )
+            );
+            let keep_chars = max_chars.saturating_sub(notice.len()).max(64);
+            let kept = &output.output[..output.output.floor_char_boundary(keep_chars)];
+            format!("{}{}", kept, notice)
         } else {
-            // Context is almost completely full — just return error
             format!(
-                "⚠️ CONTEXT LIMIT REACHED: Cannot return this tool output (~{:.0}k tokens) \
-                 because the context window is nearly full ({:.0}k/{}k tokens). \
-                 Consider using /compact to free up space, or use more targeted queries.",
+                "[context full: omitted tool output ~{:.0}k tokens. Use /compact or a narrower query.]",
                 output_tokens as f32 / 1000.0,
-                current_tokens as f32 / 1000.0,
-                budget / 1000,
             )
         };
 

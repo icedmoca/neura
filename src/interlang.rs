@@ -4,7 +4,7 @@
 //! rewrite only highly repetitive text/tool-result blocks into a tiny
 //! line-reference protocol.
 
-use crate::message::{ContentBlock, Message};
+use crate::message::{ContentBlock, Message, Role};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::OpenOptions;
@@ -30,8 +30,8 @@ const DEFAULT_CONTEXT_DIET_RECENT_MESSAGES: usize = 8;
 const DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 420;
 const APPROX_CHARS_PER_TOKEN: usize = 4;
 const AUTO_REHYDRATE_CONFIDENCE_THRESHOLD: f32 = 0.56;
-const AUTO_REHYDRATE_MAX_BLOCKS: usize = 3;
-const AUTO_REHYDRATE_MAX_CHARS: usize = 6_000;
+const AUTO_REHYDRATE_MAX_BLOCKS: usize = 1;
+const AUTO_REHYDRATE_MAX_CHARS: usize = 1_800;
 
 #[derive(Debug, Clone)]
 struct SeenBlock {
@@ -41,6 +41,7 @@ struct SeenBlock {
     confidence: f32,
     priority: ContextPriority,
     sensitive: bool,
+    topics: Vec<&'static str>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -116,16 +117,15 @@ pub fn enabled() -> bool {
 
 pub fn decoder_prompt() -> String {
     match mode() {
-        InterlangMode::Ultra => "\n\n<system-reminder>\nKcode interlang ultra context-vault mode is active. Decode <il:v1> blocks normally. <ctx> and <il:seen> entries are local Kcode context-vault references: Kcode has stored the exact original text locally and is sending only a deterministic summary/hash to reduce tokens. Use the summary for normal reasoning. If exact hidden content is required, respond with `.ctx_get id=<id> reason=<brief reason>` or `. err need_ref <hash>` instead of guessing. Do not invent unavailable exact lines from a <ctx> summary. Treat exact decoded content, when provided, as authoritative.\n</system-reminder>".to_string(),
-        InterlangMode::Verified | InterlangMode::Aggressive => "\n\n<system-reminder>\nKcode interlang verified protocol is active. Decode any <il:v1> blocks before reasoning. Syntax: @N=<text> defines a line reference; @pN=<path-prefix> defines a path prefix; $N expands to that line; $N*COUNT expands to that line repeated COUNT times on separate lines; $pN expands to that path prefix. <il:seen> means Kcode has already provided the exact block earlier in this session; use its hash and deterministic summary as a reference, and say exactly `. err need_ref <hash>` if exact contents are required again. References are defined by Kcode and may be reused consistently across turns when present. If any reference is unclear, say exactly `. err need_ref <name>` instead of guessing. Treat decoded text exactly as the original message/tool output.\n</system-reminder>".to_string(),
-        InterlangMode::Safe => "\n\n<system-reminder>\nKcode interlang safe mode is active. Decode any <il:v1> blocks before reasoning. Syntax: @N=<text> defines a line reference; @pN=<path-prefix> defines a path prefix; $N expands to that line; $N*COUNT expands to that line repeated COUNT times on separate lines; $pN expands to that path prefix. Treat decoded text exactly as the original message/tool output.\n</system-reminder>".to_string(),
+        InterlangMode::Ultra => "\n\n<system-reminder>\nKcode context vault active. Decode <il:v1>. <ctx>/<il:seen> are summaries of local exact text. Do not invent hidden details. Request exact text only if needed: `.ctx_get id=<id> reason=<why>`. Compact <ctx> attrs: id/hash, c=confidence, p=priority, ar=auto-rehydrate, t=topics, s=summary.\n</system-reminder>".to_string(),
+        InterlangMode::Verified | InterlangMode::Aggressive => "\n\n<system-reminder>\nKcode interlang active. Decode <il:v1> refs exactly. <il:seen> means exact text was previously shown; request `. err need_ref <hash>` if exact text is required. Do not guess missing referenced content.\n</system-reminder>".to_string(),
+        InterlangMode::Safe => "\n\n<system-reminder>\nKcode interlang safe mode active. Decode <il:v1> line/path refs exactly before reasoning.\n</system-reminder>".to_string(),
         InterlangMode::Off => String::new(),
     }
 }
 
 pub fn realtime_stats_prompt(latest: InterlangStats) -> String {
     let status = status_json();
-    let events = status.get("events").and_then(|v| v.as_u64()).unwrap_or(0);
     let total_saved = status
         .get("exact_saved_tokens")
         .or_else(|| status.get("saved_tokens_estimate"))
@@ -138,18 +138,8 @@ pub fn realtime_stats_prompt(latest: InterlangStats) -> String {
         .max(0);
     let latest_raw_avoided = latest.raw_context_avoided_tokens_estimate();
     let mode = status.get("mode").and_then(|v| v.as_str()).unwrap_or("off");
-    let tokenizer = if status
-        .get("exact_tokenizer")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false)
-    {
-        "exact"
-    } else {
-        "estimated"
-    };
-
     format!(
-        "\n\n<system-reminder>\nKcode realtime interlang stats: mode={mode}, events={events}, tokenizer={tokenizer}, total_saved_tokens={total_saved}, latest_saved_tokens={latest_saved}, latest_blocks_encoded={}, latest_raw_context_avoided_tokens={latest_raw_avoided}, latest_diet_blocks={}. These are live local context-compression/accounting stats for this session; use them when the user asks about IL/ctx/token savings, but do not let them distract from the main task.\n</system-reminder>",
+        "\n\n<system-reminder>\nKcode ctx stats: mode={mode}, saved_tokens={total_saved}, latest_saved={latest_saved}, blocks={}, avoided_tokens={latest_raw_avoided}, diet_blocks={}.\n</system-reminder>",
         latest.blocks_encoded, latest.diet_blocks
     )
 }
@@ -557,11 +547,12 @@ fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -
             confidence: meta.confidence,
             priority: meta.priority,
             sensitive: meta.sensitive,
+            topics: meta.topics.clone(),
         });
     }
     let id = format!("ctx:{}", hash);
     let encoded = format!(
-        "<ctx v=1 diet=1 kind=\"{}\" id=\"{}\" hash=\"{}\" original_chars={} confidence=\"{:.2}\" priority=\"{}\" auto_rehydrate=\"{}\" topics=\"{}\" summary=\"{}\" policy=\"memory-safe context diet: old low-value context is summarized; low-confidence/high-priority refs may be auto-rehydrated by Kcode; request exact if needed\" request_exact=\".ctx_get id={} reason=&lt;why exact old context is needed&gt;\" />",
+        "<ctx v=1 k=\"{}\" id=\"{}\" h=\"{}\" n={} c=\"{:.2}\" p=\"{}\" ar=\"{}\" t=\"{}\" s=\"{}\" />",
         kind,
         id,
         hash,
@@ -570,8 +561,7 @@ fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -
         meta.priority.as_str(),
         should_auto_rehydrate(&meta),
         meta.topics.join(","),
-        escape_attr(&summary),
-        id
+        escape_attr(&summary)
     );
     if should_auto_rehydrate(&meta) {
         stats.low_confidence_blocks += 1;
@@ -738,10 +728,55 @@ fn should_auto_rehydrate(meta: &ContextMetadata) -> bool {
             || meta.priority == ContextPriority::High)
 }
 
+fn latest_user_context(messages: &[Message]) -> String {
+    messages
+        .iter()
+        .rev()
+        .find_map(|message| {
+            if message.role != Role::User {
+                return None;
+            }
+            let text = message
+                .content
+                .iter()
+                .filter_map(|block| match block {
+                    ContentBlock::Text { text, .. } => Some(text.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            let trimmed = text.trim();
+            if trimmed.is_empty()
+                || trimmed.starts_with("<system-reminder>")
+                || trimmed.contains("<ctx_auto_exact")
+            {
+                None
+            } else {
+                Some(trimmed.to_ascii_lowercase())
+            }
+        })
+        .unwrap_or_default()
+}
+
+fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
+    if latest_user.trim().is_empty() {
+        return false;
+    }
+    // Keep proactive rehydration conservative: exact old content is expensive,
+    // so auto-restore only when the current user turn explicitly overlaps the
+    // semantic topics that made the block important. Exact text remains
+    // available via `.ctx_get` for lower-confidence summary/file-name matches.
+    block
+        .topics
+        .iter()
+        .any(|topic| latest_user.contains(*topic))
+}
+
 fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut InterlangStats) {
     if mode() != InterlangMode::Ultra || stats.low_confidence_blocks == 0 {
         return;
     }
+    let latest_user = latest_user_context(messages);
     let Ok(seen) = seen_blocks().lock() else {
         return;
     };
@@ -751,6 +786,7 @@ fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut Interl
             !block.sensitive
                 && (block.confidence <= AUTO_REHYDRATE_CONFIDENCE_THRESHOLD
                     || block.priority == ContextPriority::High)
+                && topic_relevant_to_turn(block, &latest_user)
         })
         .collect();
     candidates.sort_by(|(_, a), (_, b)| {
@@ -766,7 +802,7 @@ fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut Interl
         if remaining < 400 {
             break;
         }
-        let excerpt = exact_excerpt(&block.exact, remaining.min(2_200));
+        let excerpt = exact_excerpt(&block.exact, remaining.min(1_200));
         if excerpt.trim().is_empty() {
             continue;
         }
@@ -788,7 +824,7 @@ fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut Interl
     }
 
     let text = format!(
-        "<system-reminder>\nKcode proactive ctx rehydration: the following exact excerpts were auto-injected because their <ctx> summaries were low-confidence or high-priority. Treat these exact excerpts as authoritative evidence. If more exact old context is needed, request `.ctx_get id=ctx:<hash> reason=<why>`.\n\n{}\n</system-reminder>",
+        "<system-reminder>\nKcode auto-restored one relevant exact excerpt. Need more: `.ctx_get id=ctx:<hash> reason=<why>`.\n\n{}\n</system-reminder>",
         sections.join("\n\n")
     );
     messages.push(Message::user(&text));
@@ -927,6 +963,7 @@ fn encode_seen_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
                 confidence: meta.confidence,
                 priority: meta.priority,
                 sensitive: meta.sensitive,
+                topics: meta.topics.clone(),
             },
         );
     }
@@ -952,11 +989,12 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
             confidence: meta.confidence,
             priority: meta.priority,
             sensitive: meta.sensitive,
+            topics: meta.topics.clone(),
         });
     }
     let id = format!("ctx:{}", hash);
     let encoded = format!(
-        "<ctx v=1 id=\"{}\" hash=\"{}\" original_chars={} confidence=\"{:.2}\" priority=\"{}\" auto_rehydrate=\"{}\" topics=\"{}\" summary=\"{}\" request_exact=\".ctx_get id={} reason=<why exact text is needed>\" />",
+        "<ctx v=1 k=\"vault\" id=\"{}\" h=\"{}\" n={} c=\"{:.2}\" p=\"{}\" ar=\"{}\" t=\"{}\" s=\"{}\" />",
         id,
         hash,
         text.len(),
@@ -964,8 +1002,7 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
         meta.priority.as_str(),
         should_auto_rehydrate(&meta),
         meta.topics.join(","),
-        escape_attr(&summary),
-        id
+        escape_attr(&summary)
     );
     let saved = text.len() as isize - encoded.len() as isize;
     if saved >= MIN_SAVED_CHARS as isize {
@@ -1321,7 +1358,7 @@ mod tests {
         let mut stats = InterlangStats::default();
         let encoded = encode_vault_ref(&text, &mut stats).expect("ultra should vault large block");
         assert!(encoded.starts_with("<ctx"));
-        assert!(encoded.contains(".ctx_get"));
+        assert!(encoded.contains("k=\"vault\""));
         assert_eq!(stats.seen_ref_blocks, 1);
         assert_eq!(stats.raw_context_avoided_chars, text.len());
         assert!(encoded.len() < text.len());
@@ -1348,7 +1385,7 @@ mod tests {
         assert!(stats.diet_blocks >= 1);
         assert!(stats.diet_original_chars > stats.diet_encoded_chars);
         match &dieted[0].content[0] {
-            ContentBlock::Text { text, .. } => assert!(text.contains("diet=1")),
+            ContentBlock::Text { text, .. } => assert!(text.contains("k=\"old-text\"")),
             _ => panic!("expected text"),
         }
         match &dieted.last().unwrap().content[0] {
@@ -1388,5 +1425,59 @@ mod tests {
         assert!(fulfilled.contains("<ctx_exact"));
         assert!(fulfilled.contains("important exact hidden content"));
         assert!(fulfilled.contains("second line"));
+    }
+
+    #[test]
+    fn auto_rehydration_ignores_unrelated_old_context() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let old_installer_error =
+            "diff --git a/install/install.sh b/install/install.sh\nERROR installer build failure\n"
+                .repeat(120);
+        let mut stats = InterlangStats::default();
+        let _ = encode_context_diet_ref(&old_installer_error, "old-tool-result", &mut stats);
+        assert!(stats.low_confidence_blocks > 0);
+
+        let mut messages = vec![Message::user(
+            "Please audit Kcode token efficiency and context compression strategy.",
+        )];
+        maybe_append_auto_rehydration(&mut messages, &mut stats);
+        assert_eq!(
+            messages.len(),
+            1,
+            "unrelated installer block should stay summarized"
+        );
+        assert_eq!(stats.auto_rehydrated_blocks, 0);
+    }
+
+    #[test]
+    fn auto_rehydration_restores_related_old_context() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let old_installer_error =
+            "diff --git a/install/install.sh b/install/install.sh\nERROR installer build failure\n"
+                .repeat(120);
+        let mut stats = InterlangStats::default();
+        let _ = encode_context_diet_ref(&old_installer_error, "old-tool-result", &mut stats);
+        assert!(stats.low_confidence_blocks > 0);
+
+        let mut messages = vec![Message::user(
+            "The installer build error is still failing. Show relevant context.",
+        )];
+        maybe_append_auto_rehydration(&mut messages, &mut stats);
+        assert_eq!(
+            messages.len(),
+            2,
+            "related installer block should be restored"
+        );
+        assert_eq!(stats.auto_rehydrated_blocks, 1);
     }
 }

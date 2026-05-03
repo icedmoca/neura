@@ -1,5 +1,44 @@
 use super::*;
 
+fn latest_user_turn_mentions_context_stats(
+    messages: impl AsRef<[crate::message::Message]>,
+) -> bool {
+    let messages = messages.as_ref();
+    messages
+        .iter()
+        .rev()
+        .find_map(|message| {
+            if message.role != crate::message::Role::User {
+                return None;
+            }
+            let text = message
+                .content
+                .iter()
+                .filter_map(|block| match block {
+                    crate::message::ContentBlock::Text { text, .. } => Some(text.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+                .to_ascii_lowercase();
+            let trimmed = text.trim();
+            if trimmed.is_empty() || trimmed.starts_with("<system-reminder>") {
+                None
+            } else {
+                Some(
+                    trimmed.contains("token")
+                        || trimmed.contains("context")
+                        || trimmed.contains("compact")
+                        || trimmed.contains("compression")
+                        || trimmed.contains("interlang")
+                        || trimmed.contains("ctx")
+                        || trimmed.contains("rehydrat"),
+                )
+            }
+        })
+        .unwrap_or(false)
+}
+
 impl Agent {
     pub(super) async fn run_turn_streaming_mpsc(
         &mut self,
@@ -111,11 +150,15 @@ impl Agent {
                 if stats.blocks_encoded > 0 {
                     let report = stats.report_line();
                     logging::info(&report);
-                    let interlang_prompt = format!(
-                        "{}{}",
-                        crate::interlang::decoder_prompt(),
-                        crate::interlang::realtime_stats_prompt(stats)
-                    );
+                    let interlang_prompt = if latest_user_turn_mentions_context_stats(messages) {
+                        format!(
+                            "{}{}",
+                            crate::interlang::decoder_prompt(),
+                            crate::interlang::realtime_stats_prompt(stats)
+                        )
+                    } else {
+                        crate::interlang::decoder_prompt()
+                    };
                     interlang_messages = encoded;
                     interlang_dynamic_part =
                         Some(format!("{}{}", split_prompt.dynamic_part, interlang_prompt));
