@@ -105,6 +105,36 @@ animate_command() {
   fi
 }
 
+run_activity() {
+  local label="$1" message="$2"; shift 2
+  local pid status spin='|/-\' frame=0 started elapsed
+  started=$(date +%s)
+  printf '\n[%s] %s - %s\n' "$(date -Is)" "$label" "$message" >>"$INSTALL_LOG"
+  "$@" >>"$INSTALL_LOG" 2>&1 & pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    elapsed=$(( $(date +%s) - started ))
+    if [ "$PRETTY_INSTALL" = "0" ] || [ ! -t 1 ]; then
+      # Non-TTY logs get occasional heartbeat lines instead of thousands of redraws.
+      if [ $((frame % 20)) -eq 0 ]; then
+        printf '  %-18s %s %s elapsed %ss\n' "$label" "${spin:$((frame % 4)):1}" "$message" "$elapsed"
+      fi
+    else
+      printf '\r\033[K  %-18s %s %s elapsed %ss' "$label" "${spin:$((frame % 4)):1}" "$message" "$elapsed"
+    fi
+    frame=$((frame + 1))
+    sleep 0.25
+  done
+  if wait "$pid"; then
+    if [ "$PRETTY_INSTALL" != "0" ] && [ -t 1 ]; then printf '\r\033[K'; fi
+    finish_status "$label" "$(bar 100) done in $(( $(date +%s) - started ))s"
+  else
+    status=$?
+    fail_status "$label" "failed - see $INSTALL_LOG"
+    tail -n 25 "$INSTALL_LOG" >&2 || true
+    return "$status"
+  fi
+}
+
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
 check_line() {
   local name="$1" status="$2" detail="$3"
@@ -220,9 +250,9 @@ build_kcode() {
   printf '\n%b%s%b\n' "$C_BOLD" 'Build' "$C_RESET"
   check_line profile ok "$BUILD_PROFILE"
   if [ "$BUILD_PROFILE" = "debug" ]; then
-    animate_command 'build' 'compiling Kcode debug binary' 5 98 cargo build --manifest-path "$SRC_DIR/Cargo.toml" --bin kcode
+    run_activity 'build' 'compiling Kcode debug binary' cargo build --manifest-path "$SRC_DIR/Cargo.toml" --bin kcode
   else
-    animate_command 'build' 'compiling optimized Kcode binary' 5 98 cargo build --manifest-path "$SRC_DIR/Cargo.toml" --release --bin kcode
+    run_activity 'build' 'compiling optimized Kcode binary' cargo build --manifest-path "$SRC_DIR/Cargo.toml" --release --bin kcode
   fi
 }
 
