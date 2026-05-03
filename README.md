@@ -1,3 +1,4 @@
+hi
 # Kcode
 
 > Kcode lets you run long, tool heavy coding sessions without blowing up token costs by compressing old context into references and only restoring exact data when needed, reducing hallucinations by grounding the model in real, retrievable source data instead of guesswork.
