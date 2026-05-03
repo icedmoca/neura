@@ -1,6 +1,6 @@
 # Kcode Context Efficiency Statistics
 
-_Last updated: 2026-05-03T07:04:27-07:00_
+_Last updated: 2026-05-03T07:14:52-07:00_
 
 This document summarizes live Kcode context-compression accounting from this machine and the current safeguards that keep long GPT-style coding sessions token-efficient without deleting exact evidence.
 
@@ -51,6 +51,29 @@ Important caveats:
 | Blocks encoded | 23,490 |
 | Diet blocks | 21,916 |
 | Seen-ref blocks | 1,574 |
+
+
+## Retrieval fidelity and effective context
+
+The compression numbers above measure efficiency, but the important context-retention property is separate: Kcode's context diet is **lossless for vaulted `<ctx>` entries**. When old exact text is replaced by a compact ref, the full original text remains in the local context vault and can be rehydrated by ID with `.ctx_get`.
+
+This gives Kcode an **effective context model** that is closer to a retrieval-backed large context window than to ordinary summarization:
+
+```text
+active prompt = recent exact context + compact refs + selected exact rehydrations
+effective context = active prompt + exact local vault addressable by ctx IDs
+```
+
+In that abstract sense, Kcode can behave like it has a much larger working context than the provider prompt alone, because old exact evidence is not destroyed when it leaves the active prompt. The no-drift property applies to the retrieval layer: a retrieved `<ctx>` block is the original text, not a regenerated summary.
+
+The precise claim is:
+
+- **Lossless local retention:** vaulted `<ctx>` content is recoverable exactly by ID.
+- **No summary drift on retrieval:** `.ctx_get` returns stored original text, so retrieved evidence does not accumulate summarization drift.
+- **Large effective context:** compact refs let Kcode represent far more historical context than would fit or be efficient in the active provider prompt.
+- **Selective active context:** not every old token is always sent to the model. Instead, exact text is manually or automatically rehydrated when needed.
+
+So the end result is effectively similar to a huge context window for evidence that is referenced and retrieved, while still being much cheaper and less distracting than sending every old token on every turn. The honest limitation is retrieval selection: Kcode must either identify the right ref automatically or request it explicitly with `.ctx_get`.
 
 ## Current safety and efficiency behavior
 
@@ -122,7 +145,7 @@ Regression coverage now includes:
 - self-test/statistics turns do **not** auto-restore generic old prompt/memory code,
 - unrelated old installer/build context does **not** auto-restore into a token-efficiency/context-strategy turn,
 - related installer/build-error turns can still auto-restore one bounded exact excerpt,
-- exact `.ctx_get` rehydration still works,
+- exact `.ctx_get` rehydration still works and returns the original stored text,
 - large old turns are dieted while recent messages remain exact,
 - vault references and seen references still save space.
 
@@ -150,4 +173,4 @@ Useful fields: `original_chars`, `encoded_chars`, `saved_tokens_estimate`, `exac
 
 Across 3,136 recorded compaction events, Kcode represented about 1,909,792,620 original characters as 197,759,789 encoded characters, a 89.64% character reduction. The conservative estimate is 428,008,180 tokens saved, while local-tokenizer accounting shows 546,612,882 exact tokens saved.
 
-The current implementation is intentionally more conservative about what it sends to the remote model: exact old content stays retrievable, but proactive exact restore now requires concrete intent and relevance to the latest real user turn.
+The current implementation is intentionally more conservative about what it sends to the remote model: exact old content stays retrievable without summary drift, while proactive exact restore requires concrete intent and relevance to the latest real user turn.
