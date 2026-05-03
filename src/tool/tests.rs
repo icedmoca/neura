@@ -352,8 +352,8 @@ async fn test_context_guard_truncates_huge_single_output() {
         "Output should be truncated"
     );
     assert!(
-        result.output.contains("TRUNCATED"),
-        "Should contain truncation warning"
+        result.output.contains("truncated"),
+        "Should contain compact truncation warning"
     );
 }
 
@@ -374,7 +374,7 @@ async fn test_context_guard_truncates_when_context_nearly_full() {
     let output = ToolOutput::new("x".repeat(4000)); // 1000 tokens
     let result = registry.guard_context_overflow("test", output).await;
     assert!(
-        result.output.contains("TRUNCATED") || result.output.contains("CONTEXT LIMIT"),
+        result.output.contains("truncated") || result.output.contains("context full"),
         "Should warn about context limits when nearly full"
     );
 }
@@ -414,4 +414,20 @@ async fn test_request_permission_is_ambient_only() {
         defs_after.iter().any(|d| d.name == "request_permission"),
         "request_permission should be available after ambient tool registration"
     );
+}
+
+#[test]
+fn intent_schema_description_is_compact() {
+    let value = intent_schema_property();
+    let description = value
+        .get("description")
+        .and_then(serde_json::Value::as_str)
+        .expect("intent schema should have a description");
+
+    assert!(
+        description.len() <= 90,
+        "intent field description is repeated across every tool schema and should stay compact"
+    );
+    assert!(description.contains("Optional"));
+    assert!(description.contains("required parameters"));
 }

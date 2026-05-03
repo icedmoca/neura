@@ -118,9 +118,9 @@ pub fn enabled() -> bool {
 
 pub fn decoder_prompt() -> String {
     match mode() {
-        InterlangMode::Ultra => "\n\n<system-reminder>\nKcode context vault active. Decode <il:v1>. <ctx>/<il:seen> are summaries of local exact text. Do not invent hidden details. Request exact text only if needed: `.ctx_get id=<id> reason=<why>`. Compact <ctx> attrs: id/hash, c=confidence, p=priority, ar=auto-rehydrate, t=topics, s=summary.\n</system-reminder>".to_string(),
-        InterlangMode::Verified | InterlangMode::Aggressive => "\n\n<system-reminder>\nKcode interlang active. Decode <il:v1> refs exactly. <il:seen> means exact text was previously shown; request `. err need_ref <hash>` if exact text is required. Do not guess missing referenced content.\n</system-reminder>".to_string(),
-        InterlangMode::Safe => "\n\n<system-reminder>\nKcode interlang safe mode active. Decode <il:v1> line/path refs exactly before reasoning.\n</system-reminder>".to_string(),
+        InterlangMode::Ultra => "\n\n<system-reminder>\nKcode ctx vault active. Decode <il:v1>. <ctx>/<il:seen> are refs to local exact text; don't invent hidden details. Need exact: `.ctx_get id=<id> reason=<why>`. Attrs: c=confidence,p=priority,ar=auto,t=topics,s=summary.\n</system-reminder>".to_string(),
+        InterlangMode::Verified | InterlangMode::Aggressive => "\n\n<system-reminder>\nKcode interlang active. Decode <il:v1>. <il:seen> means exact text was shown before; request `. err need_ref <hash>` if needed. Don't guess hidden refs.\n</system-reminder>".to_string(),
+        InterlangMode::Safe => "\n\n<system-reminder>\nKcode interlang safe: decode <il:v1> line/path refs before reasoning.\n</system-reminder>".to_string(),
         InterlangMode::Off => String::new(),
     }
 }
@@ -140,7 +140,7 @@ pub fn realtime_stats_prompt(latest: InterlangStats) -> String {
     let latest_raw_avoided = latest.raw_context_avoided_tokens_estimate();
     let mode = status.get("mode").and_then(|v| v.as_str()).unwrap_or("off");
     format!(
-        "\n\n<system-reminder>\nKcode ctx stats: mode={mode}, saved_tokens={total_saved}, latest_saved={latest_saved}, blocks={}, avoided_tokens={latest_raw_avoided}, diet_blocks={}.\n</system-reminder>",
+        "\n\n<system-reminder>\nKcode ctx stats: mode={mode}, saved={total_saved}, latest={latest_saved}, blocks={}, avoided={latest_raw_avoided}, diet={}.\n</system-reminder>",
         latest.blocks_encoded, latest.diet_blocks
     )
 }
@@ -1573,6 +1573,32 @@ mod tests {
             "self-test/statistics turns should not auto-restore generic old code"
         );
         assert_eq!(stats.auto_rehydrated_blocks, 0);
+    }
+
+    #[test]
+    fn decoder_prompt_stays_compact_but_preserves_retrieval_contract() {
+        let prompt = decoder_prompt();
+        if prompt.is_empty() {
+            return;
+        }
+        assert!(prompt.len() <= 300, "decoder prompt should stay compact");
+        assert!(prompt.contains(".ctx_get") || prompt.contains("need_ref"));
+        assert!(prompt.contains("don't invent") || prompt.contains("Don't guess"));
+    }
+
+    #[test]
+    fn realtime_stats_prompt_stays_compact() {
+        let mut stats = InterlangStats::default();
+        stats.blocks_encoded = 12;
+        stats.diet_blocks = 9;
+        stats.raw_context_avoided_chars = 40_000;
+        stats.exact_original_tokens = 20_000;
+        stats.exact_encoded_tokens = 1_000;
+        let prompt = realtime_stats_prompt(stats);
+        assert!(prompt.len() <= 180, "stats reminder should stay compact");
+        assert!(prompt.contains("saved="));
+        assert!(prompt.contains("avoided="));
+        assert!(prompt.contains("diet="));
     }
 
     #[test]

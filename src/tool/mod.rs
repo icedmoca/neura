@@ -50,8 +50,7 @@ use std::sync::OnceLock;
 use tokio::sync::RwLock;
 
 const TOOL_INTENT_DESCRIPTION: &str = concat!(
-    "Short natural-language label explaining why this tool call is being made. ",
-    "Used for compact UI display only. Optional; do not use this instead of required tool parameters."
+    "Optional display only UI label; not a substitute for required parameters."
 );
 
 pub(crate) fn intent_schema_property() -> Value {
@@ -585,9 +584,7 @@ impl Registry {
         // Truncate the output, keeping the beginning (usually most relevant)
         let truncated = if max_chars > 200 {
             let notice = format!(
-                "
-
-[truncated: output ~{:.0}k tokens; kept first ~{:.0}k. Re-run with a narrower query/range for exact text.]",
+                "\n\n[truncated: ~{:.0}k tokens; kept ~{:.0}k. Narrow query/range for exact text.]",
                 output_tokens as f32 / 1000.0,
                 max_tokens as f32 / 1000.0,
             );
@@ -595,10 +592,7 @@ impl Registry {
             let kept = &output.output[..output.output.floor_char_boundary(keep_chars)];
             format!("{}{}", kept, notice)
         } else {
-            format!(
-                "[context full: omitted tool output ~{:.0}k tokens. Use /compact or a narrower query.]",
-                output_tokens as f32 / 1000.0,
-            )
+            format!("[context full: omitted ~{:.0}k-token output; narrow query or /compact.]", output_tokens as f32 / 1000.0)
         };
 
         ToolOutput {
