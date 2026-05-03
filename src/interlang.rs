@@ -784,6 +784,14 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
         || latest_user.contains("outline")
         || latest_user.contains("punch it")
         || latest_user.contains("instead of");
+    let token_accounting_intent = latest_user.contains("token")
+        || latest_user.contains("tokens")
+        || latest_user.contains("cost")
+        || latest_user.contains("expensive")
+        || latest_user.contains("context")
+        || latest_user.contains("prompt")
+        || latest_user.contains("93k")
+        || latest_user.contains("took");
     let concrete_exact_intent = latest_user.contains("exact")
         || latest_user.contains("show")
         || latest_user.contains("look at")
@@ -807,7 +815,7 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
     let exact_intent = explicit_fetch_intent
         || failure_intent
         || build_or_test_failure_intent
-        || (concrete_exact_intent && !documentation_intent);
+        || (concrete_exact_intent && !documentation_intent && !token_accounting_intent);
 
     let mut score = 0u8;
     for topic in &block.topics {
@@ -822,8 +830,8 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
 
     // For proactive exact text, require concrete exact/debug/fix/failure intent
     // plus topic overlap. Do not restore exact old code just because a generic
-    // word like "memory", "token", "build", "test", or "exact" appears in a
-    // strategy/documentation/wording/self-test turn.
+    // word like "memory", "token", "build", "test", "why", or "exact"
+    // appears in a strategy/documentation/wording/self-test/token-accounting turn.
     exact_intent && score >= 2
 }
 
@@ -1625,6 +1633,34 @@ mod tests {
             messages.len(),
             1,
             "documentation wording turns should not auto-restore generic old code"
+        );
+        assert_eq!(stats.auto_rehydrated_blocks, 0);
+    }
+
+    #[test]
+    fn auto_rehydration_ignores_token_accounting_why_turn() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let old_tool_tests =
+            "fn test_resolve_tool_name_oauth_aliases() { /* todo token error auth */ }\n"
+                .repeat(190);
+        let mut stats = InterlangStats::default();
+        let _ = encode_context_diet_ref(&old_tool_tests, "old-text", &mut stats);
+        assert!(stats.low_confidence_blocks > 0);
+
+        let mut messages = vec![Message::user(
+            "i dont understand why that took 93k tokens. thats alot? did it actually",
+        )];
+        maybe_append_auto_rehydration(&mut messages, &mut stats);
+        assert_eq!(
+            messages.len(),
+            1,
+            "token-accounting why turns should not auto-restore unrelated old code"
         );
         assert_eq!(stats.auto_rehydrated_blocks, 0);
     }
