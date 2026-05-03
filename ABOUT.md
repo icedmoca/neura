@@ -72,21 +72,13 @@ flowchart TD
 A compacted block looks conceptually like this:
 
 ```xml
-<ctx
-  id="ctx:hash"
-  original_chars="279518"
-  summary="lines=...; files=...; first=..."
-  request_exact=".ctx_get id=ctx:hash reason=<why exact old context is needed>" />
+<ctx v=1 k="old-tool-result" id="ctx:hash" h="hash" n=279518 c="0.66" p="high" ar="true" t="build,error" s="lines=...; files=...; first=..." />
 ```
 
-That means the model still sees:
-
-- what kind of thing was removed,
-- how large it was,
-- a deterministic summary,
-- semantic hints,
-- a stable hash/id,
-- and instructions for asking Kcode to rehydrate exact content if needed.
+That means the model still sees the removed block type, stable id/hash, original
+size, confidence, priority, semantic topics, and deterministic summary. The exact
+text is not repeated by default; the decoder prompt defines `.ctx_get id=...` as
+the recovery path when exact old content matters.
 
 ### Token-saving modes
 
@@ -96,7 +88,8 @@ Kcode has an interlang/context compression path with modes such as safe, verifie
 2. **Old bulky context gets summarized.** Long tool results, repeated logs, and old low-value content become compact `<ctx>` references.
 3. **Seen content can become a reference.** If exact content was already provided earlier, later turns can use `<il:seen>` rather than resending it.
 4. **The model can request exact text.** If a summary is insufficient, it can request `.ctx_get id=...`.
-5. **Kcode records accounting.** It logs original chars, encoded chars, saved chars, estimated saved tokens, and exact local-tokenizer estimates when available.
+5. **Auto-restore is relevance-gated.** Kcode only proactively restores exact excerpts when the old block's topics match the latest real user turn.
+6. **Stats are local-first.** Kcode logs original chars, encoded chars, saved chars, estimated saved tokens, and exact local-tokenizer estimates when available. Stats reminders are only injected for token/context-related turns.
 
 Current ultra-mode defaults are tuned for long GPT-5.5 style coding sessions:
 
@@ -121,8 +114,8 @@ sequenceDiagram
     D->>V: Store exact old block by hash
     D->>D: Score confidence + priority
     D-->>A: Replace old block with compact ctx ref
-    opt Low confidence or high priority
-        D-->>A: Auto-inject small exact excerpt
+    opt Low confidence or high priority AND topic-relevant to latest user turn
+        D-->>A: Auto-inject one bounded exact excerpt
     end
     A->>R: Send smaller prompt
     R-->>A: Response

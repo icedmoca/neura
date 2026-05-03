@@ -20,9 +20,16 @@ Run this in a terminal:
 curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install/install.sh | bash
 ```
 
+The installer uses a quiet progress UI and writes full command output to
+`~/.kcode/logs/install-YYYYMMDD-HHMMSS.log`. On machines that already have Kcode,
+it treats `~/.kcode/build-src/kcode` as an installer-managed cache: it silently
+syncs it to GitHub `main`, and if the cache is locally diverged it backs it up and
+clones a fresh copy instead of showing Git internals or failing on `git pull`.
+The build phase shows elapsed compile activity instead of a fake percentage.
+
 The installer will:
 
-1. Clone Kcode from `https://github.com/icedmoca/kcode` into `~/.kcode/build-src/kcode`.
+1. Sync Kcode from `https://github.com/icedmoca/kcode` into `~/.kcode/build-src/kcode`.
 2. Download the local sidecar model from Hugging Face:
    `https://huggingface.co/icedmoca/kcode-oss-20b-mxfp4`.
 3. Store the model inside your Kcode home at:
@@ -137,11 +144,22 @@ OpenAI usage cache as stale after about 30 seconds and requests a refresh after
 completed turns, so 5-hour and weekly usage can update during an existing
 session.
 
-Kcode also adds confidence and priority metadata to context references. When a
-summary is low-confidence or high-priority, Kcode can proactively inject a small
-exact excerpt before the next model call instead of relying only on the model to
-notice the summary and request `.ctx_get`. Sensitive-looking content is not
-auto-injected; it still requires an explicit exact-context request.
+Kcode also adds compact confidence, priority, topic, and auto-restore metadata
+to context references. Current refs are intentionally short, for example:
+
+```xml
+<ctx v=1 k="old-tool-result" id="ctx:..." h="..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; files=[...]; first=..." />
+```
+
+Exact old content remains in the local vault. Low-confidence or high-priority
+blocks are only auto-restored when their semantic topics overlap the latest real
+user turn, and then only as one bounded excerpt. This prevents unrelated old logs
+or diffs from being re-injected into unrelated tasks. Sensitive-looking content
+is never auto-injected; it still requires an explicit `.ctx_get` request.
+
+Realtime compression stats are recorded locally every time, but Kcode only adds
+a stats reminder to the model when the latest user turn is about tokens, context,
+compression, `ctx`, interlang, or rehydration.
 
 ## OpenAI OAuth, API keys, and failover
 

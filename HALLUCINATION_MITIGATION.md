@@ -74,39 +74,33 @@ flowchart LR
     Hash --> Ctx[Compact ctx reference]
     Summary --> Ctx
     Score --> Ctx
-    Score --> Auto[Auto exact excerpt when confidence is low]
+    Score --> Auto[Topic-gated auto exact excerpt]
     Ctx --> Prompt[Smaller prompt]
     Auto --> Prompt
     Vault --> Rehydrate[Exact retrieval if needed]
 ```
 
-A `<ctx>` reference is intentionally explicit:
+A `<ctx>` reference is intentionally compact but accountable:
 
 ```xml
-<ctx
-  id="ctx:..."
-  hash="..."
-  original_chars="..."
-  confidence="0.52"
-  priority="high"
-  auto_rehydrate="true"
-  summary="lines=...; chars=...; files=[...]; first=..."
-  policy="memory-safe context diet: old low-value context is summarized; request exact only if necessary"
-  request_exact=".ctx_get id=ctx:... reason=<why exact old context is needed>" />
+<ctx v=1 k="old-tool-result" id="ctx:..." h="..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; chars=...; files=[...]; first=..." />
 ```
 
-This combats hallucination because the model is told:
+The decoder prompt defines the schema once, so each reference does not repeat the
+same long policy text. This combats hallucination because the model still sees:
 
 - this is a summary, not exact text,
 - exact content exists locally,
 - a stable id/hash identifies it,
-- Kcode has scored confidence and priority,
-- and it should request exact text instead of inventing details.
+- Kcode has scored confidence, priority, and semantic topics,
+- and it should request `.ctx_get id=...` instead of inventing details.
 
 If Kcode itself decides a compacted block is low-confidence or high-priority, it
-can proactively inject a bounded exact excerpt before the next model call. This
-reduces dependence on the model perfectly obeying the `.ctx_get` protocol while
-still preserving most token savings. Sensitive-looking content is excluded from
+can proactively inject an exact excerpt, but only when that block's semantic
+topics overlap the latest real user turn. Auto-restore is capped to one short
+excerpt by default. This preserves the anti-hallucination benefit for relevant
+old evidence while avoiding unrelated old logs, diffs, or API output being
+re-injected into unrelated tasks. Sensitive-looking content is excluded from
 automatic exact injection and remains explicit-request only.
 
 Current ultra-mode defaults are deliberately tuned for long tool-heavy coding
