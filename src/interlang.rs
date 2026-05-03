@@ -772,6 +772,18 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
         return false;
     }
 
+    let documentation_intent = latest_user.contains("about.md")
+        || latest_user.contains("readme")
+        || latest_user.contains("statistics.md")
+        || latest_user.contains("documentation")
+        || latest_user.contains(" docs")
+        || latest_user.contains("document")
+        || latest_user.contains("wording")
+        || latest_user.contains("phrase")
+        || latest_user.contains("section")
+        || latest_user.contains("outline")
+        || latest_user.contains("punch it")
+        || latest_user.contains("instead of");
     let concrete_exact_intent = latest_user.contains("exact")
         || latest_user.contains("show")
         || latest_user.contains("look at")
@@ -791,7 +803,11 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
     let build_or_test_failure_intent = (latest_user.contains("build")
         || latest_user.contains("test"))
         && failure_intent;
-    let exact_intent = concrete_exact_intent || failure_intent || build_or_test_failure_intent;
+    let explicit_fetch_intent = latest_user.contains("ctx_get") || latest_user.contains("rehydrat");
+    let exact_intent = explicit_fetch_intent
+        || failure_intent
+        || build_or_test_failure_intent
+        || (concrete_exact_intent && !documentation_intent);
 
     let mut score = 0u8;
     for topic in &block.topics {
@@ -806,8 +822,8 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
 
     // For proactive exact text, require concrete exact/debug/fix/failure intent
     // plus topic overlap. Do not restore exact old code just because a generic
-    // word like "memory", "token", "build", or "test" appears in a
-    // strategy/documentation/self-test turn.
+    // word like "memory", "token", "build", "test", or "exact" appears in a
+    // strategy/documentation/wording/self-test turn.
     exact_intent && score >= 2
 }
 
@@ -1555,6 +1571,34 @@ mod tests {
             messages.len(),
             1,
             "self-test/statistics turns should not auto-restore generic old code"
+        );
+        assert_eq!(stats.auto_rehydrated_blocks, 0);
+    }
+
+    #[test]
+    fn auto_rehydration_ignores_documentation_wording_turn() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let old_prompt_memory_code =
+            "impl Agent { fn build_memory_prompt_nonblocking() {} /* exact memory context error */ }\n"
+                .repeat(180);
+        let mut stats = InterlangStats::default();
+        let _ = encode_context_diet_ref(&old_prompt_memory_code, "old-text", &mut stats);
+        assert!(stats.low_confidence_blocks > 0);
+
+        let mut messages = vec![Message::user(
+            "Instead of saying old bulky context gets summarized, punch it harder in ABOUT.md: exact context is externalized and retrieval works.",
+        )];
+        maybe_append_auto_rehydration(&mut messages, &mut stats);
+        assert_eq!(
+            messages.len(),
+            1,
+            "documentation wording turns should not auto-restore generic old code"
         );
         assert_eq!(stats.auto_rehydrated_blocks, 0);
     }

@@ -44,7 +44,14 @@ Kcode is not just a wrapper around an LLM API. It is the orchestration layer tha
 
 ## 2. How token savings work
 
-Kcode saves tokens primarily by preventing old, bulky context from being resent verbatim every turn.
+Kcode saves tokens, but the deeper point is context reliability. Without a retrieval layer, long sessions eventually face a bad choice: either resend an enormous transcript forever, or silently drop older tool output and hope the model guesses correctly from partial memory. That is where many long coding sessions drift.
+
+Kcode's answer is not ordinary compression. It is **lossless externalized context with explicit epistemics**:
+
+- exact old evidence is stored outside the provider prompt,
+- summaries are useful breadcrumbs but are **not authoritative**,
+- compact refs are stable pointers to exact evidence,
+- `.ctx_get` is a first-class retrieval protocol when exact text matters.
 
 Normal chat systems often resend a growing transcript:
 
@@ -56,7 +63,7 @@ flowchart LR
     T4 --> Big[Large expensive prompt]
 ```
 
-Kcode instead uses a **context diet**. Old low-value blocks, tool output, logs, repeated text, and already-seen content are replaced by compact references.
+Kcode instead uses a **context diet** that externalizes old evidence without destroying it. Old tool output, logs, repeated text, and already-seen content become compact references backed by exact local vault entries. Without this, long sessions silently drop critical tool output and the model guesses.
 
 ```mermaid
 flowchart TD
@@ -85,11 +92,12 @@ the recovery path when exact old content matters.
 Kcode has an interlang/context compression path with modes such as safe, verified, aggressive, and ultra. The main active behavior is:
 
 1. **Recent context stays exact.** The newest messages and current task details remain readable.
-2. **Old bulky context gets summarized.** Long tool results, repeated logs, and old low-value content become compact `<ctx>` references.
-3. **Seen content can become a reference.** If exact content was already provided earlier, later turns can use `<il:seen>` rather than resending it.
-4. **The model can request exact text.** If a summary is insufficient, it can request `.ctx_get id=...`.
-5. **Auto-restore is relevance-gated.** Kcode only proactively restores exact excerpts when the old block's topics match the latest real user turn.
-6. **Stats are local-first.** Kcode logs original chars, encoded chars, saved chars, estimated saved tokens, and exact local-tokenizer estimates when available. Stats reminders are only injected for token/context-related turns.
+2. **Old bulky context is externalized losslessly.** Long tool results, repeated logs, and old low-value content become compact `<ctx>` references backed by exact local vault entries. Without this, long sessions silently drop critical tool output and the model guesses.
+3. **Summaries are non-authoritative.** Ref summaries help routing and reasoning, but exact vaulted text is the source of truth.
+4. **Seen content can become a reference.** If exact content was already provided earlier, later turns can use `<il:seen>` rather than resending it.
+5. **The model can page fault exact text.** If a summary is insufficient, it can request `.ctx_get id=...`. This is the core active retrieval loop, similar to a virtual-memory page fault.
+6. **Auto-restore is relevance-gated.** Kcode only proactively restores exact excerpts when the old block's topics match the latest real user turn.
+7. **Stats are local-first.** Kcode logs original chars, encoded chars, saved chars, estimated saved tokens, and exact local-tokenizer estimates when available. Stats reminders are only injected for token/context-related turns.
 
 Current ultra-mode defaults are tuned for long GPT-5.5 style coding sessions:
 
@@ -119,7 +127,7 @@ sequenceDiagram
     end
     A->>R: Send smaller prompt
     R-->>A: Response
-    alt Remote needs exact old block
+    alt Remote page-faults exact old evidence
         R-->>A: .ctx_get id=ctx:...
         A->>V: Fetch exact content
         V-->>A: Exact original block
@@ -129,7 +137,9 @@ sequenceDiagram
 
 ### How retrieval selection works
 
-Kcode's retrieval system is designed to feel like a much larger effective context window while avoiding the cost and distraction of sending every historical token every turn. The key idea is that context diet is **lossless at the vault layer** and **selective at the active-prompt layer**.
+Kcode's retrieval system is the main behavior shift. Normal systems have passive context: whatever is currently in the prompt is all the model gets. Kcode has an active retrieval protocol: the prompt can contain compact handles, and the model can fault exact evidence back in when needed.
+
+The key idea is that context diet is **lossless at the vault layer** and **selective at the active-prompt layer**. This is not just compression. It is externalized exact context with explicit epistemics: summaries are hints, refs are pointers, and vaulted text is the authority.
 
 There are three different states for old context:
 
@@ -180,9 +190,18 @@ Retrieval selection is intentionally conservative:
 5. **Require concrete retrieval intent.** Proactive exact restore now requires an intent such as exact inspection, showing context, debugging, fixing, or investigating a failure.
 6. **Require topic overlap.** The latest user turn must match the old block's semantic topics before Kcode spends prompt budget on exact rehydration.
 7. **Cap proactive restore.** Kcode restores at most a small bounded excerpt automatically so one old block cannot flood the prompt.
-8. **Preserve explicit perfect recall.** If exact lines matter, `.ctx_get id=...` retrieves the original vaulted text, not a regenerated summary.
+8. **Preserve explicit perfect recall.** If exact lines matter, `.ctx_get id=...` retrieves the original vaulted text, not a regenerated summary. This is the page-fault path that turns compact context into exact evidence on demand.
 
-This makes Kcode different from ordinary summarization. Summaries can drift over time; Kcode's compact refs are pointers to exact stored evidence. The model does not always have every old token in the active prompt, but it has stable handles to retrieve exact old evidence when needed. In practice, this gives Kcode a large retrieval-backed effective context window with much lower token cost and less distraction.
+This makes Kcode different from ordinary summarization. Summaries can drift over time; Kcode's compact refs are pointers to exact stored evidence. The model does not always have every old token in the active prompt, but it has stable handles and a protocol for retrieving exact old evidence when needed. In practice, this gives Kcode a large retrieval-backed effective context window with much lower token cost and less distraction.
+
+The analogy is virtual memory for context:
+
+```text
+normal long chat: prompt-only context, older details are compressed away or forgotten
+Kcode: active prompt + exact external context store + explicit page-fault retrieval
+```
+
+That is the novelty: exact context is never treated as destroyed, summaries are explicitly non-authoritative, and retrieval is first-class.
 
 ### Why prompts are still not tiny
 
@@ -224,7 +243,7 @@ flowchart TD
     Vault --> Rehydrate[Exact rehydration if requested]
 ```
 
-This is designed to be conservative: summaries are useful for normal reasoning, but exact hidden text is not invented. If exact lines matter, the model is instructed to ask for rehydration.
+This is designed to be conservative: summaries are useful for normal reasoning, but they are non-authoritative. Exact hidden text is not invented or regenerated. If exact lines matter, the model is instructed to page-fault the original evidence with `.ctx_get`.
 
 ---
 
