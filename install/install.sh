@@ -80,17 +80,18 @@ animate_command() {
   printf '\n[%s] %s - %s\n' "$(date -Is)" "$label" "$message" >>"$INSTALL_LOG"
   "$@" >>"$INSTALL_LOG" 2>&1 & pid=$!
   while kill -0 "$pid" 2>/dev/null; do
-    set_status "$label" "$pct" "${spin:$((frame % 4)):1} $message"
-    frame=$((frame + 1))
     if [ "$pct" -lt "$end_pct" ]; then
+      set_status "$label" "$pct" "${spin:$((frame % 4)):1} $message"
+      frame=$((frame + 1))
       # Monotonic easing: fast at first, then slower near the end so the bar
       # never jumps backward or sits at 100 while the command is still running.
       if [ "$pct" -lt 55 ] || [ $((frame % 2)) -eq 0 ]; then
         pct=$((pct + 1))
       fi
     else
-      hold=$((hold + 1))
       set_status "$label" "$end_pct" "${spin:$((frame % 4)):1} finishing..."
+      frame=$((frame + 1))
+      hold=$((hold + 1))
     fi
     sleep 0.15
   done
