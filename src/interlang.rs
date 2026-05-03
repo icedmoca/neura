@@ -32,6 +32,7 @@ const APPROX_CHARS_PER_TOKEN: usize = 4;
 const AUTO_REHYDRATE_CONFIDENCE_THRESHOLD: f32 = 0.56;
 const AUTO_REHYDRATE_MAX_BLOCKS: usize = 1;
 const AUTO_REHYDRATE_MAX_CHARS: usize = 1_800;
+const AUTO_REHYDRATE_DEBUG_ENV: &str = "KCODE_CTX_REHYDRATE_DEBUG";
 
 #[derive(Debug, Clone)]
 struct SeenBlock {
@@ -157,6 +158,8 @@ pub struct InterlangStats {
     pub diet_original_chars: usize,
     pub diet_encoded_chars: usize,
     pub low_confidence_blocks: usize,
+    pub auto_rehydrate_candidates: usize,
+    pub auto_rehydrate_skipped: usize,
     pub auto_rehydrated_blocks: usize,
     pub auto_rehydrated_chars: usize,
 }
@@ -174,6 +177,8 @@ impl InterlangStats {
             && self.diet_original_chars == 0
             && self.diet_encoded_chars == 0
             && self.low_confidence_blocks == 0
+            && self.auto_rehydrate_candidates == 0
+            && self.auto_rehydrate_skipped == 0
             && self.auto_rehydrated_blocks == 0
             && self.auto_rehydrated_chars == 0
     }
@@ -276,6 +281,8 @@ pub fn record_stats(stats: InterlangStats) {
         "diet_saved_chars": stats.diet_original_chars as isize - stats.diet_encoded_chars as isize,
         "diet_saved_tokens_estimate": estimate_tokens(stats.diet_original_chars).saturating_sub(estimate_tokens(stats.diet_encoded_chars)),
         "low_confidence_blocks": stats.low_confidence_blocks,
+        "auto_rehydrate_candidates": stats.auto_rehydrate_candidates,
+        "auto_rehydrate_skipped": stats.auto_rehydrate_skipped,
         "auto_rehydrated_blocks": stats.auto_rehydrated_blocks,
         "auto_rehydrated_chars": stats.auto_rehydrated_chars,
         "auto_rehydrated_tokens_estimate": estimate_tokens(stats.auto_rehydrated_chars),
@@ -420,6 +427,8 @@ fn merge_stats(into: &mut InterlangStats, other: InterlangStats) {
     into.diet_original_chars += other.diet_original_chars;
     into.diet_encoded_chars += other.diet_encoded_chars;
     into.low_confidence_blocks += other.low_confidence_blocks;
+    into.auto_rehydrate_candidates += other.auto_rehydrate_candidates;
+    into.auto_rehydrate_skipped += other.auto_rehydrate_skipped;
     into.auto_rehydrated_blocks += other.auto_rehydrated_blocks;
     into.auto_rehydrated_chars += other.auto_rehydrated_chars;
 }
@@ -762,14 +771,49 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
     if latest_user.trim().is_empty() {
         return false;
     }
-    // Keep proactive rehydration conservative: exact old content is expensive,
-    // so auto-restore only when the current user turn explicitly overlaps the
-    // semantic topics that made the block important. Exact text remains
-    // available via `.ctx_get` for lower-confidence summary/file-name matches.
-    block
-        .topics
-        .iter()
-        .any(|topic| latest_user.contains(*topic))
+
+    let exact_intent = latest_user.contains("exact")
+        || latest_user.contains("show")
+        || latest_user.contains("look at")
+        || latest_user.contains("why")
+        || latest_user.contains("debug")
+        || latest_user.contains("fix")
+        || latest_user.contains("failing")
+        || latest_user.contains("failed")
+        || latest_user.contains("error")
+        || latest_user.contains("panic")
+        || latest_user.contains("build")
+        || latest_user.contains("test")
+        || latest_user.contains("ctx_get")
+        || latest_user.contains("rehydrat");
+
+    let mut score = 0u8;
+    for topic in &block.topics {
+        if latest_user.contains(*topic) {
+            score += match *topic {
+                "auth" | "security" | "panic" | "diff" => 3,
+                "build" | "error" | "failure" | "test" | "token" | "memory" => 2,
+                _ => 1,
+            };
+        }
+    }
+
+    // For proactive exact text, require either a concrete exact/debug/fix intent
+    // plus topic overlap, or multiple independent topic hits. This avoids
+    // spending tokens on exact old code just because a generic word like
+    // "memory" or "token" appears in a strategy/documentation turn.
+    (exact_intent && score >= 2) || score >= 4
+}
+
+fn auto_rehydrate_debug_enabled() -> bool {
+    std::env::var(AUTO_REHYDRATE_DEBUG_ENV)
+        .map(|v| {
+            !matches!(
+                v.trim().to_ascii_lowercase().as_str(),
+                "0" | "false" | "no" | "off"
+            )
+        })
+        .unwrap_or(false)
 }
 
 fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut InterlangStats) {
@@ -780,15 +824,33 @@ fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut Interl
     let Ok(seen) = seen_blocks().lock() else {
         return;
     };
+    let mut skipped = 0usize;
     let mut candidates: Vec<(&String, &SeenBlock)> = seen
         .iter()
         .filter(|(_, block)| {
-            !block.sensitive
+            let eligible = !block.sensitive
                 && (block.confidence <= AUTO_REHYDRATE_CONFIDENCE_THRESHOLD
-                    || block.priority == ContextPriority::High)
-                && topic_relevant_to_turn(block, &latest_user)
+                    || block.priority == ContextPriority::High);
+            if !eligible {
+                return false;
+            }
+            let relevant = topic_relevant_to_turn(block, &latest_user);
+            if !relevant {
+                skipped += 1;
+            }
+            relevant
         })
         .collect();
+    stats.auto_rehydrate_candidates += candidates.len() + skipped;
+    stats.auto_rehydrate_skipped += skipped;
+    if auto_rehydrate_debug_enabled() && (skipped > 0 || !candidates.is_empty()) {
+        crate::logging::info(&format!(
+            "ctx auto-rehydrate relevance: candidates={} skipped={} latest_user_len={}",
+            candidates.len(),
+            skipped,
+            latest_user.len()
+        ));
+    }
     candidates.sort_by(|(_, a), (_, b)| {
         a.confidence
             .partial_cmp(&b.confidence)
@@ -1260,6 +1322,12 @@ fn encode_repeated_lines(text: &str) -> Option<String> {
 mod tests {
     use super::*;
     use crate::message::Message;
+    use std::sync::{Mutex, MutexGuard, OnceLock};
+
+    fn seen_test_lock() -> MutexGuard<'static, ()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
+    }
 
     #[test]
     fn repeated_line_encoding_saves_space() {
@@ -1317,6 +1385,7 @@ mod tests {
 
     #[test]
     fn repeated_large_block_becomes_seen_ref() {
+        let _guard = seen_test_lock();
         if let Ok(mut seen) = seen_blocks().lock() {
             seen.clear();
         }
@@ -1409,6 +1478,7 @@ mod tests {
 
     #[test]
     fn rehydrates_stored_exact_context() {
+        let _guard = seen_test_lock();
         if let Ok(mut seen) = seen_blocks().lock() {
             seen.clear();
         }
@@ -1432,6 +1502,7 @@ mod tests {
         if mode() != InterlangMode::Ultra {
             return;
         }
+        let _guard = seen_test_lock();
         if let Ok(mut seen) = seen_blocks().lock() {
             seen.clear();
         }
@@ -1459,6 +1530,7 @@ mod tests {
         if mode() != InterlangMode::Ultra {
             return;
         }
+        let _guard = seen_test_lock();
         if let Ok(mut seen) = seen_blocks().lock() {
             seen.clear();
         }

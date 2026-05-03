@@ -19,7 +19,7 @@ Important caveats:
 - These are local prompt-preparation statistics, not OpenAI invoice numbers.
 - Historical rows include behavior before the latest topic-gated auto-restore patch.
 - Exact tokenizer counts are local-model tokenizer counts, useful for relative savings but not guaranteed identical to every remote provider tokenizer.
-- Auto-rehydration counters include historical pre-patch behavior. Current source caps proactive exact restore to one topic-relevant excerpt.
+- Auto-rehydration counters include historical pre-patch behavior. Current source caps proactive exact restore to one intent-aware, topic-relevant excerpt and records skipped candidates.
 
 ## Executive summary
 
@@ -65,7 +65,7 @@ Current Kcode uses several layers to avoid wasting remote-model context while pr
 <ctx v=1 k="old-tool-result" id="ctx:..." h="..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; files=[...]; first=..." />
 ```
 
-5. **Auto-restore is topic-gated.** Low-confidence/high-priority blocks are not restored merely because they are important. Kcode now requires semantic-topic overlap with the latest real user turn.
+5. **Auto-restore is topic-gated.** Low-confidence/high-priority blocks are not restored merely because they are important. Kcode now requires intent-aware semantic-topic overlap with the latest real user turn.
 6. **Auto-restore is bounded.** Current defaults restore at most one exact excerpt and at most about 1,800 chars proactively.
 7. **Stats reminders are gated.** Compression stats are written locally every time, but model-visible stats reminders are only added when the user asks about token/context/compression/ctx/interlang/rehydration.
 8. **Tool output caps are stricter.** A single tool output is capped more aggressively and uses a short truncation notice rather than a long explanatory paragraph.
@@ -85,6 +85,25 @@ restore_exact = !sensitive
 
 This keeps the anti-hallucination escape hatch while avoiding unrelated old evidence being resent.
 
+
+## Distribution and worst-case view
+
+Averages can hide spikes, so Kcode also tracks percentile-style views from the local event stream. These numbers are historical and include pre-topic-gating behavior, but they show the scale of individual turns.
+
+| Per-event metric | p50 | p95 | p99 | Max |
+|---|---:|---:|---:|---:|
+| Estimated tokens saved | 106,674 | 355,053 | 355,053 | 355,053 |
+| Exact local-tokenizer tokens saved | 142,459 | 453,279 | 453,279 | 453,279 |
+
+Historical proactive auto-restore character volume:
+
+| Metric | Value |
+|---|---:|
+| p95 auto-restored chars/event | 5,556 |
+| Max auto-restored chars/event | 5,556 |
+
+Current source is stricter than much of this historical data: proactive restore now requires intent-aware topic overlap, records candidate/skipped counters, and exposes optional debug logging with `KCODE_CTX_REHYDRATE_DEBUG=1`.
+
 ## Auto-rehydration historical counters
 
 | Metric | All recorded events | Latest 50 events |
@@ -93,7 +112,7 @@ This keeps the anti-hallucination escape hatch while avoiding unrelated old evid
 | Auto-rehydrated blocks | 773 | 140 |
 | Auto-rehydrated chars | 1,406,549 | 253,075 |
 
-These counters are historical and include pre-topic-gating behavior. After the current patch, unrelated old blocks should remain summarized unless the model explicitly requests `.ctx_get` or the latest user turn overlaps the block topics.
+These counters are historical and include pre-topic-gating behavior. After the current patch, unrelated old blocks should remain summarized unless the model explicitly requests `.ctx_get` or the latest user turn has concrete exact/debug/fix intent plus overlapping block topics.
 
 ## Validation performed
 
