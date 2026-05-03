@@ -145,19 +145,40 @@ install_deps() {
   finish_status 'system' "$(bar 100) all tools ready"
 }
 
-fetch_source() {
-  printf '\n%b%s%b\n' "$C_BOLD" 'Source code' "$C_RESET"
-  if [ -d "$SRC_DIR/.git" ]; then
-    check_line source ok "existing checkout found at $SRC_DIR"
-    animate_command 'source' 'fetching latest updates' 10 70 git -C "$SRC_DIR" fetch --depth=1 origin main
-    animate_command 'source' 'switching to main' 70 88 git -C "$SRC_DIR" checkout main
-    animate_command 'source' 'fast-forwarding local copy' 88 98 git -C "$SRC_DIR" pull --ff-only
-  else
-    check_line source need "cloning from $REPO_URL"
-    rm -rf "$SRC_DIR"; mkdir -p "$(dirname "$SRC_DIR")"
-    animate_command 'source' 'cloning Kcode repository' 5 98 git clone --depth=1 "$REPO_URL" "$SRC_DIR"
+reset_managed_checkout() {
+  if [ ! -d "$SRC_DIR/.git" ]; then
+    return 1
   fi
-  finish_status 'source' "$(bar 100) ready"
+  git -C "$SRC_DIR" remote set-url origin "$REPO_URL" >/dev/null 2>&1 || true
+  git -C "$SRC_DIR" fetch --depth=1 origin main
+  git -C "$SRC_DIR" checkout -B main FETCH_HEAD
+  git -C "$SRC_DIR" reset --hard FETCH_HEAD
+  git -C "$SRC_DIR" clean -fdx
+}
+
+clone_managed_checkout() {
+  rm -rf "$SRC_DIR"
+  mkdir -p "$(dirname "$SRC_DIR")"
+  git clone --depth=1 --branch main "$REPO_URL" "$SRC_DIR"
+}
+
+fetch_source() {
+  printf '\n%b%s%b\n' "$C_BOLD" 'Updating Kcode' "$C_RESET"
+  if [ -d "$SRC_DIR/.git" ]; then
+    check_line update ok 'installed copy found; checking for updates'
+    if animate_command 'update' 'syncing latest Kcode release' 5 98 reset_managed_checkout; then
+      finish_status 'update' "$(bar 100) latest version ready"
+      return 0
+    fi
+    local backup
+    backup="$SRC_DIR.backup.$(date +%Y%m%d%H%M%S)"
+    warn "Local installer cache could not be updated cleanly; backing it up and downloading a fresh copy."
+    mv "$SRC_DIR" "$backup"
+  else
+    check_line update need 'downloading Kcode'
+  fi
+  animate_command 'update' 'downloading latest Kcode release' 5 98 clone_managed_checkout
+  finish_status 'update' "$(bar 100) latest version ready"
 }
 
 download_model() {
