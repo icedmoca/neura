@@ -36,6 +36,7 @@ const AUTO_REHYDRATE_DEBUG_ENV: &str = "KCODE_CTX_REHYDRATE_DEBUG";
 
 #[derive(Debug, Clone)]
 struct SeenBlock {
+    hash: String,
     original_chars: usize,
     summary: String,
     exact: String,
@@ -43,6 +44,7 @@ struct SeenBlock {
     priority: ContextPriority,
     sensitive: bool,
     topics: Vec<&'static str>,
+    lexical_keys: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +72,7 @@ struct ContextMetadata {
     priority: ContextPriority,
     sensitive: bool,
     topics: Vec<&'static str>,
+    lexical_keys: Vec<String>,
 }
 
 fn seen_blocks() -> &'static Mutex<HashMap<String, SeenBlock>> {
@@ -550,6 +553,7 @@ fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -
     let meta = context_metadata(text, kind);
     if let Ok(mut seen) = seen_blocks().lock() {
         seen.entry(hash.clone()).or_insert_with(|| SeenBlock {
+            hash: hash.clone(),
             original_chars: text.len(),
             summary: summary.clone(),
             exact: text.to_string(),
@@ -557,6 +561,7 @@ fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -
             priority: meta.priority,
             sensitive: meta.sensitive,
             topics: meta.topics.clone(),
+            lexical_keys: meta.lexical_keys.clone(),
         });
     }
     let id = format!("ctx:{}", hash);
@@ -655,6 +660,48 @@ fn memory_safe_summary(text: &str) -> String {
     summary
 }
 
+fn push_lexical_key(keys: &mut Vec<String>, key: &str) {
+    let trimmed = key.trim_matches(|c: char| {
+        !(c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.' || c == '/' || c == ':')
+    });
+    if trimmed.len() < 4 || trimmed.len() > 80 {
+        return;
+    }
+    let lower = trimmed.to_ascii_lowercase();
+    const STOP: &[&str] = &[
+        "this", "that", "with", "from", "have", "what", "when", "where", "context", "token",
+        "tokens", "memory", "build", "test", "error", "exact", "lines", "chars", "tool", "result",
+    ];
+    if STOP.contains(&lower.as_str()) || keys.iter().any(|existing| existing == &lower) {
+        return;
+    }
+    keys.push(lower);
+}
+
+fn lexical_keys(summary: &str, exact: &str) -> Vec<String> {
+    let mut keys = Vec::new();
+    for source in [summary, exact.lines().next().unwrap_or("")] {
+        for raw in source.split(|c: char| {
+            c.is_whitespace()
+                || matches!(c, ',' | ';' | ')' | '(' | '[' | ']' | '{' | '}' | '"' | '\'')
+        }) {
+            if raw.contains('/')
+                || raw.contains('.')
+                || raw.contains("::")
+                || raw.contains('_')
+                || raw.starts_with("ctx:")
+                || raw.len() >= 12
+            {
+                push_lexical_key(&mut keys, raw);
+            }
+            if keys.len() >= 16 {
+                return keys;
+            }
+        }
+    }
+    keys
+}
+
 fn context_metadata(text: &str, kind: &str) -> ContextMetadata {
     let lower = text.to_ascii_lowercase();
     let mut confidence = 0.78f32;
@@ -718,6 +765,7 @@ fn context_metadata(text: &str, kind: &str) -> ContextMetadata {
         priority,
         sensitive,
         topics,
+        lexical_keys: lexical_keys(&memory_safe_summary(text), text),
     }
 }
 
@@ -772,34 +820,11 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
         return false;
     }
 
-    let documentation_intent = latest_user.contains("about.md")
-        || latest_user.contains("readme")
-        || latest_user.contains("statistics.md")
-        || latest_user.contains("documentation")
-        || latest_user.contains(" docs")
-        || latest_user.contains("document")
-        || latest_user.contains("wording")
-        || latest_user.contains("phrase")
-        || latest_user.contains("section")
-        || latest_user.contains("outline")
-        || latest_user.contains("punch it")
-        || latest_user.contains("instead of");
-    let token_accounting_intent = latest_user.contains("token")
-        || latest_user.contains("tokens")
-        || latest_user.contains("cost")
-        || latest_user.contains("expensive")
-        || latest_user.contains("context")
-        || latest_user.contains("prompt")
-        || latest_user.contains("93k")
-        || latest_user.contains("took");
-    let concrete_exact_intent = latest_user.contains("exact")
-        || latest_user.contains("show")
-        || latest_user.contains("look at")
-        || latest_user.contains("why")
-        || latest_user.contains("debug")
-        || latest_user.contains("fix")
-        || latest_user.contains("ctx_get")
-        || latest_user.contains("rehydrat");
+    if latest_user.contains(&block.hash) || latest_user.contains(&format!("ctx:{}", block.hash)) {
+        return true;
+    }
+
+    let explicit_fetch_intent = latest_user.contains("ctx_get") || latest_user.contains("rehydrat");
     let failure_intent = latest_user.contains("failing")
         || latest_user.contains("failed")
         || latest_user.contains("failure")
@@ -808,19 +833,18 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
         || latest_user.contains("broken")
         || latest_user.contains("regression")
         || latest_user.contains("traceback");
-    let build_or_test_failure_intent = (latest_user.contains("build")
-        || latest_user.contains("test"))
-        && failure_intent;
-    let explicit_fetch_intent = latest_user.contains("ctx_get") || latest_user.contains("rehydrat");
-    let exact_intent = explicit_fetch_intent
-        || failure_intent
-        || build_or_test_failure_intent
-        || (concrete_exact_intent && !documentation_intent && !token_accounting_intent);
+    let investigation_intent = failure_intent
+        || latest_user.contains("debug")
+        || latest_user.contains("fix")
+        || latest_user.contains("trace")
+        || latest_user.contains("stack")
+        || latest_user.contains("crash")
+        || latest_user.contains("panic");
 
-    let mut score = 0u8;
+    let mut topic_score = 0u8;
     for topic in &block.topics {
         if latest_user.contains(*topic) {
-            score += match *topic {
+            topic_score += match *topic {
                 "auth" | "security" | "panic" | "diff" => 3,
                 "build" | "error" | "failure" | "test" | "token" | "memory" => 2,
                 _ => 1,
@@ -828,11 +852,21 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
         }
     }
 
-    // For proactive exact text, require concrete exact/debug/fix/failure intent
-    // plus topic overlap. Do not restore exact old code just because a generic
-    // word like "memory", "token", "build", "test", "why", or "exact"
-    // appears in a strategy/documentation/wording/self-test/token-accounting turn.
-    exact_intent && score >= 2
+    let mut lexical_hits = 0u8;
+    for key in &block.lexical_keys {
+        if latest_user.contains(key) {
+            lexical_hits = lexical_hits.saturating_add(1);
+        }
+    }
+
+    // Generic policy: proactive exact restore needs either an explicit ref/fetch,
+    // or concrete lexical evidence from the ctx ref plus enough investigative
+    // pressure. Generic topic words alone (token, memory, build, test, why, exact)
+    // are not enough because they appear in documentation and accounting turns.
+    explicit_fetch_intent
+        || lexical_hits >= 2
+        || (lexical_hits >= 1 && (investigation_intent || topic_score >= 3))
+        || (investigation_intent && topic_score >= 4)
 }
 
 fn auto_rehydrate_debug_enabled() -> bool {
@@ -1047,8 +1081,9 @@ fn encode_seen_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
         // not replace it yet. The provider receives exact or self-contained
         // compressed content at least once before <il:seen> references appear.
         seen.insert(
-            hash,
+            hash.clone(),
             SeenBlock {
+                hash,
                 original_chars: text.len(),
                 summary: deterministic_summary(text),
                 exact: text.to_string(),
@@ -1056,6 +1091,7 @@ fn encode_seen_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
                 priority: meta.priority,
                 sensitive: meta.sensitive,
                 topics: meta.topics.clone(),
+                lexical_keys: meta.lexical_keys.clone(),
             },
         );
     }
@@ -1075,6 +1111,7 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
     let meta = context_metadata(text, "vault");
     if let Ok(mut seen) = seen_blocks().lock() {
         seen.entry(hash.clone()).or_insert_with(|| SeenBlock {
+            hash: hash.clone(),
             original_chars: text.len(),
             summary: summary.clone(),
             exact: text.to_string(),
@@ -1082,6 +1119,7 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
             priority: meta.priority,
             sensitive: meta.sensitive,
             topics: meta.topics.clone(),
+            lexical_keys: meta.lexical_keys.clone(),
         });
     }
     let id = format!("ctx:{}", hash);
