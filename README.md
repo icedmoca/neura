@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/kcode.png" alt="Kcode" width="720">
+</p>
+
 # Kcode
 
 > Kcode lets you run long, tool heavy coding sessions without blowing up token costs by compressing old context into references and only restoring exact data when needed, reducing hallucinations by grounding the model in real, retrievable source data instead of guesswork.
@@ -148,7 +152,7 @@ Kcode also adds compact confidence, priority, topic, and auto-restore metadata
 to context references. Current refs are intentionally short, for example:
 
 ```xml
-<ctx v=1 k="old-tool-result" id="ctx:..." h="..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; files=[...]; first=..." />
+<ctx k="old-tool-result" id="ctx:..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; files=[...]; first=..."/>
 ```
 
 Exact old content remains in the local vault. Low-confidence or high-priority

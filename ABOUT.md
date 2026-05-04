@@ -9,6 +9,7 @@ The short version:
 - **Local model sidecar:** helps with routing, memory extraction, summaries, critique, and bridge telemetry.
 - **Context diet / interlang:** saves tokens by replacing old low-value exact context with compact summaries and rehydratable references.
 - **Memory system:** keeps useful facts, preferences, and project state outside the main context window, then injects relevant memory when needed.
+- **Dynamic tool schemas:** direct-answer turns send only core tools plus `tool_expand`; tool-heavy turns get the relevant schemas up front.
 
 ---
 
@@ -79,7 +80,7 @@ flowchart TD
 A compacted block looks conceptually like this:
 
 ```xml
-<ctx v=1 k="old-tool-result" id="ctx:hash" h="hash" n=279518 c="0.66" p="high" ar="true" t="build,error" s="lines=...; files=...; first=..." />
+<ctx k="old-tool-result" id="ctx:hash" n=279518 c="0.66" p="high" ar="true" t="build,error" s="lines=...; files=...; first=..."/>
 ```
 
 That means the model still sees the removed block type, stable id/hash, original
@@ -531,3 +532,4 @@ flowchart LR
 ```
 
 That is the core idea: Kcode keeps the useful state, but avoids paying to resend every byte of old context every turn.
+

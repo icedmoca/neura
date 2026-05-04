@@ -85,7 +85,7 @@ Current Kcode uses several layers to avoid wasting remote-model context while pr
 4. **Refs are compact.** Current refs avoid repeating long policy/request strings on every block:
 
 ```xml
-<ctx v=1 k="old-tool-result" id="ctx:..." h="..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; files=[...]; first=..." />
+<ctx k="old-tool-result" id="ctx:..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; files=[...]; first=..."/>
 ```
 
 5. **Auto-restore is intent and topic gated.** Low-confidence/high-priority blocks are not restored merely because they are important. Kcode now requires concrete exact/debug/fix/failure intent plus semantic-topic overlap with the latest real user turn.
@@ -93,6 +93,8 @@ Current Kcode uses several layers to avoid wasting remote-model context while pr
 7. **Auto-restore is bounded.** Current defaults restore at most one exact excerpt and at most about 1,800 chars proactively.
 8. **Stats reminders are gated.** Compression stats are written locally every time, but model-visible stats reminders are only added when the user asks about token/context/compression/ctx/interlang/rehydration.
 9. **Tool output caps are stricter.** A single tool output is capped more aggressively and uses a short truncation notice rather than a long explanatory paragraph.
+10. **Direct-answer turns avoid full tool schemas.** If the latest user turn does not look like it needs a specific tool, Kcode now sends only the always-on core tools plus `tool_expand`, instead of paying for every tool schema up front. The model can still expand the toolset when a task unexpectedly needs more capability.
+11. **Moderate tool outputs stay literal.** Immediate vault refs now target much larger blocks by default, so medium-sized outputs do not create noisy reference objects that themselves inflate later context.
 
 ## Why topic-gated auto-restore matters
 
@@ -109,6 +111,16 @@ restore_exact = !sensitive
 ```
 
 This keeps the anti-hallucination escape hatch while avoiding unrelated old evidence being resent. Explicit `.ctx_get`, debugging, fixing, and failure-investigation turns can still rehydrate exact evidence when it is topically relevant.
+
+## Dynamic tool-schema pruning
+
+Tool definitions can be a large fixed cost. Kcode classifies the latest user turn before a provider request:
+
+- obvious file/shell/web/browser/GitHub/mail/image tasks get the relevant tool families,
+- direct-answer turns keep only the core always-on tools and `tool_expand`,
+- `tool_expand` lets the model request additional tool schemas if the initial classification was too conservative.
+
+This is intentionally a no-regression optimization: direct answers avoid tens of thousands of schema characters, while tool-heavy turns still get the tools they need.
 
 ## Distribution and worst-case view
 

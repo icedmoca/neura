@@ -83,7 +83,7 @@ flowchart LR
 A `<ctx>` reference is intentionally compact but accountable:
 
 ```xml
-<ctx v=1 k="old-tool-result" id="ctx:..." h="..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; chars=...; files=[...]; first=..." />
+<ctx k="old-tool-result" id="ctx:..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; chars=...; files=[...]; first=..."/>
 ```
 
 The decoder prompt defines the schema once, so each reference does not repeat the
@@ -373,3 +373,8 @@ Kcode combats hallucinations by combining:
 6. **and real accounting logs that make token-saving behavior observable.**
 
 The result is a system that can run long, tool-heavy sessions while reducing both token cost and the pressure on the model to guess.
+
+## Token savings without losing grounding
+
+Kcode's token-saving path is designed to reduce fixed overhead without hiding evidence the model may need. Context refs can be rehydrated exactly with `.ctx_get`, and direct-answer turns now use dynamic tool-schema pruning: they send only core tools plus `tool_expand`, so the model can request more tools rather than carrying every schema on every turn. This lowers cost on simple turns without weakening grounded tool use on complex tasks.
+
