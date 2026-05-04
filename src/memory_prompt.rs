@@ -1,10 +1,10 @@
 use super::*;
 
-const MEMORY_CONTEXT_MAX_CHARS: usize = 8_000;
+const MEMORY_CONTEXT_MAX_CHARS: usize = 1_200;
 const MEMORY_CONTEXT_MAX_MESSAGES: usize = 12;
 const MEMORY_CONTEXT_MAX_BLOCK_CHARS: usize = 1_200;
 const EXTRACTION_CONTEXT_MAX_MESSAGES: usize = 40;
-const EXTRACTION_CONTEXT_MAX_CHARS: usize = 24_000;
+const EXTRACTION_CONTEXT_MAX_CHARS: usize = 4_000;
 
 fn truncate_chars(value: &str, max_chars: usize) -> String {
     if value.chars().count() <= max_chars {

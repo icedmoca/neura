@@ -248,6 +248,24 @@ const PERIODIC_EXTRACTION_INTERVAL: usize = 12;
 /// Skip repeated relevance checks when the formatted context is unchanged.
 const RELEVANCE_CONTEXT_REPEAT_SUPPRESSION_SECS: u64 = 30;
 
+fn is_trivial_relevance_context(context: &str) -> bool {
+    let text = context
+        .lines()
+        .filter_map(|line| {
+            line.strip_prefix("User: ")
+                .or_else(|| line.strip_prefix("Assistant: "))
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return true;
+    }
+    let words = trimmed.split_whitespace().count();
+    let alpha_chars = trimmed.chars().filter(|c| c.is_alphabetic()).count();
+    words <= 3 && alpha_chars <= 24
+}
+
 fn relevance_context_signature(context: &str) -> String {
     context
         .lines()
@@ -398,7 +416,7 @@ impl MemoryAgent {
     ) -> Result<()> {
         let memory_manager = self.manager_for_session(session_id);
         let context = memory::format_context_for_relevance(&messages);
-        if context.is_empty() {
+        if context.is_empty() || is_trivial_relevance_context(&context) {
             return Ok(());
         }
 
