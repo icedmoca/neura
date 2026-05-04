@@ -24,10 +24,10 @@ const DEFAULT_TOKENIZER_JSON: &str = "/home/dad/.kcode/models/all-MiniLM-L6-v2/t
 const MIN_TEXT_CHARS: usize = 900;
 const MIN_SAVED_CHARS: usize = 240;
 const MIN_SEEN_REF_CHARS: usize = 2_400;
-const MIN_VAULT_REF_CHARS: usize = 4_000;
-const DEFAULT_CONTEXT_DIET_TRIGGER_TOKENS: usize = 24_000;
-const DEFAULT_CONTEXT_DIET_RECENT_MESSAGES: usize = 8;
-const DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 420;
+const MIN_VAULT_REF_CHARS: usize = 16_000;
+const DEFAULT_CONTEXT_DIET_TRIGGER_TOKENS: usize = 12_000;
+const DEFAULT_CONTEXT_DIET_RECENT_MESSAGES: usize = 6;
+const DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 300;
 const APPROX_CHARS_PER_TOKEN: usize = 4;
 const AUTO_REHYDRATE_CONFIDENCE_THRESHOLD: f32 = 0.56;
 const AUTO_REHYDRATE_MAX_BLOCKS: usize = 1;
@@ -566,10 +566,9 @@ fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -
     }
     let id = format!("ctx:{}", hash);
     let encoded = format!(
-        "<ctx v=1 k=\"{}\" id=\"{}\" h=\"{}\" n={} c=\"{:.2}\" p=\"{}\" ar=\"{}\" t=\"{}\" s=\"{}\" />",
+        r#"<ctx k="{}" id="{}" n={} c="{:.2}" p="{}" ar="{}" t="{}" s="{}"/>"#,
         kind,
         id,
-        hash,
         text.len(),
         meta.confidence,
         meta.priority.as_str(),
@@ -683,7 +682,10 @@ fn lexical_keys(summary: &str, exact: &str) -> Vec<String> {
     for source in [summary, exact.lines().next().unwrap_or("")] {
         for raw in source.split(|c: char| {
             c.is_whitespace()
-                || matches!(c, ',' | ';' | ')' | '(' | '[' | ']' | '{' | '}' | '"' | '\'')
+                || matches!(
+                    c,
+                    ',' | ';' | ')' | '(' | '[' | ']' | '{' | '}' | '"' | '\''
+                )
         }) {
             if raw.contains('/')
                 || raw.contains('.')
