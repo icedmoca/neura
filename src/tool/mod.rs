@@ -581,18 +581,29 @@ impl Registry {
             (current_tokens as f32 / budget as f32) * 100.0,
         ));
 
+        let exact_ref = crate::interlang::vault_exact_ref(&output.output);
+        let exact_hint = exact_ref
+            .as_deref()
+            .map(|reference| format!(" Exact full output: {reference}"))
+            .unwrap_or_else(|| " Narrow query/range for exact text.".to_string());
+
         // Truncate the output, keeping the beginning (usually most relevant)
         let truncated = if max_chars > 200 {
             let notice = format!(
-                "\n\n[truncated: ~{:.0}k tokens; kept ~{:.0}k. Narrow query/range for exact text.]",
+                "\n\n[truncated: ~{:.0}k tokens; kept ~{:.0}k.{}]",
                 output_tokens as f32 / 1000.0,
                 max_tokens as f32 / 1000.0,
+                exact_hint,
             );
             let keep_chars = max_chars.saturating_sub(notice.len()).max(64);
             let kept = &output.output[..output.output.floor_char_boundary(keep_chars)];
             format!("{}{}", kept, notice)
         } else {
-            format!("[context full: omitted ~{:.0}k-token output; narrow query or /compact.]", output_tokens as f32 / 1000.0)
+            format!(
+                "[context full: omitted ~{:.0}k-token output.{}]",
+                output_tokens as f32 / 1000.0,
+                exact_hint,
+            )
         };
 
         ToolOutput {

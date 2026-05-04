@@ -355,6 +355,10 @@ async fn test_context_guard_truncates_huge_single_output() {
         result.output.contains("truncated"),
         "Should contain compact truncation warning"
     );
+    assert!(
+        result.output.contains("<ctx ") && result.output.contains("Exact full output"),
+        "truncated output should include a ctx ref to exact full output"
+    );
 }
 
 #[tokio::test]
@@ -376,6 +380,10 @@ async fn test_context_guard_truncates_when_context_nearly_full() {
     assert!(
         result.output.contains("truncated") || result.output.contains("context full"),
         "Should warn about context limits when nearly full"
+    );
+    assert!(
+        result.output.contains("<ctx ") || result.output.contains("Narrow query"),
+        "context guard should preserve exact fallback when possible"
     );
 }
 

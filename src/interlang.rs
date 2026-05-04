@@ -1147,6 +1147,11 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
     }
 }
 
+pub(crate) fn vault_exact_ref(text: &str) -> Option<String> {
+    let mut stats = InterlangStats::default();
+    encode_vault_ref(text, &mut stats)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExactRequest {
     pub id: String,
