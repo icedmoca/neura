@@ -555,7 +555,7 @@ impl Tool for CommunicateTool {
                              "status", "plan_status", "summary", "read_context", "resync_plan", "assign_task", "assign_next", "fill_slots",
                              "start", "wake", "resume", "retry", "reassign", "replace", "salvage",
                              "subscribe_channel", "unsubscribe_channel", "await_members"],
-                    "description": "Action. For spawn, prefer including prompt with the initial task so the new agent starts useful work immediately."
+                    "description": "Action. For spawn, include prompt so the new agent starts useful work."
                 },
                 "key": {
                     "type": "string"
@@ -568,7 +568,7 @@ impl Tool for CommunicateTool {
                 },
                 "to_session": {
                     "type": "string",
-                    "description": "DM target. Accepts an exact session ID or a unique friendly name within the swarm. If a friendly name is ambiguous, run swarm list and use the exact session ID."
+                    "description": "DM target: exact session ID or unique friendly name."
                 },
                 "channel": { "type": "string" },
                 "proposer_session": { "type": "string" },
@@ -584,7 +584,7 @@ impl Tool for CommunicateTool {
                 },
                 "prompt": {
                     "type": "string",
-                    "description": "Preferred for spawn. Initial task/instructions for the new agent. Spawning without prompt usually creates an idle agent that needs follow-up assignment."
+                    "description": "For spawn: initial task. Prefer including prompt so agent starts useful work."
                 },
                 "limit": {
                     "type": "integer",
@@ -593,15 +593,15 @@ impl Tool for CommunicateTool {
                 },
                 "task_id": {
                     "type": "string",
-                    "description": "Optional plan task ID. If omitted for assign_task, the coordinator assigns the next runnable unassigned task."
+                    "description": "Optional plan task ID; omitted assign_task uses next runnable task."
                 },
                 "spawn_if_needed": {
                     "type": "boolean",
-                    "description": "For assign_task without an explicit target_session: if no reusable agent is available, spawn a fresh agent and retry the assignment automatically."
+                    "description": "assign_task: spawn fresh agent if no reusable one exists."
                 },
                 "prefer_spawn": {
                     "type": "boolean",
-                    "description": "For assign_task without an explicit target_session: prefer a fresh spawned agent even if reusable workers are available."
+                    "description": "assign_task: prefer fresh spawned agent over reusable worker."
                 },
                 "session_ids": {
                     "type": "array",

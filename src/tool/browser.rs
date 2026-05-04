@@ -182,7 +182,7 @@ impl Tool for BrowserTool {
                     "fill_form", "select", "wait", "screenshot", "eval", "scroll", "upload",
                     "press", "provider_command"
                 ],
-                "description": "Action. Use 'status' to check readiness first. Use 'setup' only for first-time install or repair, not before every browser task."
+                "description": "Action. Check status first; setup only for install/repair, not every task."
             }),
         );
         properties.insert(

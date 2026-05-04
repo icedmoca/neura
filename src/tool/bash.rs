@@ -25,9 +25,9 @@ const STDIN_POLL_INTERVAL_MS: u64 = 500;
 const STDIN_INITIAL_DELAY_MS: u64 = 300;
 const PROGRESS_MARKER_PREFIX: &str = "KCODE_PROGRESS ";
 const CHECKPOINT_MARKER_PREFIX: &str = "KCODE_CHECKPOINT ";
-const BACKGROUND_PROGRESS_GUIDANCE: &str = "For long-running background commands, prefer scripts or commands that periodically print progress updates. Best format: print lines starting with `KCODE_PROGRESS ` followed by JSON like {\"percent\":42,\"message\":\"Running\"} or {\"current\":120,\"total\":1000,\"unit\":\"batches\",\"message\":\"Epoch 2/5\",\"eta_seconds\":30}. Supported JSON fields are `percent`, `message`, `current`, `total`, `unit`, `eta_seconds`, and optional `kind`=`indeterminate` or `kind`=`checkpoint`. For milestone-style wakeups, print `KCODE_CHECKPOINT {\"message\":\"Unit tests passed\"}`. Generic fallback output that can be parsed includes `42%`, `3/10 tests`, `3 of 10 steps`, `1.5/3.0 GiB`, or phase lines like `Compiling ...`, `Downloading ...`, `Running ...`, and `Building ...`. If you are writing the script yourself, add these progress/checkpoint lines explicitly.";
-const BASH_TOOL_DESCRIPTION: &str = "Run a bash command. For long-running background commands, prefer scripts that emit progress/checkpoint lines. Print `KCODE_PROGRESS {json}` or `KCODE_CHECKPOINT {json}` lines for reliable reporting, or at least output parseable progress like `42%`, `3/10 tests`, `3 of 10 steps`, `1.5/3.0 GiB`, or `Running ...`.";
-const WINDOWS_SHELL_TOOL_DESCRIPTION: &str = "Run a shell command. For long-running background commands, prefer scripts that emit progress/checkpoint lines. Print `KCODE_PROGRESS {json}` or `KCODE_CHECKPOINT {json}` lines for reliable reporting, or at least output parseable progress like `42%`, `3/10 tests`, `3 of 10 steps`, `1.5/3.0 GiB`, or `Running ...`.";
+const BACKGROUND_PROGRESS_GUIDANCE: &str = "For long jobs, emit `KCODE_PROGRESS {json}`/`KCODE_CHECKPOINT {json}` or simple progress like 42%, 3/10, Running/Building.";
+const BASH_TOOL_DESCRIPTION: &str = "Run a bash command. For long background jobs, print progress/checkpoint lines.";
+const WINDOWS_SHELL_TOOL_DESCRIPTION: &str = "Run a shell command. For long background jobs, print progress/checkpoint lines.";
 
 fn progress_ratio_regex() -> Result<&'static regex::Regex> {
     static REGEX: LazyLock<Result<regex::Regex, regex::Error>> = LazyLock::new(|| {
@@ -545,9 +545,9 @@ impl Tool for BashTool {
 
     fn parameters_schema(&self) -> Value {
         let cmd_desc = if cfg!(windows) {
-            "The shell command to execute (via cmd.exe). If you write a long-running script or loop for run_in_background=true, make it print progress lines. Preferred format: `KCODE_PROGRESS {json}`."
+            "Shell command to execute via cmd.exe."
         } else {
-            "The bash command to execute. If you write a long-running script or loop for run_in_background=true, make it print progress lines. Preferred format: `KCODE_PROGRESS {json}`."
+            "Bash command to execute."
         };
         json!({
             "type": "object",

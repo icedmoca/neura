@@ -771,7 +771,7 @@ impl Tool for ScheduleTool {
                 "target": {
                     "type": "string",
                     "enum": ["resume", "spawn", "ambient"],
-                    "description": "Delivery target. Defaults to resuming the originating session. Use 'spawn' to run in one new child session, or 'ambient' only for shared ambient work."
+                    "description": "Delivery target: resume(default), spawn(child), or ambient(shared work)."
                 }
             }
         })

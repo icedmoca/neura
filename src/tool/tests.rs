@@ -431,3 +431,41 @@ fn intent_schema_description_is_compact() {
     assert!(description.contains("Optional"));
     assert!(description.contains("required parameters"));
 }
+
+#[tokio::test]
+async fn tool_schema_descriptions_stay_compact() {
+    let provider: Arc<dyn Provider> = Arc::new(MockProvider);
+    let registry = Registry::new(provider).await;
+
+    let defs = registry.definitions(None).await;
+    let mut verbose = Vec::new();
+    for def in defs {
+        collect_verbose_descriptions(&def.input_schema, &def.name, &mut verbose);
+    }
+
+    assert!(
+        verbose.is_empty(),
+        "tool schema descriptions should stay compact because they are resent in provider tool schemas: {verbose:?}"
+    );
+}
+
+fn collect_verbose_descriptions(value: &serde_json::Value, path: &str, verbose: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            if let Some(description) = map.get("description").and_then(serde_json::Value::as_str) {
+                if description.len() > 150 {
+                    verbose.push(format!("{path}: {} chars", description.len()));
+                }
+            }
+            for (key, child) in map {
+                collect_verbose_descriptions(child, &format!("{path}.{key}"), verbose);
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for (idx, child) in items.iter().enumerate() {
+                collect_verbose_descriptions(child, &format!("{path}[{idx}]"), verbose);
+            }
+        }
+        _ => {}
+    }
+}
