@@ -233,6 +233,7 @@ impl Agent {
         if !self.session.is_canary {
             tools.retain(|tool| tool.name != "selfdev");
         }
+        tools = filter_tool_definitions_for_messages(tools, &self.session.messages);
 
         // Lock the tool list on first call to prevent cache invalidation
         // when MCP tools arrive asynchronously mid-session
@@ -647,5 +648,214 @@ impl Agent {
                 0
             }
         }
+    }
+}
+fn filter_tool_definitions_for_messages(
+    defs: Vec<ToolDefinition>,
+    messages: &[crate::session::StoredMessage],
+) -> Vec<ToolDefinition> {
+    if !dynamic_tool_filter_enabled() {
+        return defs;
+    }
+    let latest = latest_real_user_text(messages);
+    if latest.is_empty() {
+        return defs;
+    }
+    let wanted = classify_tools(&latest);
+    if wanted.is_empty() {
+        return defs;
+    }
+    let fallback = fallback_tool_catalog(&defs, &wanted);
+    let mut filtered = Vec::new();
+    for def in defs {
+        if is_always_on_tool(&def.name) || wanted.iter().any(|name| name == &def.name) {
+            filtered.push(def);
+        }
+    }
+    if let Some(catalog) = fallback {
+        filtered.push(catalog);
+    }
+    filtered
+}
+
+fn dynamic_tool_filter_enabled() -> bool {
+    std::env::var("KCODE_DYNAMIC_TOOL_FILTER")
+        .map(|value| {
+            !matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "0" | "false" | "no" | "off"
+            )
+        })
+        .unwrap_or(true)
+}
+
+fn latest_real_user_text(messages: &[crate::session::StoredMessage]) -> String {
+    messages
+        .iter()
+        .rev()
+        .find_map(|message| {
+            if !matches!(message.role, Role::User) {
+                return None;
+            }
+            let text = message.content.iter().find_map(|block| match block {
+                ContentBlock::Text { text, .. } => Some(text.as_str()),
+                _ => None,
+            })?;
+            let trimmed = text.trim();
+            if trimmed.is_empty() || trimmed.starts_with("<system-reminder>") {
+                None
+            } else {
+                Some(trimmed.to_ascii_lowercase())
+            }
+        })
+        .unwrap_or_default()
+}
+
+fn is_always_on_tool(name: &str) -> bool {
+    matches!(
+        name,
+        "bash"
+            | "agentgrep"
+            | "read"
+            | "todo"
+            | "apply_patch"
+            | "edit"
+            | "multiedit"
+            | "write"
+            | "bg"
+            | "batch"
+    )
+}
+
+fn add_tool(names: &mut Vec<String>, name: &str) {
+    if !names.iter().any(|existing| existing == name) {
+        names.push(name.to_string());
+    }
+}
+
+fn classify_tools(latest: &str) -> Vec<String> {
+    let mut wanted = Vec::new();
+    if latest.contains("weather")
+        || latest.contains("website")
+        || latest.contains("web")
+        || latest.contains("search")
+        || latest.contains("http")
+        || latest.contains("url")
+    {
+        add_tool(&mut wanted, "websearch");
+        add_tool(&mut wanted, "webfetch");
+    }
+    if latest.contains("browser")
+        || latest.contains("click")
+        || latest.contains("page")
+        || latest.contains("login")
+        || latest.contains("screenshot")
+    {
+        add_tool(&mut wanted, "browser");
+        add_tool(&mut wanted, "mouse");
+    }
+    if latest.contains("email") || latest.contains("gmail") || latest.contains("inbox") {
+        add_tool(&mut wanted, "gmail");
+    }
+    if latest.contains("remember") || latest.contains("memory") || latest.contains("recall") {
+        add_tool(&mut wanted, "memory");
+    }
+    if latest.contains("goal") || latest.contains("schedule") || latest.contains("remind") {
+        add_tool(&mut wanted, "goal");
+        add_tool(&mut wanted, "schedule");
+    }
+    wanted
+}
+
+fn fallback_tool_catalog(defs: &[ToolDefinition], wanted: &[String]) -> Option<ToolDefinition> {
+    let hidden: Vec<String> = defs
+        .iter()
+        .filter(|def| !is_always_on_tool(&def.name) && !wanted.iter().any(|name| name == &def.name))
+        .map(|def| def.name.clone())
+        .collect();
+    if hidden.is_empty() {
+        return None;
+    }
+    Some(ToolDefinition {
+        name: "tool_expand".to_string(),
+        description: format!(
+            "Request hidden tools if needed. Available: {}. Prefer current tools unless missing capability.",
+            hidden.join(",")
+        ),
+        input_schema: serde_json::json!({
+            "type": "object",
+            "properties": {
+                "tools": {"type": "array", "items": {"type": "string"}},
+                "reason": {"type": "string"}
+            },
+            "required": ["tools", "reason"]
+        }),
+    })
+}
+
+#[cfg(test)]
+mod dynamic_tool_filter_tests {
+    use super::*;
+
+    fn def(name: &str) -> ToolDefinition {
+        ToolDefinition {
+            name: name.to_string(),
+            description: name.to_string(),
+            input_schema: serde_json::json!({"type":"object"}),
+        }
+    }
+
+    #[test]
+    fn weather_turn_keeps_web_tools_and_expand_fallback() {
+        let defs = vec![
+            def("bash"),
+            def("agentgrep"),
+            def("websearch"),
+            def("webfetch"),
+            def("gmail"),
+            def("browser"),
+        ];
+        let messages = vec![crate::session::StoredMessage {
+            id: "m1".to_string(),
+            role: Role::User,
+            content: vec![ContentBlock::Text {
+                text: "what is the weather today?".to_string(),
+                cache_control: None,
+            }],
+            timestamp: None,
+            display_role: None,
+            tool_duration_ms: None,
+            token_usage: None,
+        }];
+
+        let filtered = filter_tool_definitions_for_messages(defs, &messages);
+        let names: Vec<_> = filtered.iter().map(|def| def.name.as_str()).collect();
+        assert!(names.contains(&"bash"));
+        assert!(names.contains(&"agentgrep"));
+        assert!(names.contains(&"websearch"));
+        assert!(names.contains(&"webfetch"));
+        assert!(names.contains(&"tool_expand"));
+        assert!(!names.contains(&"gmail"));
+    }
+
+    #[test]
+    fn ambiguous_turn_keeps_full_toolset() {
+        let defs = vec![def("bash"), def("websearch"), def("gmail")];
+        let messages = vec![crate::session::StoredMessage {
+            id: "m1".to_string(),
+            role: Role::User,
+            content: vec![ContentBlock::Text {
+                text: "can you handle this for me?".to_string(),
+                cache_control: None,
+            }],
+            timestamp: None,
+            display_role: None,
+            tool_duration_ms: None,
+            token_usage: None,
+        }];
+
+        let filtered = filter_tool_definitions_for_messages(defs, &messages);
+        let names: Vec<_> = filtered.iter().map(|def| def.name.as_str()).collect();
+        assert_eq!(names, vec!["bash", "websearch", "gmail"]);
     }
 }
