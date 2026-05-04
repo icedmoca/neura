@@ -49,3 +49,26 @@ fn apply_cluster_assignment_links_members() {
             .any(|e| e.target == cluster_id && matches!(e.kind, EdgeKind::InCluster))
     );
 }
+
+#[test]
+fn trivial_relevance_context_skips_only_low_information_chatter() {
+    assert!(is_trivial_relevance_context(
+        "User: meow\nAssistant: meow meow"
+    ));
+    assert!(is_trivial_relevance_context("User: meeeeeeeeeeeeeeeeeeow"));
+    assert!(is_trivial_relevance_context("User: lol lol lol"));
+
+    assert!(!is_trivial_relevance_context("User: ok thanks"));
+    assert!(!is_trivial_relevance_context(
+        "User: remember that the deploy target is staging"
+    ));
+    assert!(!is_trivial_relevance_context(
+        "User: why did saying meow send 9k tokens?"
+    ));
+    assert!(!is_trivial_relevance_context(
+        "User: fix the GitHub push workflow"
+    ));
+    assert!(!is_trivial_relevance_context(
+        "User: use /home/dad/.kcode/build-src/kcode for Kcode fixes"
+    ));
+}

@@ -249,21 +249,84 @@ const PERIODIC_EXTRACTION_INTERVAL: usize = 12;
 const RELEVANCE_CONTEXT_REPEAT_SUPPRESSION_SECS: u64 = 30;
 
 fn is_trivial_relevance_context(context: &str) -> bool {
-    let text = context
+    let utterances: Vec<String> = context
         .lines()
         .filter_map(|line| {
             line.strip_prefix("User: ")
                 .or_else(|| line.strip_prefix("Assistant: "))
         })
-        .collect::<Vec<_>>()
-        .join(" ");
-    let trimmed = text.trim();
-    if trimmed.is_empty() {
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
+        .collect();
+    if utterances.is_empty() {
         return true;
     }
-    let words = trimmed.split_whitespace().count();
-    let alpha_chars = trimmed.chars().filter(|c| c.is_alphabetic()).count();
-    words <= 3 && alpha_chars <= 24
+
+    let text = utterances.join(" ");
+    let normalized_words: Vec<String> = text
+        .split(|c: char| !c.is_alphanumeric() && c != '_' && c != '/' && c != '-')
+        .map(str::trim)
+        .filter(|word| !word.is_empty())
+        .map(|word| word.to_ascii_lowercase())
+        .collect();
+    let alpha_chars = text.chars().filter(|c| c.is_alphabetic()).count();
+    let digit_chars = text.chars().filter(|c| c.is_ascii_digit()).count();
+    let has_structural_signal = text
+        .chars()
+        .any(|c| matches!(c, '?' | '/' | '\\' | '@' | '#' | ':' | '=' | '$' | '`'));
+
+    if digit_chars > 0 || has_structural_signal || alpha_chars > 80 || normalized_words.len() > 6 {
+        return false;
+    }
+
+    if normalized_words.len() == 1 {
+        return is_low_entropy_token(&normalized_words[0]);
+    }
+
+    let unique_words = normalized_words
+        .iter()
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+    if unique_words == 1 && normalized_words[0].chars().count() <= 4 {
+        return true;
+    }
+
+    unique_words <= 2
+        && normalized_words
+            .iter()
+            .all(|word| is_low_entropy_token(word))
+}
+
+fn is_low_entropy_token(word: &str) -> bool {
+    let chars: Vec<char> = word.chars().collect();
+    if chars.is_empty() {
+        return true;
+    }
+
+    let unique_chars = chars.iter().collect::<std::collections::HashSet<_>>().len();
+    let longest_run = chars
+        .iter()
+        .fold((0usize, None, 0usize), |(best, prev, run), ch| {
+            let run = if Some(*ch) == prev { run + 1 } else { 1 };
+            (best.max(run), Some(*ch), run)
+        })
+        .0;
+    let compressed_len = collapse_repeated_chars(word).chars().count();
+
+    unique_chars <= 2
+        || longest_run >= 3
+        || (chars.len() <= 4 && unique_chars <= 2)
+        || (chars.len() >= 8 && compressed_len <= 4)
+}
+
+fn collapse_repeated_chars(word: &str) -> String {
+    let mut collapsed = String::new();
+    for ch in word.chars() {
+        if !collapsed.ends_with(ch) {
+            collapsed.push(ch);
+        }
+    }
+    collapsed
 }
 
 fn relevance_context_signature(context: &str) -> String {
