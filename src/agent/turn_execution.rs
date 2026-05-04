@@ -662,9 +662,6 @@ fn filter_tool_definitions_for_messages(
         return defs;
     }
     let wanted = classify_tools(&latest);
-    if wanted.is_empty() {
-        return defs;
-    }
     let fallback = fallback_tool_catalog(&defs, &wanted);
     let mut filtered = Vec::new();
     for def in defs {
@@ -839,13 +836,13 @@ mod dynamic_tool_filter_tests {
     }
 
     #[test]
-    fn ambiguous_turn_keeps_full_toolset() {
+    fn direct_answer_turn_keeps_only_core_tools() {
         let defs = vec![def("bash"), def("websearch"), def("gmail")];
         let messages = vec![crate::session::StoredMessage {
             id: "m1".to_string(),
             role: Role::User,
             content: vec![ContentBlock::Text {
-                text: "can you handle this for me?".to_string(),
+                text: "what time is it in arizona?".to_string(),
                 cache_control: None,
             }],
             timestamp: None,
@@ -856,6 +853,6 @@ mod dynamic_tool_filter_tests {
 
         let filtered = filter_tool_definitions_for_messages(defs, &messages);
         let names: Vec<_> = filtered.iter().map(|def| def.name.as_str()).collect();
-        assert_eq!(names, vec!["bash", "websearch", "gmail"]);
+        assert_eq!(names, vec!["bash", "tool_expand"]);
     }
 }
