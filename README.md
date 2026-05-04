@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="assets/kcode.png" alt="Kcode" width="720">
+  <img src="assets/kcode.png" alt="Kcode" width="1720">
 </p>
-
-# Kcode
 
 > Kcode lets you run long, tool heavy coding sessions without blowing up token costs by compressing old context into references and only restoring exact data when needed, reducing hallucinations by grounding the model in real, retrievable source data instead of guesswork.
 
