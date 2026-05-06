@@ -151,6 +151,33 @@ flowchart TD
 
 ## P2 — Ecosystem and collaboration
 
+
+### Kcode API endpoints
+
+- [ ] **Kcode API endpoints**
+  - Expose a small local HTTP/WebSocket API so other apps can start sessions, send prompts, inspect status, and subscribe to tool events.
+  - Keep it local-first and secure by default.
+
+| Endpoint | Method | Example use | Example payload / response |
+|---|---|---|---|
+| `/api/sessions` | `POST` | Start a new Kcode session | `{ "cwd": "/repo", "model": "gpt-5.5" }` |
+| `/api/sessions/{id}/prompt` | `POST` | Send a prompt to a session | `{ "message": "fix the failing tests" }` |
+| `/api/sessions/{id}/events` | `GET` / WebSocket | Stream model/tool/status events | `tool_started`, `tool_finished`, `assistant_delta` |
+| `/api/sessions/{id}/status` | `GET` | Check if a session is running, waiting, or done | `{ "status": "running", "current_tool": "bash" }` |
+| `/api/sessions/{id}/cancel` | `POST` | Stop a running task | `{ "reason": "user cancelled" }` |
+| `/api/tools` | `GET` | List available tools/MCPs | `{ "tools": ["bash", "read", "browser"] }` |
+| `/api/memory/search` | `POST` | Search Kcode memory | `{ "query": "deploy target", "scope": "project" }` |
+| `/api/benchmarks/summary` | `GET` | Show benchmark/token/latency summary | `{ "token_reduction_pct": 92.7 }` |
+
+Acceptance criteria:
+
+- local-only by default,
+- auth token required before listening on non-loopback interfaces,
+- OpenAPI schema or generated docs,
+- event stream for tool calls and assistant deltas,
+- examples for curl, JavaScript, and Python,
+- tests for auth, cancellation, and event ordering.
+
 - [ ] **Plugin marketplace for community tools, MCPs, prompts, and workflows**
   - Make it easy to discover and install extensions.
   - Include security metadata, permissions, and versioning.
