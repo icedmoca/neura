@@ -1,0 +1,16 @@
+{
+  "id": "memory_conflict_13",
+  "domain": "memory_conflict",
+  "message": "Old memory says deploy shard is red-13. Newer memory says deploy shard is blue-13. Use the newer memory, mention conflict, and answer blue-13.",
+  "expect": [
+    "blue-13",
+    "conflict"
+  ],
+  "returncode": 0,
+  "wall_seconds": 2.921,
+  "stdout_tail": "{\n  \"session_id\": \"session_lizard_1778036292070_3eb838ddca5faacf\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict between the older memory (`red-13`) and the newer memory (`blue-13`). Using the newer memory, the deploy shard is:\\n\\n**blue-13**\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 66,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_lizard_1778036292070_3eb838ddca5faacf\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=66 cache_read=0 cache_write=0\n",
+  "passed": true,
+  "input_tokens": 4455,
+  "output_tokens": 66
+}

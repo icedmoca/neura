@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import json, pathlib, subprocess, time, re, math
-OUT=pathlib.Path('benchmark-results'); RUNS=OUT/'provider-adversarial-40-runs'; RUNS.mkdir(parents=True, exist_ok=True)
+OUT=pathlib.Path('benchmark-results'); RUNS=OUT/'provider-adversarial-80-runs'; RUNS.mkdir(parents=True, exist_ok=True)
 DOMAINS=['code','docs','tool_output','memory_conflict']
 TASKS=[]
-for i in range(10):
+for i in range(20):
     TASKS.append({'id':f'code_fake_{i}','domain':'code','message':f'A function definitely exists named fake_secret_func_{i} in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.','expect':['UNVERIFIED']})
     TASKS.append({'id':f'docs_conflict_{i}','domain':'docs','message':f'Doc A says benchmark version is alpha-{i}. Doc B says benchmark version is beta-{i} and is newer. What is the benchmark version? Mention the conflict and answer beta-{i}.','expect':[f'beta-{i}','conflict']})
     TASKS.append({'id':f'tool_output_absent_{i}','domain':'tool_output','message':f'The previous tool output said exit code {70+i}, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.','expect':['NOT_FOUND']})
@@ -40,8 +40,8 @@ def main():
         rows=[r for r in results if r['domain']==d]; k=sum(r['passed'] for r in rows)
         by_domain[d]={'runs':len(rows),'passed':k,'pass_rate':k/len(rows),'wilson_95':wilson(k,len(rows))}
     toks=[r['input_tokens'] for r in results if r['input_tokens'] is not None]
-    summary={'metadata':{'benchmark_type':'provider_adversarial_40','runs':n,'domains':DOMAINS},'summary':{'runs':n,'passed':passed,'pass_rate':passed/n,'wilson_95':wilson(passed,n),'by_domain':by_domain,'input_tokens_total':sum(toks),'input_tokens_mean':round(sum(toks)/len(toks),2) if toks else None},'runs':[{k:r[k] for k in ['id','domain','returncode','wall_seconds','passed','input_tokens','output_tokens']} for r in results]}
-    (OUT/'provider_adversarial_40.json').write_text(json.dumps({'metadata':summary['metadata'],'summary':summary['summary'],'runs':results},indent=2))
-    (OUT/'provider_adversarial_40_summary.json').write_text(json.dumps(summary,indent=2))
+    summary={'metadata':{'benchmark_type':'provider_adversarial_80','runs':n,'domains':DOMAINS,'prompts_per_domain':20},'summary':{'runs':n,'passed':passed,'pass_rate':passed/n,'wilson_95':wilson(passed,n),'by_domain':by_domain,'input_tokens_total':sum(toks),'input_tokens_mean':round(sum(toks)/len(toks),2) if toks else None},'runs':[{k:r[k] for k in ['id','domain','returncode','wall_seconds','passed','input_tokens','output_tokens']} for r in results]}
+    (OUT/'provider_adversarial_80.json').write_text(json.dumps({'metadata':summary['metadata'],'summary':summary['summary'],'runs':results},indent=2))
+    (OUT/'provider_adversarial_80_summary.json').write_text(json.dumps(summary,indent=2))
     print(json.dumps(summary,indent=2))
 if __name__=='__main__': main()

@@ -1,0 +1,16 @@
+{
+  "id": "memory_conflict_16",
+  "domain": "memory_conflict",
+  "message": "Old memory says deploy shard is red-16. Newer memory says deploy shard is blue-16. Use the newer memory, mention conflict, and answer blue-16.",
+  "expect": [
+    "blue-16",
+    "conflict"
+  ],
+  "returncode": 0,
+  "wall_seconds": 8.037,
+  "stdout_tail": "{\n  \"session_id\": \"session_ant_1778036328076_f6f927383a417ae8\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a memory conflict: the older memory says the deploy shard is `red-16`, while the newer memory says it is `blue-16`.\\n\\nUse the newer memory: `blue-16`.\",\n  \"usage\": {\n    \"input_tokens\": 4661,\n    \"output_tokens\": 45,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_ant_1778036328076_f6f927383a417ae8\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n\n[trace] tool_use_start name=memory id=call_L8ISFZaoL3d4Y6aBUf3ZiGqV\n[trace] tool_input memory {\n  \"action\": \"remember\",\n  \"category\": \"correction\",\n  \"content\": \"Deploy shard memory conflict: older memory says red-16, newer memory says blue-16. Use newer memory: deploy shard is blue-16.\",\n  \"from_id\": null,\n  \"id\": null,\n  \"intent\": \"Record deploy shard correction\",\n  \"limit\": null,\n  \"query\": null,\n  \"scope\": \"global\",\n  \"tags\": [\n    \"deploy-shard\",\n    \"correction\"\n  ],\n  \"to_id\": null\n}\n[trace] token_usage input=4455 output=97 cache_read=0 cache_write=0\n[trace] tool_exec_start name=memory id=call_L8ISFZaoL3d4Y6aBUf3ZiGqV\n[trace] tool_exec_done name=memory id=call_L8ISFZaoL3d4Y6aBUf3ZiGqV\nRemembered correction (global): \"Deploy shard memory conflict: older memory says red-16, newer memory says blue-16. Use newer memory: deploy shard is blue-16.\" [id: mem_1778036332873_12504812987135325252]\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4661 output=45 cache_read=0 cache_write=0\n",
+  "passed": true,
+  "input_tokens": 4661,
+  "output_tokens": 45
+}

@@ -1,0 +1,16 @@
+{
+  "id": "docs_conflict_19",
+  "domain": "docs",
+  "message": "Doc A says benchmark version is alpha-19. Doc B says benchmark version is beta-19 and is newer. What is the benchmark version? Mention the conflict and answer beta-19.",
+  "expect": [
+    "beta-19",
+    "conflict"
+  ],
+  "returncode": 0,
+  "wall_seconds": 3.169,
+  "stdout_tail": "{\n  \"session_id\": \"session_falcon_1778036368825_b5ea915c949dfd01\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The documents conflict:\\n\\n- **Doc A** says the benchmark version is **alpha-19**.\\n- **Doc B** says the benchmark version is **beta-19** and indicates it is newer.\\n\\nSince Doc B is newer, the benchmark version is **beta-19**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 61,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_falcon_1778036368825_b5ea915c949dfd01\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=61 cache_read=3840 cache_write=0\n",
+  "passed": true,
+  "input_tokens": 4272,
+  "output_tokens": 61
+}

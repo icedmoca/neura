@@ -1,35 +1,106 @@
 {
   "metadata": {
     "benchmark_type": "real_provider_edit_test",
-    "tasks": 3
+    "tasks": 10
   },
   "summary": {
-    "tasks": 3,
-    "successes": 3,
+    "tasks": 10,
+    "successes": 10,
     "success_rate": 1.0,
-    "total_provider_wall_seconds": 64.579
+    "total_provider_wall_seconds": 223.413,
+    "input_tokens_total": 56146,
+    "input_tokens_mean": 5614.6
   },
   "runs": [
     {
       "id": "fix_add_function",
       "initial_tests_passed": false,
       "provider_returncode": 0,
-      "provider_wall_seconds": 19.193,
-      "final_tests_passed": true
+      "provider_wall_seconds": 17.236,
+      "final_tests_passed": true,
+      "input_tokens": 5221,
+      "output_tokens": 71
     },
     {
       "id": "fix_slugify_edgecase",
       "initial_tests_passed": false,
       "provider_returncode": 0,
-      "provider_wall_seconds": 25.934,
-      "final_tests_passed": true
+      "provider_wall_seconds": 16.248,
+      "final_tests_passed": true,
+      "input_tokens": 5199,
+      "output_tokens": 58
     },
     {
       "id": "fix_json_config_default",
       "initial_tests_passed": false,
       "provider_returncode": 0,
-      "provider_wall_seconds": 19.452,
-      "final_tests_passed": true
+      "provider_wall_seconds": 15.719,
+      "final_tests_passed": true,
+      "input_tokens": 5522,
+      "output_tokens": 48
+    },
+    {
+      "id": "fix_multiply_function",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 33.507,
+      "final_tests_passed": true,
+      "input_tokens": 5214,
+      "output_tokens": 79
+    },
+    {
+      "id": "fix_list_average_empty",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 23.236,
+      "final_tests_passed": true,
+      "input_tokens": 5314,
+      "output_tokens": 84
+    },
+    {
+      "id": "fix_boolean_parser",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 20.789,
+      "final_tests_passed": true,
+      "input_tokens": 5593,
+      "output_tokens": 123
+    },
+    {
+      "id": "fix_unique_preserve_order",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 22.17,
+      "final_tests_passed": true,
+      "input_tokens": 5570,
+      "output_tokens": 115
+    },
+    {
+      "id": "fix_env_parser",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 32.76,
+      "final_tests_passed": true,
+      "input_tokens": 5778,
+      "output_tokens": 126
+    },
+    {
+      "id": "fix_clamp_bounds",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 21.886,
+      "final_tests_passed": true,
+      "input_tokens": 7474,
+      "output_tokens": 78
+    },
+    {
+      "id": "fix_word_count",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 19.862,
+      "final_tests_passed": true,
+      "input_tokens": 5261,
+      "output_tokens": 53
     }
   ]
 }

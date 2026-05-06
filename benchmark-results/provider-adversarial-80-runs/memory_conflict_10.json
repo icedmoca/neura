@@ -1,0 +1,16 @@
+{
+  "id": "memory_conflict_10",
+  "domain": "memory_conflict",
+  "message": "Old memory says deploy shard is red-10. Newer memory says deploy shard is blue-10. Use the newer memory, mention conflict, and answer blue-10.",
+  "expect": [
+    "blue-10",
+    "conflict"
+  ],
+  "returncode": 0,
+  "wall_seconds": 3.126,
+  "stdout_tail": "{\n  \"session_id\": \"session_horse_1778036262618_9d6a2c8c4b2dd625\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The deploy shard is **blue-10**.\\n\\nNote: there is a conflict with older memory that said **red-10**, but the newer memory supersedes it.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 56,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_horse_1778036262618_9d6a2c8c4b2dd625\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=56 cache_read=3840 cache_write=0\n",
+  "passed": true,
+  "input_tokens": 4455,
+  "output_tokens": 56
+}

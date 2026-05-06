@@ -1,0 +1,16 @@
+{
+  "id": "docs_conflict_7",
+  "domain": "docs",
+  "message": "Doc A says benchmark version is alpha-7. Doc B says benchmark version is beta-7 and is newer. What is the benchmark version? Mention the conflict and answer beta-7.",
+  "expect": [
+    "beta-7",
+    "conflict"
+  ],
+  "returncode": 0,
+  "wall_seconds": 2.86,
+  "stdout_tail": "{\n  \"session_id\": \"session_hamster_1778036225162_0d9f804ee782fe1e\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict: Doc A says the benchmark version is **alpha-7**, while Doc B says it is **beta-7** and is newer.\\n\\nThe benchmark version is **beta-7**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 46,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_hamster_1778036225162_0d9f804ee782fe1e\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=46 cache_read=3840 cache_write=0\n",
+  "passed": true,
+  "input_tokens": 4272,
+  "output_tokens": 46
+}
