@@ -31,6 +31,10 @@ flowchart LR
 
 ### Sidecar models
 
+- [ ] **Claude sidecar training loop**
+  - Explore a teacher/student sidecar pipeline for routing, memory extraction, summaries, critique, and exact-context decisions.
+  - See [Claude Sidecar TODO](sidecartodo/claudesidecar.md).
+
 - [ ] **Optimize sidecar model**
   - Improve routing, memory extraction, summarization, and critique latency.
   - Add benchmark targets for sidecar response time, accuracy, and CPU/RAM usage.
