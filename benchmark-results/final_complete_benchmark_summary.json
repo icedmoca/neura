@@ -1,0 +1,155 @@
+{
+  "token_usage_vs_baseline": {
+    "events": 3784,
+    "original_chars": 6183721727,
+    "encoded_chars": 449067957,
+    "saved_chars": 5734653770,
+    "reduction_pct": 92.74,
+    "estimated_tokens_saved_chars4": 1433663442,
+    "short_medium_long": "see BENCHMARKS.md bucket table"
+  },
+  "task_success_rate": {
+    "actual_provider_edit_test": {
+      "tasks": 3,
+      "successes": 3,
+      "success_rate": 100.0
+    },
+    "real_repo_context_tasks": {
+      "tasks": 75,
+      "kcode_success_rate": 100.0,
+      "full_context_success_rate": 100.0,
+      "lexical_rag_success_rate": 48.0
+    }
+  },
+  "hallucination_rate": {
+    "provider_messy_adversarial_runs": 3,
+    "guard_passes": 3,
+    "measured_hallucinations": 0,
+    "hallucination_rate": 0.0,
+    "context_layer_lexical_rag_hallucination_rate": 33.33,
+    "kcode_exact_context_hallucination_rate": 0.0
+  },
+  "context_recall_accuracy": {
+    "kcode_exact": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "success_rate": 100.0
+    },
+    "full_context": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "success_rate": 100.0
+    },
+    "lexical_rag": {
+      "success_rate": 66.67,
+      "miss_rate": 16.67,
+      "hallucination_rate": 33.33
+    }
+  },
+  "long_session_degradation": {
+    "telemetry_events": 3784,
+    "p50_blocks": 176,
+    "p95_blocks": 640,
+    "max_blocks": 662,
+    "long_bucket_reduction_pct": 92.77,
+    "multi_file_proxy_kcode_success_rate": 100.0
+  },
+  "latency_response_time": {
+    "provider_runs": 9,
+    "mean_wall_seconds": 9.613,
+    "p50_wall_seconds": 4.963,
+    "p95_wall_seconds": 19.452,
+    "max_wall_seconds": 25.934
+  },
+  "cost_efficiency": {
+    "provider_usage_rows_with_tokens": 9,
+    "total_provider_input_tokens_known": 44278,
+    "total_provider_output_tokens_known": 388,
+    "successful_provider_runs_known": 9,
+    "input_tokens_per_success_known": 4919.78,
+    "kcode_real_context_tokens_per_success": 14724.64,
+    "full_context_tokens_per_success": 2075181.0,
+    "rag_tokens_per_success": 48906.17
+  },
+  "determinism_reproducibility": {
+    "context_benchmark_runs": 5,
+    "context_identical_outputs": true,
+    "coding_benchmark_runs": 3,
+    "coding_identical_outputs": false,
+    "context_wall_seconds": [
+      {
+        "returncode": 0,
+        "wall_seconds": 0.041,
+        "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
+      },
+      {
+        "returncode": 0,
+        "wall_seconds": 0.042,
+        "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
+      },
+      {
+        "returncode": 0,
+        "wall_seconds": 0.04,
+        "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
+      },
+      {
+        "returncode": 0,
+        "wall_seconds": 0.041,
+        "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
+      },
+      {
+        "returncode": 0,
+        "wall_seconds": 0.041,
+        "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
+      }
+    ],
+    "coding_wall_seconds": [
+      {
+        "returncode": 0,
+        "wall_seconds": 4.348,
+        "sha256": "3a904e7168d6abc59e392074c75e7c14c54585b4274e2d30ee5c667204b0abfe"
+      },
+      {
+        "returncode": 0,
+        "wall_seconds": 4.279,
+        "sha256": "585e75e7dfcba6b3c1a3853f9b31e4a602307eeee96b07f264e7cc8ad809152a"
+      },
+      {
+        "returncode": 0,
+        "wall_seconds": 4.283,
+        "sha256": "f13d54a13f27731b1cdf2507b60e1db0ffe571a31fec77ba99b483e14f47679e"
+      }
+    ]
+  },
+  "failure_mode_analysis": {
+    "lexical_rag_real_context_failures": {
+      "none": 36,
+      "missed_all_changed_files": 39
+    },
+    "kcode_real_context_failures": {
+      "none": 75
+    },
+    "provider_edit_failures": 0,
+    "provider_messy_failures": 0
+  },
+  "tool_use_accuracy": {
+    "provider_file_tool_runs": 2,
+    "provider_file_tool_successes": 2,
+    "provider_edit_tool_runs": 3,
+    "provider_edit_tool_successes": 3
+  },
+  "user_intervention_rate": {
+    "provider_smoke_and_edit_runs": 9,
+    "manual_interventions_observed": 0,
+    "intervention_rate": 0.0
+  },
+  "memory_efficiency": {
+    "encoded_over_original_pct": 7.26,
+    "compression_factor": 13.77
+  },
+  "metadata": {
+    "benchmark_type": "final_complete_benchmark_suite",
+    "scope": "local telemetry + deterministic local retrieval + real provider smoke/edit/adversarial runs",
+    "generated_at_unix": 1778034848.4244385
+  }
+}
