@@ -533,3 +533,384 @@ flowchart LR
 
 That is the core idea: Kcode keeps the useful state, but avoids paying to resend every byte of old context every turn.
 
+---
+
+## Hallucination mitigation and exact-evidence design
+
+Kcode does not claim to make hallucinations impossible. Instead, it attacks the main causes of hallucination in long coding sessions: missing context, stale context, unverifiable tool output, lossy summaries with no escape hatch, and memory drift.
+
+The core idea is simple:
+
+> Kcode reduces the need to guess by keeping exact evidence locally, sending compact but accountable summaries to the model, and allowing exact rehydration whenever summary-level context is not enough.
+
+---
+
+## 1. The hallucination problem in long tool-heavy chats
+
+In coding agents, hallucinations usually come from one of these failure modes:
+
+| Failure mode | What happens | Kcode countermeasure |
+|---|---|---|
+| Context overload | The prompt gets too large, so important details are dropped or buried. | Context diet compresses old low-value blocks while preserving recent/high-value exact context. |
+| Lost evidence | Tool results or file contents are summarized and exact text is gone. | Kcode stores exact old blocks locally by stable hash and can rehydrate them. |
+| Summary overtrust | A model treats a summary as if it were exact source text. | `<ctx>` references explicitly say summary is not exact and include `.ctx_get` recovery instructions. |
+| Stale memory | Old remembered facts override current repo state. | Memory is used as hints, while tools and exact file reads remain authoritative. |
+| Unsupported claims | The model invents file names, code behavior, or test results. | Tool-first workflows, patch verification, tests, and local accounting logs create evidence. |
+| Repeated giant logs | Huge logs encourage truncation and loss of important lines. | Logs become summarized references with semantic hints and exact retrieval when needed. |
+
+---
+
+## 2. System overview
+
+```mermaid
+flowchart TD
+    User[User request] --> Runtime[Kcode runtime]
+    Runtime --> Memory[Relevant memory recall]
+    Runtime --> Tools[Tool evidence\nfiles, shell, git, browser]
+    Runtime --> Diet[Context diet / interlang]
+    Tools --> Diet
+    Memory --> Prompt[Prompt builder]
+    Diet --> Prompt
+    Prompt --> Remote[Remote model]
+    Remote --> Check{Needs exact hidden context?}
+    Check -->|No| Answer[Answer / tool plan]
+    Check -->|Yes: .ctx_get| Rehydrate[Exact context rehydration]
+    Rehydrate --> Prompt
+```
+
+Kcode combats hallucination by making the model reason from evidence:
+
+1. **Recent exact context** remains visible.
+2. **Old bulky context** becomes compact references.
+3. **Exact old content** remains locally available.
+4. **Memory** adds durable facts, but does not replace verification.
+5. **Tools/tests** validate claims before final answers.
+
+---
+
+## 3. Context diet: reducing confusion without deleting evidence
+
+A normal long chat often forces a bad tradeoff:
+
+```mermaid
+flowchart LR
+    Big[Huge transcript] --> Truncate[Provider/context truncation]
+    Truncate --> Missing[Missing evidence]
+    Missing --> Guess[Model guesses]
+    Guess --> Hallucination[Hallucination risk]
+```
+
+Kcode avoids that by replacing old low-value blocks with structured references:
+
+```mermaid
+flowchart LR
+    Big[Huge old block] --> Hash[Stable hash]
+    Big --> Summary[Deterministic summary]
+    Big --> Score[Confidence + priority score]
+    Big --> Vault[Exact local vault]
+    Hash --> Ctx[Compact ctx reference]
+    Summary --> Ctx
+    Score --> Ctx
+    Score --> Auto[Topic-gated auto exact excerpt]
+    Ctx --> Prompt[Smaller prompt]
+    Auto --> Prompt
+    Vault --> Rehydrate[Exact retrieval if needed]
+```
+
+A `<ctx>` reference is intentionally compact but accountable:
+
+```xml
+<ctx k="old-tool-result" id="ctx:..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; chars=...; files=[...]; first=..."/>
+```
+
+The decoder prompt defines the schema once, so each reference does not repeat the
+same long policy text. This combats hallucination because the model still sees:
+
+- this is a summary, not exact text,
+- exact content exists locally,
+- a stable id/hash identifies it,
+- Kcode has scored confidence, priority, and semantic topics,
+- and it should request `.ctx_get id=...` instead of inventing details.
+
+If Kcode itself decides a compacted block is low-confidence or high-priority, it
+can proactively inject an exact excerpt, but only when that block's semantic
+topics overlap the latest real user turn. Auto-restore is capped to one short
+excerpt by default. This preserves the anti-hallucination benefit for relevant
+old evidence while avoiding unrelated old logs, diffs, or API output being
+re-injected into unrelated tasks. Sensitive-looking content is excluded from
+automatic exact injection and remains explicit-request only.
+
+Current ultra-mode defaults are deliberately tuned for long tool-heavy coding
+sessions: begin context diet at roughly `24,000` prompt tokens, keep the newest
+`8` messages exact, and allow old text/tool/reasoning blocks of `420+` chars to
+be replaced by `<ctx>` references. Those defaults save more tokens than the
+earlier conservative diet while preserving the current task and a rehydration
+escape hatch.
+
+---
+
+## 4. Exact rehydration: the anti-guessing escape hatch
+
+If the model needs exact old content, it can ask for it with:
+
+```text
+.ctx_get id=ctx:<hash> reason=<why exact old context is needed>
+```
+
+or:
+
+```text
+. err need_ref <hash>
+```
+
+Kcode parses that request, retrieves the exact block from the local vault, and injects it back into the conversation.
+
+```mermaid
+sequenceDiagram
+    participant M as Remote model
+    participant K as Kcode
+    participant V as Local context vault
+
+    M-->>K: .ctx_get id=ctx:abc reason=need exact error
+    K->>V: lookup hash abc
+    V-->>K: exact original content
+    K-->>M: ctx_exact block with original_chars and exact text
+    M-->>K: continue using authoritative evidence
+```
+
+This matters because summaries are useful for orientation, but exact code, errors, command output, and file contents are often required for correctness.
+
+---
+
+## 5. Memory: durable hints, not fake evidence
+
+Kcode memory stores useful durable facts outside the main chat transcript.
+
+Examples:
+
+- user preferences,
+- project facts,
+- rename decisions,
+- known paths,
+- prior corrections,
+- long-term workflow preferences.
+
+Memory is not treated as proof that the current repository still matches the fact. It is a retrieval system that helps the agent know what to check.
+
+```mermaid
+flowchart TD
+    Conversation[Conversation/tool activity] --> Extract[Candidate extraction]
+    Extract --> Promote[Promotion/filtering]
+    Promote --> Store[Local memory store]
+    Store --> Recall[Relevant recall]
+    Recall --> Prompt[Prompt hint]
+    Prompt --> Verify[Verify with tools when needed]
+    Verify --> Answer[Grounded answer]
+```
+
+### How this reduces hallucination
+
+Without memory, the model may try to infer old decisions from partial context. With memory, Kcode can preserve a compact durable statement such as:
+
+```text
+The active repo was renamed from Jcode to Kcode. The Kcode home is ~/.kcode. Legacy ~/.jcode compatibility matters.
+```
+
+That prevents the model from guessing the rename state. But Kcode can still verify with files and git before making claims.
+
+---
+
+## 6. Tool-first grounding
+
+Kcode has tool access for files, shell commands, git, browser, background jobs, and more. The agent is expected to inspect and test rather than guess.
+
+```mermaid
+flowchart TD
+    Claim[Potential claim] --> NeedEvidence{Needs evidence?}
+    NeedEvidence -->|Yes| Tool[Run/read/search/test]
+    Tool --> Result[Tool result]
+    Result --> Compress[Compress if bulky]
+    Result --> Reason[Reason from actual output]
+    NeedEvidence -->|No| Reason
+    Reason --> Answer[Final answer]
+```
+
+Examples:
+
+- Before saying a build works, run `cargo check` or relevant tests.
+- Before saying a file exists, list/read it.
+- Before saying GitHub has a file, fetch the raw URL or inspect remote refs.
+- Before saying token savings are active, inspect `interlang-stats.jsonl` and prompt accounting.
+
+---
+
+## 7. Local model bridge: helper, not final authority
+
+The local sidecar model can help with routing, summaries, memory extraction, and critique. It is not treated as the final source of truth.
+
+```mermaid
+flowchart LR
+    K[Kcode runtime] --> B[Local model bridge]
+    B --> L[kcode-oss-20b-mxfp4 GGUF]
+    L --> B
+    B --> K
+    K --> R[Remote main model]
+    R --> K
+```
+
+The bridge reduces hallucination indirectly by:
+
+- summarizing and extracting memory candidates,
+- creating local critique or second-pass checks,
+- logging prompt/response metadata,
+- and making token/context behavior observable.
+
+But file contents, command output, tests, and exact rehydrated context remain more authoritative than sidecar guesses.
+
+---
+
+## 8. Real Kcode data from live context-diet accounting
+
+The following data was measured from the local Kcode `interlang-stats.jsonl` on this machine during real usage after the more aggressive ultra-mode context-diet tuning.
+
+### Recent 50 compaction events
+
+| Metric | Value |
+|---|---:|
+| Total compaction events analyzed | 50 |
+| Total original chars compacted | 16,709,366 |
+| Total encoded chars sent for those blocks | 1,372,721 |
+| Average char reduction | 91.78% |
+| Estimated tokens saved, total | 3,834,161 |
+| Estimated tokens saved, average/event | 76,683.22 |
+| Exact local-tokenizer tokens saved, total | 5,914,442 |
+| Exact local-tokenizer tokens saved, average/event | 118,288.84 |
+| Total blocks encoded | 2,372 |
+| Average blocks encoded/event | 47.44 |
+
+### Latest observed compaction event
+
+| Metric | Value |
+|---|---:|
+| Blocks encoded | 65 |
+| Original chars | 377,444 |
+| Encoded chars | 36,544 |
+| Saved chars | 340,900 |
+| Estimated saved tokens | 85,225 |
+| Exact original tokens | 143,681 |
+| Exact encoded tokens | 15,503 |
+| Exact saved tokens | 128,178 |
+| Diet blocks | 63 |
+| Seen-ref blocks | 2 |
+| Raw context avoided, estimated tokens | 94,361 |
+
+### Visualized
+
+```mermaid
+xychart-beta
+    title "Latest observed compaction event"
+    x-axis ["Original chars", "Encoded chars", "Saved chars"]
+    y-axis "Characters" 0 --> 400000
+    bar [377444, 36544, 340900]
+```
+
+```mermaid
+xychart-beta
+    title "Latest observed token accounting"
+    x-axis ["Exact original", "Exact encoded", "Exact saved"]
+    y-axis "Tokens" 0 --> 150000
+    bar [143681, 15503, 128178]
+```
+
+```mermaid
+pie title Recent 50 events: original vs encoded chars
+    "Encoded chars sent" : 1372721
+    "Chars avoided" : 15336645
+```
+
+These numbers matter for hallucination because they show that Kcode is not just truncating huge context. It is converting old context into compact references while keeping exact content locally recoverable.
+
+---
+
+## 9. Why compression can reduce hallucination instead of increasing it
+
+Compression can be dangerous if it destroys evidence. Kcode's approach is different:
+
+```mermaid
+flowchart TD
+    Compress[Compress old context] --> Risk{Risk: lost exact details?}
+    Risk --> Mitigation1[Stable hash/id]
+    Risk --> Mitigation2[Deterministic summary]
+    Risk --> Mitigation3[Exact local storage]
+    Risk --> Mitigation4[Explicit request_exact instruction]
+    Risk --> Mitigation5[Rehydration path]
+    Mitigation1 --> Safer[Lower hallucination pressure]
+    Mitigation2 --> Safer
+    Mitigation3 --> Safer
+    Mitigation4 --> Safer
+    Mitigation5 --> Safer
+```
+
+The model gets enough information to know what the old block was about, but it is warned not to invent exact details. If details matter, it can ask Kcode to retrieve them.
+
+---
+
+## 10. Failure modes Kcode still watches for
+
+Kcode is designed to reduce hallucinations, not magically eliminate them. Important remaining risks include:
+
+| Risk | Mitigation |
+|---|---|
+| Summary misses a crucial line | Use `.ctx_get` exact rehydration. |
+| Memory is outdated | Verify with tools and current repo state. |
+| Tool output is too large | Summarize plus retain exact local block. |
+| Local sidecar gives weak advice | Treat sidecar as helper, not authority. |
+| Remote model ignores protocol | Kcode can re-prompt with rehydrated evidence and explicit instructions. |
+| Tests are not run | Kcode's coding workflow emphasizes validation before claiming success. |
+
+---
+
+## 11. Hallucination-control checklist
+
+When Kcode is working correctly, high-confidence answers should usually come from this loop:
+
+```mermaid
+flowchart TD
+    Start[Task] --> Recall[Recall relevant memory]
+    Recall --> Inspect[Inspect files/tools]
+    Inspect --> Compact[Compact bulky old context]
+    Compact --> Reason[Reason with current exact evidence]
+    Reason --> NeedExact{Need hidden exact old context?}
+    NeedExact -->|Yes| Rehydrate[ctx_get rehydration]
+    Rehydrate --> Reason
+    NeedExact -->|No| Validate[Run checks/tests when applicable]
+    Validate --> Answer[Answer with grounded result]
+```
+
+Practical checklist:
+
+- Prefer tool evidence over memory when making repository claims.
+- Keep recent task context exact.
+- Use summaries for orientation, not exact quotes.
+- Request exact context when a hidden block matters.
+- Run tests/checks before saying code works.
+- Record accounting so token/context behavior can be audited.
+
+---
+
+## 12. Bottom line
+
+Kcode combats hallucinations by combining:
+
+1. **context compression that does not delete exact evidence,**
+2. **local exact rehydration via stable references,**
+3. **durable memory used as hints,**
+4. **tool-first verification,**
+5. **local sidecar support for summaries and memory,**
+6. **and real accounting logs that make token-saving behavior observable.**
+
+The result is a system that can run long, tool-heavy sessions while reducing both token cost and the pressure on the model to guess.
+
+## Token savings without losing grounding
+
+Kcode's token-saving path is designed to reduce fixed overhead without hiding evidence the model may need. Context refs can be rehydrated exactly with `.ctx_get`, and direct-answer turns now use dynamic tool-schema pruning: they send only core tools plus `tool_expand`, so the model can request more tools rather than carrying every schema on every turn. This lowers cost on simple turns without weakening grounded tool use on complex tasks.
