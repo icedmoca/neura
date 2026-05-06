@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "benchmark_type": "real_git_commit_context_retrieval",
+    "tasks": 75,
+    "repo_files_indexed": 722,
+    "top_k_rag": 8,
+    "token_estimate": "chars/4"
+  },
+  "summary": {
+    "full_context": {
+      "tasks": 75,
+      "successes": 75,
+      "success_rate": 1.0,
+      "estimated_prompt_tokens": 155638575,
+      "estimated_tokens_per_success": 2075181.0,
+      "failure_types": {
+        "none": 75
+      }
+    },
+    "kcode_path_exact": {
+      "tasks": 75,
+      "successes": 75,
+      "success_rate": 1.0,
+      "estimated_prompt_tokens": 1104348,
+      "estimated_tokens_per_success": 14724.64,
+      "failure_types": {
+        "none": 75
+      }
+    },
+    "lexical_rag": {
+      "tasks": 75,
+      "successes": 36,
+      "success_rate": 0.48,
+      "estimated_prompt_tokens": 1760622,
+      "estimated_tokens_per_success": 48906.17,
+      "failure_types": {
+        "none": 36,
+        "missed_all_changed_files": 39
+      }
+    }
+  }
+}

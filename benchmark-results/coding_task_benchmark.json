@@ -1,0 +1,3271 @@
+{
+  "metadata": {
+    "benchmark_type": "real_git_commit_context_retrieval",
+    "tasks": 75,
+    "repo_files_indexed": 722,
+    "top_k_rag": 8,
+    "token_estimate": "chars/4"
+  },
+  "summary": {
+    "full_context": {
+      "tasks": 75,
+      "successes": 75,
+      "success_rate": 1.0,
+      "estimated_prompt_tokens": 155638575,
+      "estimated_tokens_per_success": 2075181.0,
+      "failure_types": {
+        "none": 75
+      }
+    },
+    "kcode_path_exact": {
+      "tasks": 75,
+      "successes": 75,
+      "success_rate": 1.0,
+      "estimated_prompt_tokens": 1104348,
+      "estimated_tokens_per_success": 14724.64,
+      "failure_types": {
+        "none": 75
+      }
+    },
+    "lexical_rag": {
+      "tasks": 75,
+      "successes": 36,
+      "success_rate": 0.48,
+      "estimated_prompt_tokens": 1760622,
+      "estimated_tokens_per_success": 48906.17,
+      "failure_types": {
+        "none": 36,
+        "missed_all_changed_files": 39
+      }
+    }
+  },
+  "tasks": [
+    {
+      "commit": "b7d0b73d",
+      "subject": "Run context benchmark suite [BENCHMARKS.md]",
+      "files": [
+        "BENCHMARKS.md"
+      ]
+    },
+    {
+      "commit": "b7d0b73d",
+      "subject": "Run context benchmark suite [benchmark-results/context_benchmark.json]",
+      "files": [
+        "benchmark-results/context_benchmark.json"
+      ]
+    },
+    {
+      "commit": "b7d0b73d",
+      "subject": "Run context benchmark suite [benchmark-results/context_benchmark_summary.json]",
+      "files": [
+        "benchmark-results/context_benchmark_summary.json"
+      ]
+    },
+    {
+      "commit": "b7d0b73d",
+      "subject": "Run context benchmark suite [scripts/context_benchmark.py]",
+      "files": [
+        "scripts/context_benchmark.py"
+      ]
+    },
+    {
+      "commit": "838ae64e",
+      "subject": "Add Kcode benchmark report [BENCHMARKS.md]",
+      "files": [
+        "BENCHMARKS.md"
+      ]
+    },
+    {
+      "commit": "838ae64e",
+      "subject": "Add Kcode benchmark report [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "6c59ca69",
+      "subject": "Adjust README image width and remove Kcode header [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "4812e47a",
+      "subject": "Refresh documentation and add Kcode logo [ABOUT.md]",
+      "files": [
+        "ABOUT.md"
+      ]
+    },
+    {
+      "commit": "4812e47a",
+      "subject": "Refresh documentation and add Kcode logo [HALLUCINATION_MITIGATION.md]",
+      "files": [
+        "HALLUCINATION_MITIGATION.md"
+      ]
+    },
+    {
+      "commit": "4812e47a",
+      "subject": "Refresh documentation and add Kcode logo [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "4812e47a",
+      "subject": "Refresh documentation and add Kcode logo [STATISTICS.md]",
+      "files": [
+        "STATISTICS.md"
+      ]
+    },
+    {
+      "commit": "1c1238ad",
+      "subject": "Prune tool schemas for direct-answer turns [src/agent/turn_execution.rs]",
+      "files": [
+        "src/agent/turn_execution.rs"
+      ]
+    },
+    {
+      "commit": "6dc42ed7",
+      "subject": "Reduce noisy context vault references [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "85a833bd",
+      "subject": "Use structural memory relevance skip heuristic [src/memory_agent.rs]",
+      "files": [
+        "src/memory_agent.rs"
+      ]
+    },
+    {
+      "commit": "85a833bd",
+      "subject": "Use structural memory relevance skip heuristic [src/memory_agent_tests.rs]",
+      "files": [
+        "src/memory_agent_tests.rs"
+      ]
+    },
+    {
+      "commit": "0da993ea",
+      "subject": "Reduce memory prompt overhead for trivial turns [src/memory_agent.rs]",
+      "files": [
+        "src/memory_agent.rs"
+      ]
+    },
+    {
+      "commit": "0da993ea",
+      "subject": "Reduce memory prompt overhead for trivial turns [src/memory_prompt.rs]",
+      "files": [
+        "src/memory_prompt.rs"
+      ]
+    },
+    {
+      "commit": "ba643238",
+      "subject": "Add dynamic toolset filtering fallback [src/agent/turn_execution.rs]",
+      "files": [
+        "src/agent/turn_execution.rs"
+      ]
+    },
+    {
+      "commit": "b49367ef",
+      "subject": "Vault exact truncated tool outputs [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "b49367ef",
+      "subject": "Vault exact truncated tool outputs [src/tool/mod.rs]",
+      "files": [
+        "src/tool/mod.rs"
+      ]
+    },
+    {
+      "commit": "b49367ef",
+      "subject": "Vault exact truncated tool outputs [src/tool/tests.rs]",
+      "files": [
+        "src/tool/tests.rs"
+      ]
+    },
+    {
+      "commit": "d8a60a1f",
+      "subject": "Compact tool schema descriptions [src/tool/agentgrep.rs]",
+      "files": [
+        "src/tool/agentgrep.rs"
+      ]
+    },
+    {
+      "commit": "d8a60a1f",
+      "subject": "Compact tool schema descriptions [src/tool/ambient.rs]",
+      "files": [
+        "src/tool/ambient.rs"
+      ]
+    },
+    {
+      "commit": "d8a60a1f",
+      "subject": "Compact tool schema descriptions [src/tool/bash.rs]",
+      "files": [
+        "src/tool/bash.rs"
+      ]
+    },
+    {
+      "commit": "d8a60a1f",
+      "subject": "Compact tool schema descriptions [src/tool/bg.rs]",
+      "files": [
+        "src/tool/bg.rs"
+      ]
+    },
+    {
+      "commit": "d8a60a1f",
+      "subject": "Compact tool schema descriptions [src/tool/browser.rs]",
+      "files": [
+        "src/tool/browser.rs"
+      ]
+    },
+    {
+      "commit": "d8a60a1f",
+      "subject": "Compact tool schema descriptions [src/tool/communicate.rs]",
+      "files": [
+        "src/tool/communicate.rs"
+      ]
+    },
+    {
+      "commit": "d8a60a1f",
+      "subject": "Compact tool schema descriptions [src/tool/tests.rs]",
+      "files": [
+        "src/tool/tests.rs"
+      ]
+    },
+    {
+      "commit": "4c6dc086",
+      "subject": "Use lexical evidence for context restore [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "f3ec8b12",
+      "subject": "Avoid exact restore for token accounting turns [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "fe849362",
+      "subject": "Trim repeated prompt schema text [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "fe849362",
+      "subject": "Trim repeated prompt schema text [src/tool/mod.rs]",
+      "files": [
+        "src/tool/mod.rs"
+      ]
+    },
+    {
+      "commit": "fe849362",
+      "subject": "Trim repeated prompt schema text [src/tool/tests.rs]",
+      "files": [
+        "src/tool/tests.rs"
+      ]
+    },
+    {
+      "commit": "ed9240c5",
+      "subject": "Strengthen retrieval docs and doc-turn gating [ABOUT.md]",
+      "files": [
+        "ABOUT.md"
+      ]
+    },
+    {
+      "commit": "ed9240c5",
+      "subject": "Strengthen retrieval docs and doc-turn gating [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "d8a3edbc",
+      "subject": "Explain retrieval selection in ABOUT [ABOUT.md]",
+      "files": [
+        "ABOUT.md"
+      ]
+    },
+    {
+      "commit": "e9c4f75b",
+      "subject": "Document retrieval-backed context fidelity [STATISTICS.md]",
+      "files": [
+        "STATISTICS.md"
+      ]
+    },
+    {
+      "commit": "ef3e8ea4",
+      "subject": "Tighten stats turn context restore [STATISTICS.md]",
+      "files": [
+        "STATISTICS.md"
+      ]
+    },
+    {
+      "commit": "ef3e8ea4",
+      "subject": "Tighten stats turn context restore [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "5ca77007",
+      "subject": "Tighten context rehydration relevance [STATISTICS.md]",
+      "files": [
+        "STATISTICS.md"
+      ]
+    },
+    {
+      "commit": "5ca77007",
+      "subject": "Tighten context rehydration relevance [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "95f81a3c",
+      "subject": "Add context efficiency statistics [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "95f81a3c",
+      "subject": "Add context efficiency statistics [STATISTICS.md]",
+      "files": [
+        "STATISTICS.md"
+      ]
+    },
+    {
+      "commit": "d50b5e99",
+      "subject": "Document context efficiency updates [ABOUT.md]",
+      "files": [
+        "ABOUT.md"
+      ]
+    },
+    {
+      "commit": "d50b5e99",
+      "subject": "Document context efficiency updates [HALLUCINATION_MITIGATION.md]",
+      "files": [
+        "HALLUCINATION_MITIGATION.md"
+      ]
+    },
+    {
+      "commit": "d50b5e99",
+      "subject": "Document context efficiency updates [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "3fa273a9",
+      "subject": "Improve context token efficiency [src/agent/turn_loops.rs]",
+      "files": [
+        "src/agent/turn_loops.rs"
+      ]
+    },
+    {
+      "commit": "3fa273a9",
+      "subject": "Improve context token efficiency [src/agent/turn_streaming_broadcast.rs]",
+      "files": [
+        "src/agent/turn_streaming_broadcast.rs"
+      ]
+    },
+    {
+      "commit": "3fa273a9",
+      "subject": "Improve context token efficiency [src/agent/turn_streaming_mpsc.rs]",
+      "files": [
+        "src/agent/turn_streaming_mpsc.rs"
+      ]
+    },
+    {
+      "commit": "3fa273a9",
+      "subject": "Improve context token efficiency [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "3fa273a9",
+      "subject": "Improve context token efficiency [src/tool/mod.rs]",
+      "files": [
+        "src/tool/mod.rs"
+      ]
+    },
+    {
+      "commit": "6950b436",
+      "subject": "Use elapsed activity for installer build step [install/install.sh]",
+      "files": [
+        "install/install.sh"
+      ]
+    },
+    {
+      "commit": "b0cef87f",
+      "subject": "Stop installer build progress flicker [install/install.sh]",
+      "files": [
+        "install/install.sh"
+      ]
+    },
+    {
+      "commit": "5f854907",
+      "subject": "Make installer update existing installs cleanly [install/install.sh]",
+      "files": [
+        "install/install.sh"
+      ]
+    },
+    {
+      "commit": "0734abfc",
+      "subject": "Refine installer progress display [install/install.sh]",
+      "files": [
+        "install/install.sh"
+      ]
+    },
+    {
+      "commit": "8be11f7a",
+      "subject": "Improve installer terminal experience [install/install.sh]",
+      "files": [
+        "install/install.sh"
+      ]
+    },
+    {
+      "commit": "4993140e",
+      "subject": "Remove greeting from README [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "1d5187ba",
+      "subject": "Add greeting to README [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "58df75a6",
+      "subject": "Support OpenAI API key auth and failover [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "58df75a6",
+      "subject": "Support OpenAI API key auth and failover [src/auth/codex.rs]",
+      "files": [
+        "src/auth/codex.rs"
+      ]
+    },
+    {
+      "commit": "58df75a6",
+      "subject": "Support OpenAI API key auth and failover [src/auth/codex_tests.rs]",
+      "files": [
+        "src/auth/codex_tests.rs"
+      ]
+    },
+    {
+      "commit": "58df75a6",
+      "subject": "Support OpenAI API key auth and failover [src/auth/mod.rs]",
+      "files": [
+        "src/auth/mod.rs"
+      ]
+    },
+    {
+      "commit": "58df75a6",
+      "subject": "Support OpenAI API key auth and failover [src/provider/openai_provider_impl.rs]",
+      "files": [
+        "src/provider/openai_provider_impl.rs"
+      ]
+    },
+    {
+      "commit": "58df75a6",
+      "subject": "Support OpenAI API key auth and failover [src/tui/app/auth_account_commands.rs]",
+      "files": [
+        "src/tui/app/auth_account_commands.rs"
+      ]
+    },
+    {
+      "commit": "58df75a6",
+      "subject": "Support OpenAI API key auth and failover [src/tui/app/auth_types.rs]",
+      "files": [
+        "src/tui/app/auth_types.rs"
+      ]
+    },
+    {
+      "commit": "ece28a07",
+      "subject": "Add proactive context rehydration scoring [ABOUT.md]",
+      "files": [
+        "ABOUT.md"
+      ]
+    },
+    {
+      "commit": "ece28a07",
+      "subject": "Add proactive context rehydration scoring [HALLUCINATION_MITIGATION.md]",
+      "files": [
+        "HALLUCINATION_MITIGATION.md"
+      ]
+    },
+    {
+      "commit": "ece28a07",
+      "subject": "Add proactive context rehydration scoring [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "ece28a07",
+      "subject": "Add proactive context rehydration scoring [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "ece28a07",
+      "subject": "Add proactive context rehydration scoring [src/local_model.rs]",
+      "files": [
+        "src/local_model.rs"
+      ]
+    },
+    {
+      "commit": "6e83f99c",
+      "subject": "Refresh hallucination mitigation context-diet data [HALLUCINATION_MITIGATION.md]",
+      "files": [
+        "HALLUCINATION_MITIGATION.md"
+      ]
+    },
+    {
+      "commit": "0e06b23d",
+      "subject": "Document context diet tuning and usage refresh [ABOUT.md]",
+      "files": [
+        "ABOUT.md"
+      ]
+    },
+    {
+      "commit": "0e06b23d",
+      "subject": "Document context diet tuning and usage refresh [README.md]",
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "commit": "b78379be",
+      "subject": "Improve context diet and OpenAI limit refresh [src/interlang.rs]",
+      "files": [
+        "src/interlang.rs"
+      ]
+    },
+    {
+      "commit": "b78379be",
+      "subject": "Improve context diet and OpenAI limit refresh [src/tui/app/local.rs]",
+      "files": [
+        "src/tui/app/local.rs"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "mode": "full_context",
+      "task": "Run context benchmark suite [BENCHMARKS.md]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Run context benchmark suite [BENCHMARKS.md]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 58709,
+      "est_prompt_tokens": 14677,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Run context benchmark suite [BENCHMARKS.md]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 112960,
+      "est_prompt_tokens": 28240,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Run context benchmark suite [benchmark-results/context_benchmark.json]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Run context benchmark suite [benchmark-results/context_benchmark.json]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57489,
+      "est_prompt_tokens": 14372,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Run context benchmark suite [benchmark-results/context_benchmark.json]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 117651,
+      "est_prompt_tokens": 29413,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Run context benchmark suite [benchmark-results/context_benchmark_summary.json]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Run context benchmark suite [benchmark-results/context_benchmark_summary.json]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 44602,
+      "est_prompt_tokens": 11150,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Run context benchmark suite [benchmark-results/context_benchmark_summary.json]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 117651,
+      "est_prompt_tokens": 29413,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Run context benchmark suite [scripts/context_benchmark.py]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Run context benchmark suite [scripts/context_benchmark.py]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51421,
+      "est_prompt_tokens": 12855,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Run context benchmark suite [scripts/context_benchmark.py]",
+      "commit": "b7d0b73d",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 105672,
+      "est_prompt_tokens": 26418,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add Kcode benchmark report [BENCHMARKS.md]",
+      "commit": "838ae64e",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add Kcode benchmark report [BENCHMARKS.md]",
+      "commit": "838ae64e",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 58709,
+      "est_prompt_tokens": 14677,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add Kcode benchmark report [BENCHMARKS.md]",
+      "commit": "838ae64e",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 86807,
+      "est_prompt_tokens": 21702,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add Kcode benchmark report [README.md]",
+      "commit": "838ae64e",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add Kcode benchmark report [README.md]",
+      "commit": "838ae64e",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add Kcode benchmark report [README.md]",
+      "commit": "838ae64e",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 71816,
+      "est_prompt_tokens": 17954,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Adjust README image width and remove Kcode header [README.md]",
+      "commit": "6c59ca69",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Adjust README image width and remove Kcode header [README.md]",
+      "commit": "6c59ca69",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Adjust README image width and remove Kcode header [README.md]",
+      "commit": "6c59ca69",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 79645,
+      "est_prompt_tokens": 19911,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Refresh documentation and add Kcode logo [ABOUT.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Refresh documentation and add Kcode logo [ABOUT.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63365,
+      "est_prompt_tokens": 15841,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Refresh documentation and add Kcode logo [ABOUT.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 83997,
+      "est_prompt_tokens": 20999,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Refresh documentation and add Kcode logo [HALLUCINATION_MITIGATION.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Refresh documentation and add Kcode logo [HALLUCINATION_MITIGATION.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57607,
+      "est_prompt_tokens": 14402,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Refresh documentation and add Kcode logo [HALLUCINATION_MITIGATION.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 83997,
+      "est_prompt_tokens": 20999,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Refresh documentation and add Kcode logo [README.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Refresh documentation and add Kcode logo [README.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Refresh documentation and add Kcode logo [README.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 83997,
+      "est_prompt_tokens": 20999,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Refresh documentation and add Kcode logo [STATISTICS.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Refresh documentation and add Kcode logo [STATISTICS.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 54834,
+      "est_prompt_tokens": 13708,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Refresh documentation and add Kcode logo [STATISTICS.md]",
+      "commit": "4812e47a",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 83997,
+      "est_prompt_tokens": 20999,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Prune tool schemas for direct-answer turns [src/agent/turn_execution.rs]",
+      "commit": "1c1238ad",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Prune tool schemas for direct-answer turns [src/agent/turn_execution.rs]",
+      "commit": "1c1238ad",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63408,
+      "est_prompt_tokens": 15852,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Prune tool schemas for direct-answer turns [src/agent/turn_execution.rs]",
+      "commit": "1c1238ad",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 99312,
+      "est_prompt_tokens": 24828,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Reduce noisy context vault references [src/interlang.rs]",
+      "commit": "6dc42ed7",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Reduce noisy context vault references [src/interlang.rs]",
+      "commit": "6dc42ed7",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Reduce noisy context vault references [src/interlang.rs]",
+      "commit": "6dc42ed7",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 83722,
+      "est_prompt_tokens": 20930,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Use structural memory relevance skip heuristic [src/memory_agent.rs]",
+      "commit": "85a833bd",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Use structural memory relevance skip heuristic [src/memory_agent.rs]",
+      "commit": "85a833bd",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63400,
+      "est_prompt_tokens": 15850,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Use structural memory relevance skip heuristic [src/memory_agent.rs]",
+      "commit": "85a833bd",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 22351,
+      "est_prompt_tokens": 5588,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Use structural memory relevance skip heuristic [src/memory_agent_tests.rs]",
+      "commit": "85a833bd",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Use structural memory relevance skip heuristic [src/memory_agent_tests.rs]",
+      "commit": "85a833bd",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 45603,
+      "est_prompt_tokens": 11401,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Use structural memory relevance skip heuristic [src/memory_agent_tests.rs]",
+      "commit": "85a833bd",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 24462,
+      "est_prompt_tokens": 6116,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Reduce memory prompt overhead for trivial turns [src/memory_agent.rs]",
+      "commit": "0da993ea",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Reduce memory prompt overhead for trivial turns [src/memory_agent.rs]",
+      "commit": "0da993ea",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63400,
+      "est_prompt_tokens": 15850,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Reduce memory prompt overhead for trivial turns [src/memory_agent.rs]",
+      "commit": "0da993ea",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 125881,
+      "est_prompt_tokens": 31470,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Reduce memory prompt overhead for trivial turns [src/memory_prompt.rs]",
+      "commit": "0da993ea",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Reduce memory prompt overhead for trivial turns [src/memory_prompt.rs]",
+      "commit": "0da993ea",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 55676,
+      "est_prompt_tokens": 13919,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Reduce memory prompt overhead for trivial turns [src/memory_prompt.rs]",
+      "commit": "0da993ea",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 113953,
+      "est_prompt_tokens": 28488,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add dynamic toolset filtering fallback [src/agent/turn_execution.rs]",
+      "commit": "ba643238",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add dynamic toolset filtering fallback [src/agent/turn_execution.rs]",
+      "commit": "ba643238",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63408,
+      "est_prompt_tokens": 15852,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add dynamic toolset filtering fallback [src/agent/turn_execution.rs]",
+      "commit": "ba643238",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 76832,
+      "est_prompt_tokens": 19208,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Vault exact truncated tool outputs [src/interlang.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Vault exact truncated tool outputs [src/interlang.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Vault exact truncated tool outputs [src/interlang.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 97235,
+      "est_prompt_tokens": 24309,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Vault exact truncated tool outputs [src/tool/mod.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Vault exact truncated tool outputs [src/tool/mod.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63396,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Vault exact truncated tool outputs [src/tool/mod.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 97235,
+      "est_prompt_tokens": 24309,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Vault exact truncated tool outputs [src/tool/tests.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Vault exact truncated tool outputs [src/tool/tests.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 59501,
+      "est_prompt_tokens": 14875,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Vault exact truncated tool outputs [src/tool/tests.rs]",
+      "commit": "b49367ef",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 99310,
+      "est_prompt_tokens": 24828,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Compact tool schema descriptions [src/tool/agentgrep.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Compact tool schema descriptions [src/tool/agentgrep.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 56349,
+      "est_prompt_tokens": 14087,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Compact tool schema descriptions [src/tool/agentgrep.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 126298,
+      "est_prompt_tokens": 31574,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Compact tool schema descriptions [src/tool/ambient.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Compact tool schema descriptions [src/tool/ambient.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63400,
+      "est_prompt_tokens": 15850,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Compact tool schema descriptions [src/tool/ambient.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 126298,
+      "est_prompt_tokens": 31574,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Compact tool schema descriptions [src/tool/bash.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Compact tool schema descriptions [src/tool/bash.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Compact tool schema descriptions [src/tool/bash.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 132269,
+      "est_prompt_tokens": 33067,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Compact tool schema descriptions [src/tool/bg.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Compact tool schema descriptions [src/tool/bg.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63395,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Compact tool schema descriptions [src/tool/bg.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 126298,
+      "est_prompt_tokens": 31574,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Compact tool schema descriptions [src/tool/browser.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Compact tool schema descriptions [src/tool/browser.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63400,
+      "est_prompt_tokens": 15850,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Compact tool schema descriptions [src/tool/browser.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 132272,
+      "est_prompt_tokens": 33068,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Compact tool schema descriptions [src/tool/communicate.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Compact tool schema descriptions [src/tool/communicate.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63404,
+      "est_prompt_tokens": 15851,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Compact tool schema descriptions [src/tool/communicate.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 132276,
+      "est_prompt_tokens": 33069,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Compact tool schema descriptions [src/tool/tests.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Compact tool schema descriptions [src/tool/tests.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 59501,
+      "est_prompt_tokens": 14875,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Compact tool schema descriptions [src/tool/tests.rs]",
+      "commit": "d8a60a1f",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 132297,
+      "est_prompt_tokens": 33074,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Use lexical evidence for context restore [src/interlang.rs]",
+      "commit": "4c6dc086",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Use lexical evidence for context restore [src/interlang.rs]",
+      "commit": "4c6dc086",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Use lexical evidence for context restore [src/interlang.rs]",
+      "commit": "4c6dc086",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 25349,
+      "est_prompt_tokens": 6337,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Avoid exact restore for token accounting turns [src/interlang.rs]",
+      "commit": "f3ec8b12",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Avoid exact restore for token accounting turns [src/interlang.rs]",
+      "commit": "f3ec8b12",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Avoid exact restore for token accounting turns [src/interlang.rs]",
+      "commit": "f3ec8b12",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 103799,
+      "est_prompt_tokens": 25950,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Trim repeated prompt schema text [src/interlang.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Trim repeated prompt schema text [src/interlang.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Trim repeated prompt schema text [src/interlang.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 104948,
+      "est_prompt_tokens": 26237,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Trim repeated prompt schema text [src/tool/mod.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Trim repeated prompt schema text [src/tool/mod.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63396,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Trim repeated prompt schema text [src/tool/mod.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 104948,
+      "est_prompt_tokens": 26237,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Trim repeated prompt schema text [src/tool/tests.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Trim repeated prompt schema text [src/tool/tests.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 59501,
+      "est_prompt_tokens": 14875,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Trim repeated prompt schema text [src/tool/tests.rs]",
+      "commit": "fe849362",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 104948,
+      "est_prompt_tokens": 26237,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Strengthen retrieval docs and doc-turn gating [ABOUT.md]",
+      "commit": "ed9240c5",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Strengthen retrieval docs and doc-turn gating [ABOUT.md]",
+      "commit": "ed9240c5",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63365,
+      "est_prompt_tokens": 15841,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Strengthen retrieval docs and doc-turn gating [ABOUT.md]",
+      "commit": "ed9240c5",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 74591,
+      "est_prompt_tokens": 18648,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Strengthen retrieval docs and doc-turn gating [src/interlang.rs]",
+      "commit": "ed9240c5",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Strengthen retrieval docs and doc-turn gating [src/interlang.rs]",
+      "commit": "ed9240c5",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Strengthen retrieval docs and doc-turn gating [src/interlang.rs]",
+      "commit": "ed9240c5",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 74626,
+      "est_prompt_tokens": 18656,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Explain retrieval selection in ABOUT [ABOUT.md]",
+      "commit": "d8a3edbc",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Explain retrieval selection in ABOUT [ABOUT.md]",
+      "commit": "d8a3edbc",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63365,
+      "est_prompt_tokens": 15841,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Explain retrieval selection in ABOUT [ABOUT.md]",
+      "commit": "d8a3edbc",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 149973,
+      "est_prompt_tokens": 37493,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Document retrieval-backed context fidelity [STATISTICS.md]",
+      "commit": "e9c4f75b",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Document retrieval-backed context fidelity [STATISTICS.md]",
+      "commit": "e9c4f75b",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 54834,
+      "est_prompt_tokens": 13708,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Document retrieval-backed context fidelity [STATISTICS.md]",
+      "commit": "e9c4f75b",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 77429,
+      "est_prompt_tokens": 19357,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Tighten stats turn context restore [STATISTICS.md]",
+      "commit": "ef3e8ea4",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Tighten stats turn context restore [STATISTICS.md]",
+      "commit": "ef3e8ea4",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 54834,
+      "est_prompt_tokens": 13708,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Tighten stats turn context restore [STATISTICS.md]",
+      "commit": "ef3e8ea4",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 122648,
+      "est_prompt_tokens": 30662,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Tighten stats turn context restore [src/interlang.rs]",
+      "commit": "ef3e8ea4",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Tighten stats turn context restore [src/interlang.rs]",
+      "commit": "ef3e8ea4",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Tighten stats turn context restore [src/interlang.rs]",
+      "commit": "ef3e8ea4",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 122648,
+      "est_prompt_tokens": 30662,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Tighten context rehydration relevance [STATISTICS.md]",
+      "commit": "5ca77007",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Tighten context rehydration relevance [STATISTICS.md]",
+      "commit": "5ca77007",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 54834,
+      "est_prompt_tokens": 13708,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Tighten context rehydration relevance [STATISTICS.md]",
+      "commit": "5ca77007",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 90681,
+      "est_prompt_tokens": 22670,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Tighten context rehydration relevance [src/interlang.rs]",
+      "commit": "5ca77007",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Tighten context rehydration relevance [src/interlang.rs]",
+      "commit": "5ca77007",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Tighten context rehydration relevance [src/interlang.rs]",
+      "commit": "5ca77007",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 90681,
+      "est_prompt_tokens": 22670,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add context efficiency statistics [README.md]",
+      "commit": "95f81a3c",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add context efficiency statistics [README.md]",
+      "commit": "95f81a3c",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add context efficiency statistics [README.md]",
+      "commit": "95f81a3c",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 65106,
+      "est_prompt_tokens": 16276,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add context efficiency statistics [STATISTICS.md]",
+      "commit": "95f81a3c",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add context efficiency statistics [STATISTICS.md]",
+      "commit": "95f81a3c",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 54834,
+      "est_prompt_tokens": 13708,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add context efficiency statistics [STATISTICS.md]",
+      "commit": "95f81a3c",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 65106,
+      "est_prompt_tokens": 16276,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Document context efficiency updates [ABOUT.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Document context efficiency updates [ABOUT.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63365,
+      "est_prompt_tokens": 15841,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Document context efficiency updates [ABOUT.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 100391,
+      "est_prompt_tokens": 25098,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Document context efficiency updates [HALLUCINATION_MITIGATION.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Document context efficiency updates [HALLUCINATION_MITIGATION.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57607,
+      "est_prompt_tokens": 14402,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Document context efficiency updates [HALLUCINATION_MITIGATION.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 100391,
+      "est_prompt_tokens": 25098,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Document context efficiency updates [README.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Document context efficiency updates [README.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Document context efficiency updates [README.md]",
+      "commit": "d50b5e99",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 100391,
+      "est_prompt_tokens": 25098,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Improve context token efficiency [src/agent/turn_loops.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Improve context token efficiency [src/agent/turn_loops.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63404,
+      "est_prompt_tokens": 15851,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Improve context token efficiency [src/agent/turn_loops.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 105109,
+      "est_prompt_tokens": 26277,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Improve context token efficiency [src/agent/turn_streaming_broadcast.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Improve context token efficiency [src/agent/turn_streaming_broadcast.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63418,
+      "est_prompt_tokens": 15854,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Improve context token efficiency [src/agent/turn_streaming_broadcast.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 105109,
+      "est_prompt_tokens": 26277,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Improve context token efficiency [src/agent/turn_streaming_mpsc.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Improve context token efficiency [src/agent/turn_streaming_mpsc.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63413,
+      "est_prompt_tokens": 15853,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Improve context token efficiency [src/agent/turn_streaming_mpsc.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 105109,
+      "est_prompt_tokens": 26277,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Improve context token efficiency [src/interlang.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Improve context token efficiency [src/interlang.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Improve context token efficiency [src/interlang.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 105130,
+      "est_prompt_tokens": 26282,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Improve context token efficiency [src/tool/mod.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Improve context token efficiency [src/tool/mod.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63396,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Improve context token efficiency [src/tool/mod.rs]",
+      "commit": "3fa273a9",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 105130,
+      "est_prompt_tokens": 26282,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Use elapsed activity for installer build step [install/install.sh]",
+      "commit": "6950b436",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Use elapsed activity for installer build step [install/install.sh]",
+      "commit": "6950b436",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57735,
+      "est_prompt_tokens": 14434,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Use elapsed activity for installer build step [install/install.sh]",
+      "commit": "6950b436",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 31759,
+      "est_prompt_tokens": 7940,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Stop installer build progress flicker [install/install.sh]",
+      "commit": "b0cef87f",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Stop installer build progress flicker [install/install.sh]",
+      "commit": "b0cef87f",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57735,
+      "est_prompt_tokens": 14434,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Stop installer build progress flicker [install/install.sh]",
+      "commit": "b0cef87f",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 91520,
+      "est_prompt_tokens": 22880,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Make installer update existing installs cleanly [install/install.sh]",
+      "commit": "5f854907",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Make installer update existing installs cleanly [install/install.sh]",
+      "commit": "5f854907",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57735,
+      "est_prompt_tokens": 14434,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Make installer update existing installs cleanly [install/install.sh]",
+      "commit": "5f854907",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 91199,
+      "est_prompt_tokens": 22800,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Refine installer progress display [install/install.sh]",
+      "commit": "0734abfc",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Refine installer progress display [install/install.sh]",
+      "commit": "0734abfc",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57735,
+      "est_prompt_tokens": 14434,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Refine installer progress display [install/install.sh]",
+      "commit": "0734abfc",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 76174,
+      "est_prompt_tokens": 19044,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Improve installer terminal experience [install/install.sh]",
+      "commit": "8be11f7a",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Improve installer terminal experience [install/install.sh]",
+      "commit": "8be11f7a",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57735,
+      "est_prompt_tokens": 14434,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Improve installer terminal experience [install/install.sh]",
+      "commit": "8be11f7a",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 67266,
+      "est_prompt_tokens": 16816,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Remove greeting from README [README.md]",
+      "commit": "4993140e",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Remove greeting from README [README.md]",
+      "commit": "4993140e",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Remove greeting from README [README.md]",
+      "commit": "4993140e",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 94414,
+      "est_prompt_tokens": 23604,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add greeting to README [README.md]",
+      "commit": "1d5187ba",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add greeting to README [README.md]",
+      "commit": "1d5187ba",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add greeting to README [README.md]",
+      "commit": "1d5187ba",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 91505,
+      "est_prompt_tokens": 22876,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Support OpenAI API key auth and failover [README.md]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Support OpenAI API key auth and failover [README.md]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Support OpenAI API key auth and failover [README.md]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 74294,
+      "est_prompt_tokens": 18574,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Support OpenAI API key auth and failover [src/auth/codex.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Support OpenAI API key auth and failover [src/auth/codex.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63398,
+      "est_prompt_tokens": 15850,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Support OpenAI API key auth and failover [src/auth/codex.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 74270,
+      "est_prompt_tokens": 18568,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Support OpenAI API key auth and failover [src/auth/codex_tests.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Support OpenAI API key auth and failover [src/auth/codex_tests.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 56066,
+      "est_prompt_tokens": 14016,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Support OpenAI API key auth and failover [src/auth/codex_tests.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 74294,
+      "est_prompt_tokens": 18574,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Support OpenAI API key auth and failover [src/auth/mod.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Support OpenAI API key auth and failover [src/auth/mod.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63396,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Support OpenAI API key auth and failover [src/auth/mod.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 74294,
+      "est_prompt_tokens": 18574,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Support OpenAI API key auth and failover [src/provider/openai_provider_impl.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Support OpenAI API key auth and failover [src/provider/openai_provider_impl.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63417,
+      "est_prompt_tokens": 15854,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Support OpenAI API key auth and failover [src/provider/openai_provider_impl.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 74294,
+      "est_prompt_tokens": 18574,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Support OpenAI API key auth and failover [src/tui/app/auth_account_commands.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Support OpenAI API key auth and failover [src/tui/app/auth_account_commands.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63417,
+      "est_prompt_tokens": 15854,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Support OpenAI API key auth and failover [src/tui/app/auth_account_commands.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 74294,
+      "est_prompt_tokens": 18574,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Support OpenAI API key auth and failover [src/tui/app/auth_types.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Support OpenAI API key auth and failover [src/tui/app/auth_types.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 47973,
+      "est_prompt_tokens": 11993,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Support OpenAI API key auth and failover [src/tui/app/auth_types.rs]",
+      "commit": "58df75a6",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 74294,
+      "est_prompt_tokens": 18574,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add proactive context rehydration scoring [ABOUT.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add proactive context rehydration scoring [ABOUT.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63365,
+      "est_prompt_tokens": 15841,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add proactive context rehydration scoring [ABOUT.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 89242,
+      "est_prompt_tokens": 22310,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add proactive context rehydration scoring [HALLUCINATION_MITIGATION.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add proactive context rehydration scoring [HALLUCINATION_MITIGATION.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57607,
+      "est_prompt_tokens": 14402,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add proactive context rehydration scoring [HALLUCINATION_MITIGATION.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 87741,
+      "est_prompt_tokens": 21935,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add proactive context rehydration scoring [README.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add proactive context rehydration scoring [README.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add proactive context rehydration scoring [README.md]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 89242,
+      "est_prompt_tokens": 22310,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add proactive context rehydration scoring [src/interlang.rs]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add proactive context rehydration scoring [src/interlang.rs]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add proactive context rehydration scoring [src/interlang.rs]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 89242,
+      "est_prompt_tokens": 22310,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Add proactive context rehydration scoring [src/local_model.rs]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Add proactive context rehydration scoring [src/local_model.rs]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63399,
+      "est_prompt_tokens": 15850,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Add proactive context rehydration scoring [src/local_model.rs]",
+      "commit": "ece28a07",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 89242,
+      "est_prompt_tokens": 22310,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Refresh hallucination mitigation context-diet data [HALLUCINATION_MITIGATION.md]",
+      "commit": "6e83f99c",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Refresh hallucination mitigation context-diet data [HALLUCINATION_MITIGATION.md]",
+      "commit": "6e83f99c",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 57607,
+      "est_prompt_tokens": 14402,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Refresh hallucination mitigation context-diet data [HALLUCINATION_MITIGATION.md]",
+      "commit": "6e83f99c",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 128596,
+      "est_prompt_tokens": 32149,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Document context diet tuning and usage refresh [ABOUT.md]",
+      "commit": "0e06b23d",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Document context diet tuning and usage refresh [ABOUT.md]",
+      "commit": "0e06b23d",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63365,
+      "est_prompt_tokens": 15841,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Document context diet tuning and usage refresh [ABOUT.md]",
+      "commit": "0e06b23d",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 113223,
+      "est_prompt_tokens": 28306,
+      "failure_type": "none"
+    },
+    {
+      "mode": "full_context",
+      "task": "Document context diet tuning and usage refresh [README.md]",
+      "commit": "0e06b23d",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Document context diet tuning and usage refresh [README.md]",
+      "commit": "0e06b23d",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 51116,
+      "est_prompt_tokens": 12779,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Document context diet tuning and usage refresh [README.md]",
+      "commit": "0e06b23d",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 109962,
+      "est_prompt_tokens": 27490,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Improve context diet and OpenAI limit refresh [src/interlang.rs]",
+      "commit": "b78379be",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Improve context diet and OpenAI limit refresh [src/interlang.rs]",
+      "commit": "b78379be",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 63397,
+      "est_prompt_tokens": 15849,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Improve context diet and OpenAI limit refresh [src/interlang.rs]",
+      "commit": "b78379be",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 100702,
+      "est_prompt_tokens": 25176,
+      "failure_type": "missed_all_changed_files"
+    },
+    {
+      "mode": "full_context",
+      "task": "Improve context diet and OpenAI limit refresh [src/tui/app/local.rs]",
+      "commit": "b78379be",
+      "changed_files": 1,
+      "retrieved_files": 722,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 8300724,
+      "est_prompt_tokens": 2075181,
+      "failure_type": "none"
+    },
+    {
+      "mode": "kcode_path_exact",
+      "task": "Improve context diet and OpenAI limit refresh [src/tui/app/local.rs]",
+      "commit": "b78379be",
+      "changed_files": 1,
+      "retrieved_files": 1,
+      "relevant_retrieved": 1,
+      "success": true,
+      "prompt_chars": 56272,
+      "est_prompt_tokens": 14068,
+      "failure_type": "none"
+    },
+    {
+      "mode": "lexical_rag",
+      "task": "Improve context diet and OpenAI limit refresh [src/tui/app/local.rs]",
+      "commit": "b78379be",
+      "changed_files": 1,
+      "retrieved_files": 8,
+      "relevant_retrieved": 0,
+      "success": false,
+      "prompt_chars": 100702,
+      "est_prompt_tokens": 25176,
+      "failure_type": "missed_all_changed_files"
+    }
+  ]
+}

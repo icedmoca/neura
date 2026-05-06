@@ -93,6 +93,70 @@ python3 scripts/context_benchmark.py
 
 Caveat: this is a deterministic local context benchmark, not a remote-model end-to-end benchmark. It measures whether the context strategy supplies the right evidence at what prompt cost. End-to-end model task success, latency, and cost still need provider runs using the same harness prompts.
 
+
+## Real repo coding-task context benchmark
+
+This benchmark mines real work from the Kcode git history. Each task is a real changed file from a real non-merge commit, represented as: commit subject plus the changed file path. The benchmark compares whether each context strategy supplies the file needed for the task, and at what prompt cost.
+
+This is closer to end-to-end coding than the synthetic context benchmark, but it is still a **context availability benchmark**, not a remote-model coding benchmark. It does not ask a model to edit files. It measures whether the model would have the required file context available.
+
+Artifacts:
+
+- script: `scripts/coding_task_benchmark.py`,
+- full JSON results: `benchmark-results/coding_task_benchmark.json`,
+- summary JSON: `benchmark-results/coding_task_benchmark_summary.json`.
+
+Measured run:
+
+| Strategy | Real tasks | Context success rate | Prompt tokens | Tokens/success | Failure profile |
+|---|---:|---:|---:|---:|---|
+| Full context | 75 | 100.00% | 155,638,575 | 2,075,181.00 | none: 75 |
+| Kcode path-exact | 75 | 100.00% | 1,104,348 | 14,724.64 | none: 75 |
+| Lexical RAG | 75 | 48.00% | 1,760,622 | 48,906.17 | none: 36, missed all changed files: 39 |
+
+Measured result: on 75 real git-history coding-context tasks, Kcode path-exact retrieval matched full-context context availability while using **99.29% fewer estimated prompt tokens** than full context. Compared with the simple lexical RAG baseline, Kcode had higher context success and lower total token cost in this run.
+
+Re-run:
+
+```bash
+python3 scripts/coding_task_benchmark.py
+```
+
+### What this proves
+
+- Kcode-style exact/path-aware context can preserve required file availability at a tiny fraction of full-context cost.
+- Simple lexical RAG can be cheaper on some individual queries but misses required files frequently on real repo commit tasks.
+- Token savings are not just from synthetic facts; they also appear on real repository history.
+
+### What is still unproven
+
+These remain unproven until we run a remote-model editing benchmark:
+
+- **End-to-end coding performance:** whether a model actually edits the right files and passes tests with each strategy.
+- **Messy / ambiguous real-world prompts:** e.g. “fix the thing from earlier,” stale memories, incomplete task descriptions, or conflicting hints.
+- **Regression over long multi-turn sessions:** whether accuracy remains stable after many tool calls, context refs, and topic shifts.
+- **Provider latency and billed cost:** local token estimates are not the same as provider-side accounting.
+
+### Decisive next benchmark
+
+The decisive test should take the same 75 mined tasks and execute real model runs under three configurations:
+
+1. full context,
+2. Kcode context vault/path-exact retrieval,
+3. lexical/semantic RAG.
+
+For each task, start from the parent commit, let the agent modify the repo, and score:
+
+- task success by diff and tests,
+- provider input/output tokens,
+- wall-clock latency,
+- number of tool calls,
+- user intervention count,
+- hallucinated file/function/tool-output claims,
+- failure mode category.
+
+That benchmark is more expensive, but it is the correct way to prove end-to-end coding performance rather than context availability alone.
+
 ## Task success rate
 
 | Benchmark | Current status |
