@@ -150,6 +150,7 @@ Kcode's strongest technical differentiators are:
 
 - **[INSTALL.md](docs/INSTALL.md)** - installation, updates, auth, local model, Chromium MCP, config, and uninstall.
 - **[TOOLS_AND_AGENTS.md](docs/TOOLS_AND_AGENTS.md)** - built-in tools, agents, MCPs, and automation capabilities.
+- **[TODO.md](docs/TODO.md)** - roadmap ideas and future work.
 - **[ABOUT.md](docs/ABOUT.md)** - deeper architecture explanation.
 - **[BENCHMARKS.md](docs/BENCHMARKS.md)** - measured benchmarks, methodology, and artifacts.
 - **[HALLUCINATION_MITIGATION.md](docs/HALLUCINATION_MITIGATION.md)** - exact recall and hallucination mitigation.
