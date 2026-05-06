@@ -109,26 +109,37 @@ Read **[BENCHMARKS.md](BENCHMARKS.md)** for the full report.
 
 ---
 
-## Comparison with other coding agents
+## Technical comparison with other coding agents
 
-This table is opinionated but practical. It focuses on what a normal user is likely to feel day to day.
+This table is intentionally technical. It focuses on architecture-level differences that matter in long coding sessions: context representation, exact recall, tool schema cost, local telemetry, MCP/tool breadth, and reproducible benchmark evidence.
 
-| Tool | Interface | Biggest strength | Where Kcode is stronger | Where the other tool may be better |
-|---|---|---|---|---|
-| **Kcode** | Terminal UI / CLI harness | Long terminal coding sessions with local context vault, memory, tools, benchmarks, and optional local sidecar | This is Kcode | If you want a polished GUI IDE instead of terminal-first work |
-| **Cursor** | GUI editor | AI-native IDE experience, inline editing, autocomplete, visual workflow | Kcode is more terminal-first, local-context-vault focused, and benchmark/artifact oriented | Cursor is usually better if you want an editor-first product |
-| **Cursor CLI** | CLI companion | Cursor-style assistance from terminal workflows | Kcode is a full harness with memory, local vault, MCP/tools, sidecar, and benchmark artifacts | Better if you already live in Cursor's ecosystem |
-| **Claude Code / Claude CLI** | Terminal coding agent | Strong Claude-powered code editing and agent workflow | Kcode emphasizes local-first context storage, exact rehydration, dynamic tool pruning, and open benchmark artifacts | Claude Code may be more polished for Anthropic-native workflows |
-| **Codex CLI** | Terminal coding agent | OpenAI-centric terminal coding workflow | Kcode adds local context vault/memory, optional sidecar, broader harness tooling, and benchmark artifacts | Codex CLI may be simpler if you only want OpenAI's official flow |
-| **Gemini CLI** | Terminal coding/research agent | Google Gemini workflows and large-context model use | Kcode focuses more on local memory/context-vault mechanics and exact evidence replay | Gemini CLI is natural if you prefer Google's model ecosystem |
-| **Aider** | CLI pair programmer | Git-aware patch workflow and mature CLI editing loop | Kcode has a broader tool/agent/memory/context-vault harness | Aider is excellent if you want a focused Git patching tool |
-| **Continue** | IDE extension / local assistant | Configurable IDE assistant with local/remote model choices | Kcode is terminal-first with explicit context-vault/replay benchmarks | Continue is better if you want IDE integration and custom model routing |
-| **OpenHands / agent frameworks** | Agent runtime / web/CLI | Autonomous software-agent framework | Kcode is lighter as a daily terminal harness with local memory/context focus | Frameworks may be better for research/autonomous-agent experiments |
+| Tool | Architecture focus | Kcode technical advantages | Tradeoff / where the other tool can win |
+|---|---|---|---|
+| **Kcode** | Local-first terminal agent harness with remote provider, optional local GGUF sidecar, local memory, context vault, broad tool layer, MCP support, and committed benchmark artifacts | Native exact context vault with compact `<ctx>` refs, `.ctx_get` exact rehydration, context-diet/interlang telemetry in `~/.kcode/interlang-stats.jsonl`, dynamic tool-schema pruning with `tool_expand`, local memory graph, Chromium MCP bridge, subagents/swarms/goals/scheduler, provider edit→test and adversarial benchmark artifacts committed in repo | Terminal-first and power-user oriented; not a polished GUI IDE |
+| **Cursor** | AI-native GUI IDE with inline edits, autocomplete, repo chat, and editor-integrated retrieval | Kcode is stronger for terminal-native automation, long-session exact evidence retention, local benchmark artifacts, explicit context refs, local `.kcode` telemetry, and tool/MCP orchestration outside the editor | Cursor is better for GUI editing, inline completions, visual diff/editor UX, and users who want an IDE product instead of a terminal harness |
+| **Cursor CLI** | CLI entry point around Cursor-style workflows | Kcode is a complete local harness rather than a CLI companion: persistent memory, exact context vault, dynamic tool schema selection, MCP management, background jobs, browser/mouse automation, and sidecar model hooks are first-class | Cursor CLI is simpler if your whole workflow already lives in Cursor and you only need CLI access to that ecosystem |
+| **Claude Code / Claude CLI** | Vendor-native terminal coding agent optimized for Claude models | Kcode is provider-harness oriented: exact local vaulting independent of provider context behavior, local telemetry/artifact manifest, optional GGUF sidecar, OpenAI OAuth/API failover paths, tool schema pruning, and benchmark JSON traces live in the repo | Claude Code may be more polished for Anthropic-native workflows and may expose Claude-specific features sooner |
+| **Codex CLI** | OpenAI-centric terminal coding workflow | Kcode adds a thicker harness around OpenAI-style models: local memory, exact rehydration, context-diet replay metrics, local sidecar helper model, MCP/browser bridge, Gmail/web/mouse tools, scheduled goals, and paper-style benchmark docs | Codex CLI may be simpler and more official if you only want OpenAI's standard terminal workflow with fewer local moving parts |
+| **Gemini CLI** | Gemini-oriented terminal/research workflow, often leaning on large provider context windows | Kcode does not rely only on large provider context. It externalizes old evidence locally, records replay savings, restores exact old text on demand, and keeps provider/tool behavior benchmarked through committed JSON artifacts | Gemini CLI is a natural fit if your priority is Google/Gemini ecosystem integration or very large native context windows |
+| **Aider** | Git-aware CLI pair programmer focused on patching/editing tracked files | Kcode has a broader agent runtime: more tool types, MCP/browser/Gmail/mouse support, local memory, context vaulting, exact old-output recall, subagents/swarms, and benchmarked provider edit→test smoke runs | Aider is excellent when you want a focused, mature Git patch loop with less agent-harness complexity |
+| **Continue** | IDE extension with configurable local/remote models and retrieval | Kcode is stronger for terminal automation, explicit exact-context rehydration, local vault telemetry, tool-schema pruning, and reproducible benchmark artifacts outside an IDE | Continue is better if you want model/router/index customization directly inside VS Code or JetBrains-style workflows |
+| **OpenHands / agent frameworks** | Heavier autonomous-agent/runtime framework for software tasks | Kcode is lighter as a daily terminal harness while still offering tools, memory, MCPs, subagents/swarms, context vaulting, and local telemetry. It is easier to inspect as a self-contained CLI/TUI workflow | Full agent frameworks can be better for research into autonomous multi-agent software engineering or web-dashboard workflows |
+
+### What Kcode is specifically better at
+
+Kcode's strongest technical differentiators are:
+
+- **Exact local context replay:** old logs/diffs/tool outputs can be restored exactly instead of relying on a lossy summary.
+- **Context-cost control:** context diet/interlang avoids resending giant old transcripts while keeping stable refs to the evidence.
+- **Dynamic tool-schema pruning:** direct-answer turns avoid carrying the full tool catalog; tool-heavy turns can expand tools when needed.
+- **Local-first observability:** token/context telemetry, benchmark JSON, artifact manifests, and run traces are committed or stored locally.
+- **Harness breadth:** file editing, shell, browser, web, Gmail, mouse, memory, goals, schedules, MCP, subagents, and swarms live behind one agent runtime.
+- **Provider independence at the harness layer:** Kcode's memory/context/tool architecture is not limited to one vendor's prompt-management behavior.
 
 ### The simple positioning
 
-- Choose **Kcode** if you want a terminal coding agent that cares deeply about long-session memory, exact local context, and tool orchestration.
-- Choose **Cursor** if you want the best AI IDE experience.
+- Choose **Kcode** if you want a terminal coding agent that cares deeply about long-session memory, exact local context, tool orchestration, and measured behavior.
+- Choose **Cursor** if you want the best GUI AI IDE experience.
 - Choose **Claude Code / Codex CLI / Gemini CLI** if you want the most direct official workflow for a specific model provider.
 - Choose **Aider** if you want a focused Git patching assistant.
 - Choose **Continue** if you want an IDE extension you can configure around many models.
