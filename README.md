@@ -14,6 +14,10 @@ For a detailed architecture explanation, see [ABOUT.md](ABOUT.md).
 
 For details on hallucination mitigation, exact context rehydration, and real token-saving data, see [HALLUCINATION_MITIGATION.md](HALLUCINATION_MITIGATION.md) and [STATISTICS.md](STATISTICS.md).
 
+## Documentation
+
+- [Benchmarks](BENCHMARKS.md) - measured token reduction, tool-schema pruning, and benchmark methodology.
+
 ## One-command install
 
 Run this in a terminal:
