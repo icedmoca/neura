@@ -5,6 +5,56 @@ This document tracks benchmark evidence for Kcode's context compression, context
 The numbers below are **real local measurements** from the active Kcode installation under `~/.kcode` unless a row is explicitly marked as a benchmark plan. They are not synthetic marketing numbers.
 
 
+
+## Paper-grade methodology and claims ledger
+
+This report is written as an engineering benchmark, not a marketing claim. Every headline claim below is tied to a reproducible artifact and a bounded interpretation.
+
+### Hypotheses
+
+| ID | Hypothesis | Primary metric | Primary artifact |
+|---|---|---|---|
+| H1 | Compact context reduces prompt representation size versus Kcode's recorded uncompressed replay baseline. | Aggregate reduction %, chars/token estimate | `benchmark-results/final_complete_benchmark_suite.json` |
+| H2 | Exact/path-aware context retrieval preserves needed context better than a simple lexical/path RAG baseline on repo-history tasks. | Context success rate, failure types | `benchmark-results/coding_task_benchmark.json` |
+| H3 | Kcode's provider pipeline can perform real edit→test loops on bounded coding fixtures. | Final tests passed / tasks | `benchmark-results/provider_edit_benchmark.json` |
+| H4 | Kcode avoids unsupported answers on the defined adversarial hallucination suite. | Pass rate, Wilson interval | `benchmark-results/provider_adversarial_80_summary.json` |
+| H5 | Provider latency is acceptable for small direct/file/edit/adversarial runs. | p50/p95/max wall time | `benchmark-results/final_complete_benchmark_suite.json` |
+
+### Claims ledger
+
+| Claim | Measured result | Scope limit |
+|---|---:|---|
+| Prompt representation is smaller than replaying recorded full context. | 92%+ aggregate reduction in final rollup. | Replay baseline, not universal provider billing. |
+| Kcode exact context recall is accurate on deterministic questions. | 100% precision/recall in `context_benchmark.py`. | Synthetic deterministic context facts. |
+| Kcode exact/path retrieval works on real repo-history context tasks. | 100% context success on 75 tasks. | File-availability benchmark, not autonomous editing. |
+| Simple lexical/path RAG is weaker on this task mix. | 48% success on 75 real repo tasks. | Not a tuned embedding RAG system. |
+| Provider edit/test pipeline works. | 10/10 bounded Python fixtures passed. | Small fixtures, not SWE-bench-scale issues. |
+| Adversarial unsupported-answer rate is low on tested templates. | 80/80 passed; Wilson 95% upper bound 4.58%. | Template distribution, not all natural prompts. |
+| User intervention was not needed in smoke runs. | 0 interventions across provider smoke/edit/messy runs. | Non-interactive scripted prompts only. |
+
+### Statistical methods
+
+- Binary pass/fail rates use Wilson score intervals where reported.
+- Token estimates from local context benchmarks use `chars / 4` and are labeled as estimates.
+- Provider runs report provider trace token fields when present.
+- Determinism is checked by repeated local script runs and SHA-256 output comparisons.
+- Negative results are retained in the report, especially lexical/path RAG misses.
+
+### Threats to validity
+
+| Threat | Mitigation in this report |
+|---|---|
+| Synthetic fixtures may be too easy. | Reported as bounded provider smoke, not large-scale coding proof. |
+| Lexical RAG is not embedding RAG. | Explicitly scoped and called out in fairness/limitations. |
+| Full-context replay baseline may overstate savings versus smarter baselines. | Baseline sensitivity note explains exact replay baseline. |
+| Provider behavior may vary over time. | Raw per-run JSON traces and artifact checksums are committed. |
+| Local dirty working tree could affect file lists. | Task artifacts include resolved file paths and outputs; manifest records artifact hashes. |
+| Prompt templates may not represent real users. | Adversarial suite is reported as template-family evidence only. |
+
+### Artifact manifest
+
+A checksum manifest is committed at `benchmark-results/artifact_manifest.json`. It records path, size, and SHA-256 for benchmark scripts, JSON results, and this document, enabling reviewers to verify that tables correspond to committed artifacts.
+
 ## Complete benchmark coverage matrix
 
 This section maps the requested benchmark checklist to measured artifacts and explicit scope limits. The benchmark suite now covers every requested category within the explicit scope: local Kcode telemetry, deterministic retrieval/context tests, real git-history context tasks, and bounded real provider smoke/edit/adversarial runs.

@@ -1,0 +1,839 @@
+{
+  "metadata": {
+    "generated_at_unix": 1778038627.701942,
+    "artifact_count": 166,
+    "repo": "/home/dad/.kcode/build-src/kcode"
+  },
+  "artifacts": [
+    {
+      "path": "BENCHMARKS.md",
+      "bytes": 41465,
+      "sha256": "ffc16c2d477385b0ca3dd7f418ef28520ff017689b40427b0687d4ecc1070aca"
+    },
+    {
+      "path": "benchmark-results/advanced_gap_metrics.json",
+      "bytes": 2560,
+      "sha256": "8a0cfb8bf5fbdaaab03491d0608e1dd4fa75e676a27f85e4e84829ad19f4b78c"
+    },
+    {
+      "path": "benchmark-results/advanced_gap_metrics_summary.json",
+      "bytes": 2560,
+      "sha256": "bc885fce3501540a05c144c8b3c36713ac55efabd2136e0bb28c700175d5cc3a"
+    },
+    {
+      "path": "benchmark-results/artifact_manifest.json",
+      "bytes": 32800,
+      "sha256": "1ef3b43d016a9d6530b41fa74d1bee9dd44e5e8cb4bce74bb2d69aaa97b24ab4"
+    },
+    {
+      "path": "benchmark-results/coding_task_benchmark.json",
+      "bytes": 98556,
+      "sha256": "177a3c5600b75bb742d196f665f9d501d83a4b649a72bfbbb200f4c706307c8d"
+    },
+    {
+      "path": "benchmark-results/coding_task_benchmark_summary.json",
+      "bytes": 983,
+      "sha256": "281136b6a4a01b439c4a4c05057e213a36f5487ff0aafa6025bc44fa61ef4625"
+    },
+    {
+      "path": "benchmark-results/context_benchmark.json",
+      "bytes": 14068,
+      "sha256": "1447282f78c08026b8b6c294e0c2b891a8c6d24c7bf52755603fa5c96a815ad5"
+    },
+    {
+      "path": "benchmark-results/context_benchmark_summary.json",
+      "bytes": 1173,
+      "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
+    },
+    {
+      "path": "benchmark-results/e2e_coding_runs.json",
+      "bytes": 4230,
+      "sha256": "8d19b5ef7f073caf08a538d5fb245763d2812b7538885444ed899e8aca1693e1"
+    },
+    {
+      "path": "benchmark-results/e2e_summary.json",
+      "bytes": 2397,
+      "sha256": "af9a07863a84d700ab680e530626a2400eaf91d13bd40be0c8fff523a34f7a7d"
+    },
+    {
+      "path": "benchmark-results/final_complete_benchmark_suite.json",
+      "bytes": 4473,
+      "sha256": "8936d575c1903f84bb90b26b9bfbaa97ae0ce8e1657de863e39fedf8d35810f8"
+    },
+    {
+      "path": "benchmark-results/final_complete_benchmark_summary.json",
+      "bytes": 4473,
+      "sha256": "303f9ae1f49c2bc61dc20cd0ee0290a36e35bdd703e9178bbe6158ef60ccae0a"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_0.json",
+      "bytes": 1092,
+      "sha256": "8a2339720c311c84fd2e1a1d36b5a16ea396a7b02b1fca4eca138460b5c102f3"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_1.json",
+      "bytes": 1094,
+      "sha256": "dca1158360acbb0d9cb4a63d4271a3f72622977da405e3b6e5546a570c95decd"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_2.json",
+      "bytes": 1092,
+      "sha256": "c63716b7e8cc780d196b39715f6a05038682379cf1d4321fca5f33e342c07f03"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_3.json",
+      "bytes": 1094,
+      "sha256": "6b4c4668699766408a3e4fe5bb2c0e9561794c68c97fc196282bece6e6e9eafe"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_4.json",
+      "bytes": 1084,
+      "sha256": "39ccfb4c89281c3d3a0e1fe3b6f4dfd0f072fb4d8a91ed1a2ad7b77667c8daf0"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_5.json",
+      "bytes": 1098,
+      "sha256": "624b0a1479c5be6926793e7dafda1790296bb47067eba51fc2413d3da8231074"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_6.json",
+      "bytes": 1098,
+      "sha256": "ddb4b0a183e665851aec89b3075592b402ea37f0c627cb6e6a18cfea166aee7c"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_7.json",
+      "bytes": 1084,
+      "sha256": "b9e9888d88b73bf498e1acfbcc243660b829c5e43d4337e308ad82b9f3fdb411"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_8.json",
+      "bytes": 1094,
+      "sha256": "65709603df8d4997cbbae3c180adb2ea36954bb293214eef4ed1712856dc5a7d"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/code_fake_9.json",
+      "bytes": 1098,
+      "sha256": "150067a8b4fbe5f0392c9e0f3c4c0ddb47d1846e9e43fcb765de50ad9bafe9a5"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_0.json",
+      "bytes": 1280,
+      "sha256": "119341a120d83a2b58ff5ba46d7d744c06461b228473cc54652c3cc7fc1cde7f"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_1.json",
+      "bytes": 1254,
+      "sha256": "2657ea643d1e889f5b213f570de3b48503b67478d79d04e922b848f75d2073b0"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_2.json",
+      "bytes": 1243,
+      "sha256": "1e5226042164a226702fc68294697121e1556703691bc97344947f5f277950f4"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_3.json",
+      "bytes": 1241,
+      "sha256": "6b20603f64f286b5a5648034e6ae78754c8dbd33a24f350ba65a54fc23721273"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_4.json",
+      "bytes": 1269,
+      "sha256": "d3fbbbd12aa86aa4a20e73e0f892a07e56588caea630c9a0f1fcdb83210ba26f"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_5.json",
+      "bytes": 1242,
+      "sha256": "3b888e5383a1c790ee23ff7b68516c77cf2467fec74d000427b64b48f218cb9d"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_6.json",
+      "bytes": 1264,
+      "sha256": "de0fb563951bbeec5e205bc373ab68c3eeb35bf5d4e6aacc5e130023b092b781"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_7.json",
+      "bytes": 1287,
+      "sha256": "b65ef369753b8525ae2c8ba539e5c29a3daacf7c641dea0f1273881fb3e66f8f"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_8.json",
+      "bytes": 1299,
+      "sha256": "b939df63c071c52279b7edeb91ec46298e955930cbf8090970047c2284ea192e"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/docs_conflict_9.json",
+      "bytes": 1249,
+      "sha256": "48611b2a46f3cab72ee87518375f3a2324474844c51f7532bc36775f580d9670"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_0.json",
+      "bytes": 1262,
+      "sha256": "250502d0c97c6327754a4de4f5e2284cfe98a7ea410a3d3826744de6e59123a6"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_1.json",
+      "bytes": 1263,
+      "sha256": "0a4dd1ca48bde8f7eacd624256b49b024905419a5da7cd657bbc52960617df13"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_2.json",
+      "bytes": 1278,
+      "sha256": "9dc8948a44b7cefe666773f10e5658488c888d0554b62f101145b116bba9d190"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_3.json",
+      "bytes": 1217,
+      "sha256": "43805269e21d2a970b0f161bbc9e05dd6913740c410974b269de3290a65c9544"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_4.json",
+      "bytes": 1266,
+      "sha256": "14711cfec55768c3b5065e100a148c4bef86ec4f79ca56d9f27f1115fe54251e"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_5.json",
+      "bytes": 1240,
+      "sha256": "a203a4f6318de89fac950567302a75cb898851e7fed0f85b751c315036c025e5"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_6.json",
+      "bytes": 1207,
+      "sha256": "cc69980e555ace8384810a475ba74cd6f2ff33b39c8821bbfb392479b45e4d84"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_7.json",
+      "bytes": 1222,
+      "sha256": "4ab4b07c8326e1a6fb04b234b72839ed2284b1caf8ffca9236dabbc380474952"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_8.json",
+      "bytes": 1251,
+      "sha256": "0cadaf638544ba62d8aa2cdfbcca383598d6dd1cb20bc3db214a34a377c6cc30"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/memory_conflict_9.json",
+      "bytes": 1236,
+      "sha256": "56cfb0e228e802b1cb843c2532b964a7e22987ad1a789e56c8b75a113d6039a9"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_0.json",
+      "bytes": 1096,
+      "sha256": "e9575eb8f8c98586aa781361db1a99c3b7828da437fa5839c8331d9a09437e8f"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_1.json",
+      "bytes": 1100,
+      "sha256": "75b6ab7fa02d1a3c2913d79a79d5ef9bc94988207ee6237e635344124273369b"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_2.json",
+      "bytes": 1098,
+      "sha256": "a0454d2963a7f52959b9ea7fed7473da2b01ee90683e1cc324b97b5a08bd7e80"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_3.json",
+      "bytes": 1102,
+      "sha256": "948a3ebc3bb1861086fd71bd40d3b869657d111738d9e092f2c899fe7267e68d"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_4.json",
+      "bytes": 1098,
+      "sha256": "b9c3f97cdb7b49b0806ea42f07cdcce0973432d1c2b26e83f2da70dafc716598"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_5.json",
+      "bytes": 1100,
+      "sha256": "d92ca52385f3dc80f54178313d7ecb1ee8d7f7d2f0bbc7c7ffb1e26f706544fb"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_6.json",
+      "bytes": 1100,
+      "sha256": "96fd8a292156f90b37adf54bca605bea1eea6598a457db327b5c1001b2258208"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_7.json",
+      "bytes": 1096,
+      "sha256": "02773c69873b286227339fc45427bd73423556f1e01e44314f5b95b0ce6c420f"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_8.json",
+      "bytes": 1098,
+      "sha256": "d8f9f1a75068da846742db9db94b4d82410427733cae333dc608a56027c703a4"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-40-runs/tool_output_absent_9.json",
+      "bytes": 1095,
+      "sha256": "cee5fcbc4e436744e52dcd0b99b174ebfb62f235431b95bdc9ca6621b3dc9b73"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_0.json",
+      "bytes": 1096,
+      "sha256": "7d7e3df039bff9cd2f34febb40568f119798e0b23eb438cb55ad9bbf0e89915a"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_1.json",
+      "bytes": 1090,
+      "sha256": "353563048f4df6895cfebd60bedeb2e71b5f437e00e6e9eb5c0a169344a5a1ed"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_10.json",
+      "bytes": 1101,
+      "sha256": "5e19f7fdf63702b447a4a7a4b5c982a066aa439560a4a60badd175045b235b82"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_11.json",
+      "bytes": 1086,
+      "sha256": "f95c3b99babeb3b25ed4f81178a41e6e2d4bb39d264a10dc44a9dc0fe6aa55ff"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_12.json",
+      "bytes": 1100,
+      "sha256": "8a1982a89b7d33c1a7a7f5b7d8b231b2d5068de04f844f04b3c1e93c70ed6fde"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_13.json",
+      "bytes": 1094,
+      "sha256": "0b38b57c5f49f40e81baac120f967537151f6a11ea41ca942724479f0a8f34eb"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_14.json",
+      "bytes": 1086,
+      "sha256": "5df2c4e202ad02e535d05e2ded18f74752fb6f291cd00a50209570ea5cd63d09"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_15.json",
+      "bytes": 1100,
+      "sha256": "77b57405d583a3091a5d44b61f79bbcb205e948e0d112d6153a8d018f75cf4b3"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_16.json",
+      "bytes": 1098,
+      "sha256": "fc58f4923bde75d321f1d3d4868552167adb889d19efbff400195bab0776a394"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_17.json",
+      "bytes": 1096,
+      "sha256": "567857b316a704435060992372a3126d5f54272f4de9857a7107341eca8d5f19"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_18.json",
+      "bytes": 1096,
+      "sha256": "6908cc729d167d4a3159e3d8a142c1b3ff72695eeb42c5d16821ce2e936d2f01"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_19.json",
+      "bytes": 1094,
+      "sha256": "0cb007191c0712526e48f9d24c9ad59b9c32828c59b26bca101a3cb2e77d2dd6"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_2.json",
+      "bytes": 1098,
+      "sha256": "42ae8c44d95f24fe2962e2fbe10c963927db171b5eb54553d82f00d99ab70d7a"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_3.json",
+      "bytes": 1094,
+      "sha256": "619f60766435305ae11cb363918ea971229320953efffd62d669a9f19f084bc0"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_4.json",
+      "bytes": 1090,
+      "sha256": "3bc23dd55745d087f33478abe2a7a072f4527bb04bea35273e782ddc7a70f173"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_5.json",
+      "bytes": 1100,
+      "sha256": "13b5743046aa260498b03cf5187c9d29a07167b724cdafa75c9cc3e9891603f9"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_6.json",
+      "bytes": 1084,
+      "sha256": "f8610f0bac55cb867323c6d279149f46e41d00b61a21199b9fbac8015341dedc"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_7.json",
+      "bytes": 1088,
+      "sha256": "7baf7153180ef94659131ca79a11ffe6ff9cb48d67ae8aa2a63b4ae525267711"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_8.json",
+      "bytes": 1100,
+      "sha256": "a93e9e5da3afc5728b9124228dab5543eccd5dd0a90fb5700b26c5c0cb152493"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/code_fake_9.json",
+      "bytes": 1096,
+      "sha256": "8c28a6c0c8c1ad030446f5b12d72185bccb9aebf77339b7fea7ef97b9fed2e15"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_0.json",
+      "bytes": 1272,
+      "sha256": "a807eca357767f47af6c9a2974cca3c323e52a1cb6db156d152f8738120ddbc5"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_1.json",
+      "bytes": 1243,
+      "sha256": "cf80e94a93dedbabddaef9a9dbe7773d8ee9f16cb79b9ec20bea6613e81bc988"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_10.json",
+      "bytes": 1286,
+      "sha256": "5de40adc9b20d881ab45f1e0a356effb78fe0f66327149576ebf333867f78bc4"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_11.json",
+      "bytes": 1253,
+      "sha256": "2be6bba0129639a8d1b03302e70a12f07ebac09a9781c9cfeb8bc4c56f8a50a7"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_12.json",
+      "bytes": 1246,
+      "sha256": "cd9b78fa4f51b1521f454d55f219df6e0639d0cd767fd32b61865368f53850ed"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_13.json",
+      "bytes": 1298,
+      "sha256": "2693fdbed7c6b6f134482e5d21da528d5545b7ab80ed00bdaffa6246a289d76e"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_14.json",
+      "bytes": 1288,
+      "sha256": "aee595353703ae571e4f365ebe8665ea48b2bbe5690722cfa5b06839956e17da"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_15.json",
+      "bytes": 1286,
+      "sha256": "79f294d66d862f6a378f8d3b24634f041c536db243b8afebff6918cf663f98c5"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_16.json",
+      "bytes": 1275,
+      "sha256": "2bf8277a0c39af54c430a8670453c3e2e63c6d4d77aeebd1dd1b0170511807ee"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_17.json",
+      "bytes": 1273,
+      "sha256": "025738dcf3d2431f3fcbe94dcaa0c576f22921d5018981983ac004f3c5af3e49"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_18.json",
+      "bytes": 1257,
+      "sha256": "065e64645f40b99f65543355246ca35083d583a29232c757c2588823a6b932e4"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_19.json",
+      "bytes": 1329,
+      "sha256": "625f77573c591dbf972a4739dc2f310eab5264f79ea5a60602874b25d28c14d4"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_2.json",
+      "bytes": 1269,
+      "sha256": "1d4f49147648b1ddd3b4da362162e7b034574a80e42045dfd86101e5f5279ab5"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_3.json",
+      "bytes": 1271,
+      "sha256": "9bb14aef4ea54d1bc2dd43dbd508fb38c0197c11d82b2b57b89b3af664f7c8eb"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_4.json",
+      "bytes": 1243,
+      "sha256": "17fed7a9682f837e16569376c1ea6fa153803aea6834685ab412c43a2efd717f"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_5.json",
+      "bytes": 1263,
+      "sha256": "11b7a278db9dbd7a68920fe06c7a552657875d58a25dcc37fba5cb88ea0f2763"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_6.json",
+      "bytes": 1271,
+      "sha256": "e47fbc26f6038754c38bba14e5de1b4d6a150b2c0195a9e5681eb84e819c7671"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_7.json",
+      "bytes": 1252,
+      "sha256": "924d3d17a7b3d6ee180f757a8fe13ec4e93d35f93fba8d88efd0e3016a7ca2d0"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_8.json",
+      "bytes": 1269,
+      "sha256": "5098a19470f4916bd794db8e6d5ee67c0bf9a4b80d528cd4ee36838a246cabc5"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/docs_conflict_9.json",
+      "bytes": 1277,
+      "sha256": "87416736e50560ebc01c4536b28cb742a6e559670c9b5079912a2619a53ae9e9"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_0.json",
+      "bytes": 1248,
+      "sha256": "15ff5c6b56ed2e2f9931cdb5d83f43a87b214a7cc256de5bf2711a1d1583aed0"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_1.json",
+      "bytes": 1262,
+      "sha256": "de5b0b28f311cc67a8f520502c2306c66e742cd809c4040b560ea39321a8b7b9"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_10.json",
+      "bytes": 1222,
+      "sha256": "7702282250a56cd7a4d45c98a133b0677c0573f96e7cbbf4c08208d9888e7631"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_11.json",
+      "bytes": 1218,
+      "sha256": "a8f1105c4480221e702edc40138174d69b3b8e52641a9a0a5460f4dd6529a395"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_12.json",
+      "bytes": 1285,
+      "sha256": "649d51962a9d6d45cc5a3d84eba97cdbcaf4db0a2d24ed3dfa693749ae362552"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_13.json",
+      "bytes": 1230,
+      "sha256": "5e2d84077d5f998b08287c0c1d6b6429448b0b6ac11f2d2830b7550f0179e62c"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_14.json",
+      "bytes": 1265,
+      "sha256": "be716e8323255900ef0a5d4df843155ac6d29f722634958f86aea5074db0396c"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_15.json",
+      "bytes": 1294,
+      "sha256": "3637c898075be31953bd2a392dcb208b41f4834e3198b7a295e1b40226771316"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_16.json",
+      "bytes": 2415,
+      "sha256": "718a0efb50457d8f012721f51102e4d88ac984ad427579406b608a142f63dbde"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_17.json",
+      "bytes": 1273,
+      "sha256": "ac89e38369adee7a95d86109fa4f0bcbc1506d6681a73e52a0579fae9fb38af5"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_18.json",
+      "bytes": 1265,
+      "sha256": "753703c32429edd02017ba979460a567eaca64adc7a1c5aca14621436bb6d235"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_19.json",
+      "bytes": 1268,
+      "sha256": "977e7ba926dfc597c44d508aa983d0b441e22663d124b391216b10d8a93a3d51"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_2.json",
+      "bytes": 1260,
+      "sha256": "717c374d88dfca8fac7d675f75c4bc86f7e541d836c31c75fdbaa32fdd2bfa2d"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_3.json",
+      "bytes": 1280,
+      "sha256": "8286c0b0af83171d5491a5b7eb869ad37f3048c9befe9d46b0d3e282db3f8ec1"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_4.json",
+      "bytes": 1279,
+      "sha256": "1e6a9a5a9d9a62fcd68dd65c2607ce382a55c5495cfa206e769b251e913d70fc"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_5.json",
+      "bytes": 1264,
+      "sha256": "195ec11970a160467b967c2c011486210aa85560ef2572ebbcc08aa12f6e767d"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_6.json",
+      "bytes": 1270,
+      "sha256": "8965d1afb125f7ec6f2ea86e355058cde8422d25fb85202b603b5f8e3fc624dd"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_7.json",
+      "bytes": 1206,
+      "sha256": "0f19164d1b77e46ad0a029b166a9bb306d08b906ad7cd18845aa726070865c49"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_8.json",
+      "bytes": 1234,
+      "sha256": "f3b6608bb884fe681be747e2e3a965b1da82cfcd985898d6fc1fb66e392e85f1"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/memory_conflict_9.json",
+      "bytes": 1217,
+      "sha256": "fb1a60b8eb200cf23968fcf9854d7f0620e522f95a69d84f85b8d7b7ce532259"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_0.json",
+      "bytes": 1100,
+      "sha256": "3bfc756e4d9727edffb474be9f4d4a4e143d2c841cb8d7367c957e514900fd6e"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_1.json",
+      "bytes": 1098,
+      "sha256": "32941374cad3584700f357abe21bf2fad9bac1ecf25cab1705250fbb5e19b12c"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_10.json",
+      "bytes": 1099,
+      "sha256": "9a2f6b6878cf9db14fa8502d562344c7333771361d7b98be5ac45155c9fd4256"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_11.json",
+      "bytes": 1097,
+      "sha256": "bc2387892e3d59aeb9af6591c6cc18e6cd59616143cbbf4d7082af7d80d21ccc"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_12.json",
+      "bytes": 1101,
+      "sha256": "bbfb7b37d6180aa2f70f2f32d94cd9ad8926fff70ef3f3d1a3118356203fe358"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_13.json",
+      "bytes": 1091,
+      "sha256": "8e9591644a23e91b98b353b896097245b7c1fb2f597094e93dd27a2cb6c958c0"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_14.json",
+      "bytes": 1107,
+      "sha256": "b559267e5302aa48f95fb5aabdc8beac94476bdd5701ae8674b2cf0cd5da08db"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_15.json",
+      "bytes": 1091,
+      "sha256": "3b6db07141f19adcb6af1fb39ec0f5cb34a35f14fe10bbfdd848baf0c3ceaa03"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_16.json",
+      "bytes": 1097,
+      "sha256": "a05b70bc898f178edbca8d1575a9f306cf3b13e86c6bdae1809395f5055d8995"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_17.json",
+      "bytes": 1107,
+      "sha256": "443acb48ae88e6ee2a54ea85d869dddae0ed3149c5437797c4521998edac88b7"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_18.json",
+      "bytes": 1107,
+      "sha256": "91de061ee51dec3787f597093eff216d775c6786dd952aced1c165cef0eae08b"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_19.json",
+      "bytes": 1106,
+      "sha256": "4f2c42ab145942e8b1c1c978814eabad14d45338e5b0c49d81eaa3a170f1a3cd"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_2.json",
+      "bytes": 1104,
+      "sha256": "cb11528f4b2c6ca01357cd62577141302bd49e91a505cfb1b87cde0d7fb04704"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_3.json",
+      "bytes": 1098,
+      "sha256": "e1bcbdbfe764aaf26c7076fd5f7b37eeac3125ef1f8f919ff100d6e4cc63d3c2"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_4.json",
+      "bytes": 1090,
+      "sha256": "9543bb12427ee8b7774d73a5b24f56ce44f6cb8b34d2cceaf5d0f337af3f8044"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_5.json",
+      "bytes": 1100,
+      "sha256": "02ba91bd17791e0a45a595c492b3dfb05c8b10e99f0ad13b31c01d3b353a08d0"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_6.json",
+      "bytes": 1102,
+      "sha256": "10ac8d3399289465ea1047ed05e6d0ec5d9b7ea3ced30e4a3abcc3c9e28ed44a"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_7.json",
+      "bytes": 1091,
+      "sha256": "4597f14608e75aaec364cb77f2e606b6974b1055035232816a68855310c2f0be"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_8.json",
+      "bytes": 1099,
+      "sha256": "473a645e0ce3337ced44eea83a597aa94b9ad3202513da478b52fad8f9154685"
+    },
+    {
+      "path": "benchmark-results/provider-adversarial-80-runs/tool_output_absent_9.json",
+      "bytes": 1102,
+      "sha256": "c9f2657a41458379718281f04a24166b2031cc5b2e24612cdd5b72d20906d136"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_add_function.json",
+      "bytes": 5311,
+      "sha256": "4d9adadf7ebd166fa720e0bd2b12b22c257e8f80cf54f8bf90dc262ddfdee515"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_boolean_parser.json",
+      "bytes": 5573,
+      "sha256": "a799c117284109013762ac2f32a6504a4966db09a2bde75fd7585072da63052c"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_clamp_bounds.json",
+      "bytes": 5145,
+      "sha256": "c6bbc5a0eba751fe4fa54523b5eba005f4123f91c6ba0707f0d68f1cbb1bcf57"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_env_parser.json",
+      "bytes": 5578,
+      "sha256": "2e0ef3cd9dcb183d62ec674c68acaf38876d8a2927344b33f2fbef8135e516bf"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_json_config_default.json",
+      "bytes": 5267,
+      "sha256": "2082f5b55fc1bba72a735bf89416ee7dabfd3d04aabc414a9ab1ca2233a5fda3"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_list_average_empty.json",
+      "bytes": 5354,
+      "sha256": "b8ff73da7ea9a2754487667956c08973a63af4e51bfa8cc96ebf032270a7a9f7"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_multiply_function.json",
+      "bytes": 5328,
+      "sha256": "c0ff374db3c5965ba80f724cad7d7da84098ec11904f77e7fc1faac3c63232fa"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_slugify_edgecase.json",
+      "bytes": 5311,
+      "sha256": "24acfd4c20b6a8f9dc91b2b27c2fa9e793009d0e86d9ab11d6dca3e931921162"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_unique_preserve_order.json",
+      "bytes": 5580,
+      "sha256": "364e90391102e6df58b07abb05617044004a25b643267469cfb53710bb68fd37"
+    },
+    {
+      "path": "benchmark-results/provider-edit-runs/fix_word_count.json",
+      "bytes": 5268,
+      "sha256": "0596fd75fb0703b3dedf83657781c21cf5869f3e729f3ce190ae56f8ddf9037d"
+    },
+    {
+      "path": "benchmark-results/provider-messy-runs/adversarial_no_fake_file.json",
+      "bytes": 1173,
+      "sha256": "b47c24d8e6098c5a7c006c9e5e379881b227bef3f8e6f76df04b82d6b4cec6c3"
+    },
+    {
+      "path": "benchmark-results/provider-messy-runs/ambiguous_missing_context.json",
+      "bytes": 1162,
+      "sha256": "bdf14e1438b1e7b528bdc1fd8adadec4c4c072b6d40f41ef89a33cd3ff7371fa"
+    },
+    {
+      "path": "benchmark-results/provider-messy-runs/conflicting_context.json",
+      "bytes": 1279,
+      "sha256": "aa1a2138779c997bcd377e84a27c3e45de3e963b4a53d9af9f838aabbc2d2fe1"
+    },
+    {
+      "path": "benchmark-results/provider-runs/direct_time_arizona.json",
+      "bytes": 1557,
+      "sha256": "b92bfbaf100b419893f5d29f81adf353328d460b7d645c06a69d95340ad64e5d"
+    },
+    {
+      "path": "benchmark-results/provider-runs/file_read_readme.json",
+      "bytes": 3460,
+      "sha256": "16a83c03948e89661719da50341841a88ec20ea307f08e1b82a96ae6e0f9a2ca"
+    },
+    {
+      "path": "benchmark-results/provider-runs/repo_file_count.json",
+      "bytes": 2215,
+      "sha256": "c32f4c5fc2909b6e6302d7b1282bea04a8e656f2207f9cbc58f934098268a8c9"
+    },
+    {
+      "path": "benchmark-results/provider_adversarial_40.json",
+      "bytes": 50609,
+      "sha256": "2710f93db88c9feefe66c3ae7b3c253afb2c44b7d1067084e0f78a433b658fbd"
+    },
+    {
+      "path": "benchmark-results/provider_adversarial_40_summary.json",
+      "bytes": 9114,
+      "sha256": "2794de9b901421348a06a54f3bea3ac65a7d04f92134b82e50f46845dadd830e"
+    },
+    {
+      "path": "benchmark-results/provider_adversarial_80.json",
+      "bytes": 101768,
+      "sha256": "cb37baec9d9e8db5082a6b34d7d5f8ec2b7074e829a6e5f40f4c84daa0578858"
+    },
+    {
+      "path": "benchmark-results/provider_adversarial_80_summary.json",
+      "bytes": 17229,
+      "sha256": "c330f4384805b13be3e2d806cc55d0972f571b6d4175c146b18c4bab632e65c4"
+    },
+    {
+      "path": "benchmark-results/provider_calls.json",
+      "bytes": 9408,
+      "sha256": "b0a72ee1085fc87eff1e9be6f35a479822f9de8557a29b4947ab3a8639de5f67"
+    },
+    {
+      "path": "benchmark-results/provider_calls_summary.json",
+      "bytes": 1890,
+      "sha256": "1d1041036fda5f39f7872cacc3ced774198f30fce2d52e26ac4b883e9b421c73"
+    },
+    {
+      "path": "benchmark-results/provider_edit_benchmark.json",
+      "bytes": 54591,
+      "sha256": "087a1344cc90ea4515b069529cb9b1ab0eca36950ec0f1bf8a1e279285797baf"
+    },
+    {
+      "path": "benchmark-results/provider_edit_benchmark_summary.json",
+      "bytes": 2736,
+      "sha256": "50934fb13319ba8ae9c429e7253a7e54cb59d9ffe2d486c1d34d064d21cc600d"
+    },
+    {
+      "path": "benchmark-results/provider_messy_benchmark.json",
+      "bytes": 4079,
+      "sha256": "1dd2f8ce14a91f398412a7f2e789de733d0e69c2be8d8f72de309460fa5a3a77"
+    },
+    {
+      "path": "benchmark-results/provider_messy_benchmark_summary.json",
+      "bytes": 1187,
+      "sha256": "2a938fba580f6e17ae104ef29cdff09d22918e0cf30c65a274e4d6e0d70f8d3b"
+    },
+    {
+      "path": "scripts/advanced_benchmark_gaps.py",
+      "bytes": 5194,
+      "sha256": "dc13a4389d1c9e566469f5c76d291a612c2667097d6b3abce1ec4d9f9afd1c3e"
+    },
+    {
+      "path": "scripts/adversarial_40_benchmark.py",
+      "bytes": 4131,
+      "sha256": "c66bf26b574d899cf88010219d398cf432e05fa2ea64c994d85d0e8cba6c0f5e"
+    },
+    {
+      "path": "scripts/benchmark_artifact_manifest.py",
+      "bytes": 800,
+      "sha256": "e52f9c75c6fca675634bffcf55b22abb2f30f6a05177e0b326544f50e04129e9"
+    },
+    {
+      "path": "scripts/coding_task_benchmark.py",
+      "bytes": 6438,
+      "sha256": "9b12b06b9cd149629fba4ef093e06ab4af7d638ccea8137ecb42fade3d961570"
+    },
+    {
+      "path": "scripts/context_benchmark.py",
+      "bytes": 8012,
+      "sha256": "5894b8f690c63ffc7d0bf65101055bb6e1ab208dc58a8fa788003563da61330f"
+    },
+    {
+      "path": "scripts/e2e_coding_benchmark.py",
+      "bytes": 3302,
+      "sha256": "87ef91dd6cf5e6097f437f6eccd7b75a695181f1c2d63946424e3579a30743b3"
+    },
+    {
+      "path": "scripts/final_benchmark_suite.py",
+      "bytes": 7864,
+      "sha256": "2b865a51cd12e3ced956c049b35ea7af26ed36c6a6b4477fa74a35bda27de2c2"
+    },
+    {
+      "path": "scripts/provider_edit_benchmark.py",
+      "bytes": 8261,
+      "sha256": "ca8f544cfdd48f9c44a397100009afc9a62861cff2e6664ff3d9beaccae23775"
+    }
+  ]
+}
