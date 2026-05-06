@@ -350,6 +350,83 @@ Recommended variance benchmark:
 3. Report exact-match rate of restored IDs and schema sets.
 4. Separately report answer variance, because model generation can vary even when restored context is deterministic.
 
+
+## Advanced gap proxy metrics
+
+The following section addresses the remaining areas that were called out as weak. These are **measured proxy metrics**, not final proof for every real-world workflow. The raw artifact is `benchmark-results/advanced_gap_metrics.json`; the script is `scripts/advanced_benchmark_gaps.py`.
+
+### Large repo navigation under ambiguity
+
+Proxy measured from the 75 real git-history coding-context tasks by weakening task descriptions and evaluating whether the retrieval layer still surfaced the target file.
+
+| Metric | Value |
+|---|---:|
+| Real task proxies | 75 |
+| Lexical/path retrieval successes | 36 |
+| Lexical/path success rate | 48.00% |
+| Failures | 39 |
+
+Interpretation: weak/ambiguous navigation is exactly where simple lexical/path retrieval breaks down. Kcode exact-path succeeds when the path/session anchor is known, but the harder prompt class “fix the bug I mentioned earlier” still requires labeled session-memory benchmarks. That exact natural-language ambiguity remains **UNMEASURED**.
+
+### Long-horizon planning / multi-file refactor proxy
+
+Proxy: group the 75 real commit-file tasks back into multi-file commits and ask whether each strategy made every changed file available across the grouped task.
+
+| Strategy | Multi-file commit groups | All-files-available success rate | Est. prompt tokens | Tokens/success |
+|---|---:|---:|---:|---:|
+| Full context | 9 | 100.00% | 53,112,456 | 5,901,384.00 |
+| Kcode path-exact | 9 | 100.00% | 392,970 | 43,663.33 |
+| Lexical RAG | 9 | 0.00% | 284,535 | n/a |
+
+Interpretation: this supports file-availability for multi-file changes, but it does **not** prove autonomous long-horizon planning across sessions. Real multi-step refactors still need an execution benchmark that runs the agent over parent commits, lets it plan/edit/test repeatedly, and scores final diffs.
+
+### Robustness under messy developer workflows
+
+Combined provider smoke runs now cover direct answers, file/tool-capable prompts, actual edit→test tasks, and messy/adversarial prompts.
+
+| Provider smoke category | Runs | Successes |
+|---|---:|---:|
+| Direct answer | 1 | 1 |
+| File/tool-capable | 2 | 2 |
+| Actual edit→test | 3 | 3 |
+| Messy ambiguous/adversarial | 3 | 3 |
+| **Total** | **9** | **9** |
+
+Interpretation: 9/9 provider smoke runs passed, including 3 actual code-editing tasks. This is meaningful smoke evidence, but not a large messy-workflow benchmark. Real-world robustness remains partially proven, not fully proven.
+
+### Embedding RAG vs exact-path at scale
+
+| Baseline | Tasks | Success rate | Status |
+|---|---:|---:|---|
+| Kcode exact-path | 75 | 100.00% | measured |
+| Lexical/path RAG | 75 | 48.00% | measured |
+| Production embedding RAG | n/a | n/a | **UNMEASURED** |
+
+The current benchmark is fair against a simple lexical/path retriever, but it is not a fair claim against a tuned embedding RAG system. A real embedding-RAG comparison needs the same 75 tasks, a fixed embedding model/index, top-k settings, reranker settings if any, and identical prompt budgets.
+
+### Real developer latency perception
+
+Latency proxy from the 9 real provider smoke/edit/messy runs:
+
+| Metric | Value |
+|---|---:|
+| Runs | 9 |
+| Mean wall time | 9.614s |
+| p50 wall time | 4.963s |
+| p95 wall time | 19.452s |
+| Max wall time | 25.934s |
+
+Perception buckets:
+
+| Bucket | Runs |
+|---|---:|
+| Feels immediate, under 3s | 2 |
+| Acceptable, 3–10s | 4 |
+| Noticeable, 10–30s | 3 |
+| Slow, over 30s | 0 |
+
+Interpretation: provider smoke latency is usable for small tasks, but real developer latency perception over long sessions is still only a proxy. A full study should collect time-to-first-token, tool wait time, edit/test loop time, and user-rated perceived latency.
+
 ## Failure mode analysis
 
 Failures should be labeled into at least these categories:

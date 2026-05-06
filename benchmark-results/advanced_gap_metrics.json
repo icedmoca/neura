@@ -1,0 +1,93 @@
+{
+  "metadata": {
+    "benchmark_type": "advanced_gap_proxy_metrics",
+    "source_artifacts": [
+      "coding_task_benchmark.json",
+      "provider_calls.json",
+      "provider_edit_benchmark.json",
+      "provider_messy_benchmark.json"
+    ]
+  },
+  "large_repo_ambiguity_proxy": {
+    "tasks": 75,
+    "lexical_rag_subject_or_weak_path_successes": 36,
+    "success_rate": 0.48,
+    "failures": 39,
+    "note": "This is a proxy from real git-history tasks. It does not prove ambiguous natural language like fix the bug I mentioned earlier; that remains UNMEASURED for exact-path without session memory labels."
+  },
+  "long_horizon_multifile_proxy": {
+    "full_context": {
+      "multi_file_commits": 18,
+      "all_files_available_successes": 18,
+      "success_rate": 1.0,
+      "estimated_prompt_tokens": 122435679,
+      "tokens_per_success": 6801982.17
+    },
+    "kcode_path_exact": {
+      "multi_file_commits": 18,
+      "all_files_available_successes": 18,
+      "success_rate": 1.0,
+      "estimated_prompt_tokens": 870639,
+      "tokens_per_success": 48368.83
+    },
+    "lexical_rag": {
+      "multi_file_commits": 18,
+      "all_files_available_successes": 2,
+      "success_rate": 0.1111111111111111,
+      "estimated_prompt_tokens": 1418499,
+      "tokens_per_success": 709249.5
+    }
+  },
+  "messy_workflow_provider_smoke": {
+    "runs": 9,
+    "successes": 9,
+    "success_rate": 1.0,
+    "by_kind": {
+      "direct_answer": {
+        "runs": 1,
+        "successes": 1
+      },
+      "edit_test": {
+        "runs": 3,
+        "successes": 3
+      },
+      "file_tool": {
+        "runs": 2,
+        "successes": 2
+      },
+      "hallucination_guard": {
+        "runs": 1,
+        "successes": 1
+      },
+      "messy_ambiguous": {
+        "runs": 1,
+        "successes": 1
+      },
+      "messy_conflict": {
+        "runs": 1,
+        "successes": 1
+      }
+    }
+  },
+  "latency_perception": {
+    "wall_seconds": {
+      "runs": 9,
+      "p50_wall_seconds": 4.963,
+      "p95_wall_seconds": 19.452,
+      "max_wall_seconds": 25.934,
+      "mean_wall_seconds": 9.613
+    },
+    "perception_buckets": {
+      "feels_immediate_under_3s": 2,
+      "acceptable_3_to_10s": 4,
+      "noticeable_10_to_30s": 3
+    }
+  },
+  "embedding_rag_vs_exact_path_at_scale": {
+    "embedding_rag_measured": false,
+    "lexical_path_baseline_tasks": 75,
+    "exact_path_success_rate": 1.0,
+    "lexical_rag_success_rate": 0.48,
+    "note": "Production embedding RAG remains UNMEASURED. This report only compares exact path against lexical/path retrieval."
+  }
+}
