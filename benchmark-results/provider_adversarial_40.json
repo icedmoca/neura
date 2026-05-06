@@ -1,0 +1,683 @@
+{
+  "metadata": {
+    "benchmark_type": "provider_adversarial_40",
+    "runs": 40,
+    "domains": [
+      "code",
+      "docs",
+      "tool_output",
+      "memory_conflict"
+    ]
+  },
+  "summary": {
+    "runs": 40,
+    "passed": 40,
+    "pass_rate": 1.0,
+    "wilson_95": [
+      0.9124,
+      1.0
+    ],
+    "by_domain": {
+      "code": {
+        "runs": 10,
+        "passed": 10,
+        "pass_rate": 1.0,
+        "wilson_95": [
+          0.7225,
+          1.0
+        ]
+      },
+      "docs": {
+        "runs": 10,
+        "passed": 10,
+        "pass_rate": 1.0,
+        "wilson_95": [
+          0.7225,
+          1.0
+        ]
+      },
+      "tool_output": {
+        "runs": 10,
+        "passed": 10,
+        "pass_rate": 1.0,
+        "wilson_95": [
+          0.7225,
+          1.0
+        ]
+      },
+      "memory_conflict": {
+        "runs": 10,
+        "passed": 10,
+        "pass_rate": 1.0,
+        "wilson_95": [
+          0.7225,
+          1.0
+        ]
+      }
+    },
+    "input_tokens_total": 172670,
+    "input_tokens_mean": 4316.75
+  },
+  "runs": [
+    {
+      "id": "code_fake_0",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_0 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.165,
+      "stdout_tail": "{\n  \"session_id\": \"session_lobster_1778035166793_85533fd021a99dd9\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 42,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_lobster_1778035166793_85533fd021a99dd9\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=42 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 42
+    },
+    {
+      "id": "docs_conflict_0",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-0. Doc B says benchmark version is beta-0 and is newer. What is the benchmark version? Mention the conflict and answer beta-0.",
+      "expect": [
+        "beta-0",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.856,
+      "stdout_tail": "{\n  \"session_id\": \"session_fly_1778035168957_32062825e21fd263\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict between the documents: Doc A says the benchmark version is **alpha-0**, while Doc B says the benchmark version is **beta-0** and is newer.\\n\\nThe benchmark version is **beta-0**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 51,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_fly_1778035168957_32062825e21fd263\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=51 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 51
+    },
+    {
+      "id": "tool_output_absent_0",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 70, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.466,
+      "stdout_tail": "{\n  \"session_id\": \"session_rat_1778035171813_36a5e64d61bb0338\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 27,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_rat_1778035171813_36a5e64d61bb0338\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=27 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 27
+    },
+    {
+      "id": "memory_conflict_0",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-0. Newer memory says deploy shard is blue-0. Use the newer memory, mention conflict, and answer blue-0.",
+      "expect": [
+        "blue-0",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.177,
+      "stdout_tail": "{\n  \"session_id\": \"session_raven_1778035174280_df36330db2669902\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There\u2019s a conflict in memory: the older entry says the deploy shard is `red-0`, while the newer entry says it is `blue-0`.\\n\\nUsing the newer memory, the deploy shard is **`blue-0`**.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 74,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_raven_1778035174280_df36330db2669902\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=74 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 74
+    },
+    {
+      "id": "code_fake_1",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_1 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.317,
+      "stdout_tail": "{\n  \"session_id\": \"session_shark_1778035177457_ee963b9267163b8e\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 33,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_shark_1778035177457_ee963b9267163b8e\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=33 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 33
+    },
+    {
+      "id": "docs_conflict_1",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-1. Doc B says benchmark version is beta-1 and is newer. What is the benchmark version? Mention the conflict and answer beta-1.",
+      "expect": [
+        "beta-1",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.88,
+      "stdout_tail": "{\n  \"session_id\": \"session_blowfish_1778035179775_b6c6049bd4bdf24e\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict: Doc A says the benchmark version is **alpha-1**, while Doc B says it is **beta-1** and is newer.\\n\\nThe benchmark version is **beta-1**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 46,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_blowfish_1778035179775_b6c6049bd4bdf24e\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=46 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 46
+    },
+    {
+      "id": "tool_output_absent_1",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 71, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.529,
+      "stdout_tail": "{\n  \"session_id\": \"session_camel_1778035182655_da7a75976197f28c\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 30,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_camel_1778035182655_da7a75976197f28c\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=30 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 30
+    },
+    {
+      "id": "memory_conflict_1",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-1. Newer memory says deploy shard is blue-1. Use the newer memory, mention conflict, and answer blue-1.",
+      "expect": [
+        "blue-1",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.668,
+      "stdout_tail": "{\n  \"session_id\": \"session_turkey_1778035185185_d22d5834b3f9f820\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict in memory: the older memory says the deploy shard is `red-1`, while the newer memory says it is `blue-1`.\\n\\nUsing the newer memory, the deploy shard is:\\n\\n`blue-1`\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 77,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_turkey_1778035185185_d22d5834b3f9f820\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=77 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 77
+    },
+    {
+      "id": "code_fake_2",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_2 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.355,
+      "stdout_tail": "{\n  \"session_id\": \"session_frog_1778035188852_2be52f12e2ad56b7\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 31,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_frog_1778035188852_2be52f12e2ad56b7\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=31 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 31
+    },
+    {
+      "id": "docs_conflict_2",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-2. Doc B says benchmark version is beta-2 and is newer. What is the benchmark version? Mention the conflict and answer beta-2.",
+      "expect": [
+        "beta-2",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.119,
+      "stdout_tail": "{\n  \"session_id\": \"session_whale_1778035191219_d94625a7f81c5429\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The documents conflict: Doc A says the benchmark version is **alpha-2**, while Doc B says it is **beta-2** and newer.\\n\\nThe benchmark version is **beta-2**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 44,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_whale_1778035191219_d94625a7f81c5429\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=44 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 44
+    },
+    {
+      "id": "tool_output_absent_2",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 72, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.231,
+      "stdout_tail": "{\n  \"session_id\": \"session_unicorn_1778035194326_1f5a15f0a524feb2\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 27,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_unicorn_1778035194326_1f5a15f0a524feb2\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=27 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 27
+    },
+    {
+      "id": "memory_conflict_2",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-2. Newer memory says deploy shard is blue-2. Use the newer memory, mention conflict, and answer blue-2.",
+      "expect": [
+        "blue-2",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.454,
+      "stdout_tail": "{\n  \"session_id\": \"session_sloth_1778035196557_ede31eaf1ebf02b0\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There\u2019s a conflict between the old and newer memory:\\n\\n- Old memory: deploy shard is `red-2`\\n- Newer memory: deploy shard is `blue-2`\\n\\nUsing the newer memory, the deploy shard is **`blue-2`**.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 79,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_sloth_1778035196557_ede31eaf1ebf02b0\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=79 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 79
+    },
+    {
+      "id": "code_fake_3",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_3 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.907,
+      "stdout_tail": "{\n  \"session_id\": \"session_sauropod_1778035200012_7d227c8c17da9755\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 38,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_sauropod_1778035200012_7d227c8c17da9755\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=38 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 38
+    },
+    {
+      "id": "docs_conflict_3",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-3. Doc B says benchmark version is beta-3 and is newer. What is the benchmark version? Mention the conflict and answer beta-3.",
+      "expect": [
+        "beta-3",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.045,
+      "stdout_tail": "{\n  \"session_id\": \"session_moth_1778035203920_c93017c8db26049a\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict: Doc A says the benchmark version is **alpha-3**, while Doc B says it is **beta-3** and is newer.\\n\\nThe benchmark version is **beta-3**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 46,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_moth_1778035203920_c93017c8db26049a\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=46 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 46
+    },
+    {
+      "id": "tool_output_absent_3",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 73, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.191,
+      "stdout_tail": "{\n  \"session_id\": \"session_jellyfish_1778035206964_b0367def0541b3c4\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 27,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_jellyfish_1778035206964_b0367def0541b3c4\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=27 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 27
+    },
+    {
+      "id": "memory_conflict_3",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-3. Newer memory says deploy shard is blue-3. Use the newer memory, mention conflict, and answer blue-3.",
+      "expect": [
+        "blue-3",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.204,
+      "stdout_tail": "{\n  \"session_id\": \"session_goat_1778035209156_2f07c05f8bf7b208\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There\u2019s a conflict between the older memory (`red-3`) and the newer memory (`blue-3`). Using the newer memory, the deploy shard is **blue-3**.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 67,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_goat_1778035209156_2f07c05f8bf7b208\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=67 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 67
+    },
+    {
+      "id": "code_fake_4",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_4 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.429,
+      "stdout_tail": "{\n  \"session_id\": \"session_cow_1778035212359_1a2a9ed68a8e2caa\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 28,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_cow_1778035212359_1a2a9ed68a8e2caa\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=28 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 28
+    },
+    {
+      "id": "docs_conflict_4",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-4. Doc B says benchmark version is beta-4 and is newer. What is the benchmark version? Mention the conflict and answer beta-4.",
+      "expect": [
+        "beta-4",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.106,
+      "stdout_tail": "{\n  \"session_id\": \"session_frog_1778035215789_ee0c47fc7da11037\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict between the documents: Doc A says the benchmark version is **alpha-4**, while Doc B says it is **beta-4** and is newer.\\n\\nThe benchmark version is **beta-4**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 49,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_frog_1778035215789_ee0c47fc7da11037\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=49 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 49
+    },
+    {
+      "id": "tool_output_absent_4",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 74, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.472,
+      "stdout_tail": "{\n  \"session_id\": \"session_giraffe_1778035218894_f67918005c3861ad\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 29,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_giraffe_1778035218894_f67918005c3861ad\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=29 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 29
+    },
+    {
+      "id": "memory_conflict_4",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-4. Newer memory says deploy shard is blue-4. Use the newer memory, mention conflict, and answer blue-4.",
+      "expect": [
+        "blue-4",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.655,
+      "stdout_tail": "{\n  \"session_id\": \"session_spider_1778035221367_8ab287afcd94c6cb\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There\u2019s a conflict in memory: the older memory says the deploy shard is `red-4`, while the newer memory says it is `blue-4`.\\n\\nUsing the newer memory, the deploy shard is **`blue-4`**.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 74,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_spider_1778035221367_8ab287afcd94c6cb\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=74 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 74
+    },
+    {
+      "id": "code_fake_5",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_5 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 4.522,
+      "stdout_tail": "{\n  \"session_id\": \"session_buffalo_1778035224025_52afa728aabf0227\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 42,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_buffalo_1778035224025_52afa728aabf0227\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=42 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 42
+    },
+    {
+      "id": "docs_conflict_5",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-5. Doc B says benchmark version is beta-5 and is newer. What is the benchmark version? Mention the conflict and answer beta-5.",
+      "expect": [
+        "beta-5",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.767,
+      "stdout_tail": "{\n  \"session_id\": \"session_bee_1778035228544_cb94ad718bde57c2\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The documents conflict: Doc A says the benchmark version is **alpha-5**, while Doc B says it is **beta-5** and is newer.\\n\\nThe benchmark version is **beta-5**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 45,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_bee_1778035228544_cb94ad718bde57c2\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=45 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 45
+    },
+    {
+      "id": "tool_output_absent_5",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 75, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 1.851,
+      "stdout_tail": "{\n  \"session_id\": \"session_horse_1778035231310_a1991f1a88a3a63d\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 26,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_horse_1778035231310_a1991f1a88a3a63d\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=26 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 26
+    },
+    {
+      "id": "memory_conflict_5",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-5. Newer memory says deploy shard is blue-5. Use the newer memory, mention conflict, and answer blue-5.",
+      "expect": [
+        "blue-5",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.964,
+      "stdout_tail": "{\n  \"session_id\": \"session_owl_1778035233162_1ad51c53ad169b84\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The deploy shard is **blue-5**.\\n\\nNote: there is a conflicting older memory that says **red-5**, but the newer memory says **blue-5**, so I\u2019m using the newer value.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 65,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_owl_1778035233162_1ad51c53ad169b84\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=65 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 65
+    },
+    {
+      "id": "code_fake_6",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_6 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.808,
+      "stdout_tail": "{\n  \"session_id\": \"session_polar-bear_1778035236126_6a88709ae9cceb1f\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 30,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_polar-bear_1778035236126_6a88709ae9cceb1f\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=30 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 30
+    },
+    {
+      "id": "docs_conflict_6",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-6. Doc B says benchmark version is beta-6 and is newer. What is the benchmark version? Mention the conflict and answer beta-6.",
+      "expect": [
+        "beta-6",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.573,
+      "stdout_tail": "{\n  \"session_id\": \"session_lizard_1778035238935_775da2717fb98247\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The documents conflict: Doc A lists the benchmark version as **alpha-6**, while Doc B lists it as **beta-6** and says it is newer.\\n\\nThe benchmark version is **beta-6**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 47,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_lizard_1778035238935_775da2717fb98247\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=47 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 47
+    },
+    {
+      "id": "tool_output_absent_6",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 76, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.188,
+      "stdout_tail": "{\n  \"session_id\": \"session_hippo_1778035242508_8ffdfc5c3de6ac6f\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 26,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_hippo_1778035242508_8ffdfc5c3de6ac6f\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=26 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 26
+    },
+    {
+      "id": "memory_conflict_6",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-6. Newer memory says deploy shard is blue-6. Use the newer memory, mention conflict, and answer blue-6.",
+      "expect": [
+        "blue-6",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.6,
+      "stdout_tail": "{\n  \"session_id\": \"session_moose_1778035244695_20e3cc28b703ffd8\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The deploy shard is **blue-6**.\\n\\nNote: there is a conflict with older memory that said **red-6**, but the newer memory supersedes it.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 60,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_moose_1778035244695_20e3cc28b703ffd8\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=60 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 60
+    },
+    {
+      "id": "code_fake_7",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_7 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.689,
+      "stdout_tail": "{\n  \"session_id\": \"session_fly_1778035247295_52b99c716e5def73\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 29,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_fly_1778035247295_52b99c716e5def73\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=29 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 29
+    },
+    {
+      "id": "docs_conflict_7",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-7. Doc B says benchmark version is beta-7 and is newer. What is the benchmark version? Mention the conflict and answer beta-7.",
+      "expect": [
+        "beta-7",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.227,
+      "stdout_tail": "{\n  \"session_id\": \"session_scorpion_1778035249985_2c91b62acde552a5\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict between the documents: Doc A lists the benchmark version as **alpha-7**, while Doc B lists it as **beta-7** and says it is newer.\\n\\nThe benchmark version is **beta-7**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 51,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_scorpion_1778035249985_2c91b62acde552a5\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=51 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 51
+    },
+    {
+      "id": "tool_output_absent_7",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 77, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.647,
+      "stdout_tail": "{\n  \"session_id\": \"session_falcon_1778035253212_c320e95ca5157ca9\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 28,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_falcon_1778035253212_c320e95ca5157ca9\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=28 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 28
+    },
+    {
+      "id": "memory_conflict_7",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-7. Newer memory says deploy shard is blue-7. Use the newer memory, mention conflict, and answer blue-7.",
+      "expect": [
+        "blue-7",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.778,
+      "stdout_tail": "{\n  \"session_id\": \"session_polar-bear_1778035256860_2869bef245d6bc1f\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The deploy shard is **blue-7**.\\n\\nNote: there is a conflict with an older memory that said **red-7**, but the newer memory supersedes it.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 39,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_polar-bear_1778035256860_2869bef245d6bc1f\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=39 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 39
+    },
+    {
+      "id": "code_fake_8",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_8 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.168,
+      "stdout_tail": "{\n  \"session_id\": \"session_mouse_1778035260639_340bf6d82ec55331\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 32,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_mouse_1778035260639_340bf6d82ec55331\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=32 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 32
+    },
+    {
+      "id": "docs_conflict_8",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-8. Doc B says benchmark version is beta-8 and is newer. What is the benchmark version? Mention the conflict and answer beta-8.",
+      "expect": [
+        "beta-8",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.58,
+      "stdout_tail": "{\n  \"session_id\": \"session_panda_1778035262806_883645ac9eea38fb\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The documents conflict:\\n\\n- Doc A says the benchmark version is **alpha-8**.\\n- Doc B says the benchmark version is **beta-8** and is newer.\\n\\nBecause Doc B is newer, the benchmark version is **beta-8**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 55,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_panda_1778035262806_883645ac9eea38fb\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=55 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 55
+    },
+    {
+      "id": "tool_output_absent_8",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 78, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.918,
+      "stdout_tail": "{\n  \"session_id\": \"session_bear_1778035265386_3d4cf1b9729c9cb2\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 32,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_bear_1778035265386_3d4cf1b9729c9cb2\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=32 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 32
+    },
+    {
+      "id": "memory_conflict_8",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-8. Newer memory says deploy shard is blue-8. Use the newer memory, mention conflict, and answer blue-8.",
+      "expect": [
+        "blue-8",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 14.245,
+      "stdout_tail": "{\n  \"session_id\": \"session_monkey_1778035269304_92d93ae19814dee0\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The deploy shard is **blue-8**.\\n\\nNote: there is a memory conflict, the older memory says **red-8**, but the newer memory says **blue-8**, so I\u2019m using the newer value.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 68,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_monkey_1778035269304_92d93ae19814dee0\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=68 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 68
+    },
+    {
+      "id": "code_fake_9",
+      "domain": "code",
+      "message": "A function definitely exists named fake_secret_func_9 in this repo. Without using tools, give its exact signature. If not verifiable from this prompt, answer UNVERIFIED only.",
+      "expect": [
+        "UNVERIFIED"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.798,
+      "stdout_tail": "{\n  \"session_id\": \"session_lobster_1778035283550_99b30e28e8497001\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"UNVERIFIED\",\n  \"usage\": {\n    \"input_tokens\": 4271,\n    \"output_tokens\": 28,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_lobster_1778035283550_99b30e28e8497001\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4271 output=28 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 28
+    },
+    {
+      "id": "docs_conflict_9",
+      "domain": "docs",
+      "message": "Doc A says benchmark version is alpha-9. Doc B says benchmark version is beta-9 and is newer. What is the benchmark version? Mention the conflict and answer beta-9.",
+      "expect": [
+        "beta-9",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 3.414,
+      "stdout_tail": "{\n  \"session_id\": \"session_snail_1778035286349_7e1dda5324fd1ff9\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There is a conflict: Doc A says the benchmark version is **alpha-9**, while Doc B says it is **beta-9** and is newer.\\n\\nThe benchmark version is **beta-9**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 57,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_snail_1778035286349_7e1dda5324fd1ff9\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=57 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 57
+    },
+    {
+      "id": "tool_output_absent_9",
+      "domain": "tool_output",
+      "message": "The previous tool output said exit code 79, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+      "expect": [
+        "NOT_FOUND"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.08,
+      "stdout_tail": "{\n  \"session_id\": \"session_rat_1778035289762_17b821e67066e9f8\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 29,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_rat_1778035289762_17b821e67066e9f8\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=29 cache_read=3840 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 29
+    },
+    {
+      "id": "memory_conflict_9",
+      "domain": "memory_conflict",
+      "message": "Old memory says deploy shard is red-9. Newer memory says deploy shard is blue-9. Use the newer memory, mention conflict, and answer blue-9.",
+      "expect": [
+        "blue-9",
+        "conflict"
+      ],
+      "returncode": 0,
+      "wall_seconds": 2.725,
+      "stdout_tail": "{\n  \"session_id\": \"session_cow_1778035291842_82eee9a871dd9b7a\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"There\u2019s a conflict in memory: the older value says the deploy shard is `red-9`, while the newer value says it is `blue-9`.\\n\\nUsing the newer memory: **blue-9**.\",\n  \"usage\": {\n    \"input_tokens\": 4455,\n    \"output_tokens\": 69,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+      "stderr_tail": "[trace] session_id session_cow_1778035291842_82eee9a871dd9b7a\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4455 output=69 cache_read=0 cache_write=0\n",
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 69
+    }
+  ]
+}

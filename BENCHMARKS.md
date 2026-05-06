@@ -17,7 +17,7 @@ Artifacts for the final rollup:
 
 | Category | Measured artifact | Key result |
 |---|---|---:|
-| Token usage vs full-context baseline | `.kcode/interlang-stats.jsonl`, final rollup | 92.74% aggregate reduction; ~1,433,663,442 chars/4 tokens avoided |
+| Token usage vs the recorded full-context replay baseline | `.kcode/interlang-stats.jsonl`, final rollup | 92.74% aggregate reduction; ~1,433,663,442 chars/4 tokens avoided |
 | Short / medium / long sessions | telemetry bucket table | short 44.20%, medium 82.14%, long 92.77% reduction |
 | Actual coding success | `provider_edit_benchmark.json` | 3/3 provider edit→test tasks passed |
 | Real repo context success | `coding_task_benchmark.json` | Kcode 100.00% vs lexical RAG 48.00% on 75 tasks |
@@ -50,9 +50,9 @@ Interpretation: the benchmarks are now complete for the measured scope above. Cl
 
 > Note: the installed binary reported an older embedded commit than the docs HEAD because the working tree had later docs-only commits after the binary was built. The benchmarked compression/tool behavior comes from the `.kcode` telemetry and current source tree.
 
-## Token usage vs full-context baseline
+## Token usage vs the recorded full-context replay baseline
 
-The baseline is a conservative full-context approximation: send the original recorded context blocks directly instead of replacing eligible blocks with compact refs or encoded blocks.
+The baseline is a conservative recorded full-context replay approximation: send the original recorded context blocks directly instead of replacing eligible blocks with compact refs or encoded blocks.
 
 | Metric | Measured value |
 |---|---:|
@@ -65,6 +65,11 @@ The baseline is a conservative full-context approximation: send the original rec
 | Max chars saved per event | 4,436,244 |
 
 Approximate token savings depend on tokenizer and provider formatting. A rough chars/4 estimate implies about **1.41B tokens avoided** across the recorded telemetry. Use provider-side token accounting for billing-grade numbers.
+
+
+### Baseline sensitivity note
+
+The token-reduction percentages compare Kcode's compact representation with a recorded full-context replay baseline derived from telemetry fields (`original_chars`, dieted original chars, and raw context avoided chars). They are not a claim that every provider or every competing agent would literally resend the same bytes. Provider serialization, hidden system prompts, model tokenizer, and alternative pruning strategies can change absolute billed tokens. The result is strongest as an apples-to-apples replay comparison of Kcode compact refs versus Kcode's recorded uncompressed context blocks.
 
 ## Short / medium / long session reduction
 
@@ -280,6 +285,30 @@ Artifacts:
 
 Measured result: **3/3 messy/adversarial smoke prompts passed**. This is a better hallucination guard than the earlier deterministic-only benchmark, but it is still small and should not be presented as a final hallucination-rate study.
 
+
+## 40-prompt adversarial hallucination benchmark
+
+The earlier 9-run smoke suite was useful but statistically weak. The benchmark now includes a 40-prompt provider suite across four adversarial domains: code hallucination traps, documentation conflicts, missing tool-output claims, and memory conflicts.
+
+Artifacts:
+
+- runner: `scripts/adversarial_40_benchmark.py`,
+- full results: `benchmark-results/provider_adversarial_40.json`,
+- summary: `benchmark-results/provider_adversarial_40_summary.json`,
+- per-run traces: `benchmark-results/provider-adversarial-40-runs/*.json`.
+
+| Domain | Runs | Passes | Pass rate | Wilson 95% interval |
+|---|---:|---:|---:|---:|
+| Code fake-symbol traps | 10 | 10 | 100.00% | 72.25%–100.00% |
+| Documentation conflicts | 10 | 10 | 100.00% | 72.25%–100.00% |
+| Missing tool-output claims | 10 | 10 | 100.00% | 72.25%–100.00% |
+| Memory conflicts | 10 | 10 | 100.00% | 72.25%–100.00% |
+| **Total** | **40** | **40** | **100.00%** | **91.24%–100.00%** |
+
+Measured result: Kcode passed 40/40 adversarial hallucination-guard prompts. For this benchmark distribution, the measured hallucination/unsupported-answer rate was **0.00%**, with a Wilson 95% upper bound of **8.76%**. This is no longer just a 9-run anecdote, but it is still scoped to these adversarial prompt templates rather than every possible real-world conversation.
+
+Provider usage for this suite: 172,670 total input tokens, mean 4316.75 input tokens/run.
+
 ## Hallucination rate
 
 Target failure types:
@@ -296,7 +325,7 @@ Current mitigation:
 - auto-restore is bounded and intent/topic gated,
 - direct-answer turns avoid carrying unrelated tool schemas and old bulky refs.
 
-Measured hallucination rates are reported in the complete coverage matrix and hallucination sections. Reproduction protocol: sample 200 context-dependent questions from saved sessions, require citations to exact restored context, and grade each answer as correct, partially correct, hallucinated, or refusal/unknown.
+Measured hallucination rates are reported in the complete coverage matrix, the 40-prompt adversarial suite, and the hallucination sections. Reproduction protocol: sample 200 context-dependent questions from saved sessions, require citations to exact restored context, and grade each answer as correct, partially correct, hallucinated, or refusal/unknown.
 
 ## Context recall accuracy
 
@@ -352,7 +381,7 @@ Approximate aggregate savings from telemetry:
 
 - 5.65B chars avoided,
 - roughly 1.41B tokens avoided with a chars/4 heuristic,
-- 92.76% aggregate context-size reduction vs full-context approximation.
+- 92.76% aggregate context-size reduction vs recorded full-context replay approximation.
 
 Cost per completed task is measured for known provider-usage rows and context-task success labels in the final rollup. The recommended report should include:
 
@@ -422,7 +451,7 @@ Combined provider smoke runs now cover direct answers, file/tool-capable prompts
 | Messy ambiguous/adversarial | 3 | 3 |
 | **Total** | **9** | **9** |
 
-Interpretation: 9/9 provider smoke runs passed, including 3 actual code-editing tasks. This is meaningful smoke evidence, but not a large messy-workflow benchmark. Real-world robustness remains partially proven, not fully proven.
+Interpretation: 9/9 provider workflow smoke runs passed, and the separate 40-prompt adversarial hallucination suite passed 40/40. This is meaningful smoke evidence, but not a large messy-workflow benchmark. Real-world robustness remains partially proven, not fully proven.
 
 ### Embedding RAG vs exact-path at scale
 
@@ -542,7 +571,7 @@ Measured compression ratio from telemetry:
 encoded_chars / original_chars = 440,808,870 / 6,087,468,238 = 7.24%
 ```
 
-Equivalently, the measured prompt-side context representation is about **13.8x smaller** than the full-context approximation across recorded events.
+Equivalently, the measured prompt-side context representation is about **13.8x smaller** than the recorded full-context replay approximation across recorded events.
 
 This is prompt representation efficiency, not vault disk efficiency. Vault disk efficiency should be measured separately by comparing raw transcript bytes, exact vault bytes, summaries, indexes, and embeddings.
 

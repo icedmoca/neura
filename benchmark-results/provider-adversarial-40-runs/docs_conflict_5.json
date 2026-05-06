@@ -1,0 +1,16 @@
+{
+  "id": "docs_conflict_5",
+  "domain": "docs",
+  "message": "Doc A says benchmark version is alpha-5. Doc B says benchmark version is beta-5 and is newer. What is the benchmark version? Mention the conflict and answer beta-5.",
+  "expect": [
+    "beta-5",
+    "conflict"
+  ],
+  "returncode": 0,
+  "wall_seconds": 2.767,
+  "stdout_tail": "{\n  \"session_id\": \"session_bee_1778035228544_cb94ad718bde57c2\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The documents conflict: Doc A says the benchmark version is **alpha-5**, while Doc B says it is **beta-5** and is newer.\\n\\nThe benchmark version is **beta-5**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 45,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_bee_1778035228544_cb94ad718bde57c2\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=45 cache_read=0 cache_write=0\n",
+  "passed": true,
+  "input_tokens": 4272,
+  "output_tokens": 45
+}

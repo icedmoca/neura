@@ -1,0 +1,16 @@
+{
+  "id": "docs_conflict_8",
+  "domain": "docs",
+  "message": "Doc A says benchmark version is alpha-8. Doc B says benchmark version is beta-8 and is newer. What is the benchmark version? Mention the conflict and answer beta-8.",
+  "expect": [
+    "beta-8",
+    "conflict"
+  ],
+  "returncode": 0,
+  "wall_seconds": 2.58,
+  "stdout_tail": "{\n  \"session_id\": \"session_panda_1778035262806_883645ac9eea38fb\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The documents conflict:\\n\\n- Doc A says the benchmark version is **alpha-8**.\\n- Doc B says the benchmark version is **beta-8** and is newer.\\n\\nBecause Doc B is newer, the benchmark version is **beta-8**.\",\n  \"usage\": {\n    \"input_tokens\": 4272,\n    \"output_tokens\": 55,\n    \"cache_read_input_tokens\": 3840,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_panda_1778035262806_883645ac9eea38fb\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4272 output=55 cache_read=3840 cache_write=0\n",
+  "passed": true,
+  "input_tokens": 4272,
+  "output_tokens": 55
+}

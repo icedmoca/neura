@@ -2,15 +2,15 @@
   "metadata": {
     "benchmark_type": "final_complete_benchmark_suite",
     "scope": "local telemetry + deterministic local retrieval + real provider smoke/edit/adversarial runs",
-    "generated_at_unix": 1778034848.4244385
+    "generated_at_unix": 1778035351.1931832
   },
   "token_usage_vs_baseline": {
-    "events": 3784,
-    "original_chars": 6183721727,
-    "encoded_chars": 449067957,
-    "saved_chars": 5734653770,
-    "reduction_pct": 92.74,
-    "estimated_tokens_saved_chars4": 1433663442,
+    "events": 3796,
+    "original_chars": 6202985139,
+    "encoded_chars": 450836311,
+    "saved_chars": 5752148828,
+    "reduction_pct": 92.73,
+    "estimated_tokens_saved_chars4": 1438037207,
     "short_medium_long": "see BENCHMARKS.md bucket table"
   },
   "task_success_rate": {
@@ -23,7 +23,7 @@
       "tasks": 75,
       "kcode_success_rate": 100.0,
       "full_context_success_rate": 100.0,
-      "lexical_rag_success_rate": 48.0
+      "lexical_rag_success_rate": 53.33
     }
   },
   "hallucination_rate": {
@@ -52,7 +52,7 @@
     }
   },
   "long_session_degradation": {
-    "telemetry_events": 3784,
+    "telemetry_events": 3796,
     "p50_blocks": 176,
     "p95_blocks": 640,
     "max_blocks": 662,
@@ -72,9 +72,9 @@
     "total_provider_output_tokens_known": 388,
     "successful_provider_runs_known": 9,
     "input_tokens_per_success_known": 4919.78,
-    "kcode_real_context_tokens_per_success": 14724.64,
-    "full_context_tokens_per_success": 2075181.0,
-    "rag_tokens_per_success": 48906.17
+    "kcode_real_context_tokens_per_success": 14379.59,
+    "full_context_tokens_per_success": 2100664.0,
+    "rag_tokens_per_success": 40207.12
   },
   "determinism_reproducibility": {
     "context_benchmark_runs": 5,
@@ -84,12 +84,12 @@
     "context_wall_seconds": [
       {
         "returncode": 0,
-        "wall_seconds": 0.041,
+        "wall_seconds": 0.042,
         "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
       },
       {
         "returncode": 0,
-        "wall_seconds": 0.042,
+        "wall_seconds": 0.041,
         "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
       },
       {
@@ -104,32 +104,32 @@
       },
       {
         "returncode": 0,
-        "wall_seconds": 0.041,
+        "wall_seconds": 0.04,
         "sha256": "8440d24b7832030a491307d83255d314967460d4bcd9160274da4ae9f4902f0c"
       }
     ],
     "coding_wall_seconds": [
       {
         "returncode": 0,
-        "wall_seconds": 4.348,
-        "sha256": "3a904e7168d6abc59e392074c75e7c14c54585b4274e2d30ee5c667204b0abfe"
+        "wall_seconds": 4.361,
+        "sha256": "a7bad3c1648a4944d3b78cce8ea8e66cbb8962135250853f76645f2dd57f6930"
       },
       {
         "returncode": 0,
-        "wall_seconds": 4.279,
-        "sha256": "585e75e7dfcba6b3c1a3853f9b31e4a602307eeee96b07f264e7cc8ad809152a"
+        "wall_seconds": 4.397,
+        "sha256": "ab30f2909f39886dcc90c0e76cd01ed9e57ad007f508bfb3faea693ae23c4a6f"
       },
       {
         "returncode": 0,
-        "wall_seconds": 4.283,
-        "sha256": "f13d54a13f27731b1cdf2507b60e1db0ffe571a31fec77ba99b483e14f47679e"
+        "wall_seconds": 4.437,
+        "sha256": "ab30f2909f39886dcc90c0e76cd01ed9e57ad007f508bfb3faea693ae23c4a6f"
       }
     ]
   },
   "failure_mode_analysis": {
     "lexical_rag_real_context_failures": {
-      "none": 36,
-      "missed_all_changed_files": 39
+      "none": 40,
+      "missed_all_changed_files": 35
     },
     "kcode_real_context_failures": {
       "none": 75
@@ -149,7 +149,7 @@
     "intervention_rate": 0.0
   },
   "memory_efficiency": {
-    "encoded_over_original_pct": 7.26,
-    "compression_factor": 13.77
+    "encoded_over_original_pct": 7.27,
+    "compression_factor": 13.76
   }
 }

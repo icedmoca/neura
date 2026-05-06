@@ -1,0 +1,423 @@
+{
+  "metadata": {
+    "benchmark_type": "provider_adversarial_40",
+    "runs": 40,
+    "domains": [
+      "code",
+      "docs",
+      "tool_output",
+      "memory_conflict"
+    ]
+  },
+  "summary": {
+    "runs": 40,
+    "passed": 40,
+    "pass_rate": 1.0,
+    "wilson_95": [
+      0.9124,
+      1.0
+    ],
+    "by_domain": {
+      "code": {
+        "runs": 10,
+        "passed": 10,
+        "pass_rate": 1.0,
+        "wilson_95": [
+          0.7225,
+          1.0
+        ]
+      },
+      "docs": {
+        "runs": 10,
+        "passed": 10,
+        "pass_rate": 1.0,
+        "wilson_95": [
+          0.7225,
+          1.0
+        ]
+      },
+      "tool_output": {
+        "runs": 10,
+        "passed": 10,
+        "pass_rate": 1.0,
+        "wilson_95": [
+          0.7225,
+          1.0
+        ]
+      },
+      "memory_conflict": {
+        "runs": 10,
+        "passed": 10,
+        "pass_rate": 1.0,
+        "wilson_95": [
+          0.7225,
+          1.0
+        ]
+      }
+    },
+    "input_tokens_total": 172670,
+    "input_tokens_mean": 4316.75
+  },
+  "runs": [
+    {
+      "id": "code_fake_0",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 2.165,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 42
+    },
+    {
+      "id": "docs_conflict_0",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 2.856,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 51
+    },
+    {
+      "id": "tool_output_absent_0",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 2.466,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 27
+    },
+    {
+      "id": "memory_conflict_0",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 3.177,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 74
+    },
+    {
+      "id": "code_fake_1",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 2.317,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 33
+    },
+    {
+      "id": "docs_conflict_1",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 2.88,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 46
+    },
+    {
+      "id": "tool_output_absent_1",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 2.529,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 30
+    },
+    {
+      "id": "memory_conflict_1",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 3.668,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 77
+    },
+    {
+      "id": "code_fake_2",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 2.355,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 31
+    },
+    {
+      "id": "docs_conflict_2",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 3.119,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 44
+    },
+    {
+      "id": "tool_output_absent_2",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 2.231,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 27
+    },
+    {
+      "id": "memory_conflict_2",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 3.454,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 79
+    },
+    {
+      "id": "code_fake_3",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 3.907,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 38
+    },
+    {
+      "id": "docs_conflict_3",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 3.045,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 46
+    },
+    {
+      "id": "tool_output_absent_3",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 2.191,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 27
+    },
+    {
+      "id": "memory_conflict_3",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 3.204,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 67
+    },
+    {
+      "id": "code_fake_4",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 3.429,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 28
+    },
+    {
+      "id": "docs_conflict_4",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 3.106,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 49
+    },
+    {
+      "id": "tool_output_absent_4",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 2.472,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 29
+    },
+    {
+      "id": "memory_conflict_4",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 2.655,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 74
+    },
+    {
+      "id": "code_fake_5",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 4.522,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 42
+    },
+    {
+      "id": "docs_conflict_5",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 2.767,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 45
+    },
+    {
+      "id": "tool_output_absent_5",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 1.851,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 26
+    },
+    {
+      "id": "memory_conflict_5",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 2.964,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 65
+    },
+    {
+      "id": "code_fake_6",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 2.808,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 30
+    },
+    {
+      "id": "docs_conflict_6",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 3.573,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 47
+    },
+    {
+      "id": "tool_output_absent_6",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 2.188,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 26
+    },
+    {
+      "id": "memory_conflict_6",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 2.6,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 60
+    },
+    {
+      "id": "code_fake_7",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 2.689,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 29
+    },
+    {
+      "id": "docs_conflict_7",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 3.227,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 51
+    },
+    {
+      "id": "tool_output_absent_7",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 3.647,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 28
+    },
+    {
+      "id": "memory_conflict_7",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 3.778,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 39
+    },
+    {
+      "id": "code_fake_8",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 2.168,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 32
+    },
+    {
+      "id": "docs_conflict_8",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 2.58,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 55
+    },
+    {
+      "id": "tool_output_absent_8",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 3.918,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 32
+    },
+    {
+      "id": "memory_conflict_8",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 14.245,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 68
+    },
+    {
+      "id": "code_fake_9",
+      "domain": "code",
+      "returncode": 0,
+      "wall_seconds": 2.798,
+      "passed": true,
+      "input_tokens": 4271,
+      "output_tokens": 28
+    },
+    {
+      "id": "docs_conflict_9",
+      "domain": "docs",
+      "returncode": 0,
+      "wall_seconds": 3.414,
+      "passed": true,
+      "input_tokens": 4272,
+      "output_tokens": 57
+    },
+    {
+      "id": "tool_output_absent_9",
+      "domain": "tool_output",
+      "returncode": 0,
+      "wall_seconds": 2.08,
+      "passed": true,
+      "input_tokens": 4269,
+      "output_tokens": 29
+    },
+    {
+      "id": "memory_conflict_9",
+      "domain": "memory_conflict",
+      "returncode": 0,
+      "wall_seconds": 2.725,
+      "passed": true,
+      "input_tokens": 4455,
+      "output_tokens": 69
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "tool_output_absent_4",
+  "domain": "tool_output",
+  "message": "The previous tool output said exit code 74, but this prompt includes no actual tool transcript. What exact stderr line did it print? If absent, answer NOT_FOUND only.",
+  "expect": [
+    "NOT_FOUND"
+  ],
+  "returncode": 0,
+  "wall_seconds": 2.472,
+  "stdout_tail": "{\n  \"session_id\": \"session_giraffe_1778035218894_f67918005c3861ad\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4269,\n    \"output_tokens\": 29,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_giraffe_1778035218894_f67918005c3861ad\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4269 output=29 cache_read=0 cache_write=0\n",
+  "passed": true,
+  "input_tokens": 4269,
+  "output_tokens": 29
+}
