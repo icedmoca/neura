@@ -1,0 +1,46 @@
+{
+  "metadata": {
+    "blocks": 80,
+    "queries": 12,
+    "token_estimate": "chars/4",
+    "benchmark_type": "deterministic_context_layer_no_remote_model"
+  },
+  "summary": {
+    "full_context": {
+      "queries": 12,
+      "successes": 12,
+      "success_rate": 1.0,
+      "hallucinations": 0,
+      "hallucination_rate": 0.0,
+      "misses": 0,
+      "miss_rate": 0.0,
+      "prompt_chars": 98796,
+      "estimated_prompt_tokens": 24699,
+      "estimated_tokens_per_success": 2058.25
+    },
+    "kcode_exact": {
+      "queries": 12,
+      "successes": 12,
+      "success_rate": 1.0,
+      "hallucinations": 0,
+      "hallucination_rate": 0.0,
+      "misses": 0,
+      "miss_rate": 0.0,
+      "prompt_chars": 38351,
+      "estimated_prompt_tokens": 9588,
+      "estimated_tokens_per_success": 798.98
+    },
+    "lexical_rag": {
+      "queries": 12,
+      "successes": 8,
+      "success_rate": 0.6666666666666666,
+      "hallucinations": 4,
+      "hallucination_rate": 0.3333333333333333,
+      "misses": 2,
+      "miss_rate": 0.16666666666666666,
+      "prompt_chars": 5634,
+      "estimated_prompt_tokens": 1408,
+      "estimated_tokens_per_success": 176.06
+    }
+  }
+}

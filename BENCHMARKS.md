@@ -60,6 +60,39 @@ Current behavior:
 
 This is designed to reduce fixed prompt overhead without disabling tools. Regression coverage includes dynamic tool-filter tests for web/file/browser/direct-answer cases.
 
+
+## Deterministic context-layer benchmark run
+
+A reproducible local benchmark harness now lives at `scripts/context_benchmark.py`. It does not call a remote model. Instead, it isolates the context layer and compares three strategies over 80 synthetic-but-deterministic context blocks and 12 queries:
+
+- **full_context:** sends every block and always has the answer when it exists,
+- **kcode_exact:** sends compact refs and rehydrates the exact block by ID/alias/query,
+- **lexical_rag:** retrieves the top 3 blocks with simple bag-of-words lexical scoring.
+
+This benchmark directly covers task success vs token cost, context recall accuracy, and unsupported-answer/hallucination behavior for the retrieval layer.
+
+| Strategy | Queries | Success rate | Hallucination rate | Miss rate | Prompt chars | Est. prompt tokens | Est. tokens/success |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Full context | 12 | 100.00% | 0.00% | 0.00% | 98,796 | 24,699 | 2,058.25 |
+| Kcode exact refs | 12 | 100.00% | 0.00% | 0.00% | 38,351 | 9,588 | 798.98 |
+| Lexical RAG | 12 | 66.67% | 33.33% | 16.67% | 5,634 | 1,408 | 176.06 |
+
+Measured result: Kcode exact refs matched full-context success and hallucination behavior while using **61.18% fewer estimated prompt tokens** than full context on this benchmark. Lexical RAG was cheapest, but it missed or hallucinated on several queries because the top lexical hits can be distractors or obsolete facts.
+
+Artifacts:
+
+- script: `scripts/context_benchmark.py`,
+- full JSON results: `benchmark-results/context_benchmark.json`,
+- summary JSON: `benchmark-results/context_benchmark_summary.json`.
+
+Re-run:
+
+```bash
+python3 scripts/context_benchmark.py
+```
+
+Caveat: this is a deterministic local context benchmark, not a remote-model end-to-end benchmark. It measures whether the context strategy supplies the right evidence at what prompt cost. End-to-end model task success, latency, and cost still need provider runs using the same harness prompts.
+
 ## Task success rate
 
 | Benchmark | Current status |
