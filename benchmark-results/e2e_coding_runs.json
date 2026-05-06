@@ -1,0 +1,121 @@
+{
+  "metadata": {
+    "benchmark_type": "combined_benchmark_report",
+    "generated_at_unix": 1778032608.3576498,
+    "repo": "~/.kcode/build-src/kcode",
+    "note": "Remote-model autonomous coding runs are marked UNMEASURED. Local results measure context availability, oracle upper bounds, and focused test execution."
+  },
+  "task_success_vs_token_cost": {
+    "full_context": {
+      "tasks": 75,
+      "oracle_patch_successes_upper_bound": 75,
+      "oracle_patch_success_rate_upper_bound": 1.0,
+      "estimated_prompt_tokens": 155638575,
+      "estimated_tokens_per_oracle_success": 2075181.0,
+      "autonomous_model_success_rate": "UNMEASURED",
+      "autonomous_model_tokens": "UNMEASURED"
+    },
+    "kcode_path_exact": {
+      "tasks": 75,
+      "oracle_patch_successes_upper_bound": 75,
+      "oracle_patch_success_rate_upper_bound": 1.0,
+      "estimated_prompt_tokens": 1104348,
+      "estimated_tokens_per_oracle_success": 14724.64,
+      "autonomous_model_success_rate": "UNMEASURED",
+      "autonomous_model_tokens": "UNMEASURED"
+    },
+    "lexical_rag": {
+      "tasks": 75,
+      "oracle_patch_successes_upper_bound": 36,
+      "oracle_patch_success_rate_upper_bound": 0.48,
+      "estimated_prompt_tokens": 1760622,
+      "estimated_tokens_per_oracle_success": 48906.17,
+      "autonomous_model_success_rate": "UNMEASURED",
+      "autonomous_model_tokens": "UNMEASURED"
+    }
+  },
+  "context_recall_accuracy": {
+    "full_context": {
+      "queries": 12,
+      "successes": 12,
+      "success_rate": 1.0,
+      "hallucinations": 0,
+      "hallucination_rate": 0.0,
+      "misses": 0,
+      "miss_rate": 0.0,
+      "prompt_chars": 98796,
+      "estimated_prompt_tokens": 24699,
+      "estimated_tokens_per_success": 2058.25
+    },
+    "kcode_exact": {
+      "queries": 12,
+      "successes": 12,
+      "success_rate": 1.0,
+      "hallucinations": 0,
+      "hallucination_rate": 0.0,
+      "misses": 0,
+      "miss_rate": 0.0,
+      "prompt_chars": 38351,
+      "estimated_prompt_tokens": 9588,
+      "estimated_tokens_per_success": 798.98
+    },
+    "lexical_rag": {
+      "queries": 12,
+      "successes": 8,
+      "success_rate": 0.6666666666666666,
+      "hallucinations": 4,
+      "hallucination_rate": 0.3333333333333333,
+      "misses": 2,
+      "miss_rate": 0.16666666666666666,
+      "prompt_chars": 5634,
+      "estimated_prompt_tokens": 1408,
+      "estimated_tokens_per_success": 176.06
+    }
+  },
+  "real_repo_context_retrieval": {
+    "full_context": {
+      "tasks": 75,
+      "successes": 75,
+      "success_rate": 1.0,
+      "estimated_prompt_tokens": 155638575,
+      "estimated_tokens_per_success": 2075181.0,
+      "failure_types": {
+        "none": 75
+      }
+    },
+    "kcode_path_exact": {
+      "tasks": 75,
+      "successes": 75,
+      "success_rate": 1.0,
+      "estimated_prompt_tokens": 1104348,
+      "estimated_tokens_per_success": 14724.64,
+      "failure_types": {
+        "none": 75
+      }
+    },
+    "lexical_rag": {
+      "tasks": 75,
+      "successes": 36,
+      "success_rate": 0.48,
+      "estimated_prompt_tokens": 1760622,
+      "estimated_tokens_per_success": 48906.17,
+      "failure_types": {
+        "none": 36,
+        "missed_all_changed_files": 39
+      }
+    }
+  },
+  "local_test_probe": {
+    "command": "cargo test dynamic_tool_filter_tests --lib",
+    "success": true,
+    "wall_seconds": 13.875,
+    "tail": "me/dad/.kcode/build-src/kcode)\n    Finished `test` profile [unoptimized] target(s) in 13.82s\n     Running unittests src/lib.rs (target/debug/deps/kcode-a3cc3a606a9000c1)\n\nrunning 2 tests\ntest agent::turn_execution::dynamic_tool_filter_tests::weather_turn_keeps_web_tools_and_expand_fallback ... ok\ntest agent::turn_execution::dynamic_tool_filter_tests::direct_answer_turn_keeps_only_core_tools ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 2505 filtered out; finished in 0.00s\n\n"
+  },
+  "unmeasured": [
+    "autonomous remote-model coding success rate",
+    "provider-billed token cost for full multi-turn coding runs",
+    "messy ambiguous prompt behavior with live user interaction",
+    "long-session degradation over remote model rollouts",
+    "human-graded hallucination rate on natural language answers"
+  ]
+}

@@ -94,6 +94,33 @@ python3 scripts/context_benchmark.py
 Caveat: this is a deterministic local context benchmark, not a remote-model end-to-end benchmark. It measures whether the context strategy supplies the right evidence at what prompt cost. End-to-end model task success, latency, and cost still need provider runs using the same harness prompts.
 
 
+
+## Real provider-call smoke benchmark
+
+This run uses the actual non-interactive Kcode CLI with OpenAI `gpt-5.5`:
+
+```bash
+kcode run --json --trace --quiet --no-update --no-selfdev --cwd ~/.kcode/build-src/kcode <message>
+```
+
+It is intentionally small to avoid runaway cost, but it verifies that provider calls, JSON usage accounting, direct-answer behavior, and tool-capable prompts work end to end.
+
+Artifacts:
+
+- full results: `benchmark-results/provider_calls.json`,
+- summary: `benchmark-results/provider_calls_summary.json`,
+- per-run traces: `benchmark-results/provider-runs/*.json`.
+
+| Run | Kind | Return code | Wall time | Input tokens | Output tokens | Result |
+|---|---|---:|---:|---:|---:|---|
+| `direct_time_arizona` | direct answer | 0 | 1.989s | 4,258 | 26 | Correct MST/UTC-7 answer |
+| `file_read_readme` | file/tool-capable | 0 | 4.963s | 4,712 | 16 | Correctly found first README heading |
+| `repo_file_count` | file/tool-capable | 0 | 5.076s | 4,399 | 5 | Correct top-level Markdown count |
+
+Measured result: after the token/tool-schema fixes, a fresh direct-answer provider call used **4,258 input tokens**, far below the previously observed bloated-session 43k-token behavior. Tool-capable file prompts completed successfully with usage traces under 4.8k input tokens in this smoke run.
+
+Caveat: this is a provider smoke benchmark, not a large statistical study. It proves the pipeline can make real provider calls with bounded token usage and tool-capable answers, but it does not by itself prove long-horizon coding-task success.
+
 ## Real repo coding-task context benchmark
 
 This benchmark mines real work from the Kcode git history. Each task is a real changed file from a real non-merge commit, represented as: commit subject plus the changed file path. The benchmark compares whether each context strategy supplies the file needed for the task, and at what prompt cost.

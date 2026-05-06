@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "benchmark_type": "real_provider_kcode_run_smoke",
+    "runs": 3
+  },
+  "summary": [
+    {
+      "id": "direct_time_arizona",
+      "kind": "direct_answer",
+      "returncode": 0,
+      "wall_seconds": 1.989,
+      "json_ok": true,
+      "mentions_tool": true,
+      "has_token_trace": true,
+      "output_excerpt": "{\n  \"session_id\": \"session_donkey_1778032675380_eb62810bafab33a3\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"Arizona is in Mountain Standard Time (MST, UTC-7) year-round outside the Navajo Nation.\",\n  \"usage\": {\n    \"input_tokens\": 4258,\n    \"output_tokens\": 26,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}"
+    },
+    {
+      "id": "file_read_readme",
+      "kind": "file_tool",
+      "returncode": 0,
+      "wall_seconds": 4.963,
+      "json_ok": true,
+      "mentions_tool": true,
+      "has_token_trace": true,
+      "output_excerpt": "{\n  \"session_id\": \"session_jaguar_1778032677369_b9eff6735df1c5b6\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The first Markdown heading in README.md is `## Documentation`.\",\n  \"usage\": {\n    \"input_tokens\": 4712,\n    \"output_tokens\": 16,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}"
+    },
+    {
+      "id": "repo_file_count",
+      "kind": "file_tool",
+      "returncode": 0,
+      "wall_seconds": 5.076,
+      "json_ok": true,
+      "mentions_tool": true,
+      "has_token_trace": true,
+      "output_excerpt": "{\n  \"session_id\": \"session_giraffe_1778032682333_e70cbe46859387f5\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"5\",\n  \"usage\": {\n    \"input_tokens\": 4399,\n    \"output_tokens\": 5,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}"
+    }
+  ]
+}
