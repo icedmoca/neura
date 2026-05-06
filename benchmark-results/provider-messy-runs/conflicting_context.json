@@ -1,0 +1,20 @@
+{
+  "id": "conflicting_context",
+  "kind": "messy_conflict",
+  "message": "Context A says deploy target is staging-green. Context B says deploy target is staging-blue and is newer. What is the deploy target? Answer with the newer value and mention conflict.",
+  "returncode": 0,
+  "wall_seconds": 3.581,
+  "stdout_tail": "{\n  \"session_id\": \"session_shark_1778033114833_40ae595bdff11de6\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The deploy target is **staging-blue**.\\n\\nConflict noted: Context A says **staging-green**, but newer Context B says **staging-blue**.\",\n  \"usage\": {\n    \"input_tokens\": 4270,\n    \"output_tokens\": 36,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_shark_1778033114833_40ae595bdff11de6\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4270 output=36 cache_read=0 cache_write=0\n",
+  "usage_pairs": [
+    [
+      "input_tokens",
+      "4270"
+    ],
+    [
+      "output_tokens",
+      "36"
+    ]
+  ],
+  "passed_guard": true
+}

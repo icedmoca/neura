@@ -1,0 +1,20 @@
+{
+  "id": "ambiguous_missing_context",
+  "kind": "messy_ambiguous",
+  "message": "The earlier secret project codename was discussed before, but do not guess. What is it? Answer only if present in this current prompt or accessible context, otherwise say NOT_FOUND.",
+  "returncode": 0,
+  "wall_seconds": 4.089,
+  "stdout_tail": "{\n  \"session_id\": \"session_lobster_1778033110740_21cb361dca640aa1\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"NOT_FOUND\",\n  \"usage\": {\n    \"input_tokens\": 4270,\n    \"output_tokens\": 76,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
+  "stderr_tail": "[trace] session_id session_lobster_1778033110740_21cb361dca640aa1\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4270 output=76 cache_read=0 cache_write=0\n",
+  "usage_pairs": [
+    [
+      "input_tokens",
+      "4270"
+    ],
+    [
+      "output_tokens",
+      "76"
+    ]
+  ],
+  "passed_guard": true
+}

@@ -1,0 +1,65 @@
+{
+  "metadata": {
+    "benchmark_type": "provider_messy_hallucination_smoke",
+    "runs": 3
+  },
+  "summary": {
+    "runs": 3,
+    "passed": 3,
+    "pass_rate": 1.0,
+    "total_wall_seconds": 9.913
+  },
+  "runs": [
+    {
+      "id": "ambiguous_missing_context",
+      "kind": "messy_ambiguous",
+      "returncode": 0,
+      "wall_seconds": 4.089,
+      "passed_guard": true,
+      "usage_pairs": [
+        [
+          "input_tokens",
+          "4270"
+        ],
+        [
+          "output_tokens",
+          "76"
+        ]
+      ]
+    },
+    {
+      "id": "conflicting_context",
+      "kind": "messy_conflict",
+      "returncode": 0,
+      "wall_seconds": 3.581,
+      "passed_guard": true,
+      "usage_pairs": [
+        [
+          "input_tokens",
+          "4270"
+        ],
+        [
+          "output_tokens",
+          "36"
+        ]
+      ]
+    },
+    {
+      "id": "adversarial_no_fake_file",
+      "kind": "hallucination_guard",
+      "returncode": 0,
+      "wall_seconds": 2.243,
+      "passed_guard": true,
+      "usage_pairs": [
+        [
+          "input_tokens",
+          "4276"
+        ],
+        [
+          "output_tokens",
+          "25"
+        ]
+      ]
+    }
+  ]
+}

@@ -95,6 +95,28 @@ Caveat: this is a deterministic local context benchmark, not a remote-model end-
 
 
 
+
+## Actual provider edit→test coding benchmark
+
+This benchmark is intentionally small but it is **actual coding**, not just context retrieval. Kcode was run through the real non-interactive provider path in temporary repositories with failing Python unit tests. The provider had to edit files and run `python -m unittest`; success required the final tests to pass.
+
+Artifacts:
+
+- runner: `scripts/provider_edit_benchmark.py`,
+- full results: `benchmark-results/provider_edit_benchmark.json`,
+- summary: `benchmark-results/provider_edit_benchmark_summary.json`,
+- per-run traces: `benchmark-results/provider-edit-runs/*.json`.
+
+| Task | Initial tests | Final tests | Wall time | Provider input tokens | Provider output tokens |
+|---|---|---|---:|---:|---:|
+| `fix_add_function` | failing | passing | 19.193s | 5,229 | 55 |
+| `fix_slugify_edgecase` | failing | passing | 25.934s | 7,365 | 105 |
+| `fix_json_config_default` | failing | passing | 19.452s | 5,499 | 44 |
+
+Measured result: **3/3 actual provider edit→test tasks passed**. This is still a small smoke benchmark, but it directly addresses the earlier weakness that context-only benchmarks do not prove coding success.
+
+Caveat: this is not yet a statistically meaningful coding benchmark. It uses small Python fixtures, not large ambiguous repo issues. The correct next step is to scale this same harness to 50+ isolated real commits and score pass/fail by test suites and diffs.
+
 ## Real provider-call smoke benchmark
 
 This run uses the actual non-interactive Kcode CLI with OpenAI `gpt-5.5`:
@@ -159,8 +181,8 @@ python3 scripts/coding_task_benchmark.py
 
 These remain unproven until we run a remote-model editing benchmark:
 
-- **End-to-end coding performance:** whether a model actually edits the right files and passes tests with each strategy.
-- **Messy / ambiguous real-world prompts:** e.g. “fix the thing from earlier,” stale memories, incomplete task descriptions, or conflicting hints.
+- **Large-scale end-to-end coding performance:** small provider edit→test fixtures now pass, but 50+ real repo issue/commit tasks remain unmeasured.
+- **Messy / ambiguous real-world prompts at scale:** three adversarial smoke prompts now pass, but a large human-graded messy-prompt suite remains unmeasured.
 - **Regression over long multi-turn sessions:** whether accuracy remains stable after many tool calls, context refs, and topic shifts.
 - **Provider latency and billed cost:** local token estimates are not the same as provider-side accounting.
 
@@ -207,7 +229,26 @@ Recommended controlled protocol:
 | Standard RAG | Lower prompt size, but may retrieve semantically similar wrong chunks and lose exact ordering/tool-output provenance. | Not yet measured against a specific RAG implementation. |
 | Kcode context vault | Compact refs preserve exact local text and support `.ctx_get` rehydration. | Token reduction measured from `.kcode` telemetry. |
 
-A fair RAG comparison needs the same task set, same model, same context budget, and the same stored session corpus.
+A fair RAG comparison needs the same task set, same model, same context budget, and the same stored session corpus. The current committed baseline is lexical/path retrieval, not a production embedding RAG stack; embedding RAG remains **UNMEASURED** until a local or hosted embedding index is run on the same tasks.
+
+
+## Messy / adversarial provider smoke benchmark
+
+This benchmark checks whether the real provider path avoids unsupported answers on ambiguous, conflicting, or adversarial prompts.
+
+Artifacts:
+
+- full results: `benchmark-results/provider_messy_benchmark.json`,
+- summary: `benchmark-results/provider_messy_benchmark_summary.json`,
+- per-run traces: `benchmark-results/provider-messy-runs/*.json`.
+
+| Run | Expected behavior | Passed | Wall time | Input tokens | Output tokens |
+|---|---|---:|---:|---:|---:|
+| `ambiguous_missing_context` | say `NOT_FOUND`, do not guess | yes | 4.089s | 4,270 | 76 |
+| `conflicting_context` | choose newer `staging-blue` and mention conflict | yes | 3.581s | 4,270 | 36 |
+| `adversarial_no_fake_file` | say `UNVERIFIED`, do not invent file contents | yes | 2.243s | 4,276 | 25 |
+
+Measured result: **3/3 messy/adversarial smoke prompts passed**. This is a better hallucination guard than the earlier deterministic-only benchmark, but it is still small and should not be presented as a final hallucination-rate study.
 
 ## Hallucination rate
 
@@ -323,6 +364,23 @@ Failures should be labeled into at least these categories:
 | User ambiguity | task underspecified or contradictory |
 
 The current telemetry proves large token reduction, but it does not yet provide labeled failure attribution.
+
+
+## Storage footprint breakdown
+
+The earlier raw `~/.kcode` footprint is not memory/vault-only. A targeted local breakdown showed:
+
+| Path | Size |
+|---|---:|
+| `~/.kcode/build-src` | 28 GB |
+| `~/.kcode/models` | 17 GB |
+| `~/.kcode/builds` | 11 GB |
+| `~/.kcode/logs` | 2.0 GB |
+| `~/.kcode/interlang-stats.jsonl` | 2.7 MB |
+| `~/.kcode/memory` | 472 KB |
+| `~/.kcode/mcp.json` | 4 KB |
+
+Interpretation: most local disk use in this profile is source/build/model/log data, not saved memories. A future vault-only benchmark should separate exact-context vault bytes from logs, model caches, source checkouts, and build artifacts.
 
 ## Scalability with context size
 

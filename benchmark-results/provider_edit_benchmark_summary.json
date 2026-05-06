@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "benchmark_type": "real_provider_edit_test",
+    "tasks": 3
+  },
+  "summary": {
+    "tasks": 3,
+    "successes": 3,
+    "success_rate": 1.0,
+    "total_provider_wall_seconds": 64.579
+  },
+  "runs": [
+    {
+      "id": "fix_add_function",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 19.193,
+      "final_tests_passed": true
+    },
+    {
+      "id": "fix_slugify_edgecase",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 25.934,
+      "final_tests_passed": true
+    },
+    {
+      "id": "fix_json_config_default",
+      "initial_tests_passed": false,
+      "provider_returncode": 0,
+      "provider_wall_seconds": 19.452,
+      "final_tests_passed": true
+    }
+  ]
+}
