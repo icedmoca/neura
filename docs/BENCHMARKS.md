@@ -14,11 +14,11 @@ This report is written as an engineering benchmark, not a marketing claim. Every
 
 | ID | Hypothesis | Primary metric | Primary artifact |
 |---|---|---|---|
-| H1 | Compact context reduces prompt representation size versus Kcode's recorded uncompressed replay baseline. | Aggregate reduction %, chars/token estimate | `benchmark-results/final_complete_benchmark_suite.json` |
-| H2 | Exact/path-aware context retrieval preserves needed context better than a simple lexical/path RAG baseline on repo-history tasks. | Context success rate, failure types | `benchmark-results/coding_task_benchmark.json` |
-| H3 | Kcode's provider pipeline can perform real edit→test loops on bounded coding fixtures. | Final tests passed / tasks | `benchmark-results/provider_edit_benchmark.json` |
-| H4 | Kcode avoids unsupported answers on the defined adversarial hallucination suite. | Pass rate, Wilson interval | `benchmark-results/provider_adversarial_80_summary.json` |
-| H5 | Provider latency is acceptable for small direct/file/edit/adversarial runs. | p50/p95/max wall time | `benchmark-results/final_complete_benchmark_suite.json` |
+| H1 | Compact context reduces prompt representation size versus Kcode's recorded uncompressed replay baseline. | Aggregate reduction %, chars/token estimate | `../benchmark-results/final_complete_benchmark_suite.json` |
+| H2 | Exact/path-aware context retrieval preserves needed context better than a simple lexical/path RAG baseline on repo-history tasks. | Context success rate, failure types | `../benchmark-results/coding_task_benchmark.json` |
+| H3 | Kcode's provider pipeline can perform real edit→test loops on bounded coding fixtures. | Final tests passed / tasks | `../benchmark-results/provider_edit_benchmark.json` |
+| H4 | Kcode avoids unsupported answers on the defined adversarial hallucination suite. | Pass rate, Wilson interval | `../benchmark-results/provider_adversarial_80_summary.json` |
+| H5 | Provider latency is acceptable for small direct/file/edit/adversarial runs. | p50/p95/max wall time | `../benchmark-results/final_complete_benchmark_suite.json` |
 
 ### Claims ledger
 
@@ -53,7 +53,7 @@ This report is written as an engineering benchmark, not a marketing claim. Every
 
 ### Artifact manifest
 
-A checksum manifest is committed at `benchmark-results/artifact_manifest.json`. It records path, size, and SHA-256 for benchmark scripts, JSON results, and this document, enabling reviewers to verify that tables correspond to committed artifacts.
+A checksum manifest is committed at `../benchmark-results/artifact_manifest.json`. It records path, size, and SHA-256 for benchmark scripts, JSON results, and this document, enabling reviewers to verify that tables correspond to committed artifacts.
 
 ## Evaluation architecture
 
@@ -179,7 +179,7 @@ This is designed to reduce fixed prompt overhead without disabling tools. Regres
 
 ## Deterministic context-layer benchmark run
 
-A reproducible local benchmark harness now lives at `scripts/context_benchmark.py`. It does not call a remote model. Instead, it isolates the context layer and compares three strategies over 80 synthetic-but-deterministic context blocks and 12 queries:
+A reproducible local benchmark harness now lives at `../scripts/context_benchmark.py`. It does not call a remote model. Instead, it isolates the context layer and compares three strategies over 80 synthetic-but-deterministic context blocks and 12 queries:
 
 - **full_context:** sends every block and always has the answer when it exists,
 - **kcode_exact:** sends compact refs and rehydrates the exact block by ID/alias/query,
@@ -197,14 +197,14 @@ Measured result: Kcode exact refs matched full-context success and hallucination
 
 Artifacts:
 
-- script: `scripts/context_benchmark.py`,
-- full JSON results: `benchmark-results/context_benchmark.json`,
-- summary JSON: `benchmark-results/context_benchmark_summary.json`.
+- script: `../scripts/context_benchmark.py`,
+- full JSON results: `../benchmark-results/context_benchmark.json`,
+- summary JSON: `../benchmark-results/context_benchmark_summary.json`.
 
 Re-run:
 
 ```bash
-python3 scripts/context_benchmark.py
+python3 ../scripts/context_benchmark.py
 ```
 
 Scope note: this is a deterministic local context benchmark, not a remote-model end-to-end benchmark. It measures whether the context strategy supplies the right evidence at what prompt cost. End-to-end model task success, latency, and cost still need provider runs using the same harness prompts.
@@ -218,10 +218,10 @@ This benchmark is intentionally small but it is **actual coding**, not just cont
 
 Artifacts:
 
-- runner: `scripts/provider_edit_benchmark.py`,
-- full results: `benchmark-results/provider_edit_benchmark.json`,
-- summary: `benchmark-results/provider_edit_benchmark_summary.json`,
-- per-run traces: `benchmark-results/provider-edit-runs/*.json`.
+- runner: `../scripts/provider_edit_benchmark.py`,
+- full results: `../benchmark-results/provider_edit_benchmark.json`,
+- summary: `../benchmark-results/provider_edit_benchmark_summary.json`,
+- per-run traces: `../benchmark-results/provider-edit-runs/*.json`.
 
 | Task | Initial tests | Final tests | Wall time | Provider input tokens | Provider output tokens |
 |---|---|---|---:|---:|---:|
@@ -245,9 +245,9 @@ It is intentionally small to avoid runaway cost, but it verifies that provider c
 
 Artifacts:
 
-- full results: `benchmark-results/provider_calls.json`,
-- summary: `benchmark-results/provider_calls_summary.json`,
-- per-run traces: `benchmark-results/provider-runs/*.json`.
+- full results: `../benchmark-results/provider_calls.json`,
+- summary: `../benchmark-results/provider_calls_summary.json`,
+- per-run traces: `../benchmark-results/provider-runs/*.json`.
 
 | Run | Kind | Return code | Wall time | Input tokens | Output tokens | Result |
 |---|---|---:|---:|---:|---:|---|
@@ -262,7 +262,7 @@ Scope note: this is a provider smoke benchmark, not a large statistical study. I
 
 ## Task sampling and audit trail
 
-The real repo context benchmark is generated by `scripts/coding_task_benchmark.py` from non-merge git history. The task miner:
+The real repo context benchmark is generated by `../scripts/coding_task_benchmark.py` from non-merge git history. The task miner:
 
 1. walks recent commits with `git log --no-merges`,
 2. filters to text/code/doc extensions that exist in the current checkout,
@@ -270,7 +270,7 @@ The real repo context benchmark is generated by `scripts/coding_task_benchmark.p
 4. creates commit-file tasks from real changed files,
 5. caps the run at 75 tasks for stable runtime and artifact size.
 
-The full task list, including commit IDs, task subjects, target files, retrieved files, and failure modes, is stored in `benchmark-results/coding_task_benchmark.json`. This makes the sample auditable rather than hand-picked from successful examples.
+The full task list, including commit IDs, task subjects, target files, retrieved files, and failure modes, is stored in `../benchmark-results/coding_task_benchmark.json`. This makes the sample auditable rather than hand-picked from successful examples.
 
 The provider edit→test benchmark uses synthetic Python fixtures because it must be safe, quick, and isolated. Those fixtures are useful pipeline smoke tests, not a substitute for replaying large real issues from parent commits.
 
@@ -282,9 +282,9 @@ This is closer to end-to-end coding than the synthetic context benchmark, but it
 
 Artifacts:
 
-- script: `scripts/coding_task_benchmark.py`,
-- full JSON results: `benchmark-results/coding_task_benchmark.json`,
-- summary JSON: `benchmark-results/coding_task_benchmark_summary.json`.
+- script: `../scripts/coding_task_benchmark.py`,
+- full JSON results: `../benchmark-results/coding_task_benchmark.json`,
+- summary JSON: `../benchmark-results/coding_task_benchmark_summary.json`.
 
 Measured run:
 
@@ -299,7 +299,7 @@ Measured result: on 75 real git-history coding-context tasks, Kcode path-exact r
 Re-run:
 
 ```bash
-python3 scripts/coding_task_benchmark.py
+python3 ../scripts/coding_task_benchmark.py
 ```
 
 ### What this proves
@@ -369,9 +369,9 @@ This benchmark checks whether the real provider path avoids unsupported answers 
 
 Artifacts:
 
-- full results: `benchmark-results/provider_messy_benchmark.json`,
-- summary: `benchmark-results/provider_messy_benchmark_summary.json`,
-- per-run traces: `benchmark-results/provider-messy-runs/*.json`.
+- full results: `../benchmark-results/provider_messy_benchmark.json`,
+- summary: `../benchmark-results/provider_messy_benchmark_summary.json`,
+- per-run traces: `../benchmark-results/provider-messy-runs/*.json`.
 
 | Run | Expected behavior | Passed | Wall time | Input tokens | Output tokens |
 |---|---|---:|---:|---:|---:|
@@ -388,10 +388,10 @@ The earlier 9-run smoke suite was useful but statistically weak, and the later 4
 
 Artifacts:
 
-- runner: `scripts/adversarial_40_benchmark.py`,
-- full results: `benchmark-results/provider_adversarial_80.json`,
-- summary: `benchmark-results/provider_adversarial_80_summary.json`,
-- per-run traces: `benchmark-results/provider-adversarial-80-runs/*.json`.
+- runner: `../scripts/adversarial_40_benchmark.py`,
+- full results: `../benchmark-results/provider_adversarial_80.json`,
+- summary: `../benchmark-results/provider_adversarial_80_summary.json`,
+- per-run traces: `../benchmark-results/provider-adversarial-80-runs/*.json`.
 
 | Domain | Runs | Passes | Pass rate | Wilson 95% interval |
 |---|---:|---:|---:|---:|
@@ -508,7 +508,7 @@ Determinism benchmark:
 
 ## Advanced gap proxy metrics
 
-The following section addresses the remaining areas that were called out as weak. These are **measured proxy metrics**, not final proof for every real-world workflow. The raw artifact is `benchmark-results/advanced_gap_metrics.json`; the script is `scripts/advanced_benchmark_gaps.py`.
+The following section addresses the remaining areas that were called out as weak. These are **measured proxy metrics**, not final proof for every real-world workflow. The raw artifact is `../benchmark-results/advanced_gap_metrics.json`; the script is `../scripts/advanced_benchmark_gaps.py`.
 
 ### Large repo navigation under ambiguity
 
@@ -776,11 +776,11 @@ Required external baselines:
 - at least one embedding RAG baseline with committed model/index/chunking settings,
 - optionally another coding agent under the same task and token budget.
 
-The current artifacts are structured so an external runner can reuse the same task lists and write comparable JSON summaries under `benchmark-results/`.
+The current artifacts are structured so an external runner can reuse the same task lists and write comparable JSON summaries under `../benchmark-results/`.
 
 ## Reproducing the measured telemetry summary
 
-From a Kcode profile with `~/.kcode/interlang-stats.jsonl`:
+From the repository root, or by adjusting paths relative to `docs/`:
 
 ```bash
 python3 - <<'PY'

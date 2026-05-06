@@ -34,7 +34,7 @@ curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install/install
 kcode
 ```
 
-For detailed installation, updating, auth, local model, Chromium MCP, and config options, see **[INSTALL.md](INSTALL.md)**.
+For detailed installation, updating, auth, local model, Chromium MCP, and config options, see **[INSTALL.md](docs/INSTALL.md)**.
 
 ---
 
@@ -84,7 +84,7 @@ flowchart TD
 - Local mouse/screenshot automation.
 - Todos, goals, scheduled work, subagents, and swarms.
 
-See **[TOOLS_AND_AGENTS.md](TOOLS_AND_AGENTS.md)** for the detailed tool, agent, and MCP inventory.
+See **[TOOLS_AND_AGENTS.md](docs/TOOLS_AND_AGENTS.md)** for the detailed tool, agent, and MCP inventory.
 
 ### Context and memory
 
@@ -105,7 +105,7 @@ Kcode includes a benchmark report and committed artifacts covering:
 - latency and tool-use smoke tests,
 - artifact checksums and methodology.
 
-Read **[BENCHMARKS.md](BENCHMARKS.md)** for the full report.
+Read **[BENCHMARKS.md](docs/BENCHMARKS.md)** for the full report.
 
 ---
 
@@ -148,12 +148,12 @@ Kcode's strongest technical differentiators are:
 
 ## Documentation
 
-- **[INSTALL.md](INSTALL.md)** - installation, updates, auth, local model, Chromium MCP, config, and uninstall.
-- **[TOOLS_AND_AGENTS.md](TOOLS_AND_AGENTS.md)** - built-in tools, agents, MCPs, and automation capabilities.
-- **[ABOUT.md](ABOUT.md)** - deeper architecture explanation.
-- **[BENCHMARKS.md](BENCHMARKS.md)** - measured benchmarks, methodology, and artifacts.
-- **[HALLUCINATION_MITIGATION.md](HALLUCINATION_MITIGATION.md)** - exact recall and hallucination mitigation.
-- **[STATISTICS.md](STATISTICS.md)** - context compression and telemetry details.
+- **[INSTALL.md](docs/INSTALL.md)** - installation, updates, auth, local model, Chromium MCP, config, and uninstall.
+- **[TOOLS_AND_AGENTS.md](docs/TOOLS_AND_AGENTS.md)** - built-in tools, agents, MCPs, and automation capabilities.
+- **[ABOUT.md](docs/ABOUT.md)** - deeper architecture explanation.
+- **[BENCHMARKS.md](docs/BENCHMARKS.md)** - measured benchmarks, methodology, and artifacts.
+- **[HALLUCINATION_MITIGATION.md](docs/HALLUCINATION_MITIGATION.md)** - exact recall and hallucination mitigation.
+- **[STATISTICS.md](docs/STATISTICS.md)** - context compression and telemetry details.
 
 ---
 
