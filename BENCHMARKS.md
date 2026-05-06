@@ -27,7 +27,7 @@ This report is written as an engineering benchmark, not a marketing claim. Every
 | Prompt representation is smaller than replaying recorded full context. | 92%+ aggregate reduction in final rollup. | Replay baseline, not universal provider billing. |
 | Kcode exact context recall is accurate on deterministic questions. | 100% precision/recall in `context_benchmark.py`. | Synthetic deterministic context facts. |
 | Kcode exact/path retrieval works on real repo-history context tasks. | 100% context success on 75 tasks. | File-availability benchmark, not autonomous editing. |
-| Simple lexical/path RAG is weaker on this task mix. | 48% success on 75 real repo tasks. | Not a tuned embedding RAG system. |
+| Lexical/path RAG baseline is weaker on this task mix. | 48% success on 75 real repo tasks. | Inferred/simulated baseline comparison, not a Kcode observed claim and not a tuned embedding RAG system. |
 | Provider edit/test pipeline works. | 10/10 bounded Python fixtures passed. | Small fixtures, not SWE-bench-scale issues. |
 | Adversarial unsupported-answer rate is low on tested templates. | 80/80 passed; Wilson 95% upper bound 4.58%. | Template distribution, not all natural prompts. |
 | User intervention was not needed in smoke runs. | 0 interventions across provider smoke/edit/messy runs. | Non-interactive scripted prompts only. |
@@ -55,57 +55,55 @@ This report is written as an engineering benchmark, not a marketing claim. Every
 
 A checksum manifest is committed at `benchmark-results/artifact_manifest.json`. It records path, size, and SHA-256 for benchmark scripts, JSON results, and this document, enabling reviewers to verify that tables correspond to committed artifacts.
 
-## Complete benchmark coverage matrix
+## Evaluation architecture
 
-This section maps the requested benchmark checklist to measured artifacts and explicit scope limits. The benchmark suite now covers every requested category within the explicit scope: local Kcode telemetry, deterministic retrieval/context tests, real git-history context tasks, and bounded real provider smoke/edit/adversarial runs.
+Kcode benchmark evidence is separated into three tiers. Tables and claims in this document must be read with the tier label attached.
 
-Artifacts for the final rollup:
+| Tier | Meaning | Evidence type | Authority |
+|---|---|---|---|
+| Tier 1 — instrumented provider measurements | Real Kcode provider runs and real tool/edit/test execution | API outputs, provider trace tokens when present, wall time, final test results, per-run JSON traces | Authoritative for observed behavior in those runs |
+| Tier 2 — observed local `.kcode` benchmark measurements | Reproducible local `.kcode` benchmark scripts and telemetry-derived outputs with known oracles | synthetic context tasks, real git-history context tasks, deterministic reruns | Observed local behavior for Kcode artifacts; not provider generation behavior unless paired with Tier 1 |
+| Tier 3 — inferred / simulated baseline comparisons | Counterfactual or approximate measurements | full-context replay baseline, `chars/4` token estimates, modeled cost comparisons | Useful for comparison only; not a headline Kcode-observed claim |
 
-- final rollup: `benchmark-results/final_complete_benchmark_suite.json`,
-- final summary: `benchmark-results/final_complete_benchmark_summary.json`,
-- runner: `scripts/final_benchmark_suite.py`.
+Tier 1 is the strongest evidence in this report. Tier 2 reports observed local Kcode benchmark outputs from committed scripts and `.kcode` telemetry. Tier 3 is reserved for RAG comparisons and counterfactual/full-context/token-estimate baselines and must not be merged with provider-measured token counts.
 
-| Category | Measured artifact | Key result |
-|---|---|---:|
-| Token usage vs the recorded full-context replay baseline | `.kcode/interlang-stats.jsonl`, final rollup | 92.74% aggregate reduction; ~1,433,663,442 chars/4 tokens avoided |
-| Short / medium / long sessions | telemetry bucket table | short 44.20%, medium 82.14%, long 92.77% reduction |
-| Actual coding success | `provider_edit_benchmark.json` | 3/3 provider edit→test tasks passed |
-| Real repo context success | `coding_task_benchmark.json` | Kcode 100.00% vs lexical RAG 48.00% on 75 tasks |
-| Hallucination rate | `provider_messy_benchmark.json`, `context_benchmark.json` | provider messy smoke 0.00%; Kcode context layer 0.00%; lexical RAG 33.33% |
-| Context recall accuracy | `context_benchmark.json` | Kcode precision 100%, recall 100%, success 100.00% |
-| Long-session degradation | telemetry + multi-file proxy | p95 640 compacted blocks/event; long-bucket reduction 92.77%; multi-file proxy 100.00% |
-| Latency / response time | provider smoke/edit/messy runs | p50 4.963s, p95 19.452s, max 25.934s |
-| Cost efficiency | provider usage + context task costs | known provider input tokens/success 4919.78; Kcode real-context tokens/success 14724.64 vs full-context 2075181.0 |
-| Determinism / reproducibility | repeated local reruns | context benchmark identical outputs: True; coding benchmark repeated runs recorded in final rollup |
-| Failure mode analysis | real repo context benchmark | Kcode failures: {'none': 75}; lexical RAG failures: {'none': 36, 'missed_all_changed_files': 39} |
-| Tool-use accuracy | provider file/tool and edit runs | 2/2 file-tool runs and 3/3 edit-tool runs passed |
-| User intervention rate | provider smoke/edit/messy runs | 0 interventions observed across 9 runs |
-| Memory efficiency | telemetry final rollup | encoded/original 7.26%; 13.77x smaller prompt representation |
+## Ground truth definition layer
 
-Interpretation: the benchmarks are complete for the measured scope above. Claims outside that scope, such as a large paid 100-issue autonomous coding tournament against a tuned embedding-RAG product, are intentionally not claimed. The document reports measured Kcode-local and provider-smoke evidence rather than extrapolating beyond the artifacts.
+| Benchmark category | Oracle / ground truth source | Success computation | Ignored / excluded | Failure conditions |
+|---|---|---|---|---|
+| Provider edit→test coding | Fixture unit tests plus final file state | Initial tests fail, Kcode edits files, final `python -m unittest` passes | Large real issues, style quality beyond tests, hidden tests | final tests fail, timeout, provider error, no edit when edit required |
+| Provider direct/file/tool prompts | Expected answer derived from repository files or prompt facts | Return code 0 and answer contains expected value | Subjective wording differences | wrong value, no answer, unverifiable claim |
+| Kcode retrieval/context questions | Exact target context block or target file path | Required block/file appears in retrieved context | Model reasoning after retrieval | missed block/file, wrong block cited, distractor selected; RAG rows are baseline comparisons, not Kcode claims |
+| Hallucination/adversarial prompts | Prompt-local facts and explicit instructions | Answer refuses/flags absent facts, resolves conflicts as instructed | Unscored prose style | unsupported fact, invented file/tool output, wrong conflict resolution |
+| Token efficiency | Recorded telemetry fields and provider trace usage where present | Tier 1 provider tokens reported separately from Tier 3 replay estimates | Hidden provider serialization not exposed in traces | mixing estimated and observed token counts, missing baseline label |
+| Latency | Wall-clock timing around scripted runs | p50/p95/max over recorded provider runs | Network/provider variability attribution | timeout, missing timing, failed run counted separately |
+| Tool use | Tool-capable provider prompts and edit/test tasks | Expected file/tool outcome achieved | Exact internal tool route if final result correct | wrong file value, failed tests, tool dead-end |
+| Failure mode analysis | Per-run JSON artifacts and deterministic result rows | Failure classified by observed mismatch | Failures outside benchmark task set | unclassified failure or missing replay artifact |
+
+## Headline results
+
+This is the single top-level summary table. “Observed” means provider-reported or directly measured run output. “Inferred” means computed from local telemetry. “Simulated” means counterfactual replay or deterministic local benchmark.
+
+| Area | Tier | Primary metric | Result | Artifact |
+|---|---|---|---:|---|
+| Retrieval accuracy, Kcode exact/path | Tier 2 observed local | context/file success rate | 100.00% on deterministic questions; 100.00% on 75 real repo context tasks | `context_benchmark.json`, `coding_task_benchmark.json` |
+| Retrieval accuracy, lexical/path RAG baseline | Tier 3 inferred/simulated baseline | context/file success rate | 66.67% deterministic; 48.00% real repo context tasks | `context_benchmark.json`, `coding_task_benchmark.json` |
+| Coding success | Tier 1 | final tests passed | 10/10 provider edit→test fixtures | `provider_edit_benchmark.json` |
+| Hallucination guard | Tier 1 | unsupported-answer failures | 0/80 failures; Wilson 95% upper bound 4.58% | `provider_adversarial_80_summary.json` |
+| Token efficiency, observed provider calls | Tier 1 | provider trace input/output tokens where present | reported per run; not all providers expose complete billing context | `provider_calls.json`, `provider_edit_benchmark.json` |
+| Token efficiency, `.kcode` telemetry replay | Tier 2 observed telemetry + Tier 3 replay baseline | compact vs recorded full-context replay | 92%+ aggregate reduction in final rollup | `final_complete_benchmark_suite.json` |
+| Latency | Tier 1 | wall-clock provider run latency | p50/p95/max reported in final rollup | `final_complete_benchmark_suite.json` |
+| Tool-use success | Tier 1 | file/tool/edit runs successful | provider file/tool 2/2; edit/tool 10/10 | `provider_calls.json`, `provider_edit_benchmark.json` |
 
 
-## Benchmark fairness and limitations
+## Kcode claim rule
 
-This report is deliberately split into **measured claims** and **out-of-scope claims** so it can survive review.
+All headline claims about **Kcode itself** in this document are based on one of two observed sources:
 
-### What the benchmarks prove
+1. real provider executions through `kcode run --json --trace`, or
+2. committed local `.kcode` benchmark artifacts/telemetry generated by scripts in this repository.
 
-- Kcode's compact-context representation is much smaller than Kcode's recorded uncompressed replay baseline.
-- Kcode exact/path-aware retrieval preserves required context on the deterministic and real git-history context tasks in this repo.
-- Bounded real provider runs work end to end for direct answers, file/tool prompts, adversarial prompts, and three small edit→test fixtures.
-- The 80-prompt adversarial suite gives a stronger hallucination smoke result than the earlier 9-run suite, including a Wilson confidence interval.
-
-### What the benchmarks do not claim
-
-- They do **not** claim superiority over a production embedding RAG system. The measured RAG baseline is lexical/path retrieval, included because it is reproducible in this repo without external indexes.
-- They do **not** claim that three small edit→test fixtures predict success on large real-world issues. They prove the provider edit/test pipeline and give a small positive coding smoke result.
-- They do **not** claim provider-billed savings for every deployment. Token savings are measured against the recorded full-context replay baseline and should be rechecked with provider-side billing for each provider/model.
-- They do **not** claim zero hallucinations in the universe of prompts. The measured result is 0/40 failures on the defined adversarial suite, with a Wilson 95% upper bound of 8.76% for that suite distribution.
-
-### Why lexical RAG is still included
-
-The lexical/path RAG baseline is intentionally simple and auditable. It answers: "how well does a reproducible non-exact retriever do on the same tasks?" It is not a proxy for a tuned embedding stack with chunking, reranking, recency, metadata filters, and learned query rewriting. A future embedding-RAG comparison should commit the embedding model, chunking policy, index build script, top-k/reranker settings, and all raw run outputs.
+RAG comparisons, full-context replay comparisons, and `chars/4` token conversions are labeled as inferred or simulated baselines. They are included for context, not as observed Kcode behavior.
 
 ## Measurement snapshot
 
@@ -139,6 +137,16 @@ The baseline is a conservative recorded full-context replay approximation: send 
 
 Approximate token savings depend on tokenizer and provider formatting. A rough chars/4 estimate implies about **1.41B tokens avoided** across the recorded telemetry. Use provider-side token accounting for billing-grade numbers.
 
+
+## Token accounting separation rule
+
+Provider-measured tokens, telemetry-inferred tokens, and simulated counterfactual tokens are never summed into one headline value.
+
+- **Observed:** token fields emitted by provider traces for a specific request.
+- **Inferred:** local Kcode telemetry such as original/encoded chars and exact-token counters where available.
+- **Simulated:** `chars/4` or full-context replay estimates used only for relative comparisons.
+
+If a provider omits hidden system tokens, cached tokens, routing overhead, or billing adjustments, this report leaves them out rather than imputing them.
 
 ### Baseline sensitivity note
 
@@ -575,6 +583,20 @@ Perception buckets:
 Interpretation: provider smoke latency is usable for small tasks, but real developer latency perception over long sessions is still only a proxy. A full study should collect time-to-first-token, tool wait time, edit/test loop time, and user-rated perceived latency.
 
 
+## Failure replay samples
+
+Concrete failure traces are included because percentages alone are easy to overread.
+
+| Sample | Input prompt / task | Expected behavior | Actual failure mode | Classification | Artifact |
+|---|---|---|---|---|---|
+| F1 | Real repo context task from git history where lexical/path RAG did not retrieve the changed file | Target changed file appears in retrieved context | lexical/path RAG retrieved zero relevant changed files | missed file / wrong retrieval | `coding_task_benchmark.json` rows with `failure_type=missed_all_changed_files` |
+| F2 | Deterministic context question with distractor/obsolete facts | Retrieve and cite the exact target context ID | lexical RAG selected distractor context and produced unsupported answer | distractor retrieval / hallucination | `context_benchmark.json` lexical RAG failed rows |
+| F3 | Multi-file commit proxy | All changed files for a commit group are available | lexical RAG did not make all files available for any of 9 multi-file groups | multi-file retrieval failure | `advanced_gap_metrics.json` |
+| F4 | Provider adversarial fake-symbol prompt | Say `UNVERIFIED` rather than inventing a signature | Kcode passed; included as replay template for hallucination guard | no failure observed in Kcode; adversarial guard case | `provider-adversarial-80-runs/code_fake_*.json` |
+| F5 | Provider edit→test fixture | Modify code and pass unit tests | Kcode passed; if it fails in future, final test output is the oracle | no failure observed in Kcode; execution replay case | `provider-edit-runs/*.json` |
+
+Failure rows F1–F3 are actual negative results from baselines. F4–F5 are positive Kcode replay templates included so future regressions have concrete prompts, expected behavior, and artifacts.
+
 ## Negative and weak results
 
 The report includes negative evidence rather than hiding it:
@@ -713,6 +735,22 @@ Success criteria:
 - bounded latency and bounded auto-restore size,
 - user can force exact recall with `.ctx_get`.
 
+
+## Minimal embedding-RAG baseline specification
+
+The current measured non-exact baseline is lexical/path retrieval. That is useful for auditability but vulnerable to the “straw-man baseline” critique. A minimal fair embedding-RAG baseline should be added with the following fixed protocol:
+
+| Component | Required setting |
+|---|---|
+| Embedding model | `sentence-transformers/all-MiniLM-L6-v2` or another committed local equivalent |
+| Corpus | same files/tasks used by `coding_task_benchmark.py` |
+| Chunking | fixed 400-token chunks, 80-token overlap, path metadata attached |
+| Retrieval | cosine similarity, top-k = 5 |
+| Optional lexical baseline | BM25/path lexical top-k = 5 with the same chunk boundaries |
+| Scoring | same oracle as retrieval benchmarks: target file/chunk present, exact block match where applicable |
+| Artifacts | committed index config, run JSON, per-query retrieved IDs, failure classifications |
+
+This baseline is required before making broad claims against “RAG” as a category. Until then, the benchmark only compares Kcode exact/path retrieval against the committed lexical/path baseline.
 
 ## External benchmark hook
 
