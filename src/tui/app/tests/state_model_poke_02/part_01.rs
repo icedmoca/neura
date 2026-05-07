@@ -645,7 +645,7 @@ fn configure_test_remote_models_with_openai_recommendations(app: &mut App) {
         .cloned()
         .map(|model| crate::provider::ModelRoute {
             model,
-            provider: "OpenAI".to_string(),
+            provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
             api_method: "openai-oauth".to_string(),
             available: true,
             detail: String::new(),

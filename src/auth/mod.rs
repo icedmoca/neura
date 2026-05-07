@@ -538,6 +538,11 @@ impl AuthStatus {
             status.openai = AuthState::Available;
         }
 
+        // OAuth accounts may exist while `load_credentials` returns only the API key (auth-mode).
+        if codex::has_oauth_accounts_saved() {
+            status.openai_has_oauth = true;
+        }
+
         // Check external/CLI auth providers (presence of installed CLI tooling)
         status.copilot = if copilot::has_copilot_credentials_fast() {
             status.copilot_has_api_token = true;
@@ -669,6 +674,12 @@ impl AuthStatus {
                 status.openai = AuthState::Available;
             }
         }
+        // Stored key / env are independent of `load_credentials()` (e.g. OAuth is active but a
+        // platform key is also saved — `check_fast` must still report both for `/model` routes).
+        if codex::has_stored_api_key() {
+            status.openai_has_api_key = true;
+            status.openai = AuthState::Available;
+        }
         if std::env::var("OPENAI_API_KEY")
             .ok()
             .map(|v| !v.trim().is_empty())
@@ -676,6 +687,9 @@ impl AuthStatus {
         {
             status.openai_has_api_key = true;
             status.openai = AuthState::Available;
+        }
+        if codex::has_oauth_accounts_saved() {
+            status.openai_has_oauth = true;
         }
         timings.push(("openai", step_start.elapsed().as_millis()));
 

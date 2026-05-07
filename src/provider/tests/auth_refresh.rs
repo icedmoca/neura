@@ -32,7 +32,9 @@ fn test_on_auth_changed_hot_initializes_openai_and_marks_routes_available() {
 
         assert!(provider.openai_provider().is_some());
         assert!(provider.model_routes().iter().any(|route| {
-            route.provider == "OpenAI" && route.api_method == "openai-oauth" && route.available
+            route.provider == crate::provider::OPENAI_PICKER_PROVIDER_OAUTH
+                && route.api_method == "openai-oauth"
+                && route.available
         }));
     });
 }

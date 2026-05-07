@@ -2,6 +2,13 @@ use super::pricing::{cheapness_for_route, openrouter_pricing_from_model_pricing}
 use super::{ModelRoute, RouteCostConfidence, RouteCostSource, provider_for_model};
 use std::collections::BTreeSet;
 
+/// `/model` and account-picker label for ChatGPT/Codex OAuth (not platform `sk-` keys).
+pub const OPENAI_PICKER_PROVIDER_OAUTH: &str = "OpenAI · ChatGPT OAuth";
+/// `/model` and account-picker label for the OpenAI platform API key path (`sk-`, env, or stored file).
+pub const OPENAI_PICKER_PROVIDER_API_KEY: &str = "OpenAI · API key";
+/// Label when the UI groups OAuth + API key settings (account center, `/account openai`).
+pub const OPENAI_PICKER_PROVIDER_HUB: &str = "OpenAI · accounts";
+
 pub fn is_listable_model_name(model: &str) -> bool {
     let trimmed = model.trim();
     !trimmed.is_empty() && !matches!(trimmed, "copilot models" | "openrouter models")
@@ -57,11 +64,26 @@ pub fn build_openai_oauth_route(
 ) -> ModelRoute {
     ModelRoute {
         model: model.to_string(),
-        provider: "OpenAI".to_string(),
+        provider: OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
         api_method: "openai-oauth".to_string(),
         available,
         detail: detail.into(),
         cheapness: cheapness_for_route(model, "OpenAI", "openai-oauth"),
+    }
+}
+
+pub fn build_openai_api_key_route(
+    model: &str,
+    available: bool,
+    detail: impl Into<String>,
+) -> ModelRoute {
+    ModelRoute {
+        model: model.to_string(),
+        provider: OPENAI_PICKER_PROVIDER_API_KEY.to_string(),
+        api_method: "openai-api-key".to_string(),
+        available,
+        detail: detail.into(),
+        cheapness: cheapness_for_route(model, "OpenAI", "openai-api-key"),
     }
 }
 

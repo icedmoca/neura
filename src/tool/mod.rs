@@ -49,9 +49,8 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::sync::RwLock;
 
-const TOOL_INTENT_DESCRIPTION: &str = concat!(
-    "Optional display only UI label; not a substitute for required parameters."
-);
+const TOOL_INTENT_DESCRIPTION: &str =
+    concat!("Optional display only UI label; not a substitute for required parameters.");
 
 pub(crate) fn intent_schema_property() -> Value {
     serde_json::json!({

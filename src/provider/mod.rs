@@ -48,8 +48,9 @@ pub use kcode_provider_core::{
     RouteCostSource, shared_http_client,
 };
 pub use route_builders::{
-    build_anthropic_oauth_route, build_copilot_route, build_openai_oauth_route,
-    build_openrouter_auto_route, build_openrouter_endpoint_route,
+    OPENAI_PICKER_PROVIDER_API_KEY, OPENAI_PICKER_PROVIDER_HUB, OPENAI_PICKER_PROVIDER_OAUTH,
+    build_anthropic_oauth_route, build_copilot_route, build_openai_api_key_route,
+    build_openai_oauth_route, build_openrouter_auto_route, build_openrouter_endpoint_route,
     build_openrouter_fallback_provider_route, is_listable_model_name,
     listable_model_names_from_routes, openrouter_catalog_model_id,
 };
@@ -397,8 +398,8 @@ use self::dispatch::CompletionMode;
 use self::models::normalize_copilot_model_name;
 pub use self::models::{
     AccountModelAvailability, AccountModelAvailabilityState, AnthropicModelCatalog,
-    DEFAULT_CONTEXT_LIMIT, ModelCapabilities, OpenAIModelCatalog,
-    begin_anthropic_model_catalog_refresh, begin_openai_model_catalog_refresh,
+    DEFAULT_CONTEXT_LIMIT, ModelCapabilities, OPENAI_PLATFORM_API_KEY_CATALOG_SCOPE,
+    OpenAIModelCatalog, begin_anthropic_model_catalog_refresh, begin_openai_model_catalog_refresh,
     cached_anthropic_model_ids, cached_openai_model_ids,
     clear_all_model_unavailability_for_account, clear_all_provider_unavailability_for_account,
     clear_model_unavailable_for_account, clear_provider_unavailable_for_account,
@@ -407,8 +408,9 @@ pub use self::models::{
     finish_anthropic_model_catalog_refresh_for_scope, finish_openai_model_catalog_refresh,
     format_account_model_availability_detail, get_best_available_openai_model,
     is_model_available_for_account, known_anthropic_model_ids, known_openai_model_ids,
-    model_availability_for_account, model_unavailability_detail_for_account,
-    note_openai_model_catalog_refresh_attempt, persist_anthropic_model_catalog,
+    model_availability_for_account, model_availability_for_openai_catalog_scope,
+    model_unavailability_detail_for_account, note_openai_model_catalog_refresh_attempt,
+    openai_oauth_catalog_scope_for_picker, persist_anthropic_model_catalog,
     persist_openai_model_catalog, populate_account_models, populate_anthropic_models,
     populate_context_limits, provider_for_model, provider_for_model_with_hint,
     provider_unavailability_detail_for_account, record_model_unavailable_for_account,
@@ -1040,6 +1042,7 @@ impl Provider for MultiProvider {
         let mut openrouter_endpoint_cache_hits = 0usize;
         let mut openrouter_endpoint_routes = 0usize;
         let mut openrouter_scheduled_endpoint_refreshes = 0usize;
+        let auth_snapshot = crate::auth::AuthStatus::check_fast();
         let has_oauth = self.has_claude_runtime();
         let has_api_key = std::env::var("ANTHROPIC_API_KEY").is_ok();
         let anthropic_models = if let Some(anthropic) = self.anthropic_provider() {
@@ -1106,27 +1109,84 @@ impl Provider for MultiProvider {
             }
         }
 
-        // OpenAI models
-        for model in openai_models {
-            let availability = model_availability_for_account(&model);
-            let (available, detail) = if self.openai_provider().is_none() {
-                (false, "no credentials".to_string())
-            } else {
-                match availability.state {
-                    AccountModelAvailabilityState::Available => (true, String::new()),
-                    AccountModelAvailabilityState::Unavailable => (
-                        false,
-                        format_account_model_availability_detail(&availability)
-                            .unwrap_or_else(|| "not available".to_string()),
-                    ),
-                    AccountModelAvailabilityState::Unknown => {
-                        let detail = format_account_model_availability_detail(&availability)
-                            .unwrap_or_else(|| "availability unknown".to_string());
-                        (true, detail)
-                    }
+        // OpenAI models (separate ChatGPT/Codex OAuth vs platform API key rows, like Anthropic).
+        // Do not gate on `openai_provider()`: API-key-only users may not have a hot-started client
+        // yet, but `AuthStatus` still reflects `OPENAI_API_KEY` / stored keys for `/model` rows.
+        let oauth_catalog_scope = openai_oauth_catalog_scope_for_picker();
+        let openai_oauth_availability_tuple = |model: &str, creds: bool| -> (bool, String) {
+            if !creds {
+                return (false, "ChatGPT OAuth not configured".to_string());
+            }
+            let availability =
+                model_availability_for_openai_catalog_scope(model, &oauth_catalog_scope);
+            match availability.state {
+                AccountModelAvailabilityState::Available => (true, String::new()),
+                AccountModelAvailabilityState::Unavailable => (
+                    false,
+                    format_account_model_availability_detail(&availability)
+                        .unwrap_or_else(|| "not available".to_string()),
+                ),
+                AccountModelAvailabilityState::Unknown => {
+                    let detail = format_account_model_availability_detail(&availability)
+                        .unwrap_or_else(|| "availability unknown".to_string());
+                    (true, detail)
                 }
-            };
-            routes.push(build_openai_oauth_route(&model, available, detail));
+            }
+        };
+        let openai_api_key_availability_tuple = |model: &str, creds: bool| -> (bool, String) {
+            if !creds {
+                return (false, "no OpenAI API key configured".to_string());
+            }
+            let availability = model_availability_for_openai_catalog_scope(
+                model,
+                OPENAI_PLATFORM_API_KEY_CATALOG_SCOPE,
+            );
+            match availability.state {
+                AccountModelAvailabilityState::Available => (true, String::new()),
+                AccountModelAvailabilityState::Unavailable => (
+                    false,
+                    format_account_model_availability_detail(&availability)
+                        .unwrap_or_else(|| "not available".to_string()),
+                ),
+                AccountModelAvailabilityState::Unknown => {
+                    let detail = format_account_model_availability_detail(&availability)
+                        .unwrap_or_else(|| "availability unknown".to_string());
+                    (true, detail)
+                }
+            }
+        };
+        for model in openai_models {
+            let has_oauth_creds = auth_snapshot.openai_has_oauth;
+            let has_api_key_creds = auth_snapshot.openai_has_api_key;
+            if !has_oauth_creds && !has_api_key_creds {
+                routes.push(build_openai_oauth_route(&model, false, "no credentials"));
+                routes.push(build_openai_api_key_route(
+                    &model,
+                    false,
+                    "no OpenAI API key configured",
+                ));
+                continue;
+            }
+            if has_oauth_creds {
+                let (available, detail) = openai_oauth_availability_tuple(&model, true);
+                routes.push(build_openai_oauth_route(&model, available, detail));
+            } else {
+                routes.push(build_openai_oauth_route(
+                    &model,
+                    false,
+                    "ChatGPT OAuth not configured",
+                ));
+            }
+            if has_api_key_creds {
+                let (available, detail) = openai_api_key_availability_tuple(&model, true);
+                routes.push(build_openai_api_key_route(&model, available, detail));
+            } else {
+                routes.push(build_openai_api_key_route(
+                    &model,
+                    false,
+                    "no OpenAI API key configured",
+                ));
+            }
         }
 
         // GitHub Copilot models

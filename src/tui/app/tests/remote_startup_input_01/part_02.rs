@@ -21,7 +21,7 @@ fn test_handle_server_event_available_models_updated_replaces_remote_model_catal
             available_models: vec!["new-model".to_string(), "second-model".to_string()],
             available_model_routes: vec![crate::provider::ModelRoute {
                 model: "new-model".to_string(),
-                provider: "OpenAI".to_string(),
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                 api_method: "openai-oauth".to_string(),
                 available: true,
                 detail: String::new(),
@@ -37,7 +37,10 @@ fn test_handle_server_event_available_models_updated_replaces_remote_model_catal
     );
     assert_eq!(app.remote_model_options.len(), 1);
     assert_eq!(app.remote_model_options[0].model, "new-model");
-    assert_eq!(app.remote_model_options[0].provider, "OpenAI");
+    assert_eq!(
+        app.remote_model_options[0].provider,
+        crate::provider::OPENAI_PICKER_PROVIDER_OAUTH
+    );
     assert!(app.remote_model_options[0].available);
 }
 
@@ -84,7 +87,7 @@ fn test_remote_available_models_updated_after_refresh_shows_summary_and_updates_
         vec!["old-model".to_string()],
         vec![crate::provider::ModelRoute {
             model: "old-model".to_string(),
-            provider: "OpenAI".to_string(),
+            provider: crate::provider::OPENAI_PICKER_PROVIDER_API_KEY.to_string(),
             api_method: "responses".to_string(),
             available: true,
             detail: "old detail".to_string(),
@@ -98,7 +101,7 @@ fn test_remote_available_models_updated_after_refresh_shows_summary_and_updates_
             available_model_routes: vec![
                 crate::provider::ModelRoute {
                     model: "old-model".to_string(),
-                    provider: "OpenAI".to_string(),
+                    provider: crate::provider::OPENAI_PICKER_PROVIDER_API_KEY.to_string(),
                     api_method: "responses".to_string(),
                     available: true,
                     detail: "new detail".to_string(),

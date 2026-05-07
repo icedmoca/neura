@@ -187,7 +187,7 @@ impl Provider for AuthRefreshingMockProvider {
         } else {
             vec![crate::provider::ModelRoute {
                 model: "gpt-5.4".to_string(),
-                provider: "OpenAI".to_string(),
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                 api_method: "openai-oauth".to_string(),
                 available: true,
                 detail: String::new(),

@@ -356,7 +356,7 @@ impl App {
         if include_openai {
             items.push(AccountPickerItem::action(
                 "openai",
-                "OpenAI",
+                crate::provider::OPENAI_PICKER_PROVIDER_OAUTH,
                 "Add new account",
                 "Create the next numbered OpenAI account",
                 AccountPickerCommand::SubmitInput("/account openai add".to_string()),
@@ -365,7 +365,7 @@ impl App {
                 let label = account.label.clone();
                 items.push(AccountPickerItem::action(
                     "openai",
-                    "OpenAI",
+                    crate::provider::OPENAI_PICKER_PROVIDER_OAUTH,
                     format!("Replace account `{label}`"),
                     "Refresh this saved OpenAI account in place",
                     AccountPickerCommand::SubmitInput(format!("/account openai add {}", label)),
@@ -402,7 +402,7 @@ impl App {
         let provider_label = match scope_key.as_str() {
             "all" => "Claude + OpenAI",
             "claude" => "Claude",
-            "openai" => "OpenAI",
+            "openai" => crate::provider::OPENAI_PICKER_PROVIDER_HUB,
             _ => scope_key.as_str(),
         };
 
@@ -487,7 +487,7 @@ impl App {
         .unwrap_or_default()
         .to_ascii_lowercase();
 
-        let mut models = Vec::with_capacity(claude_accounts.len() + openai_accounts.len() + 4);
+        let mut models = Vec::with_capacity(claude_accounts.len() + openai_accounts.len() + 6);
         let mut selected = 0usize;
 
         for account in &claude_accounts {
@@ -539,6 +539,54 @@ impl App {
             });
         }
 
+        let prefers_openai_api_key = matches!(
+            crate::auth::codex::auth_preference(),
+            crate::auth::codex::OpenAiAuthPreference::ApiKey
+        );
+        let openai_env_key = std::env::var("OPENAI_API_KEY")
+            .ok()
+            .filter(|value| !value.trim().is_empty());
+        let openai_has_stored = crate::auth::codex::has_stored_api_key();
+        let openai_has_platform_key = openai_has_stored || openai_env_key.is_some();
+        let openai_platform_detail = if openai_has_stored && openai_env_key.is_some() {
+            "stored key in openai-auth.json + OPENAI_API_KEY".to_string()
+        } else if openai_has_stored {
+            "stored in ~/.kcode/openai-auth.json".to_string()
+        } else if openai_env_key.is_some() {
+            "OPENAI_API_KEY (environment)".to_string()
+        } else {
+            "not set — select to add a platform API key".to_string()
+        };
+        let idx_openai_platform = models.len();
+        if prefers_openai_api_key && current_provider.contains("openai") {
+            selected = idx_openai_platform;
+        }
+        models.push(crate::tui::PickerEntry {
+            name: "OpenAI: platform API key".to_string(),
+            options: vec![crate::tui::PickerOption {
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_API_KEY.to_string(),
+                api_method: if openai_has_platform_key {
+                    "configured".to_string()
+                } else {
+                    "unset".to_string()
+                },
+                available: openai_has_platform_key,
+                detail: openai_platform_detail,
+                estimated_reference_cost_micros: None,
+            }],
+            action: crate::tui::PickerAction::Account(
+                crate::tui::AccountPickerAction::PromptOpenAiPlatformApiKey,
+            ),
+            selected_option: 0,
+            is_current: prefers_openai_api_key,
+            is_default: false,
+            recommended: false,
+            recommendation_rank: usize::MAX,
+            old: false,
+            created_date: None,
+            effort: None,
+        });
+
         for account in &openai_accounts {
             let is_active = account.label == openai_active;
             let status = match account.expires_at {
@@ -553,20 +601,23 @@ impl App {
                 .unwrap_or_else(|| "unknown".to_string());
             let account_id = account.account_id.as_deref().unwrap_or("unknown");
             let idx = models.len();
-            if is_active && current_provider.contains("openai") {
+            if is_active && current_provider.contains("openai") && !prefers_openai_api_key {
                 selected = idx;
             }
             models.push(crate::tui::PickerEntry {
                 name: account.label.clone(),
                 options: vec![crate::tui::PickerOption {
-                    provider: "OpenAI".to_string(),
+                    provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                     api_method: if is_active {
                         "active".to_string()
                     } else {
                         "saved".to_string()
                     },
                     available: true,
-                    detail: format!("{} - {} - acct {}", email, status, account_id),
+                    detail: format!(
+                        "ChatGPT/Codex OAuth — {} - {} - acct {}",
+                        email, status, account_id
+                    ),
                     estimated_reference_cost_micros: None,
                 }],
                 action: crate::tui::PickerAction::Account(
@@ -576,7 +627,7 @@ impl App {
                     },
                 ),
                 selected_option: 0,
-                is_current: is_active,
+                is_current: is_active && !prefers_openai_api_key,
                 is_default: false,
                 recommended: false,
                 recommendation_rank: usize::MAX,
@@ -611,7 +662,7 @@ impl App {
         models.push(crate::tui::PickerEntry {
             name: "new OpenAI account".to_string(),
             options: vec![crate::tui::PickerOption {
-                provider: "OpenAI".to_string(),
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                 api_method: "new".to_string(),
                 available: true,
                 detail: format!("create {}", next_openai),
@@ -672,7 +723,7 @@ impl App {
         models.push(crate::tui::PickerEntry {
             name: "replace OpenAI account".to_string(),
             options: vec![crate::tui::PickerOption {
-                provider: "OpenAI".to_string(),
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                 api_method: "replace".to_string(),
                 available: !openai_accounts.is_empty(),
                 detail: if openai_accounts.is_empty() {
@@ -876,13 +927,58 @@ impl App {
             .unwrap_or_else(|_| crate::auth::codex::primary_account_label());
         let now_ms = chrono::Utc::now().timestamp_millis();
 
-        let mut models = Vec::with_capacity(accounts.len() + 2);
+        let prefers_api_key = matches!(
+            crate::auth::codex::auth_preference(),
+            crate::auth::codex::OpenAiAuthPreference::ApiKey
+        );
+        let env_key = std::env::var("OPENAI_API_KEY")
+            .ok()
+            .filter(|value| !value.trim().is_empty());
+        let has_stored = crate::auth::codex::has_stored_api_key();
+        let has_any_platform_key = has_stored || env_key.is_some();
+        let platform_detail = if has_stored && env_key.is_some() {
+            "stored key in openai-auth.json + OPENAI_API_KEY".to_string()
+        } else if has_stored {
+            "stored in ~/.kcode/openai-auth.json".to_string()
+        } else if env_key.is_some() {
+            "OPENAI_API_KEY (environment)".to_string()
+        } else {
+            "not set — select to add a platform API key".to_string()
+        };
+
+        let mut models = Vec::with_capacity(accounts.len() + 5);
+        models.push(crate::tui::PickerEntry {
+            name: "Platform API key".to_string(),
+            options: vec![crate::tui::PickerOption {
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_API_KEY.to_string(),
+                api_method: if has_any_platform_key {
+                    "configured".to_string()
+                } else {
+                    "unset".to_string()
+                },
+                available: has_any_platform_key,
+                detail: platform_detail,
+                estimated_reference_cost_micros: None,
+            }],
+            action: crate::tui::PickerAction::Account(
+                crate::tui::AccountPickerAction::PromptOpenAiPlatformApiKey,
+            ),
+            selected_option: 0,
+            is_current: prefers_api_key,
+            is_default: false,
+            recommended: false,
+            recommendation_rank: usize::MAX,
+            old: false,
+            created_date: None,
+            effort: None,
+        });
+
         let mut selected = 0usize;
 
         for (index, account) in accounts.iter().enumerate() {
             let is_active = account.label == active_label;
             if is_active {
-                selected = index;
+                selected = index + 1;
             }
             let status = match account.expires_at {
                 Some(expires_at) if expires_at > now_ms => "valid",
@@ -898,14 +994,17 @@ impl App {
             models.push(crate::tui::PickerEntry {
                 name: account.label.clone(),
                 options: vec![crate::tui::PickerOption {
-                    provider: "OpenAI".to_string(),
+                    provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                     api_method: if is_active {
                         "active".to_string()
                     } else {
                         "saved".to_string()
                     },
                     available: true,
-                    detail: format!("{} - {} - acct {}", email, status, account_id),
+                    detail: format!(
+                        "ChatGPT/Codex OAuth — {} - {} - acct {}",
+                        email, status, account_id
+                    ),
                     estimated_reference_cost_micros: None,
                 }],
                 action: crate::tui::PickerAction::Account(
@@ -915,7 +1014,7 @@ impl App {
                     },
                 ),
                 selected_option: 0,
-                is_current: is_active,
+                is_current: is_active && !prefers_api_key,
                 is_default: false,
                 recommended: false,
                 recommendation_rank: usize::MAX,
@@ -928,7 +1027,7 @@ impl App {
         models.push(crate::tui::PickerEntry {
             name: "new account".to_string(),
             options: vec![crate::tui::PickerOption {
-                provider: "OpenAI".to_string(),
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                 api_method: "new".to_string(),
                 available: true,
                 detail: format!("create {}", next_label),
@@ -956,7 +1055,7 @@ impl App {
         models.push(crate::tui::PickerEntry {
             name: "replace account".to_string(),
             options: vec![crate::tui::PickerOption {
-                provider: "OpenAI".to_string(),
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                 api_method: "replace".to_string(),
                 available: !accounts.is_empty(),
                 detail: if accounts.is_empty() {
@@ -983,7 +1082,7 @@ impl App {
         models.push(crate::tui::PickerEntry {
             name: "account center".to_string(),
             options: vec![crate::tui::PickerOption {
-                provider: "OpenAI".to_string(),
+                provider: crate::provider::OPENAI_PICKER_PROVIDER_HUB.to_string(),
                 api_method: "manage".to_string(),
                 available: true,
                 detail: "full OpenAI account center and settings".to_string(),
@@ -1064,7 +1163,9 @@ impl App {
             crate::tui::account_picker::AccountProviderKind::Anthropic => {
                 ("claude", "Anthropic/Claude")
             }
-            crate::tui::account_picker::AccountProviderKind::OpenAi => ("openai", "OpenAI"),
+            crate::tui::account_picker::AccountProviderKind::OpenAi => {
+                ("openai", crate::provider::OPENAI_PICKER_PROVIDER_OAUTH)
+            }
         };
         self.push_display_message(DisplayMessage::system(format!(
             "Enter a label for the new {} account, then press Enter. Use `/cancel` to abort.",

@@ -127,6 +127,8 @@ struct ModelPickerCacheSignature {
     config_default_model: Option<String>,
     reasoning_effort: Option<String>,
     available_efforts: Vec<String>,
+    /// OpenAI auth snapshot so `/model` cache refreshes when OAuth vs API key mix changes.
+    openai_route_legend: String,
     simplified_model_picker: bool,
     catalog_revision: u64,
     remote_provider_name: Option<String>,

@@ -33,14 +33,34 @@ impl App {
         let accounts = crate::auth::codex::list_accounts().unwrap_or_default();
         let active_label = crate::auth::codex::active_account_label();
         let now_ms = chrono::Utc::now().timestamp_millis();
+        let has_stored_key = crate::auth::codex::has_stored_api_key();
+        let has_env_key = std::env::var("OPENAI_API_KEY")
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty());
+        let platform_line = format!(
+            "**Platform API key:** {} (use `/account openai api-key …`)\n\n",
+            if has_stored_key && has_env_key {
+                "stored file + `OPENAI_API_KEY` env"
+            } else if has_stored_key {
+                "saved in `~/.kcode/openai-auth.json`"
+            } else if has_env_key {
+                "`OPENAI_API_KEY` environment only"
+            } else {
+                "not set"
+            }
+        );
 
         if accounts.is_empty() {
-            return "**OpenAI Accounts:** none configured\n\n\
+            return format!(
+                "{platform_line}**OpenAI (ChatGPT OAuth) accounts:** none configured\n\n\
                  Use `/account openai add` to add the next numbered account, or `/login openai` to refresh the active one."
-                .to_string();
+            );
         }
 
-        let mut lines = vec!["**OpenAI Accounts:**\n".to_string()];
+        let mut lines = vec![
+            platform_line,
+            "**OpenAI (ChatGPT OAuth) accounts:**\n".to_string(),
+        ];
         lines.push("| Account | Email | Status | ChatGPT Account ID | Active |".to_string());
         lines.push("|---------|-------|--------|--------------------|--------|".to_string());
 
@@ -180,6 +200,33 @@ impl App {
         items: &mut Vec<crate::tui::account_picker::AccountPickerItem>,
         provider: crate::provider_catalog::LoginProviderDescriptor,
     ) {
+        let has_stored = crate::auth::codex::has_stored_api_key();
+        let has_env = std::env::var("OPENAI_API_KEY")
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty());
+        let platform_sub = if has_stored && has_env {
+            "stored in openai-auth.json + OPENAI_API_KEY"
+        } else if has_stored {
+            "stored in ~/.kcode/openai-auth.json"
+        } else if has_env {
+            "OPENAI_API_KEY in environment"
+        } else {
+            "not configured"
+        };
+        items.push(crate::tui::account_picker::AccountPickerItem::action(
+            provider.id,
+            crate::provider::OPENAI_PICKER_PROVIDER_API_KEY,
+            "Platform API key (sk-…)".to_string(),
+            platform_sub.to_string(),
+            crate::tui::account_picker::AccountPickerCommand::PromptValue {
+                prompt: "Enter your OpenAI platform API key (sk-…), or clear to remove the stored key. Separate from ChatGPT OAuth accounts."
+                    .to_string(),
+                command_prefix: "/account openai api-key".to_string(),
+                empty_value: Some("clear".to_string()),
+                status_notice: "Account: OpenAI platform API key…".to_string(),
+            },
+        ));
+
         let active_label = crate::auth::codex::active_account_label();
         let now_ms = chrono::Utc::now().timestamp_millis();
         for account in crate::auth::codex::list_accounts().unwrap_or_default() {
@@ -202,9 +249,11 @@ impl App {
             };
             items.push(crate::tui::account_picker::AccountPickerItem::action(
                 provider.id,
-                provider.display_name,
-                format!("Switch account `{label}`"),
-                format!("{email} - {status} - acct {account_id}{active_suffix}"),
+                crate::provider::OPENAI_PICKER_PROVIDER_OAUTH,
+                format!("Switch OAuth account `{label}`"),
+                format!(
+                    "ChatGPT/Codex OAuth — {email} - {status} - acct {account_id}{active_suffix}"
+                ),
                 crate::tui::account_picker::AccountPickerCommand::SubmitInput(format!(
                     "/account {} switch {}",
                     provider.id, label
@@ -212,7 +261,7 @@ impl App {
             ));
             items.push(crate::tui::account_picker::AccountPickerItem::action(
                 provider.id,
-                provider.display_name,
+                crate::provider::OPENAI_PICKER_PROVIDER_OAUTH,
                 format!("Re-login account `{label}`"),
                 format!("Refresh OpenAI OAuth tokens for `{label}`"),
                 crate::tui::account_picker::AccountPickerCommand::SubmitInput(format!(
@@ -222,7 +271,7 @@ impl App {
             ));
             items.push(crate::tui::account_picker::AccountPickerItem::action(
                 provider.id,
-                provider.display_name,
+                crate::provider::OPENAI_PICKER_PROVIDER_OAUTH,
                 format!("Remove account `{label}`"),
                 format!("Delete saved credentials for `{label}`"),
                 crate::tui::account_picker::AccountPickerCommand::SubmitInput(format!(

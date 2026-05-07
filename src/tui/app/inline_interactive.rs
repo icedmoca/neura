@@ -57,6 +57,16 @@ impl App {
                 .iter()
                 .map(|effort| (*effort).to_string())
                 .collect(),
+            openai_route_legend: {
+                let auth = crate::auth::AuthStatus::check_fast();
+                format!(
+                    "{}|o{}|a{}|d{}",
+                    crate::auth::codex::auth_preference().as_str(),
+                    auth.openai_has_oauth as u8,
+                    auth.openai_has_api_key as u8,
+                    crate::auth::codex::openai_oauth_deferred_now() as u8
+                )
+            },
             simplified_model_picker: crate::perf::tui_policy().simplified_model_picker,
             catalog_revision: self.model_picker_catalog_revision,
             remote_provider_name: self.remote_provider_name.clone(),
@@ -135,63 +145,121 @@ impl App {
         Self::push_local_quantized_model_route(&mut routes);
 
         for model in self.provider.available_models_display() {
-            let (provider, api_method, available, detail) = if model.contains('/') {
-                (
-                    "auto".to_string(),
-                    "openrouter".to_string(),
-                    auth.openrouter != crate::auth::AuthState::NotConfigured,
-                    "simplified catalog".to_string(),
-                )
-            } else {
-                match crate::provider::provider_for_model(&model) {
-                    Some("claude") => (
-                        "Anthropic".to_string(),
-                        "claude-oauth".to_string(),
-                        auth.anthropic.has_oauth || auth.anthropic.has_api_key,
-                        String::new(),
-                    ),
-                    Some("openai") => (
-                        "OpenAI".to_string(),
-                        "openai-oauth".to_string(),
-                        auth.openai != crate::auth::AuthState::NotConfigured,
-                        String::new(),
-                    ),
-                    Some("gemini") => (
-                        "Gemini".to_string(),
-                        "code-assist-oauth".to_string(),
-                        auth.gemini != crate::auth::AuthState::NotConfigured,
-                        String::new(),
-                    ),
-                    Some("cursor") => (
-                        "Cursor".to_string(),
-                        "cursor".to_string(),
-                        auth.cursor != crate::auth::AuthState::NotConfigured,
-                        String::new(),
-                    ),
-                    Some("openrouter") => (
-                        "auto".to_string(),
-                        "openrouter".to_string(),
-                        auth.openrouter != crate::auth::AuthState::NotConfigured,
-                        "simplified catalog".to_string(),
-                    ),
-                    Some(other) => (other.to_string(), other.to_string(), true, String::new()),
-                    None => (
-                        self.provider.name().to_string(),
-                        "current".to_string(),
-                        true,
-                        String::new(),
-                    ),
-                }
-            };
+            if model.contains('/') {
+                routes.push(crate::provider::ModelRoute {
+                    model,
+                    provider: "auto".to_string(),
+                    api_method: "openrouter".to_string(),
+                    available: auth.openrouter != crate::auth::AuthState::NotConfigured,
+                    detail: "simplified catalog".to_string(),
+                    cheapness: None,
+                });
+                continue;
+            }
 
-            routes.push(crate::provider::ModelRoute {
-                model,
-                provider,
-                api_method,
-                available,
-                detail,
-                cheapness: None,
-            });
+            match crate::provider::provider_for_model(&model) {
+                Some("openai") => {
+                    let configured = auth.openai != crate::auth::AuthState::NotConfigured;
+                    if auth.openai_has_oauth {
+                        routes.push(crate::provider::ModelRoute {
+                            model: model.clone(),
+                            provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
+                            api_method: "openai-oauth".to_string(),
+                            available: configured,
+                            detail: String::new(),
+                            cheapness: None,
+                        });
+                    } else {
+                        routes.push(crate::provider::ModelRoute {
+                            model: model.clone(),
+                            provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
+                            api_method: "openai-oauth".to_string(),
+                            available: false,
+                            detail: "ChatGPT OAuth not configured".to_string(),
+                            cheapness: None,
+                        });
+                    }
+                    if auth.openai_has_api_key {
+                        routes.push(crate::provider::ModelRoute {
+                            model: model.clone(),
+                            provider: crate::provider::OPENAI_PICKER_PROVIDER_API_KEY.to_string(),
+                            api_method: "openai-api-key".to_string(),
+                            available: configured,
+                            detail: String::new(),
+                            cheapness: None,
+                        });
+                    } else {
+                        routes.push(crate::provider::ModelRoute {
+                            model: model.clone(),
+                            provider: crate::provider::OPENAI_PICKER_PROVIDER_API_KEY.to_string(),
+                            api_method: "openai-api-key".to_string(),
+                            available: false,
+                            detail: "no OpenAI API key configured".to_string(),
+                            cheapness: None,
+                        });
+                    }
+                }
+                Some("claude") => {
+                    routes.push(crate::provider::ModelRoute {
+                        model,
+                        provider: "Anthropic".to_string(),
+                        api_method: "claude-oauth".to_string(),
+                        available: auth.anthropic.has_oauth || auth.anthropic.has_api_key,
+                        detail: String::new(),
+                        cheapness: None,
+                    });
+                }
+                Some("gemini") => {
+                    routes.push(crate::provider::ModelRoute {
+                        model,
+                        provider: "Gemini".to_string(),
+                        api_method: "code-assist-oauth".to_string(),
+                        available: auth.gemini != crate::auth::AuthState::NotConfigured,
+                        detail: String::new(),
+                        cheapness: None,
+                    });
+                }
+                Some("cursor") => {
+                    routes.push(crate::provider::ModelRoute {
+                        model,
+                        provider: "Cursor".to_string(),
+                        api_method: "cursor".to_string(),
+                        available: auth.cursor != crate::auth::AuthState::NotConfigured,
+                        detail: String::new(),
+                        cheapness: None,
+                    });
+                }
+                Some("openrouter") => {
+                    routes.push(crate::provider::ModelRoute {
+                        model,
+                        provider: "auto".to_string(),
+                        api_method: "openrouter".to_string(),
+                        available: auth.openrouter != crate::auth::AuthState::NotConfigured,
+                        detail: "simplified catalog".to_string(),
+                        cheapness: None,
+                    });
+                }
+                Some(other) => {
+                    routes.push(crate::provider::ModelRoute {
+                        model,
+                        provider: other.to_string(),
+                        api_method: other.to_string(),
+                        available: true,
+                        detail: String::new(),
+                        cheapness: None,
+                    });
+                }
+                None => {
+                    routes.push(crate::provider::ModelRoute {
+                        model,
+                        provider: self.provider.name().to_string(),
+                        api_method: "current".to_string(),
+                        available: true,
+                        detail: String::new(),
+                        cheapness: None,
+                    });
+                }
+            }
         }
 
         if routes.is_empty() && !current_model.is_empty() && current_model != "unknown" {
@@ -521,7 +589,7 @@ impl App {
                 "claude-oauth" | "openai-oauth" => 0,
                 "copilot" => 1,
                 "cursor" => 2,
-                "api-key" => 3,
+                "api-key" | "openai-api-key" => 3,
                 "openrouter" => 4,
                 _ => 5,
             };
@@ -615,6 +683,7 @@ impl App {
                                 || entry_routes.iter().any(|r| {
                                     (r.api_method == "claude-oauth"
                                         || r.api_method == "openai-oauth"
+                                        || r.api_method == "openai-api-key"
                                         || r.api_method == "copilot")
                                         && r.available
                                 })),
@@ -637,6 +706,7 @@ impl App {
                         || entry_routes.iter().any(|r| {
                             (r.api_method == "claude-oauth"
                                 || r.api_method == "openai-oauth"
+                                || r.api_method == "openai-api-key"
                                 || r.api_method == "copilot")
                                 && r.available
                         }));
@@ -874,6 +944,38 @@ impl App {
                     model, available, detail,
                 ));
                 added_any = true;
+
+                let has_api_key_creds = auth.openai_has_api_key;
+                let (ak_available, ak_detail) = if !has_api_key_creds {
+                    (false, "no OpenAI API key configured".to_string())
+                } else if auth.openai == crate::auth::AuthState::NotConfigured {
+                    (false, "no credentials".to_string())
+                } else {
+                    let ak_avail = crate::provider::model_availability_for_openai_catalog_scope(
+                        model,
+                        crate::provider::OPENAI_PLATFORM_API_KEY_CATALOG_SCOPE,
+                    );
+                    match ak_avail.state {
+                        crate::provider::AccountModelAvailabilityState::Available => {
+                            (true, String::new())
+                        }
+                        crate::provider::AccountModelAvailabilityState::Unavailable => (
+                            false,
+                            crate::provider::format_account_model_availability_detail(&ak_avail)
+                                .unwrap_or_else(|| "not available".to_string()),
+                        ),
+                        crate::provider::AccountModelAvailabilityState::Unknown => (
+                            true,
+                            crate::provider::format_account_model_availability_detail(&ak_avail)
+                                .unwrap_or_else(|| "availability unknown".to_string()),
+                        ),
+                    }
+                };
+                routes.push(crate::provider::build_openai_api_key_route(
+                    model,
+                    ak_available,
+                    ak_detail,
+                ));
             }
 
             if auth.openrouter != crate::auth::AuthState::NotConfigured {
@@ -1083,6 +1185,15 @@ impl App {
             },
             AccountPickerAction::OpenCenter { provider_filter } => {
                 self.open_account_center(provider_filter.as_deref())
+            }
+            AccountPickerAction::PromptOpenAiPlatformApiKey => {
+                self.prompt_account_value(
+                    "Enter your OpenAI platform API key (`sk-...`), or send empty/clear to remove the stored key. This is separate from ChatGPT OAuth accounts."
+                        .to_string(),
+                    "/account openai api-key".to_string(),
+                    Some("clear".to_string()),
+                    "Account: OpenAI platform API key…".to_string(),
+                );
             }
         }
     }
@@ -1576,7 +1687,7 @@ impl App {
                             {
                                 Some("claude")
                             }
-                            "openai-oauth" => Some("openai"),
+                            "openai-oauth" | "openai-api-key" => Some("openai"),
                             "copilot" => Some("copilot"),
                             "cursor" => Some("cursor"),
                             "cli" if r.provider == "Antigravity" => Some("antigravity"),
@@ -1629,7 +1740,11 @@ impl App {
 
                 let route = &entry.options[entry.selected_option];
 
-                if !route.available {
+                let account_bypass_route_availability = matches!(
+                    &entry.action,
+                    PickerAction::Account(AccountPickerAction::PromptOpenAiPlatformApiKey)
+                );
+                if !route.available && !account_bypass_route_availability {
                     let detail = if route.detail.is_empty() {
                         "not available".to_string()
                     } else {
@@ -1726,6 +1841,22 @@ impl App {
                         } else {
                             picker_route_model_spec(&entry, route)
                         };
+
+                        match route.api_method.as_str() {
+                            "openai-api-key" => {
+                                let _ = crate::auth::codex::set_auth_preference(
+                                    crate::auth::codex::OpenAiAuthPreference::ApiKey,
+                                );
+                                self.provider.on_auth_changed();
+                            }
+                            "openai-oauth" => {
+                                let _ = crate::auth::codex::set_auth_preference(
+                                    crate::auth::codex::OpenAiAuthPreference::OAuth,
+                                );
+                                self.provider.on_auth_changed();
+                            }
+                            _ => {}
+                        }
 
                         let effort = entry.effort.clone();
                         let notice = format!(

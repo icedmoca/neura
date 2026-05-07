@@ -12,6 +12,11 @@ impl Provider for OpenAIProvider {
         system: &str,
         _resume_session_id: Option<&str>,
     ) -> Result<EventStream> {
+        self.reload_credentials_now();
+        if let Some(msg) = crate::auth::codex::openai_oauth_defer_missing_api_key_message() {
+            anyhow::bail!(msg);
+        }
+
         let input = build_responses_input(messages);
         let input_item_count = input.len();
         let api_tools = build_tools(tools);
@@ -105,6 +110,7 @@ impl Provider for OpenAIProvider {
                             &model_for_transport,
                         )
                         .await;
+                        maybe_clear_openai_oauth_defer_after_oauth_success(&credentials).await;
                         return;
                     }
                     PersistentWsResult::NotAvailable => {
@@ -241,6 +247,7 @@ impl Provider for OpenAIProvider {
                             )
                             .await;
                         }
+                        maybe_clear_openai_oauth_defer_after_oauth_success(&credentials).await;
                         return;
                     }
                     Err(OpenAIStreamFailure::FallbackToHttps(error)) => {
@@ -281,12 +288,26 @@ impl Provider for OpenAIProvider {
                     }
                     Err(OpenAIStreamFailure::Other(error)) => {
                         let elapsed_ms = attempt_started.elapsed().as_millis();
-                        let error_str = error.to_string().to_lowercase();
+                        let raw = error.to_string();
+                        let error_str = raw.to_lowercase();
+
+                        if crate::auth::codex::auth_preference()
+                            == crate::auth::codex::OpenAiAuthPreference::Auto
+                            && oauth_limit_error_allows_api_key_failover(&error_str)
+                        {
+                            let _ = crate::auth::codex::record_openai_oauth_rate_limit_backoff_from_error(
+                                &raw,
+                            );
+                            reload_openai_credentials_arc_from_disk(&credentials).await;
+                        }
+
+                        let on_api_key_route = credentials.read().await.refresh_token.is_empty();
+
                         if !api_key_failover_used
                             && crate::auth::codex::auth_preference()
                                 == crate::auth::codex::OpenAiAuthPreference::Auto
                             && oauth_limit_error_allows_api_key_failover(&error_str)
-                            && credentials.read().await.refresh_token.is_empty().eq(&false)
+                            && !on_api_key_route
                             && let Ok(api_key_creds) =
                                 crate::auth::codex::load_api_key_credentials()
                         {
@@ -299,6 +320,27 @@ impl Provider for OpenAIProvider {
                             )
                             .await;
                             *credentials.write().await = api_key_creds;
+                            api_key_failover_used = true;
+                            force_https_for_request = true;
+                            skip_backoff_once = true;
+                            last_error = Some(error);
+                            continue;
+                        }
+
+                        if !api_key_failover_used
+                            && crate::auth::codex::auth_preference()
+                                == crate::auth::codex::OpenAiAuthPreference::Auto
+                            && oauth_limit_error_allows_api_key_failover(&error_str)
+                            && on_api_key_route
+                        {
+                            crate::logging::warn(
+                                "OpenAI OAuth usage cap active; retrying with API key route after disk refresh",
+                            );
+                            emit_status_detail(
+                                &tx,
+                                "OAuth deferred; retrying with OpenAI API key".to_string(),
+                            )
+                            .await;
                             api_key_failover_used = true;
                             force_https_for_request = true;
                             skip_backoff_once = true;
@@ -643,21 +685,51 @@ impl Provider for OpenAIProvider {
     }
 }
 
+async fn reload_openai_credentials_arc_from_disk(credentials: &Arc<RwLock<CodexCredentials>>) {
+    if let Ok(c) = crate::auth::codex::load_credentials() {
+        *credentials.write().await = c;
+    }
+}
+
+async fn maybe_clear_openai_oauth_defer_after_oauth_success(
+    credentials: &Arc<RwLock<CodexCredentials>>,
+) {
+    let is_oauth = !credentials.read().await.refresh_token.is_empty();
+    if !is_oauth {
+        return;
+    }
+    let _ = crate::auth::codex::clear_openai_oauth_defer_until_ms();
+    reload_openai_credentials_arc_from_disk(credentials).await;
+}
+
 fn oauth_limit_error_allows_api_key_failover(error: &str) -> bool {
+    // Direct subscription/OAuth limit indicators - these alone are enough
+    let direct_oauth_limit = error.contains("usage_limit_reached")
+        || error.contains("plan_type")
+        || error.contains("5-hour")
+        || error.contains("weekly")
+        || (error.contains("subscription") && error.contains("limit"));
+
+    if direct_oauth_limit {
+        return true;
+    }
+
+    // For generic rate limit errors, require additional context suggesting it's
+    // from the OAuth/ChatGPT route rather than the API route
     let status_limited = error.contains("429")
         || error.contains("rate limited")
         || error.contains("rate_limit")
         || error.contains("too many requests")
         || error.contains("usage limit")
+        || error.contains("usage_limit")
         || error.contains("limit reached")
         || error.contains("quota")
-        || error.contains("subscription")
         || error.contains("temporarily unavailable");
-    let auth_limited = error.contains("chatgpt")
+
+    let auth_context = error.contains("chatgpt")
         || error.contains("codex")
         || error.contains("oauth")
-        || error.contains("subscription")
-        || error.contains("5-hour")
-        || error.contains("weekly");
-    status_limited && auth_limited
+        || error.contains("subscription");
+
+    status_limited && auth_context
 }

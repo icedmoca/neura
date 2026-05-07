@@ -26,8 +26,10 @@ const STDIN_INITIAL_DELAY_MS: u64 = 300;
 const PROGRESS_MARKER_PREFIX: &str = "KCODE_PROGRESS ";
 const CHECKPOINT_MARKER_PREFIX: &str = "KCODE_CHECKPOINT ";
 const BACKGROUND_PROGRESS_GUIDANCE: &str = "For long jobs, emit `KCODE_PROGRESS {json}`/`KCODE_CHECKPOINT {json}` or simple progress like 42%, 3/10, Running/Building.";
-const BASH_TOOL_DESCRIPTION: &str = "Run a bash command. For long background jobs, print progress/checkpoint lines.";
-const WINDOWS_SHELL_TOOL_DESCRIPTION: &str = "Run a shell command. For long background jobs, print progress/checkpoint lines.";
+const BASH_TOOL_DESCRIPTION: &str =
+    "Run a bash command. For long background jobs, print progress/checkpoint lines.";
+const WINDOWS_SHELL_TOOL_DESCRIPTION: &str =
+    "Run a shell command. For long background jobs, print progress/checkpoint lines.";
 
 fn progress_ratio_regex() -> Result<&'static regex::Regex> {
     static REGEX: LazyLock<Result<regex::Regex, regex::Error>> = LazyLock::new(|| {

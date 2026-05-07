@@ -323,6 +323,9 @@ pub(crate) fn cheapness_for_route(
                 Some(openai_oauth_pricing(model))
             }
         }
+        "openai-api-key" => {
+            Some(openai_api_pricing(model).unwrap_or_else(|| openai_oauth_pricing(model)))
+        }
         "copilot" => Some(copilot_pricing(model)),
         "openrouter" => {
             let model_id = if model.contains('/') {

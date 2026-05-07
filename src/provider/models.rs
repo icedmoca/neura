@@ -202,6 +202,35 @@ fn current_openai_account_scope() -> String {
     openai_account_scope_from_label(auth::codex::active_account_label())
 }
 
+/// OpenAI Responses/API catalog scope when using a platform API key (not ChatGPT OAuth).
+pub const OPENAI_PLATFORM_API_KEY_CATALOG_SCOPE: &str = "platform-api-key";
+
+/// Catalog scope for the active ChatGPT/Codex OAuth account (OAuth column in `/model`).
+pub fn openai_oauth_catalog_scope_for_picker() -> String {
+    current_openai_account_scope()
+}
+
+/// Scope key for OpenAI model **catalog** caches (picker, `/model`, availability).
+/// Split from the logged-in account label so `auth-mode api_key` does not keep showing
+/// ChatGPT/Codex OAuth-only models from the `openai-1` cache.
+fn openai_model_catalog_scope() -> String {
+    match auth::codex::auth_preference() {
+        auth::codex::OpenAiAuthPreference::ApiKey => {
+            OPENAI_PLATFORM_API_KEY_CATALOG_SCOPE.to_string()
+        }
+        auth::codex::OpenAiAuthPreference::OAuth => current_openai_account_scope(),
+        auth::codex::OpenAiAuthPreference::Auto => {
+            if let Ok(creds) = auth::codex::load_credentials() {
+                let token = creds.access_token.trim_start();
+                if creds.refresh_token.is_empty() && token.starts_with("sk-") {
+                    return OPENAI_PLATFORM_API_KEY_CATALOG_SCOPE.to_string();
+                }
+            }
+            current_openai_account_scope()
+        }
+    }
+}
+
 fn current_claude_account_scope() -> String {
     auth::claude::active_account_label()
         .map(|label| label.trim().to_string())
@@ -230,7 +259,7 @@ fn scoped_openai_model_key(scope: &str, model: &str) -> Option<String> {
 }
 
 fn current_scoped_openai_model_key(model: &str) -> Option<String> {
-    scoped_openai_model_key(&current_openai_account_scope(), model)
+    scoped_openai_model_key(&openai_model_catalog_scope(), model)
 }
 
 fn provider_runtime_scope_key(provider: &str, account_label: Option<&str>) -> String {
@@ -573,7 +602,7 @@ pub fn cached_anthropic_model_ids() -> Option<Vec<String>> {
 }
 
 pub fn cached_openai_model_ids() -> Option<Vec<String>> {
-    let scope = current_openai_account_scope();
+    let scope = openai_model_catalog_scope();
     live_catalog_model_ids(&ACCOUNT_AVAILABLE_MODELS, &scope)
         .or_else(|| load_openai_catalog_from_disk(&scope))
 }
@@ -891,15 +920,18 @@ pub fn finish_anthropic_model_catalog_refresh_for_scope(scope: &str) {
     }
 }
 
-fn account_model_cache_is_fresh() -> bool {
-    let scope = current_openai_account_scope();
+fn account_model_cache_is_fresh_for_scope(scope: &str) -> bool {
     let Ok(guard) = ACCOUNT_AVAILABLE_MODELS_FETCHED_AT.read() else {
         return false;
     };
     guard
-        .get(&scope)
+        .get(scope)
         .map(|fetched_at| fetched_at.elapsed() <= ACCOUNT_MODEL_CACHE_TTL)
         .unwrap_or(false)
+}
+
+fn account_model_cache_is_fresh() -> bool {
+    account_model_cache_is_fresh_for_scope(&openai_model_catalog_scope())
 }
 
 fn anthropic_model_cache_is_fresh(scope: &str) -> bool {
@@ -934,18 +966,77 @@ fn account_snapshot_model_available(model: &str) -> Option<bool> {
         return None;
     }
 
-    let scope = current_openai_account_scope();
+    let scope = openai_model_catalog_scope();
     let cache = ACCOUNT_AVAILABLE_MODELS.read().ok()?;
     let models = cache.get(&scope)?;
     Some(models.contains(&key))
 }
 
-fn account_models_observed_at() -> Option<SystemTime> {
-    let scope = current_openai_account_scope();
+fn account_models_observed_at_for_scope(scope: &str) -> Option<SystemTime> {
     ACCOUNT_AVAILABLE_MODELS_OBSERVED_AT
         .read()
         .ok()
-        .and_then(|map| map.get(&scope).copied())
+        .and_then(|map| map.get(scope).copied())
+}
+
+fn account_models_observed_at() -> Option<SystemTime> {
+    account_models_observed_at_for_scope(&openai_model_catalog_scope())
+}
+
+/// Availability for one OpenAI catalog scope (OAuth account vs platform API key).
+pub fn model_availability_for_openai_catalog_scope(
+    model: &str,
+    catalog_scope: &str,
+) -> AccountModelAvailability {
+    let observed_at = account_models_observed_at_for_scope(catalog_scope);
+    if !account_model_cache_is_fresh_for_scope(catalog_scope) {
+        return AccountModelAvailability {
+            state: AccountModelAvailabilityState::Unknown,
+            reason: Some("availability snapshot is stale".to_string()),
+            source: "account-snapshot",
+            observed_at,
+        };
+    }
+    let key = normalize_model_id(model);
+    if key.is_empty() {
+        return AccountModelAvailability {
+            state: AccountModelAvailabilityState::Unknown,
+            reason: Some("empty model id".to_string()),
+            source: "account-snapshot",
+            observed_at,
+        };
+    }
+    let Ok(cache) = ACCOUNT_AVAILABLE_MODELS.read() else {
+        return AccountModelAvailability {
+            state: AccountModelAvailabilityState::Unknown,
+            reason: Some("model cache unavailable".to_string()),
+            source: "account-snapshot",
+            observed_at: None,
+        };
+    };
+    let Some(models) = cache.get(catalog_scope) else {
+        return AccountModelAvailability {
+            state: AccountModelAvailabilityState::Unknown,
+            reason: Some("no availability snapshot for this auth route".to_string()),
+            source: "account-snapshot",
+            observed_at,
+        };
+    };
+    if models.contains(&key) {
+        AccountModelAvailability {
+            state: AccountModelAvailabilityState::Available,
+            reason: None,
+            source: "account-snapshot",
+            observed_at,
+        }
+    } else {
+        AccountModelAvailability {
+            state: AccountModelAvailabilityState::Unavailable,
+            reason: Some("not available for this auth route".to_string()),
+            source: "account-snapshot",
+            observed_at,
+        }
+    }
 }
 
 pub fn refresh_openai_model_catalog_in_background(access_token: String, context: &'static str) {
@@ -1064,7 +1155,7 @@ pub fn clear_provider_unavailable_for_account(provider: &str) {
 
 /// Clear all runtime model unavailability markers.
 pub fn clear_all_model_unavailability_for_account() {
-    let scope = current_openai_account_scope();
+    let scope = openai_model_catalog_scope();
     if let Ok(mut unavailable) = ACCOUNT_RUNTIME_UNAVAILABLE_MODELS.write() {
         unavailable.retain(|key, _| !key.starts_with(&format!("{}::", scope)));
     }
@@ -1166,7 +1257,7 @@ pub fn get_best_available_openai_model() -> Option<String> {
     if !account_model_cache_is_fresh() {
         return None;
     }
-    let scope = current_openai_account_scope();
+    let scope = openai_model_catalog_scope();
     let cache = ACCOUNT_AVAILABLE_MODELS.read().ok()?;
     let models = cache.get(&scope)?;
 

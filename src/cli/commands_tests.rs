@@ -1,8 +1,8 @@
 use super::*;
 use crate::auth::{AuthState, AuthStatus, ProviderAuth};
 use crate::message::{Message, StreamEvent, ToolDefinition};
-use crate::provider::ModelRoute;
 use crate::provider::{EventStream, Provider};
+use crate::provider::{ModelRoute, OPENAI_PICKER_PROVIDER_OAUTH};
 use crate::tool::Registry;
 use async_trait::async_trait;
 use std::io::{Read, Write};
@@ -186,7 +186,7 @@ fn collect_cli_model_names_prefers_available_routes_and_dedupes() {
     let routes = vec![
         ModelRoute {
             model: "gpt-5.4".to_string(),
-            provider: "OpenAI".to_string(),
+            provider: OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
             api_method: "openai-oauth".to_string(),
             available: true,
             detail: String::new(),

@@ -37,6 +37,15 @@ fn pad_left_display(text: &str, width: usize) -> String {
     format!("{}{}", truncated, " ".repeat(padding))
 }
 
+/// Third-column label in the `/model` picker (internal `api_method` strings otherwise).
+fn model_picker_via_display(api_method: &str) -> &str {
+    match api_method {
+        "openai-oauth" | "claude-oauth" => "OAuth",
+        "openai-api-key" | "api-key" => "API key",
+        _ => api_method,
+    }
+}
+
 fn pad_center_display(text: &str, width: usize) -> String {
     let truncated = truncate_display(text, width);
     let rendered = display_width(truncated.as_str());
@@ -185,7 +194,9 @@ fn picker_render_width(picker: &crate::tui::InlineInteractiveState, max_width: u
                 route.provider.clone()
             };
             max_provider_len = max_provider_len.max(display_width(provider_label.as_str()));
-            max_via_len = max_via_len.max(display_width(route.api_method.as_str()));
+            max_via_len = max_via_len.max(display_width(model_picker_via_display(
+                route.api_method.as_str(),
+            )));
         }
     }
 
@@ -293,7 +304,9 @@ pub(super) fn draw_inline_interactive(frame: &mut Frame, app: &dyn TuiState, are
         let route = entry.active_option();
         if let Some(r) = route {
             max_provider_len = max_provider_len.max(display_width(r.provider.as_str()));
-            max_via_len = max_via_len.max(display_width(r.api_method.as_str()));
+            max_via_len = max_via_len.max(display_width(model_picker_via_display(
+                r.api_method.as_str(),
+            )));
         }
         if is_account_picker {
             let (title, _) = account_picker_entry_title(entry, show_account_provider_badge);
@@ -459,7 +472,15 @@ pub(super) fn draw_inline_interactive(frame: &mut Frame, app: &dyn TuiState, are
         let entry = &picker.entries[model_idx];
         let is_row_selected = vi == selected;
         let route = entry.active_option();
-        let unavailable = route.map(|r| !r.available).unwrap_or(true);
+        let mut unavailable = route.map(|r| !r.available).unwrap_or(true);
+        if matches!(
+            &entry.action,
+            crate::tui::PickerAction::Account(
+                crate::tui::AccountPickerAction::PromptOpenAiPlatformApiKey,
+            )
+        ) {
+            unavailable = false;
+        }
 
         let marker = picker_row_marker(is_row_selected, unavailable);
 
@@ -485,6 +506,9 @@ pub(super) fn draw_inline_interactive(frame: &mut Frame, app: &dyn TuiState, are
             crate::tui::PickerAction::Account(crate::tui::AccountPickerAction::OpenCenter {
                 ..
             }) => Some(rgb(150, 190, 255)),
+            crate::tui::PickerAction::Account(
+                crate::tui::AccountPickerAction::PromptOpenAiPlatformApiKey,
+            ) => Some(rgb(120, 220, 200)),
             _ => None,
         };
         let primary_style = if unavailable {
@@ -645,7 +669,9 @@ pub(super) fn draw_inline_interactive(frame: &mut Frame, app: &dyn TuiState, are
             Style::default().fg(rgb(140, 180, 255))
         };
 
-        let via_raw = route.map(|r| r.api_method.as_str()).unwrap_or("—");
+        let via_raw = route
+            .map(|r| model_picker_via_display(r.api_method.as_str()))
+            .unwrap_or("—");
         let vw = via_width.saturating_sub(1);
         let via_display = format!(" {}", pad_left_display(via_raw, vw));
         let via_style = if unavailable {
@@ -750,7 +776,7 @@ mod tests {
             models.push(crate::tui::PickerEntry {
                 name: "personal".to_string(),
                 options: vec![crate::tui::PickerOption {
-                    provider: "OpenAI".to_string(),
+                    provider: crate::provider::OPENAI_PICKER_PROVIDER_OAUTH.to_string(),
                     api_method: "saved".to_string(),
                     available: true,
                     detail: String::new(),

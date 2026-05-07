@@ -1,9 +1,11 @@
 use anyhow::{Context, Result};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use chrono::{DateTime, Utc};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
-use std::sync::RwLock;
+use std::sync::{OnceLock, RwLock};
 
 const ALLOW_LEGACY_AUTH_ENV: &str = "KCODE_ALLOW_CODEX_LEGACY_AUTH";
 pub const LEGACY_CODEX_AUTH_SOURCE_ID: &str = "openai_codex_auth_json";
@@ -75,6 +77,10 @@ pub struct KcodeOpenAiAuthFile {
     pub openai_auth_preference: OpenAiAuthPreference,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub openai_api_key: Option<String>,
+    /// While `Utc::now() < this` (millis since epoch), `load_credentials` in `auto` mode
+    /// prefers an API key so we do not hammer ChatGPT OAuth on every request after a cap error.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub openai_oauth_defer_until_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -226,6 +232,7 @@ pub fn save_auth_file(auth: &KcodeOpenAiAuthFile) -> Result<()> {
         active_openai_account: auth.active_openai_account.clone(),
         openai_auth_preference: auth.openai_auth_preference,
         openai_api_key: auth.openai_api_key.clone(),
+        openai_oauth_defer_until_ms: auth.openai_oauth_defer_until_ms,
     };
 
     crate::storage::write_json_secret(&auth_path, &clean)?;
@@ -235,6 +242,14 @@ pub fn save_auth_file(auth: &KcodeOpenAiAuthFile) -> Result<()> {
 pub fn list_accounts() -> Result<Vec<OpenAiAccount>> {
     let auth = load_auth_file()?;
     Ok(auth.openai_accounts)
+}
+
+/// True when at least one ChatGPT/Codex OAuth account exists in `openai-auth.json`.
+/// This is independent of [`auth_preference`] and [`load_credentials`] (which may return only the API key).
+pub fn has_oauth_accounts_saved() -> bool {
+    list_accounts()
+        .map(|accounts| !accounts.is_empty())
+        .unwrap_or(false)
 }
 
 pub fn auth_preference() -> OpenAiAuthPreference {
@@ -410,10 +425,167 @@ pub fn load_credentials() -> Result<CodexCredentials> {
     match auth_preference() {
         OpenAiAuthPreference::ApiKey => return load_api_key_credentials(),
         OpenAiAuthPreference::OAuth => return load_oauth_credentials_only(),
-        OpenAiAuthPreference::Auto => {}
+        OpenAiAuthPreference::Auto => {
+            if openai_oauth_deferred_now() {
+                if let Ok(api) = load_api_key_credentials() {
+                    return Ok(api);
+                }
+            }
+        }
     }
 
     load_oauth_credentials_only().or_else(|_| load_api_key_credentials())
+}
+
+fn openai_oauth_defer_until_ms_from_file() -> Option<i64> {
+    load_auth_file()
+        .ok()
+        .and_then(|auth| auth.openai_oauth_defer_until_ms)
+}
+
+/// True when ChatGPT OAuth should be skipped in `auto` (prefer API key or bail if none).
+pub fn openai_oauth_deferred_now() -> bool {
+    let now_ms = Utc::now().timestamp_millis();
+    openai_oauth_defer_until_ms_from_file().is_some_and(|until| until > now_ms)
+}
+
+/// When `auto` + OAuth is deferred and no API key exists, surface this instead of hammering OAuth.
+pub fn openai_oauth_defer_missing_api_key_message() -> Option<String> {
+    if auth_preference() != OpenAiAuthPreference::Auto {
+        return None;
+    }
+    if !openai_oauth_deferred_now() {
+        return None;
+    }
+    if load_api_key_credentials().is_ok() {
+        return None;
+    }
+    openai_oauth_defer_bail_message()
+}
+
+fn openai_oauth_defer_bail_message() -> Option<String> {
+    let until = openai_oauth_defer_until_ms_from_file()?;
+    let now_ms = Utc::now().timestamp_millis();
+    if until <= now_ms {
+        return None;
+    }
+    let remain_ms = until.saturating_sub(now_ms);
+    let remain_secs = (remain_ms + 999) / 1000;
+    let human_until = DateTime::from_timestamp_millis(until)
+        .map(|dt| dt.format("%Y-%m-%d %H:%M UTC").to_string())
+        .unwrap_or_else(|| format!("{} ms", until));
+    Some(format!(
+        "OpenAI ChatGPT OAuth is over its usage cap and no API key is configured for fallback. \
+         OAuth will be tried again after {} (~{}).",
+        human_until,
+        format_approx_duration(remain_secs)
+    ))
+}
+
+fn format_approx_duration(total_secs: i64) -> String {
+    if total_secs <= 0 {
+        return "0s".to_string();
+    }
+    let days = total_secs / 86400;
+    let hours = (total_secs % 86400) / 3600;
+    let mins = (total_secs % 3600) / 60;
+    let secs = total_secs % 60;
+    let mut parts = Vec::new();
+    if days > 0 {
+        parts.push(format!("{}d", days));
+    }
+    if hours > 0 || !parts.is_empty() {
+        parts.push(format!("{}h", hours));
+    }
+    if mins > 0 || !parts.is_empty() {
+        parts.push(format!("{}m", mins));
+    }
+    if parts.is_empty() || secs > 0 {
+        parts.push(format!("{}s", secs));
+    }
+    parts.join(" ")
+}
+
+fn infer_openai_oauth_defer_until_ms(error_text: &str) -> Option<i64> {
+    let now_ms = Utc::now().timestamp_millis();
+    static RE_AT: OnceLock<Regex> = OnceLock::new();
+    static RE_IN: OnceLock<Regex> = OnceLock::new();
+    let re_at = RE_AT.get_or_init(|| Regex::new(r#""resets_at"\s*:\s*(\d+)"#).expect("regex"));
+    let re_in =
+        RE_IN.get_or_init(|| Regex::new(r#""resets_in_seconds"\s*:\s*(\d+)"#).expect("regex"));
+
+    let from_at = re_at
+        .captures(error_text)
+        .and_then(|c| c.get(1))
+        .and_then(|m| m.as_str().parse::<i64>().ok())
+        .map(|v| {
+            if v > 10_000_000_000 {
+                v
+            } else {
+                v.saturating_mul(1000)
+            }
+        });
+
+    let from_in = re_in
+        .captures(error_text)
+        .and_then(|c| c.get(1))
+        .and_then(|m| m.as_str().parse::<i64>().ok())
+        .map(|secs| now_ms.saturating_add(secs.saturating_mul(1000)));
+
+    let parsed = match (from_at, from_in) {
+        (Some(a), Some(i)) => Some(a.max(i)),
+        (Some(a), None) => Some(a),
+        (None, Some(i)) => Some(i),
+        (None, None) => None,
+    };
+
+    if let Some(until) = parsed {
+        return Some(until.max(now_ms + 5_000));
+    }
+
+    let lower = error_text.to_ascii_lowercase();
+    if lower.contains("usage_limit_reached")
+        || lower.contains("usage limit has been reached")
+        || lower.contains("\"plan_type\"")
+    {
+        // API did not include reset metadata; avoid tight retry loops.
+        return Some(now_ms + 30 * 60 * 1000);
+    }
+
+    None
+}
+
+/// Persist OAuth backoff using `resets_at` / `resets_in_seconds` from an OpenAI error payload.
+pub fn record_openai_oauth_rate_limit_backoff_from_error(error_text: &str) -> Result<()> {
+    let Some(until_ms) = infer_openai_oauth_defer_until_ms(error_text) else {
+        return Ok(());
+    };
+    let mut auth = load_auth_file().unwrap_or_default();
+    let merged = auth
+        .openai_oauth_defer_until_ms
+        .map(|prev| prev.max(until_ms))
+        .unwrap_or(until_ms);
+    auth.openai_oauth_defer_until_ms = Some(merged);
+    save_auth_file(&auth)?;
+    super::AuthStatus::invalidate_cache();
+    crate::logging::info(&format!(
+        "OpenAI OAuth deferred until {} (usage cap backoff)",
+        DateTime::from_timestamp_millis(merged)
+            .map(|dt| dt.to_rfc3339())
+            .unwrap_or_else(|| merged.to_string())
+    ));
+    Ok(())
+}
+
+pub fn clear_openai_oauth_defer_until_ms() -> Result<()> {
+    let mut auth = load_auth_file().unwrap_or_default();
+    if auth.openai_oauth_defer_until_ms.is_none() {
+        return Ok(());
+    }
+    auth.openai_oauth_defer_until_ms = None;
+    save_auth_file(&auth)?;
+    super::AuthStatus::invalidate_cache();
+    Ok(())
 }
 
 fn load_oauth_credentials_only() -> Result<CodexCredentials> {

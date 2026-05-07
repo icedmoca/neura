@@ -951,6 +951,10 @@ fn render_provider_settings_markdown(app: &App, provider_id: &str) -> String {
             lines.push("- `/account claude remove <label>`".to_string());
         }
         "openai" => {
+            lines.push(
+                "**Note:** `/account openai` by itself only opens this help screen. To change a setting, send the **full** command on one line (for example `/account openai auth-mode api_key`).".to_string(),
+            );
+            lines.push(String::new());
             lines.push(app.render_openai_accounts_markdown());
             lines.push(String::new());
             lines.push("**Settings**".to_string());

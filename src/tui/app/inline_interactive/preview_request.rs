@@ -80,6 +80,7 @@ pub(super) fn picker_account_provider_scope(picker: &InlineInteractiveState) -> 
         PickerAction::Account(AccountPickerAction::OpenCenter {
             provider_filter: Some(ref provider_id),
         }) => Some(provider_id.as_str()),
+        PickerAction::Account(AccountPickerAction::PromptOpenAiPlatformApiKey) => Some("openai"),
         PickerAction::Account(AccountPickerAction::OpenCenter {
             provider_filter: None,
         })

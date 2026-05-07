@@ -463,7 +463,7 @@ impl PickerKind {
                 primary_label: "ITEM",
                 secondary_label: "PROVIDER",
                 secondary_preview_label: "PROVIDER",
-                tertiary_label: "ACTION",
+                tertiary_label: "AUTH",
                 preview_submit_hint: "  ↵ open",
                 active_submit_hint: "  ↑↓ ←→ ↵ Esc",
                 shows_default_shortcut_hint: true,
@@ -556,10 +556,22 @@ impl PickerKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AccountPickerAction {
-    Switch { provider_id: String, label: String },
-    Add { provider_id: String },
-    Replace { provider_id: String, label: String },
-    OpenCenter { provider_filter: Option<String> },
+    Switch {
+        provider_id: String,
+        label: String,
+    },
+    Add {
+        provider_id: String,
+    },
+    Replace {
+        provider_id: String,
+        label: String,
+    },
+    OpenCenter {
+        provider_filter: Option<String>,
+    },
+    /// Prompt to set or clear the OpenAI **platform** API key (not ChatGPT OAuth).
+    PromptOpenAiPlatformApiKey,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -643,6 +655,7 @@ fn estimate_picker_action_bytes(action: &PickerAction) -> usize {
                 .map(|value| value.capacity())
                 .unwrap_or(0)
         }
+        PickerAction::Account(AccountPickerAction::PromptOpenAiPlatformApiKey) => 0,
         PickerAction::Login(descriptor) => {
             descriptor.id.len()
                 + descriptor.display_name.len()
@@ -867,6 +880,9 @@ impl PickerEntry {
             PickerAction::Account(AccountPickerAction::Add { .. }) => Some("add"),
             PickerAction::Account(AccountPickerAction::Replace { .. }) => Some("replace"),
             PickerAction::Account(AccountPickerAction::OpenCenter { .. }) => Some("manage"),
+            PickerAction::Account(AccountPickerAction::PromptOpenAiPlatformApiKey) => {
+                Some("api-key")
+            }
             _ => None,
         }
     }

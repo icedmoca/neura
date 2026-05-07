@@ -374,3 +374,37 @@ fn load_auth_file_renames_existing_labels_to_numbered_scheme() {
     );
     assert_eq!(auth.active_openai_account.as_deref(), Some("openai-2"));
 }
+
+#[test]
+fn openai_oauth_defer_persists_resets_at_seconds() {
+    let _lock = crate::storage::lock_test_env();
+    let temp = tempfile::TempDir::new().unwrap();
+    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    set_active_account_override(None);
+
+    let err = r#"Rate limited: {"error":{"type":"usage_limit_reached","resets_at":1777959061}}"#;
+    record_openai_oauth_rate_limit_backoff_from_error(err).unwrap();
+    let auth = load_auth_file().unwrap();
+    assert_eq!(
+        auth.openai_oauth_defer_until_ms,
+        Some(1_777_959_061_i64 * 1000)
+    );
+}
+
+#[test]
+fn openai_oauth_defer_resets_in_seconds_from_now() {
+    let _lock = crate::storage::lock_test_env();
+    let temp = tempfile::TempDir::new().unwrap();
+    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    set_active_account_override(None);
+
+    let before = chrono::Utc::now().timestamp_millis();
+    let err = r#"429 {"error":{"resets_in_seconds":42}}"#;
+    record_openai_oauth_rate_limit_backoff_from_error(err).unwrap();
+    let until = load_auth_file()
+        .unwrap()
+        .openai_oauth_defer_until_ms
+        .expect("until");
+    assert!(until >= before + 42 * 1000, "until={until} before={before}");
+    assert!(until <= before + 50 * 1000);
+}

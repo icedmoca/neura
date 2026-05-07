@@ -298,7 +298,8 @@ pub(super) async fn handle_terminal_event(
                         }
                         crate::tui::AccountPickerAction::Add { .. }
                         | crate::tui::AccountPickerAction::Replace { .. }
-                        | crate::tui::AccountPickerAction::OpenCenter { .. } => {}
+                        | crate::tui::AccountPickerAction::OpenCenter { .. }
+                        | crate::tui::AccountPickerAction::PromptOpenAiPlatformApiKey => {}
                     }
                 }
             }

@@ -872,6 +872,7 @@ fn estimate_summary_bytes(summary: &AccountPickerSummary) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::provider::OPENAI_PICKER_PROVIDER_OAUTH;
     use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};
 
     #[test]
@@ -880,7 +881,7 @@ mod tests {
             " Accounts ",
             vec![AccountPickerItem::action(
                 "openai",
-                "OpenAI",
+                OPENAI_PICKER_PROVIDER_OAUTH,
                 "Add account",
                 "Start login flow",
                 AccountPickerCommand::SubmitInput("/account openai add default".to_string()),
@@ -928,14 +929,14 @@ mod tests {
             vec![
                 AccountPickerItem::action(
                     "openai",
-                    "OpenAI",
+                    OPENAI_PICKER_PROVIDER_OAUTH,
                     "Provider settings",
                     "configured",
                     AccountPickerCommand::SubmitInput("/account openai settings".to_string()),
                 ),
                 AccountPickerItem::action(
                     "openai",
-                    "OpenAI",
+                    OPENAI_PICKER_PROVIDER_OAUTH,
                     "Switch account `work`",
                     "user@example.com - valid - active",
                     AccountPickerCommand::SubmitInput("/account openai switch work".to_string()),
@@ -987,7 +988,7 @@ mod tests {
                 ),
                 AccountPickerItem::action(
                     "openai",
-                    "OpenAI",
+                    OPENAI_PICKER_PROVIDER_OAUTH,
                     "Switch account `default`",
                     "b@example.com - valid - active",
                     AccountPickerCommand::SubmitInput("/account openai switch default".to_string()),
