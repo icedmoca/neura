@@ -436,7 +436,7 @@ pub fn record_api_exchange_async(
     if !enabled() || response_text.trim().is_empty() {
         return;
     }
-    let prompt_text = transcript_text(messages, 48_000);
+    let prompt_text = pre_route_transcript_text(messages);
     let response = response_text.to_string();
     let provider = upstream_provider.to_string();
     let model = upstream_model.to_string();
@@ -1428,10 +1428,194 @@ fn now_ms() -> u128 {
         .unwrap_or_default()
 }
 
+fn pre_route_transcript_text(messages: &[Message]) -> String {
+    let budget = adaptive_pre_route_transcript_budget(messages);
+    let latest_user_index = messages
+        .iter()
+        .rposition(|message| message.role == Role::User);
+    transcript_text_with_options(
+        messages,
+        budget,
+        TranscriptOptions {
+            compress_large_blocks: true,
+            latest_user_index,
+        },
+    )
+}
+
+#[derive(Clone, Copy)]
+struct TranscriptOptions {
+    compress_large_blocks: bool,
+    latest_user_index: Option<usize>,
+}
+
+impl Default for TranscriptOptions {
+    fn default() -> Self {
+        Self {
+            compress_large_blocks: false,
+            latest_user_index: None,
+        }
+    }
+}
+
+fn adaptive_pre_route_transcript_budget(messages: &[Message]) -> usize {
+    let latest = latest_user_plain_text(messages).unwrap_or_default();
+    let latest_chars = latest.chars().count();
+    let lower = latest.to_ascii_lowercase();
+    let total_visible: usize = messages.iter().map(message_visible_chars).sum();
+
+    let asks_for_prior_context = contains_any(
+        &lower,
+        &[
+            "continue",
+            "keep going",
+            "previous",
+            "above",
+            "earlier",
+            "last",
+            "that",
+            "those",
+            "it",
+            "same",
+            "again",
+            "reload",
+            "did that",
+            "what happened",
+            "why did",
+            "how many",
+        ],
+    );
+    let repo_or_debug_work = contains_any(
+        &lower,
+        &[
+            "fix",
+            "debug",
+            "bug",
+            "build",
+            "test",
+            "error",
+            "failed",
+            "panic",
+            "trace",
+            "repo",
+            "code",
+            "commit",
+            "push",
+            "diff",
+            "grep",
+            "read",
+            "file",
+            "src/",
+            "docs/",
+            ".rs",
+            ".py",
+            ".md",
+            "token",
+            "prompt",
+            "context",
+            "memory",
+            "tool",
+            "benchmark",
+            "optimize",
+        ],
+    );
+    let has_structural_detail = latest.contains('\n')
+        || latest.contains("```")
+        || latest.contains("/")
+        || latest.contains("::")
+        || latest.contains("->")
+        || latest.contains("http://")
+        || latest.contains("https://");
+    let simple_latest = latest_chars <= 80
+        && !has_structural_detail
+        && !repo_or_debug_work
+        && !asks_for_prior_context
+        && lexical_diversity(&lower) <= 1.0;
+
+    let budget = if simple_latest {
+        4_000
+    } else if latest_chars <= 160 && !repo_or_debug_work && !has_structural_detail {
+        8_000
+    } else if repo_or_debug_work || has_structural_detail {
+        24_000
+    } else if asks_for_prior_context {
+        16_000
+    } else {
+        12_000
+    };
+
+    // Scale up when the latest user input itself is large, but never return to
+    // the old fixed 48k sidecar transcript unless the user actually supplied a
+    // very large, structured prompt.
+    let latest_floor = latest.len().saturating_add(2_000);
+    budget
+        .max(latest_floor)
+        .min(total_visible)
+        .clamp(2_000, 32_000)
+}
+
+fn latest_user_plain_text(messages: &[Message]) -> Option<String> {
+    messages.iter().rev().find_map(|message| {
+        if message.role != Role::User {
+            return None;
+        }
+        let mut text = String::new();
+        for block in &message.content {
+            if let ContentBlock::Text { text: chunk, .. } = block {
+                if !text.is_empty() {
+                    text.push('\n');
+                }
+                text.push_str(chunk);
+            }
+        }
+        if text.trim().is_empty() {
+            None
+        } else {
+            Some(text)
+        }
+    })
+}
+
+fn contains_any(haystack: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|needle| haystack.contains(needle))
+}
+
+fn lexical_diversity(text: &str) -> f32 {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    if words.is_empty() {
+        return 0.0;
+    }
+    let unique = words.iter().collect::<std::collections::HashSet<_>>().len();
+    unique as f32 / words.len() as f32
+}
+
+fn message_visible_chars(message: &Message) -> usize {
+    message
+        .content
+        .iter()
+        .map(|block| match block {
+            ContentBlock::Text { text, .. } => text.len(),
+            ContentBlock::ToolResult { content, .. } => content.len(),
+            ContentBlock::ToolUse { name, input, .. } => name.len() + input.to_string().len(),
+            ContentBlock::Reasoning { text } => text.len(),
+            ContentBlock::Image { .. } => 32,
+            ContentBlock::OpenAICompaction { encrypted_content } => encrypted_content.len(),
+        })
+        .sum()
+}
+
 fn transcript_text(messages: &[Message], max_chars: usize) -> String {
+    transcript_text_with_options(messages, max_chars, TranscriptOptions::default())
+}
+
+fn transcript_text_with_options(
+    messages: &[Message],
+    max_chars: usize,
+    options: TranscriptOptions,
+) -> String {
     let mut out = String::new();
-    for message in messages.iter().rev() {
-        let mut rendered = render_message(message);
+    for (idx, message) in messages.iter().enumerate().rev() {
+        let mut rendered = render_message_with_options(message, idx, options);
         if rendered.len() > max_chars {
             rendered = tail_to_char_limit(&rendered, max_chars);
         }
@@ -1451,30 +1635,50 @@ fn tail_to_char_limit(text: &str, max_chars: usize) -> String {
     if text.len() <= max_chars {
         return text.to_string();
     }
-    let mut start = text.len().saturating_sub(max_chars);
+    let prefix = "[earlier content truncated]\n";
+    let body_chars = max_chars.saturating_sub(prefix.len());
+    let mut start = text.len().saturating_sub(body_chars);
     while start < text.len() && !text.is_char_boundary(start) {
         start += 1;
     }
-    format!("[earlier content truncated]\n{}", &text[start..])
+    format!("{}{}", prefix, &text[start..])
 }
 
 fn render_message(message: &Message) -> String {
+    render_message_with_options(message, usize::MAX, TranscriptOptions::default())
+}
+
+fn render_message_with_options(
+    message: &Message,
+    message_index: usize,
+    options: TranscriptOptions,
+) -> String {
     let role = match message.role {
         Role::User => "user",
         Role::Assistant => "assistant",
     };
+    let preserve_text_exact = options.latest_user_index == Some(message_index);
     let mut parts = Vec::new();
     for block in &message.content {
         match block {
-            ContentBlock::Text { text, .. } => parts.push(text.clone()),
-            ContentBlock::Reasoning { text } => {
-                parts.push(format!("<reasoning>{text}</reasoning>"))
-            }
-            ContentBlock::ToolResult { content, .. } => {
-                parts.push(format!("<tool_result>{content}</tool_result>"))
-            }
+            ContentBlock::Text { text, .. } => parts.push(render_transcript_text_block(
+                text,
+                options.compress_large_blocks && !preserve_text_exact,
+            )),
+            ContentBlock::Reasoning { text } => parts.push(format!(
+                "<reasoning>{}</reasoning>",
+                render_transcript_text_block(text, options.compress_large_blocks)
+            )),
+            ContentBlock::ToolResult { content, .. } => parts.push(format!(
+                "<tool_result>{}</tool_result>",
+                render_transcript_tool_result(content, options.compress_large_blocks)
+            )),
             ContentBlock::ToolUse { name, input, .. } => {
-                parts.push(format!("<tool_use name=\"{name}\">{input}</tool_use>"))
+                let input_text = input.to_string();
+                parts.push(format!(
+                    "<tool_use name=\"{name}\">{}</tool_use>",
+                    render_transcript_text_block(&input_text, options.compress_large_blocks)
+                ))
             }
             ContentBlock::Image { .. } => parts.push("<image />".to_string()),
             ContentBlock::OpenAICompaction { encrypted_content } => parts.push(format!(
@@ -1484,6 +1688,37 @@ fn render_message(message: &Message) -> String {
         }
     }
     format!("<{role}>\n{}\n</{role}>", parts.join("\n"))
+}
+
+fn render_transcript_text_block(text: &str, compress: bool) -> String {
+    if !compress || text.len() <= 1_200 || text.contains("<ctx") || text.contains("<il:") {
+        return text.to_string();
+    }
+    format!("<summary {} />", summarize_attrs(text))
+}
+
+fn render_transcript_tool_result(content: &str, compress: bool) -> String {
+    if !compress || content.len() <= 900 || content.contains("<ctx") || content.contains("<il:") {
+        return content.to_string();
+    }
+    format!("<summary {} />", summarize_attrs(content))
+}
+
+fn summarize_attrs(text: &str) -> String {
+    let first = truncate_str(text.lines().next().unwrap_or_default().trim(), 180);
+    format!(
+        "lines=\"{}\" chars=\"{}\" first=\"{}\"",
+        text.lines().count(),
+        text.len(),
+        escape_attr(&first)
+    )
+}
+
+fn escape_attr(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 fn summarize(text: &str) -> String {
@@ -1574,6 +1809,62 @@ mod tests {
                 .unwrap();
         assert!(promoted.contains("deterministic-promoter"));
         assert!(promoted.contains("short answers"));
+    }
+
+    #[test]
+    fn pre_route_budget_is_small_for_simple_low_entropy_turns() {
+        let mut messages = Vec::new();
+        for idx in 0..30 {
+            messages.push(Message::user(&format!(
+                "historical verbose context {idx} {}",
+                "alpha beta gamma delta ".repeat(120)
+            )));
+        }
+        messages.push(Message::user("meow"));
+
+        let transcript = pre_route_transcript_text(&messages);
+        assert!(transcript.len() <= 4_200, "len={}", transcript.len());
+        assert!(transcript.contains("meow"));
+    }
+
+    #[test]
+    fn pre_route_budget_expands_for_repo_debug_turns() {
+        let mut messages = Vec::new();
+        for idx in 0..12 {
+            messages.push(Message::user(&format!(
+                "src/provider.rs error history {idx} {}",
+                "compile failure token context ".repeat(60)
+            )));
+        }
+        messages.push(Message::user(
+            "fix the failing build in src/provider.rs and run tests",
+        ));
+
+        let budget = adaptive_pre_route_transcript_budget(&messages);
+        assert!(budget >= 20_000, "budget={budget}");
+    }
+
+    #[test]
+    fn pre_route_transcript_compresses_large_old_tool_results() {
+        let messages = vec![
+            Message::user("please inspect the repo"),
+            Message::tool_result(
+                "call-1",
+                &"/tmp/project/src/file.rs: ERROR repeated diagnostic output
+"
+                .repeat(200),
+                false,
+            ),
+            Message::user("ok thanks"),
+        ];
+
+        let transcript = pre_route_transcript_text(&messages);
+        assert!(transcript.contains("<summary"));
+        assert!(!transcript.contains(
+            "repeated diagnostic output
+/tmp/project"
+        ));
+        assert!(transcript.contains("ok thanks"));
     }
 
     #[test]
