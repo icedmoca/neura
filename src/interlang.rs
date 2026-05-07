@@ -894,6 +894,9 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
             lexical_hits = lexical_hits.saturating_add(1);
         }
     }
+    if smart_auto_rehydrate_turn_allowed(latest_user) && (lexical_hits >= 1 || topic_score >= 2) {
+        return true;
+    }
 
     // Generic policy: proactive exact restore needs either an explicit ref/fetch,
     // or concrete lexical evidence from the ctx ref plus enough investigative
@@ -910,9 +913,12 @@ fn should_suppress_auto_rehydrate_for_turn(latest_user: &str) -> bool {
     if trimmed.len() <= 160
         && !trimmed.contains("src/")
         && !trimmed.contains("docs/")
+        && !trimmed.contains("install/")
+        && !trimmed.contains("scripts/")
         && !trimmed.contains(".rs")
         && !trimmed.contains(".py")
         && !trimmed.contains(".md")
+        && !trimmed.contains(".sh")
         && !trimmed.contains("```")
     {
         return true;
@@ -962,6 +968,69 @@ fn contains_any(haystack: &str, needles: &[&str]) -> bool {
     needles.iter().any(|needle| haystack.contains(needle))
 }
 
+fn smart_auto_rehydrate_turn_allowed(latest_user: &str) -> bool {
+    let trimmed = latest_user.trim();
+    if trimmed.len() > 4_000 {
+        return false;
+    }
+    if should_suppress_auto_rehydrate_for_turn(latest_user) {
+        return false;
+    }
+    let has_task_continuation = contains_any(
+        latest_user,
+        &[
+            "continue",
+            "use the previous",
+            "from above",
+            "same error",
+            "same file",
+            "that stack",
+            "that diff",
+            "that failing",
+            "finish the",
+            "keep going",
+            "resume",
+            "apply that",
+        ],
+    );
+    let has_precise_artifact = contains_any(
+        latest_user,
+        &[
+            "src/",
+            "docs/",
+            "scripts/",
+            "install/",
+            "benchmark-results/",
+            ".rs",
+            ".py",
+            ".md",
+            ".sh",
+            "error",
+            "panic",
+            "traceback",
+            "diff --git",
+            "failed test",
+            "cargo test",
+            "cargo check",
+        ],
+    );
+    if trimmed.len() < 80 && !has_precise_artifact {
+        return false;
+    }
+    has_task_continuation && has_precise_artifact
+}
+
+fn auto_rehydrate_enabled() -> bool {
+    std::env::var("KCODE_CTX_AUTO_REHYDRATE")
+        .map(|v| {
+            matches!(
+                v.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
+}
+
 fn auto_rehydrate_debug_enabled() -> bool {
     std::env::var(AUTO_REHYDRATE_DEBUG_ENV)
         .map(|v| {
@@ -978,6 +1047,10 @@ fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut Interl
         return;
     }
     let latest_user = latest_user_context(messages);
+    if !auto_rehydrate_enabled() && !smart_auto_rehydrate_turn_allowed(&latest_user) {
+        stats.auto_rehydrate_skipped += stats.low_confidence_blocks;
+        return;
+    }
     let Ok(seen) = seen_blocks().lock() else {
         return;
     };
@@ -1901,7 +1974,7 @@ mod tests {
         assert!(stats.low_confidence_blocks > 0);
 
         let mut messages = vec![Message::user(
-            "The installer build error is still failing. Show relevant context.",
+            "continue from above: the install/install.sh build error is still failing in the same file. Show relevant context.",
         )];
         maybe_append_auto_rehydration(&mut messages, &mut stats);
         assert_eq!(
