@@ -858,6 +858,9 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
     }
 
     let explicit_fetch_intent = latest_user.contains("ctx_get") || latest_user.contains("rehydrat");
+    if !explicit_fetch_intent && should_suppress_auto_rehydrate_for_turn(latest_user) {
+        return false;
+    }
     let failure_intent = latest_user.contains("failing")
         || latest_user.contains("failed")
         || latest_user.contains("failure")
@@ -900,6 +903,63 @@ fn topic_relevant_to_turn(block: &SeenBlock, latest_user: &str) -> bool {
         || lexical_hits >= 2
         || (lexical_hits >= 1 && (investigation_intent || topic_score >= 3))
         || (investigation_intent && topic_score >= 4)
+}
+
+fn should_suppress_auto_rehydrate_for_turn(latest_user: &str) -> bool {
+    let trimmed = latest_user.trim();
+    if trimmed.len() <= 160
+        && !trimmed.contains("src/")
+        && !trimmed.contains("docs/")
+        && !trimmed.contains(".rs")
+        && !trimmed.contains(".py")
+        && !trimmed.contains(".md")
+        && !trimmed.contains("```")
+    {
+        return true;
+    }
+
+    let token_accounting = contains_any(
+        latest_user,
+        &[
+            "token",
+            "tokens",
+            "up",
+            "down",
+            "sent up",
+            "prompt_chars",
+            "prompt chars",
+            "how many",
+            "how much",
+            "why did",
+            "cost",
+            "usage",
+            "accounting",
+            "efficient",
+            "efficiency",
+            "bloat",
+            "overhead",
+        ],
+    );
+    let asks_to_fix_code = contains_any(
+        latest_user,
+        &[
+            "fix src/",
+            "fix docs/",
+            "debug src/",
+            "edit src/",
+            "patch src/",
+            "failing test",
+            "build error",
+            "compile error",
+            "panic at",
+            "traceback",
+        ],
+    );
+    token_accounting && !asks_to_fix_code
+}
+
+fn contains_any(haystack: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|needle| haystack.contains(needle))
 }
 
 fn auto_rehydrate_debug_enabled() -> bool {
@@ -1740,6 +1800,58 @@ mod tests {
             messages.len(),
             1,
             "documentation wording turns should not auto-restore generic old code"
+        );
+        assert_eq!(stats.auto_rehydrated_blocks, 0);
+    }
+
+    #[test]
+    fn auto_rehydration_ignores_short_meow_turn() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let old_prompt_chars_code =
+            "src/local_model.rs:1043:fn record_pre_route(latest_user: &str, prompt_chars: usize) {}
+"
+            .repeat(900);
+        let mut stats = InterlangStats::default();
+        let _ = encode_context_diet_ref(&old_prompt_chars_code, "old-text", &mut stats);
+        let mut messages = vec![Message::user("meow")];
+        maybe_append_auto_rehydration(&mut messages, &mut stats);
+        assert_eq!(
+            messages.len(),
+            1,
+            "short trivial turns must not auto-restore exact context"
+        );
+        assert_eq!(stats.auto_rehydrated_blocks, 0);
+    }
+
+    #[test]
+    fn auto_rehydration_ignores_token_efficiency_audit_turn() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let old_prompt_chars_code =
+            "src/local_model.rs:1043:fn record_pre_route(latest_user: &str, prompt_chars: usize) {}
+"
+            .repeat(900);
+        let mut stats = InterlangStats::default();
+        let _ = encode_context_diet_ref(&old_prompt_chars_code, "old-text", &mut stats);
+        let mut messages = vec![Message::user(
+            "check everything entirely, why is it saying 107k tokens up? fix token efficiency",
+        )];
+        maybe_append_auto_rehydration(&mut messages, &mut stats);
+        assert_eq!(
+            messages.len(),
+            1,
+            "token accounting turns should inspect logs/code via tools, not auto-restore old exact excerpts"
         );
         assert_eq!(stats.auto_rehydrated_blocks, 0);
     }
