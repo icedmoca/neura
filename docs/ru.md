@@ -75,6 +75,33 @@ sequenceDiagram
 
 ---
 
+
+### Context mindmap
+
+```mermaid
+mindmap
+  root((Context packet))
+    Always small first
+      user request
+      active files
+      current plan
+    Retrieved only if useful
+      old transcript blocks
+      memory records
+      benchmark artifacts
+      docs and code snippets
+    Protected against bloat
+      low-entropy turn filtering
+      extraction budgets
+      schema pruning
+      vault references
+    Verifiable
+      context IDs
+      checksums
+      replayable artifacts
+      source paths
+```
+
 ## Level 3 — Context architecture
 
 Kcode treats context like a local virtual memory system.
@@ -152,6 +179,39 @@ flowchart TD
 | Tests | old fixture snapshots should load after migrations |
 
 ---
+
+
+### Tooling mindmap
+
+```mermaid
+mindmap
+  root((Tool layer))
+    Read
+      agentgrep
+      read
+      glob
+      git inspection
+    Change
+      edit
+      multiedit
+      apply_patch
+      write
+    Verify
+      tests
+      builds
+      benchmark scripts
+      background tasks
+    Operate
+      browser
+      MCP servers
+      Gmail with confirmation
+      scheduler
+    Coordinate
+      todo
+      goals
+      subagents
+      swarm
+```
 
 ## Level 5 — Tool system
 
