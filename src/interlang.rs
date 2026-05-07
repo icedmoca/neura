@@ -492,9 +492,14 @@ fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, Interlang
     }
 
     let total_text: usize = messages.iter().map(message_visible_chars).sum();
+    let has_large_recent_tool_result = messages
+        .iter()
+        .rev()
+        .take(context_diet_recent_messages())
+        .any(message_has_large_recent_tool_result);
     let total_tokens =
         exact_token_count_messages(messages).unwrap_or_else(|| estimate_tokens(total_text));
-    if total_tokens < context_diet_trigger_tokens() {
+    if total_tokens < context_diet_trigger_tokens() && !has_large_recent_tool_result {
         return (messages.to_vec(), stats);
     }
 
@@ -503,23 +508,29 @@ fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, Interlang
         .saturating_sub(context_diet_recent_messages());
     let mut out = Vec::with_capacity(messages.len());
     for (idx, message) in messages.iter().enumerate() {
-        if idx >= cutoff {
-            out.push(message.clone());
-            continue;
-        }
+        let is_recent = idx >= cutoff;
         let mut msg = message.clone();
         let mut changed = false;
         for block in &mut msg.content {
             match block {
-                ContentBlock::Text { text, .. } if should_diet_text(text) => {
+                ContentBlock::Text { text, .. } if !is_recent && should_diet_text(text) => {
                     *text = encode_context_diet_ref(text, "old-text", &mut stats);
                     changed = true;
                 }
-                ContentBlock::ToolResult { content, .. } if should_diet_tool_result(content) => {
+                ContentBlock::ToolResult { content, .. }
+                    if should_diet_tool_result(content)
+                        && (!is_recent || should_diet_recent_tool_result(content)) =>
+                {
+                    // Keep recent human/assistant text exact, but do not let a large
+                    // grep/read/build output inside the recent-message window dominate
+                    // every following provider request. Exact content remains available
+                    // through the context vault if the model needs it.
                     *content = encode_context_diet_ref(content, "old-tool-result", &mut stats);
                     changed = true;
                 }
-                ContentBlock::Reasoning { text } if text.len() > context_diet_min_block_chars() => {
+                ContentBlock::Reasoning { text }
+                    if !is_recent && text.len() > context_diet_min_block_chars() =>
+                {
                     *text = encode_context_diet_ref(text, "old-reasoning", &mut stats);
                     changed = true;
                 }
@@ -545,6 +556,26 @@ fn should_diet_tool_result(content: &str) -> bool {
     content.len() >= context_diet_min_block_chars()
         && !content.contains("<ctx")
         && !content.contains("<il:")
+}
+
+fn message_has_large_recent_tool_result(message: &Message) -> bool {
+    message.content.iter().any(|block| match block {
+        ContentBlock::ToolResult { content, .. } => should_diet_recent_tool_result(content),
+        _ => false,
+    })
+}
+
+fn should_diet_recent_tool_result(content: &str) -> bool {
+    content.len() >= context_diet_recent_tool_result_chars()
+}
+
+fn context_diet_recent_tool_result_chars() -> usize {
+    env_usize(
+        "KCODE_CONTEXT_DIET_RECENT_TOOL_RESULT_CHARS",
+        2_000,
+        800,
+        24_000,
+    )
 }
 
 fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -> String {
@@ -1506,6 +1537,37 @@ mod tests {
         assert_eq!(stats.seen_ref_blocks, 1);
         assert_eq!(stats.raw_context_avoided_chars, text.len());
         assert!(encoded.len() < text.len());
+    }
+
+    #[test]
+    fn context_diet_compacts_large_recent_tool_results() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let mut messages = Vec::new();
+        for idx in 0..20 {
+            messages.push(Message::user(&format!("short filler {idx}")));
+        }
+        messages.push(Message::user("recent user request stays exact"));
+        messages.push(Message::tool_result(
+            "call-1",
+            &"recent read output line with token-heavy context and file paths\n".repeat(700),
+            false,
+        ));
+
+        let (dieted, stats) = maybe_context_diet_messages(&messages);
+        assert!(stats.diet_blocks >= 1);
+        match &dieted[dieted.len() - 2].content[0] {
+            ContentBlock::Text { text, .. } => assert_eq!(text, "recent user request stays exact"),
+            _ => panic!("expected recent text"),
+        }
+        match &dieted.last().unwrap().content[0] {
+            ContentBlock::ToolResult { content, .. } => {
+                assert!(content.contains("k=\"old-tool-result\""));
+                assert!(content.len() < 600);
+            }
+            _ => panic!("expected tool result"),
+        }
     }
 
     #[test]
