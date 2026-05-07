@@ -152,6 +152,7 @@ Kcode's strongest technical differentiators are:
 - **[TOOLS_AND_AGENTS.md](docs/TOOLS_AND_AGENTS.md)** - built-in tools, agents, MCPs, and automation capabilities.
 - **[TODO.md](docs/TODO.md)** - roadmap ideas and future work.
 - **[ABOUT.md](docs/ABOUT.md)** - deeper architecture explanation, exact-evidence design, and hallucination mitigation.
+- **[ru.md](docs/ru.md)** - technical rubric and system diagrams at multiple detail levels.
 - **[BENCHMARKS.md](docs/BENCHMARKS.md)** - measured benchmarks, context-efficiency statistics, methodology, and artifacts.
 
 ---
