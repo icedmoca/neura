@@ -1,5 +1,91 @@
 use super::*;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TurnAdmission {
+    Direct,
+    Light,
+    Deep,
+}
+
+impl TurnAdmission {
+    fn use_memory(self) -> bool {
+        matches!(self, TurnAdmission::Light | TurnAdmission::Deep)
+    }
+    fn use_interlang(self) -> bool {
+        matches!(self, TurnAdmission::Light | TurnAdmission::Deep)
+    }
+    fn use_sidecar(self) -> bool {
+        matches!(self, TurnAdmission::Deep)
+    }
+}
+
+fn classify_turn_admission(messages: &[Message]) -> TurnAdmission {
+    let Some(latest) = latest_user_text_for_payload_diet(messages) else {
+        return TurnAdmission::Light;
+    };
+    let trimmed = latest.trim();
+    let lower = trimmed.to_ascii_lowercase();
+    if trimmed.len() <= 120
+        && !trimmed.contains('?')
+        && !contains_any_for_payload_diet(
+            &lower,
+            &["what", "how", "why", "explain", "tell me about"],
+        )
+        && !trimmed.contains('\n')
+        && !trimmed.contains("```")
+        && !contains_any_for_payload_diet(
+            &lower,
+            &[
+                "fix", "debug", "build", "test", "error", "failed", "repo", "code", "file", "src/",
+                "docs/", ".rs", ".py", ".md", "continue", "previous", "earlier", "above", "that",
+                "those", "memory", "token", "context", "why", "how many", "browser", "click",
+                "search", "web", "email", "gmail", "commit", "push",
+            ],
+        )
+    {
+        return TurnAdmission::Direct;
+    }
+    if contains_any_for_payload_diet(
+        &lower,
+        &[
+            "fix",
+            "debug",
+            "build",
+            "test",
+            "error",
+            "failed",
+            "repo",
+            "code",
+            "file",
+            "src/",
+            "docs/",
+            ".rs",
+            ".py",
+            ".md",
+            "continue",
+            "previous",
+            "earlier",
+            "above",
+            "browser",
+            "click",
+            "search",
+            "web",
+            "email",
+            "gmail",
+            "commit",
+            "push",
+            "benchmark",
+        ],
+    ) || trimmed.len() > 800
+        || trimmed.contains('\n')
+        || trimmed.contains("```")
+    {
+        TurnAdmission::Deep
+    } else {
+        TurnAdmission::Light
+    }
+}
+
 fn latest_user_turn_mentions_context_stats(
     messages: impl AsRef<[crate::message::Message]>,
 ) -> bool {
@@ -76,9 +162,14 @@ impl Agent {
 
             let tools = self.tool_definitions().await;
             let messages: std::sync::Arc<[Message]> = messages.into();
+            // Local sidecar/context admission happens before memory, interlang, and sidecar routing.
+            let admission = classify_turn_admission(&messages);
             // Non-blocking memory: uses pending result from last turn, spawns check for next turn
-            let memory_pending =
-                self.build_memory_prompt_nonblocking_shared(std::sync::Arc::clone(&messages), None);
+            let memory_pending = if admission.use_memory() {
+                self.build_memory_prompt_nonblocking_shared(std::sync::Arc::clone(&messages), None)
+            } else {
+                None
+            };
             // Use split prompt for better caching - static content cached, dynamic not
             let split_prompt = self.build_system_prompt_split(None);
             self.log_prompt_prefix_accounting(&split_prompt, &tools);
@@ -128,7 +219,9 @@ impl Agent {
                 };
             let interlang_messages;
             let mut interlang_dynamic_part: Option<String> = None;
-            let send_messages: &[Message] = if crate::interlang::enabled() {
+            let send_messages: &[Message] = if admission.use_interlang()
+                && crate::interlang::enabled()
+            {
                 let (encoded, stats) = crate::interlang::maybe_compact_messages(base_send_messages);
                 crate::interlang::record_stats(stats);
                 if stats.blocks_encoded > 0 {
@@ -156,7 +249,9 @@ impl Agent {
             let dynamic_part = interlang_dynamic_part
                 .as_deref()
                 .unwrap_or(&split_prompt.dynamic_part);
-            crate::local_model::pre_route_async(send_messages);
+            if admission.use_sidecar() {
+                crate::local_model::pre_route_async(send_messages);
+            }
             let provider_payload;
             let provider_messages = if should_apply_final_prompt_admission(send_messages) {
                 provider_payload = compact_provider_messages_for_short_turn(send_messages);
@@ -1079,5 +1174,44 @@ mod short_turn_payload_diet_tests {
             Message::user("fix the failing build in src/provider/openai.rs"),
         ];
         assert!(!should_apply_final_prompt_admission(&messages));
+    }
+}
+
+#[cfg(test)]
+mod admission_controller_tests {
+    use super::*;
+
+    #[test]
+    fn meow_is_direct_and_skips_context_subsystems() {
+        let messages = vec![Message::user("say meow")];
+        let admission = classify_turn_admission(&messages);
+        assert_eq!(admission, TurnAdmission::Direct);
+        assert!(!admission.use_memory());
+        assert!(!admission.use_interlang());
+        assert!(!admission.use_sidecar());
+    }
+
+    #[test]
+    fn coding_turn_is_deep() {
+        let messages = vec![Message::user(
+            "fix the failing build in src/provider/mod.rs and run tests",
+        )];
+        let admission = classify_turn_admission(&messages);
+        assert_eq!(admission, TurnAdmission::Deep);
+        assert!(admission.use_memory());
+        assert!(admission.use_interlang());
+        assert!(admission.use_sidecar());
+    }
+
+    #[test]
+    fn normal_chat_is_light() {
+        let messages = vec![Message::user(
+            "what are good ways to organize a small rust project?",
+        )];
+        let admission = classify_turn_admission(&messages);
+        assert_eq!(admission, TurnAdmission::Light);
+        assert!(admission.use_memory());
+        assert!(admission.use_interlang());
+        assert!(!admission.use_sidecar());
     }
 }
