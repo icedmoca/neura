@@ -31,7 +31,6 @@ const DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 300;
 const APPROX_CHARS_PER_TOKEN: usize = 4;
 const AUTO_REHYDRATE_CONFIDENCE_THRESHOLD: f32 = 0.56;
 const AUTO_REHYDRATE_MAX_BLOCKS: usize = 1;
-const AUTO_REHYDRATE_MAX_CHARS: usize = 1_800;
 const AUTO_REHYDRATE_DEBUG_ENV: &str = "KCODE_CTX_REHYDRATE_DEBUG";
 
 #[derive(Debug, Clone)]
@@ -1088,27 +1087,17 @@ fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut Interl
             .then_with(|| b.original_chars.cmp(&a.original_chars))
     });
 
-    let mut remaining = AUTO_REHYDRATE_MAX_CHARS;
     let mut sections = Vec::new();
     for (hash, block) in candidates.into_iter().take(AUTO_REHYDRATE_MAX_BLOCKS) {
-        if remaining < 400 {
-            break;
-        }
-        let excerpt = exact_excerpt(&block.exact, remaining.min(1_200));
-        if excerpt.trim().is_empty() {
-            continue;
-        }
-        remaining = remaining.saturating_sub(excerpt.len());
         stats.auto_rehydrated_blocks += 1;
-        stats.auto_rehydrated_chars += excerpt.len();
         sections.push(format!(
-            "<ctx_auto_exact id=\"ctx:{}\" hash=\"{}\" confidence=\"{:.2}\" priority=\"{}\" original_chars=\"{}\">\n{}\n</ctx_auto_exact>",
+            "<ctx_candidate id=\"ctx:{}\" hash=\"{}\" confidence=\"{:.2}\" priority=\"{}\" original_chars=\"{}\" summary=\"{}\" />",
             hash,
             hash,
             block.confidence,
             block.priority.as_str(),
             block.original_chars,
-            excerpt
+            escape_attr(&block.summary)
         ));
     }
     if sections.is_empty() {
@@ -1116,49 +1105,10 @@ fn maybe_append_auto_rehydration(messages: &mut Vec<Message>, stats: &mut Interl
     }
 
     let text = format!(
-        "<system-reminder>\nKcode auto-restored one relevant exact excerpt. Need more: `.ctx_get id=ctx:<hash> reason=<why>`.\n\n{}\n</system-reminder>",
-        sections.join("\n\n")
+        "<system-reminder>\nPotentially relevant exact context exists but was not auto-injected to save tokens. Use `.ctx_get id=ctx:<hash> reason=<why>` only if exact text is required.\n\n{}\n</system-reminder>",
+        sections.join("\n")
     );
     messages.push(Message::user(&text));
-}
-
-fn exact_excerpt(text: &str, max_chars: usize) -> String {
-    let mut out = Vec::new();
-    for line in text.lines() {
-        let lower = line.to_ascii_lowercase();
-        if lower.contains("error")
-            || lower.contains("failed")
-            || lower.contains("panic")
-            || lower.contains("diff --git")
-            || lower.contains("fn ")
-            || lower.contains("struct ")
-            || lower.contains("impl ")
-            || lower.contains("todo")
-        {
-            out.push(line);
-        }
-        if out.join("\n").len() >= max_chars / 2 {
-            break;
-        }
-    }
-    if out.is_empty() {
-        out.extend(text.lines().take(24));
-    }
-    let mut excerpt = out.join("\n");
-    if excerpt.len() < max_chars / 2 && text.len() > excerpt.len() {
-        excerpt.push_str("\n...\n");
-        let tail_len = max_chars.saturating_sub(excerpt.len()).min(text.len());
-        let tail: String = text
-            .chars()
-            .rev()
-            .take(tail_len)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .collect();
-        excerpt.push_str(&tail);
-    }
-    crate::util::truncate_str(&excerpt, max_chars).to_string()
 }
 
 pub fn compact_messages_for_test(messages: &[Message]) -> (Vec<Message>, InterlangStats) {
