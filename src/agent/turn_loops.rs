@@ -253,12 +253,14 @@ impl Agent {
                 crate::local_model::pre_route_async(send_messages);
             }
             let provider_payload;
-            let provider_messages = if should_apply_final_prompt_admission(send_messages) {
-                provider_payload = compact_provider_messages_for_short_turn(send_messages);
-                &provider_payload
-            } else {
-                send_messages
-            };
+            let provider_needs_sanitizer = messages_contain_auto_exact(send_messages);
+            let provider_messages =
+                if should_apply_final_prompt_admission(send_messages) || provider_needs_sanitizer {
+                    provider_payload = compact_provider_messages_for_short_turn(send_messages);
+                    &provider_payload
+                } else {
+                    send_messages
+                };
             crate::provider::remote_telemetry::log_pre_provider_payload(
                 self.provider.name(),
                 provider_messages,
@@ -1063,14 +1065,20 @@ fn compact_provider_messages_for_short_turn(messages: &[Message]) -> Vec<Message
         if !preserve_exact {
             for block in &mut msg.content {
                 match block {
-                    ContentBlock::Text { text, .. } if text.len() > 700 => {
+                    ContentBlock::Text { text, .. }
+                        if text.len() > 700 || text_contains_auto_exact(text) =>
+                    {
                         *text = summarize_provider_block_for_payload_diet(text, "text");
                     }
-                    ContentBlock::ToolResult { content, .. } if content.len() > 500 => {
+                    ContentBlock::ToolResult { content, .. }
+                        if content.len() > 500 || text_contains_auto_exact(content) =>
+                    {
                         *content =
                             summarize_provider_block_for_payload_diet(content, "tool_result");
                     }
-                    ContentBlock::Reasoning { text } if text.len() > 500 => {
+                    ContentBlock::Reasoning { text }
+                        if text.len() > 500 || text_contains_auto_exact(text) =>
+                    {
                         *text = summarize_provider_block_for_payload_diet(text, "reasoning");
                     }
                     ContentBlock::ToolUse { input, .. } if input.to_string().len() > 500 => {
@@ -1085,6 +1093,26 @@ fn compact_provider_messages_for_short_turn(messages: &[Message]) -> Vec<Message
         out.push(msg);
     }
     out
+}
+
+fn messages_contain_auto_exact(messages: &[Message]) -> bool {
+    messages.iter().any(|message| {
+        message.content.iter().any(|block| match block {
+            ContentBlock::Text { text, .. } => text_contains_auto_exact(text),
+            ContentBlock::ToolResult { content, .. } => text_contains_auto_exact(content),
+            ContentBlock::Reasoning { text } => text_contains_auto_exact(text),
+            ContentBlock::ToolUse { input, .. } => text_contains_auto_exact(&input.to_string()),
+            ContentBlock::Image { data, .. } => text_contains_auto_exact(data),
+            ContentBlock::OpenAICompaction { encrypted_content } => {
+                text_contains_auto_exact(encrypted_content)
+            }
+        })
+    })
+}
+
+fn text_contains_auto_exact(text: &str) -> bool {
+    text.contains("<ctx_auto_exact")
+        || text.contains("Kcode auto-restored one relevant exact excerpt")
 }
 
 fn summarize_provider_block_for_payload_diet(text: &str, kind: &str) -> String {
