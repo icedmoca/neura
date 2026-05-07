@@ -158,7 +158,7 @@ impl Agent {
                 .unwrap_or(&split_prompt.dynamic_part);
             crate::local_model::pre_route_async(send_messages);
             let provider_payload;
-            let provider_messages = if should_apply_short_turn_payload_diet(send_messages) {
+            let provider_messages = if should_apply_final_prompt_admission(send_messages) {
                 provider_payload = compact_provider_messages_for_short_turn(send_messages);
                 &provider_payload
             } else {
@@ -907,7 +907,7 @@ impl Agent {
     }
 }
 
-fn should_apply_short_turn_payload_diet(messages: &[Message]) -> bool {
+fn should_apply_final_prompt_admission(messages: &[Message]) -> bool {
     let Some(latest) = latest_user_text_for_payload_diet(messages) else {
         return false;
     };
@@ -923,7 +923,26 @@ fn should_apply_short_turn_payload_diet(messages: &[Message]) -> bool {
                 "those", "memory", "token", "context", "why", "how many",
             ],
         );
-    simple && aggregate_message_chars_for_payload_diet(messages) > 12_000
+    aggregate_message_chars_for_payload_diet(messages)
+        > final_prompt_message_budget(&latest, simple)
+}
+
+fn final_prompt_message_budget(latest: &str, simple: bool) -> usize {
+    let lower = latest.to_ascii_lowercase();
+    if simple {
+        return 4_000;
+    }
+    if contains_any_for_payload_diet(
+        &lower,
+        &[
+            "fix", "debug", "build", "test", "error", "failed", "repo", "code", "file", "src/",
+            "docs/", ".rs", ".py", ".md", "continue", "previous", "earlier", "above",
+        ],
+    ) {
+        48_000
+    } else {
+        12_000
+    }
 }
 
 fn compact_provider_messages_for_short_turn(messages: &[Message]) -> Vec<Message> {
@@ -1035,7 +1054,7 @@ mod short_turn_payload_diet_tests {
         }
         messages.push(Message::user("meow"));
 
-        assert!(should_apply_short_turn_payload_diet(&messages));
+        assert!(should_apply_final_prompt_admission(&messages));
         let compacted = compact_provider_messages_for_short_turn(&messages);
         assert!(compacted.len() <= 6);
         assert_eq!(
@@ -1051,6 +1070,6 @@ mod short_turn_payload_diet_tests {
             Message::user(&"old diagnostic context\n".repeat(900)),
             Message::user("fix the failing build in src/provider/openai.rs"),
         ];
-        assert!(!should_apply_short_turn_payload_diet(&messages));
+        assert!(!should_apply_final_prompt_admission(&messages));
     }
 }
