@@ -1032,7 +1032,7 @@ pub fn pre_route_async(messages: &[Message]) {
         return;
     }
     let latest_user = latest_user_text(messages);
-    let prompt_chars: usize = messages.iter().map(render_message).map(|s| s.len()).sum();
+    let prompt_chars = pre_route_transcript_text(messages).len();
     tokio::spawn(async move {
         if let Err(err) = record_pre_route(&latest_user, prompt_chars) {
             crate::logging::warn(&format!("local pre-router record failed: {err}"));
