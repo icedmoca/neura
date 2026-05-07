@@ -713,3 +713,85 @@ async fn test_sanitize_dangling_tool_ids_with_dots() {
         }
     }
 }
+
+#[cfg(test)]
+mod oauth_tool_filter_tests {
+    use super::super::*;
+    use crate::message::ToolDefinition;
+
+    fn td(name: &str) -> ToolDefinition {
+        ToolDefinition {
+            name: name.to_string(),
+            description: format!("{name} desc"),
+            input_schema: serde_json::json!({"type":"object"}),
+        }
+    }
+
+    #[test]
+    fn oauth_empty_caller_skips_hardcoded_tool_block() {
+        // v2 Direct turn: caller passes [], OAuth path must respect it.
+        let provider = AnthropicProvider::new();
+        let tools = provider.format_tools(&[], true);
+        assert_eq!(
+            tools.len(),
+            0,
+            "OAuth direct turn must emit zero tools, got {}",
+            tools.len()
+        );
+    }
+
+    #[test]
+    fn oauth_overlapping_subset_filters_to_subset() {
+        // v2 Light turn: caller passes [bash, read, tool_expand].
+        // OAuth identity has bash + read but not tool_expand. Expect
+        // {bash, read}.
+        let provider = AnthropicProvider::new();
+        let tools = provider.format_tools(&[td("bash"), td("read"), td("tool_expand")], true);
+        let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+        assert_eq!(names.len(), 2, "expected 2 filtered tools, got {names:?}");
+        assert!(names.iter().any(|n| n.eq_ignore_ascii_case("bash")));
+        assert!(names.iter().any(|n| n.eq_ignore_ascii_case("read")));
+        // cache_control must move to the new last element.
+        assert!(tools.last().unwrap().cache_control.is_some());
+    }
+
+    #[test]
+    fn oauth_v1_locked_list_falls_back_to_full_hardcoded_set() {
+        // v1 path: caller passes the locked Kcode tool list, lowercase
+        // names that don't TitleCase-match (e.g. agentgrep, multiedit).
+        // Filter is empty → return full hardcoded list (legacy behaviour).
+        let provider = AnthropicProvider::new();
+        let tools = provider.format_tools(
+            &[
+                td("agentgrep"),
+                td("multiedit"),
+                td("apply_patch"),
+                td("ls"),
+            ],
+            true,
+        );
+        // Hardcoded set has 10 tools; we expect all of them since the
+        // caller's lowercased names overlap (bash/read are in both).
+        // bash and read overlap → 2 results, NOT a fallback.
+        // Test the actual OAuth fallback by passing a list with NO overlap:
+        let tools =
+            provider.format_tools(&[td("agentgrep"), td("multiedit"), td("apply_patch")], true);
+        assert_eq!(
+            tools.len(),
+            10,
+            "non-overlapping lowercase v1 list must fall back to full \
+             hardcoded set; got {} tools",
+            tools.len()
+        );
+    }
+
+    #[test]
+    fn non_oauth_path_unchanged_by_filter() {
+        // Direct API key path: pass-through, no identity filtering.
+        let provider = AnthropicProvider::new();
+        let tools = provider.format_tools(&[td("a"), td("b"), td("c")], false);
+        assert_eq!(tools.len(), 3);
+        let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
+        assert_eq!(names, vec!["a", "b", "c"]);
+    }
+}

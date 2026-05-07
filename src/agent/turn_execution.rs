@@ -156,6 +156,8 @@ impl Agent {
         if self.locked_tools.is_some() {
             logging::info("Tool list unlocked — next request will pick up current tools");
             self.locked_tools = None;
+            self.locked_tools_chars = None;
+            self.locked_tools_token_estimate = None;
             self.cache_tracker.reset();
         }
     }
@@ -241,8 +243,28 @@ impl Agent {
             "Locking tool list at {} tools for cache stability",
             tools.len()
         ));
+        // Cache aggregate prompt-chars + token estimate alongside the lock
+        // so per-turn telemetry / prefix accounting can read these without
+        // re-serializing the tool list. Single computation on lock; cleared
+        // alongside the lock on unlock.
+        let chars = ToolDefinition::aggregate_prompt_chars(&tools);
+        let tokens = ToolDefinition::aggregate_prompt_token_estimate(&tools);
+        self.locked_tools_chars = Some(chars);
+        self.locked_tools_token_estimate = Some(tokens);
         self.locked_tools = Some(tools.clone());
         tools
+    }
+
+    /// Cached aggregate char count of the locked tool list (or `None` if not
+    /// yet locked or already cleared). Consumers should fall back to
+    /// `ToolDefinition::aggregate_prompt_chars(tools)` when this returns None.
+    pub(crate) fn locked_tools_chars(&self) -> Option<usize> {
+        self.locked_tools_chars
+    }
+
+    /// Cached aggregate prompt-token estimate of the locked tool list.
+    pub(crate) fn locked_tools_token_estimate(&self) -> Option<usize> {
+        self.locked_tools_token_estimate
     }
 
     pub async fn tool_names(&self) -> Vec<String> {

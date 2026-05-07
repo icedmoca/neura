@@ -1,22 +1,206 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum TurnAdmission {
+pub(crate) enum TurnAdmission {
+    /// Trivial turn (e.g., "meow"); skip memory / interlang / sidecar.
     Direct,
+    /// Conversational/general turn; memory + interlang on, sidecar off.
     Light,
+    /// Code/repo/debug/coordination turn; full pipeline on.
     Deep,
+    /// Tool-loop continuation; inherits the originating turn's tier behaviour
+    /// (memory + interlang + sidecar) but skips re-classification work and is
+    /// recorded distinctly in telemetry.
+    Continuation,
 }
 
 impl TurnAdmission {
-    fn use_memory(self) -> bool {
-        matches!(self, TurnAdmission::Light | TurnAdmission::Deep)
+    pub(crate) fn use_memory(self) -> bool {
+        matches!(
+            self,
+            TurnAdmission::Light | TurnAdmission::Deep | TurnAdmission::Continuation
+        )
     }
-    fn use_interlang(self) -> bool {
-        matches!(self, TurnAdmission::Light | TurnAdmission::Deep)
+    pub(crate) fn use_interlang(self) -> bool {
+        matches!(
+            self,
+            TurnAdmission::Light | TurnAdmission::Deep | TurnAdmission::Continuation
+        )
     }
-    fn use_sidecar(self) -> bool {
-        matches!(self, TurnAdmission::Deep)
+    pub(crate) fn use_sidecar(self) -> bool {
+        matches!(self, TurnAdmission::Deep | TurnAdmission::Continuation)
     }
+
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            TurnAdmission::Direct => "direct",
+            TurnAdmission::Light => "light",
+            TurnAdmission::Deep => "deep",
+            TurnAdmission::Continuation => "continuation",
+        }
+    }
+}
+
+/// One-pass scan of the provider message vector that produces all the
+/// per-block stats the turn loop needs: total chars per block kind, presence
+/// of `<ctx_auto_exact>` markers, total interlang ref chars, and the top-N
+/// largest blocks by char count. Replaces several independent O(history)
+/// walks (`messages_contain_auto_exact`, the `<ctx>` detection inside
+/// `log_pre_provider_payload`, the `aggregate_message_chars_for_payload_diet`
+/// duplicate, etc.).
+#[derive(Debug, Default, Clone)]
+pub(crate) struct MessageWalkStats {
+    pub total_chars: usize,
+    pub text_chars: usize,
+    pub tool_use_chars: usize,
+    pub tool_result_chars: usize,
+    pub reasoning_chars: usize,
+    pub image_chars: usize,
+    pub interlang_refs_chars: usize,
+    pub interlang_refs_blocks: usize,
+    pub contains_auto_exact: bool,
+    pub top_blocks: Vec<crate::provider::remote_telemetry::TopBlockEntry>,
+}
+
+const TOP_BLOCK_LIMIT: usize = 3;
+
+pub(crate) fn walk_messages(messages: &[Message]) -> MessageWalkStats {
+    let mut stats = MessageWalkStats::default();
+    for (idx, message) in messages.iter().enumerate() {
+        let role = match message.role {
+            Role::User => "user",
+            Role::Assistant => "assistant",
+        };
+        for block in &message.content {
+            let (kind, chars, payload_for_hash) = match block {
+                ContentBlock::Text { text, .. } => {
+                    stats.text_chars += text.len();
+                    if text_contains_auto_exact(text) {
+                        stats.contains_auto_exact = true;
+                    }
+                    if text_contains_interlang_ref(text) {
+                        stats.interlang_refs_chars += text.len();
+                        stats.interlang_refs_blocks += 1;
+                    }
+                    ("text", text.len(), text.as_str())
+                }
+                ContentBlock::Reasoning { text } => {
+                    stats.reasoning_chars += text.len();
+                    if text_contains_auto_exact(text) {
+                        stats.contains_auto_exact = true;
+                    }
+                    if text_contains_interlang_ref(text) {
+                        stats.interlang_refs_chars += text.len();
+                        stats.interlang_refs_blocks += 1;
+                    }
+                    ("reasoning", text.len(), text.as_str())
+                }
+                ContentBlock::ToolResult { content, .. } => {
+                    stats.tool_result_chars += content.len();
+                    if text_contains_auto_exact(content) {
+                        stats.contains_auto_exact = true;
+                    }
+                    if text_contains_interlang_ref(content) {
+                        stats.interlang_refs_chars += content.len();
+                        stats.interlang_refs_blocks += 1;
+                    }
+                    ("tool_result", content.len(), content.as_str())
+                }
+                ContentBlock::ToolUse { name, input, .. } => {
+                    let input_str = input.to_string();
+                    let chars = name.len() + input_str.len();
+                    stats.tool_use_chars += chars;
+                    ("tool_use", chars, "")
+                }
+                ContentBlock::Image { data, .. } => {
+                    stats.image_chars += data.len();
+                    ("image", data.len(), "")
+                }
+                ContentBlock::OpenAICompaction { encrypted_content } => {
+                    stats.text_chars += encrypted_content.len();
+                    ("openai_compaction", encrypted_content.len(), "")
+                }
+            };
+            stats.total_chars += chars;
+            consider_top_block(
+                &mut stats.top_blocks,
+                kind,
+                chars,
+                payload_for_hash,
+                role,
+                idx,
+            );
+        }
+    }
+    stats
+}
+
+fn text_contains_interlang_ref(text: &str) -> bool {
+    text.contains("<ctx ")
+        || text.contains("<il:seen")
+        || text.contains("<ctx_candidate")
+        || text.contains("<il:v1>")
+}
+
+fn consider_top_block(
+    top: &mut Vec<crate::provider::remote_telemetry::TopBlockEntry>,
+    kind: &'static str,
+    chars: usize,
+    payload: &str,
+    role: &'static str,
+    message_index: usize,
+) {
+    // Keep top vector sorted descending by chars. Drop the smallest when full.
+    if chars == 0 {
+        return;
+    }
+    let entry = crate::provider::remote_telemetry::TopBlockEntry {
+        kind,
+        chars,
+        hash: short_block_hash(payload),
+        role,
+        message_index,
+    };
+    if top.len() < TOP_BLOCK_LIMIT {
+        top.push(entry);
+        top.sort_by(|a, b| b.chars.cmp(&a.chars));
+        return;
+    }
+    if let Some(smallest) = top.last() {
+        if smallest.chars >= chars {
+            return;
+        }
+    }
+    top.pop();
+    top.push(entry);
+    top.sort_by(|a, b| b.chars.cmp(&a.chars));
+}
+
+fn short_block_hash(payload: &str) -> String {
+    if payload.is_empty() {
+        return String::new();
+    }
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(payload.as_bytes());
+    hex::encode(&digest[..6])
+}
+
+/// Returns true when the latest message in `messages` is a tool-result-only
+/// user turn — i.e., the model is in a tool loop, not responding to a fresh
+/// user request. Used for continuation-turn admission inheritance.
+pub(crate) fn latest_is_tool_result_only(messages: &[Message]) -> bool {
+    let Some(last) = messages.last() else {
+        return false;
+    };
+    if last.role != Role::User {
+        return false;
+    }
+    if last.content.is_empty() {
+        return false;
+    }
+    last.content
+        .iter()
+        .all(|block| matches!(block, ContentBlock::ToolResult { .. }))
 }
 
 fn classify_turn_admission(messages: &[Message]) -> TurnAdmission {
@@ -137,6 +321,11 @@ impl Agent {
         let trace = trace_enabled();
         let mut context_limit_retries = 0u32;
         let mut incomplete_continuations = 0u32;
+        // Phase 2: continuation-turn admission inheritance. The first loop
+        // iteration classifies normally; subsequent iterations whose latest
+        // message is a tool-result-only continuation reuse that admission so
+        // the model stays on a coherent budget for the duration of a tool loop.
+        let mut originating_admission: Option<TurnAdmission> = None;
 
         loop {
             let repaired = self.repair_missing_tool_outputs();
@@ -163,9 +352,54 @@ impl Agent {
             let tools = self.tool_definitions().await;
             let messages: std::sync::Arc<[Message]> = messages.into();
             // Local sidecar/context admission happens before memory, interlang, and sidecar routing.
-            let admission = classify_turn_admission(&messages);
+            let classified_admission = classify_turn_admission(&messages);
+            let admission =
+                if latest_is_tool_result_only(&messages) && originating_admission.is_some() {
+                    TurnAdmission::Continuation
+                } else {
+                    originating_admission = Some(classified_admission);
+                    classified_admission
+                };
+            // Per-turn telemetry id, scoped via thread-local so deep call sites
+            // (SSE handler, async sinks) can attach it without signature churn.
+            let turn_id = crate::provider::remote_telemetry::new_turn_id();
+            let _turn_guard = crate::provider::remote_telemetry::TurnIdGuard::install(&turn_id);
+            // Phase 5 — compile a `TurnPlan` from the same inputs the legacy
+            // logic uses. Under v1/shadow, the plan is computed for telemetry
+            // only. Under v2, the plan drives tool admission, interlang
+            // budget, memory plan, history clamp, and sidecar pre-route.
+            let plan = {
+                use crate::agent::context_compiler::{
+                    CompileInputs, MemoryPlanInput, compile_turn_plan,
+                };
+                let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
+                let pending_for_inputs = None::<MemoryPlanInput>;
+                let inputs = CompileInputs {
+                    admission,
+                    messages: &messages,
+                    tool_names: &tool_names,
+                    classified_intent_tool_names: &[],
+                    system_static_chars: 0,
+                    system_dynamic_chars: 0,
+                    provider_context_window: Some(self.provider.context_window()),
+                    memory_pending: pending_for_inputs,
+                    interlang_refs_chars: 0,
+                    history_chars_observed: 0,
+                    locked_tools_chars: self.locked_tools_chars(),
+                };
+                compile_turn_plan(&inputs)
+            };
+            let plan_active = plan.should_apply();
+            // Memory: respect the plan's run_memory bit when v2 is enforcing,
+            // otherwise fall back to the per-tier default. v1 default is
+            // identical to admission.use_memory().
+            let run_memory = if plan_active {
+                plan.run_memory
+            } else {
+                admission.use_memory()
+            };
             // Non-blocking memory: uses pending result from last turn, spawns check for next turn
-            let memory_pending = if admission.use_memory() {
+            let memory_pending = if run_memory {
                 self.build_memory_prompt_nonblocking_shared(std::sync::Arc::clone(&messages), None)
             } else {
                 None
@@ -181,18 +415,63 @@ impl Agent {
 
             // Inject memory as a user message at the end (preserves cache prefix)
             let mut messages_with_memory: Vec<Message> = messages.iter().cloned().collect();
+            // Track which memory mode we ended up in, for telemetry below.
+            let mut memory_anchor_chars_used = 0usize;
             if let Some(memory) = memory_pending.as_ref() {
                 let memory_count = memory.count.max(1);
                 let age_ms = memory.computed_at.elapsed().as_millis() as u64;
                 crate::memory::record_injected_prompt(&memory.prompt, memory_count, age_ms);
                 self.record_memory_injection_in_session(memory);
-                logging::info(&format!(
-                    "Memory injected as message ({} chars)",
-                    memory.prompt.len()
-                ));
-                let memory_msg =
-                    format!("<system-reminder>\n{}\n</system-reminder>", memory.prompt);
-                messages_with_memory.push(Message::user(&memory_msg));
+                let plan = crate::agent::context_compiler::plan_memory(
+                    admission,
+                    Some(memory.prompt.as_str()),
+                    memory_count,
+                    &memory.memory_ids,
+                    latest_user_text_for_payload_diet(&messages).as_deref(),
+                );
+                match plan {
+                    crate::agent::context_compiler::MemoryPlan::Inject {
+                        prompt,
+                        count: _count,
+                        memory_ids,
+                    } => {
+                        logging::info(&format!(
+                            "Memory injected as message ({} chars)",
+                            prompt.len()
+                        ));
+                        let memory_msg =
+                            format!("<system-reminder>\n{}\n</system-reminder>", prompt);
+                        messages_with_memory.push(Message::user(&memory_msg));
+                        crate::memory::stash_memory_for_anchor_rehydration(
+                            &self.session.id,
+                            &prompt,
+                            &memory_ids,
+                        );
+                    }
+                    crate::agent::context_compiler::MemoryPlan::Anchor {
+                        count,
+                        memory_ids: _memory_ids,
+                    } => {
+                        let anchor_text =
+                            crate::agent::context_compiler::MemoryPlan::anchor_text(count);
+                        memory_anchor_chars_used = anchor_text.len();
+                        logging::info(&format!(
+                            "Memory anchor injected ({} bytes; full prompt held for .mem_get)",
+                            memory_anchor_chars_used
+                        ));
+                        messages_with_memory.push(Message::user(&anchor_text));
+                        crate::memory::stash_memory_for_anchor_rehydration(
+                            &self.session.id,
+                            &memory.prompt,
+                            &memory.memory_ids,
+                        );
+                    }
+                    crate::agent::context_compiler::MemoryPlan::Skip => {
+                        logging::info(
+                            "Memory skipped for this turn by MemoryPlan (admission=Direct or no pending)",
+                        );
+                    }
+                }
             }
 
             logging::info(&format!(
@@ -219,10 +498,23 @@ impl Agent {
                 };
             let interlang_messages;
             let mut interlang_dynamic_part: Option<String> = None;
-            let send_messages: &[Message] = if admission.use_interlang()
+            let interlang_active = if plan_active {
+                plan.run_interlang
+            } else {
+                admission.use_interlang()
+            };
+            let send_messages: &[Message] = if interlang_active
                 && crate::interlang::enabled()
+                && plan.max_interlang_blocks.map(|cap| cap > 0).unwrap_or(true)
             {
-                let (encoded, stats) = crate::interlang::maybe_compact_messages(base_send_messages);
+                let budget = crate::interlang::CompactBudget {
+                    max_blocks: plan.max_interlang_blocks,
+                    recent_bytes: plan.recent_window_bytes,
+                };
+                let (encoded, stats) = crate::interlang::maybe_compact_messages_with_budget(
+                    base_send_messages,
+                    budget,
+                );
                 crate::interlang::record_stats(stats);
                 if stats.blocks_encoded > 0 {
                     let report = stats.report_line();
@@ -249,32 +541,195 @@ impl Agent {
             let dynamic_part = interlang_dynamic_part
                 .as_deref()
                 .unwrap_or(&split_prompt.dynamic_part);
-            if admission.use_sidecar() {
+            // Single pass over the post-interlang send_messages: produces the
+            // auto_exact flag, per-kind char totals, interlang ref accounting,
+            // and the top-3 largest blocks for telemetry. Replaces several
+            // independent block walks (auto_exact + budget + telemetry).
+            let send_walk = walk_messages(send_messages);
+            let send_walk_total_chars = send_walk.total_chars;
+            let send_walk_contains_auto_exact = send_walk.contains_auto_exact;
+            let send_admission_over_budget =
+                send_walk_total_chars > final_prompt_message_budget_for_admission(send_messages);
+            // Sidecar pre-route obeys the plan (which already accounts for
+            // sidecar mode = decide/log/off).
+            let run_sidecar = if plan_active {
+                plan.run_sidecar_preroute
+            } else {
+                admission.use_sidecar()
+            };
+            if run_sidecar
+                && !matches!(
+                    crate::agent::context_compiler::sidecar_preroute_mode(),
+                    crate::agent::context_compiler::SidecarPrerouteMode::Off
+                )
+            {
                 crate::local_model::pre_route_async(send_messages);
             }
             let provider_payload;
-            let provider_needs_sanitizer = messages_contain_auto_exact(send_messages);
+            let provider_needs_sanitizer = send_walk_contains_auto_exact;
+            let short_turn_admission_fires = send_admission_over_budget;
+            // v2 history clamp: when the plan opts to clamp (Direct turns),
+            // run the existing short-turn compactor unconditionally even if
+            // budget hasn't been exceeded — Direct turns always benefit.
+            let v2_clamp = plan_active && plan.clamp_history;
             let provider_messages =
-                if should_apply_final_prompt_admission(send_messages) || provider_needs_sanitizer {
+                if short_turn_admission_fires || provider_needs_sanitizer || v2_clamp {
                     provider_payload = compact_provider_messages_for_short_turn(send_messages);
                     &provider_payload
                 } else {
                     send_messages
                 };
-            crate::provider::remote_telemetry::log_pre_provider_payload(
+            // Compute final accounting from whichever message vector is going
+            // to the provider. When the short-turn admission rewrote messages,
+            // re-walk the (much smaller) compacted vector. Otherwise reuse the
+            // earlier walk.
+            let provider_walk = if short_turn_admission_fires || provider_needs_sanitizer {
+                walk_messages(provider_messages)
+            } else {
+                send_walk
+            };
+            let memory_inject_chars = memory_pending.as_ref().map(|m| m.prompt.len()).unwrap_or(0);
+            let memory_inject_count = memory_pending.as_ref().map(|m| m.count).unwrap_or(0);
+            // Cached on lock (turn_execution::tool_definitions) so we avoid
+            // re-serializing the tool list every turn just for telemetry.
+            let tools_json_chars = self
+                .locked_tools_chars()
+                .unwrap_or_else(|| crate::message::ToolDefinition::aggregate_prompt_chars(&tools));
+            let provider_model_for_telemetry = self.provider.model();
+            let provider_context_window = Some(self.provider.context_window());
+            let mut accounting = crate::provider::remote_telemetry::PayloadAccounting::default();
+            accounting.admission = Some(admission.label());
+            accounting.provider = self.provider.name().to_string();
+            accounting.model = Some(provider_model_for_telemetry.clone());
+            accounting.system_static_chars = split_prompt.static_part.len();
+            accounting.system_dynamic_chars = dynamic_part.len();
+            accounting.messages_chars = provider_walk.total_chars;
+            accounting.messages_text_chars = provider_walk.text_chars;
+            accounting.messages_tool_use_chars = provider_walk.tool_use_chars;
+            accounting.messages_tool_result_chars = provider_walk.tool_result_chars;
+            accounting.messages_reasoning_chars = provider_walk.reasoning_chars;
+            accounting.messages_image_chars = provider_walk.image_chars;
+            accounting.tools_json_chars = tools_json_chars;
+            accounting.locked_tools_cached_chars = self.locked_tools_chars();
+            accounting.tools_count = tools.len();
+            accounting.interlang_refs_chars = provider_walk.interlang_refs_chars;
+            accounting.interlang_refs_blocks = provider_walk.interlang_refs_blocks;
+            accounting.memory_inject_chars = memory_inject_chars;
+            accounting.memory_inject_count = memory_inject_count;
+            accounting.memory_anchor_chars = memory_anchor_chars_used;
+            accounting.compacted_short_turn = short_turn_admission_fires;
+            accounting.top_blocks = provider_walk.top_blocks.clone();
+            accounting.provider_context_window = provider_context_window;
+            crate::provider::remote_telemetry::log_pre_provider_payload_with_accounting(
                 self.provider.name(),
                 provider_messages,
                 &tools,
                 &split_prompt.static_part,
                 &dynamic_part,
-                should_apply_final_prompt_admission(send_messages),
+                short_turn_admission_fires,
+                Some(&accounting),
             );
+            // Phase 5.D — surface the accounting + turn id on the agent so
+            // debug callers can read the most-recent turn stats without
+            // re-tailing the JSONL files.
+            self.last_payload_accounting = Some(accounting.clone());
+            self.last_turn_id = Some(turn_id.clone());
+            // Per-turn trace record carries the admission decision and the
+            // raw component sizes. Joinable to provider-reported usage via
+            // `turn_id`.
+            // Phase 2 — shadow telemetry: emit the budget/tool/memory plan
+            // the v2 compiler *would* recommend for this turn so we can see
+            // expected savings before flipping enforcement on. Cheap.
+            crate::agent::context_compiler::record_shadow_admission(
+                admission,
+                &tools.iter().map(|t| t.name.clone()).collect::<Vec<_>>(),
+                &Vec::<String>::new(),
+                provider_walk.total_chars,
+                memory_inject_chars,
+                latest_user_text_for_payload_diet(provider_messages).as_deref(),
+            );
+            crate::provider::remote_telemetry::log_turn_trace(serde_json::json!({
+                "event": "turn_summary",
+                "admission": admission.label(),
+                "admission_classified": classified_admission.label(),
+                "session_id": self.session.id,
+                "provider": self.provider.name(),
+                "model": provider_model_for_telemetry,
+                "provider_context_window": provider_context_window,
+                "system_static_chars": split_prompt.static_part.len(),
+                "system_dynamic_chars": dynamic_part.len(),
+                "messages_total_chars": provider_walk.total_chars,
+                "messages_text_chars": provider_walk.text_chars,
+                "messages_tool_use_chars": provider_walk.tool_use_chars,
+                "messages_tool_result_chars": provider_walk.tool_result_chars,
+                "messages_reasoning_chars": provider_walk.reasoning_chars,
+                "interlang_refs_chars": provider_walk.interlang_refs_chars,
+                "interlang_refs_blocks": provider_walk.interlang_refs_blocks,
+                "tools_json_chars": tools_json_chars,
+                "tools_count": tools.len(),
+                "memory_inject_chars": memory_inject_chars,
+                "memory_inject_count": memory_inject_count,
+                "short_turn_admission_fired": short_turn_admission_fires,
+                "auto_exact_present": send_walk_contains_auto_exact,
+                "top_blocks": provider_walk.top_blocks,
+            }));
             self.last_status_detail = None;
+            // v2 tool-subset enforcement: when the plan supplies a subset, the
+            // request goes upstream with only those tools. The locked tool
+            // list is still kept in `self.locked_tools` so `tool_expand` can
+            // still resolve hidden tool names if the model asks.
+            let provider_tools_owned: Vec<ToolDefinition>;
+            let provider_tools: &[ToolDefinition] = if let Some(subset) = plan.tool_subset.as_ref()
+            {
+                if subset.is_empty() && !tools.is_empty() {
+                    provider_tools_owned = Vec::new();
+                    &provider_tools_owned
+                } else if subset.iter().all(|n| tools.iter().any(|t| &t.name == n))
+                    && subset.len() < tools.len()
+                {
+                    provider_tools_owned = tools
+                        .iter()
+                        .filter(|t| subset.iter().any(|n| n == &t.name))
+                        .cloned()
+                        .collect();
+                    &provider_tools_owned
+                } else {
+                    &tools
+                }
+            } else {
+                &tools
+            };
+            // Recompute tools_json telemetry to reflect the filtered subset.
+            let provider_tools_chars =
+                crate::message::ToolDefinition::aggregate_prompt_chars(provider_tools);
+            crate::provider::remote_telemetry::log_turn_trace(serde_json::json!({
+                "event": "turn_plan",
+                "compiler_mode": format!("{:?}", plan.mode),
+                "plan_active": plan_active,
+                "admission": admission.label(),
+                "tool_subset": plan.tool_subset.clone(),
+                "tool_subset_active_count": provider_tools.len(),
+                "tools_full_count": tools.len(),
+                "tools_full_chars": tools_json_chars,
+                "tools_subset_chars": provider_tools_chars,
+                "max_interlang_blocks": plan.max_interlang_blocks,
+                "recent_window_bytes": plan.recent_window_bytes,
+                "memory_plan": match &plan.memory_plan {
+                    crate::agent::context_compiler::MemoryPlan::Inject { .. } => "inject",
+                    crate::agent::context_compiler::MemoryPlan::Anchor { .. } => "anchor",
+                    crate::agent::context_compiler::MemoryPlan::Skip => "skip",
+                },
+                "run_memory": plan.run_memory,
+                "run_interlang": plan.run_interlang,
+                "run_sidecar_preroute": plan.run_sidecar_preroute,
+                "clamp_history": plan.clamp_history,
+                "confidence": plan.confidence,
+            }));
             let mut stream = match self
                 .provider
                 .complete_split(
                     provider_messages,
-                    &tools,
+                    provider_tools,
                     &split_prompt.static_part,
                     &dynamic_part,
                     self.provider_session_id.as_deref(),
@@ -777,6 +1232,25 @@ impl Agent {
                     self.session.save()?;
                     continue;
                 }
+                // Phase 3 — `.mem_get` rehydration. When the model emits
+                // `.mem_get reason=<why>` and we previously injected only an
+                // anchor, the full memory prompt was stashed by name; replay
+                // it as a system-reminder so the next turn has authoritative
+                // memory text without burning tokens on every prior turn.
+                if let Some(rehydrated) =
+                    crate::memory::maybe_rehydrate_mem_get(&self.session.id, &text_content)
+                {
+                    logging::info("Memory anchor .mem_get fulfilled; retrying turn");
+                    self.add_message(
+                        Role::User,
+                        vec![ContentBlock::Text {
+                            text: rehydrated,
+                            cache_control: None,
+                        }],
+                    );
+                    self.session.save()?;
+                    continue;
+                }
                 if self.maybe_continue_incomplete_response(
                     stop_reason.as_deref(),
                     &mut incomplete_continuations,
@@ -1032,6 +1506,28 @@ fn should_apply_final_prompt_admission(messages: &[Message]) -> bool {
         > final_prompt_message_budget(&latest, simple)
 }
 
+/// Same gate as `should_apply_final_prompt_admission` but skips the per-block
+/// re-walk: callers that already computed the total via `walk_messages` can
+/// reuse it here. Only the latest user text is read to choose the budget.
+pub(crate) fn final_prompt_message_budget_for_admission(messages: &[Message]) -> usize {
+    let Some(latest) = latest_user_text_for_payload_diet(messages) else {
+        return usize::MAX; // no user text → never trip the gate
+    };
+    let lower = latest.to_ascii_lowercase();
+    let simple = latest.len() <= 120
+        && !latest.contains('\n')
+        && !latest.contains("```")
+        && !contains_any_for_payload_diet(
+            &lower,
+            &[
+                "fix", "debug", "build", "test", "error", "failed", "repo", "code", "file", "src/",
+                "docs/", ".rs", ".py", ".md", "continue", "previous", "earlier", "above", "that",
+                "those", "memory", "token", "context", "why", "how many",
+            ],
+        );
+    final_prompt_message_budget(&latest, simple)
+}
+
 fn final_prompt_message_budget(latest: &str, simple: bool) -> usize {
     let lower = latest.to_ascii_lowercase();
     if simple {
@@ -1241,5 +1737,90 @@ mod admission_controller_tests {
         assert!(admission.use_memory());
         assert!(admission.use_interlang());
         assert!(!admission.use_sidecar());
+    }
+}
+
+#[cfg(test)]
+mod walk_tests {
+    use super::*;
+
+    #[test]
+    fn walk_partitions_chars_by_kind() {
+        let messages = vec![
+            Message::user("hello world"),
+            Message::tool_result(
+                "call-1",
+                "tool result body that's a bit longer than the user message",
+                false,
+            ),
+            Message::assistant_text("brief reply"),
+        ];
+        let walk = walk_messages(&messages);
+        assert_eq!(walk.text_chars, "hello world".len() + "brief reply".len());
+        assert_eq!(
+            walk.tool_result_chars,
+            "tool result body that's a bit longer than the user message".len()
+        );
+        assert_eq!(walk.tool_use_chars, 0);
+        assert_eq!(walk.contains_auto_exact, false);
+        assert_eq!(walk.interlang_refs_chars, 0);
+        assert!(!walk.top_blocks.is_empty());
+        // Top block should be the tool_result (largest).
+        assert_eq!(walk.top_blocks[0].kind, "tool_result");
+    }
+
+    #[test]
+    fn walk_detects_auto_exact_marker() {
+        let messages = vec![Message::user(
+            "<system-reminder>\n<ctx_auto_exact id=\"ctx:abc\" />\n</system-reminder>",
+        )];
+        let walk = walk_messages(&messages);
+        assert!(walk.contains_auto_exact);
+    }
+
+    #[test]
+    fn walk_counts_interlang_refs() {
+        let messages = vec![
+            Message::user("just text"),
+            Message::tool_result("c1", "<ctx k=\"old-tool-result\" id=\"ctx:abc\" />", false),
+        ];
+        let walk = walk_messages(&messages);
+        assert_eq!(walk.interlang_refs_blocks, 1);
+        assert!(walk.interlang_refs_chars > 0);
+    }
+
+    #[test]
+    fn walk_top_blocks_keeps_three_largest() {
+        let mut messages = Vec::new();
+        for size in [10usize, 50, 100, 200, 30, 75] {
+            messages.push(Message::user(&"x".repeat(size)));
+        }
+        let walk = walk_messages(&messages);
+        assert_eq!(walk.top_blocks.len(), 3);
+        // Sorted descending by chars
+        assert!(walk.top_blocks[0].chars >= walk.top_blocks[1].chars);
+        assert!(walk.top_blocks[1].chars >= walk.top_blocks[2].chars);
+        assert_eq!(walk.top_blocks[0].chars, 200);
+    }
+
+    #[test]
+    fn latest_is_tool_result_only_detects_continuation() {
+        let mut messages = vec![Message::user("fix the bug in src/foo.rs")];
+        // Assistant emits a tool_use; user then sends only a tool_result.
+        messages.push(Message::assistant_text("running grep"));
+        messages.push(Message::tool_result("call-1", "match found", false));
+        assert!(latest_is_tool_result_only(&messages));
+
+        // Followed by a fresh user text → no longer a continuation.
+        messages.push(Message::user("now also fix bar.rs"));
+        assert!(!latest_is_tool_result_only(&messages));
+    }
+
+    #[test]
+    fn continuation_admission_inherits_subsystem_use() {
+        let cont = TurnAdmission::Continuation;
+        assert!(cont.use_memory());
+        assert!(cont.use_interlang());
+        assert!(cont.use_sidecar());
     }
 }

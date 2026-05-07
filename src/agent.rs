@@ -1,12 +1,15 @@
 #![cfg_attr(test, allow(clippy::await_holding_lock))]
 
 mod compaction;
+mod context_compiler;
 mod environment;
 mod interrupts;
 mod messages;
 mod prompting;
 mod provider;
 mod response_recovery;
+#[cfg(test)]
+mod smoke_tests;
 mod status;
 mod streaming;
 mod tools;
@@ -117,6 +120,17 @@ pub struct Agent {
     /// to avoid cache invalidation when MCP tools arrive asynchronously.
     /// Cleared on compaction/reset.
     locked_tools: Option<Vec<ToolDefinition>>,
+    /// Cached prompt-chars / token-estimate for the locked tool list. Computed
+    /// once when `locked_tools` is set; reused by per-turn prefix accounting and
+    /// upstream telemetry to avoid per-turn JSON re-serialization of the tools.
+    locked_tools_chars: Option<usize>,
+    locked_tools_token_estimate: Option<usize>,
+    /// Snapshot of the most-recent turn's payload accounting, populated right
+    /// before the provider call and available via `last_turn_summary()` for
+    /// debug introspection (`/debug last-turn`, etc.).
+    last_payload_accounting: Option<crate::provider::remote_telemetry::PayloadAccounting>,
+    /// Per-turn id of the most-recent turn. Joins with telemetry records.
+    last_turn_id: Option<String>,
     /// Override system prompt (used by ambient mode to inject a custom prompt)
     system_prompt_override: Option<String>,
     /// Whether memory features are enabled for this session
@@ -165,6 +179,10 @@ impl Agent {
             cache_tracker: CacheTracker::new(),
             last_usage: TokenUsage::default(),
             locked_tools: None,
+            locked_tools_chars: None,
+            locked_tools_token_estimate: None,
+            last_payload_accounting: None,
+            last_turn_id: None,
             system_prompt_override: None,
             memory_enabled: crate::config::config().features.memory,
             stdin_request_tx: None,
@@ -320,6 +338,8 @@ impl Agent {
         self.cache_tracker.reset();
         self.last_usage = TokenUsage::default();
         self.locked_tools = None;
+        self.locked_tools_chars = None;
+        self.locked_tools_token_estimate = None;
     }
 
     fn sync_session_compaction_state_from_manager(
@@ -360,6 +380,8 @@ impl Agent {
 
         self.cache_tracker.reset();
         self.locked_tools = None;
+        self.locked_tools_chars = None;
+        self.locked_tools_token_estimate = None;
         self.provider_session_id = None;
         self.session.provider_session_id = None;
         self.session.save()?;
@@ -578,6 +600,8 @@ impl Agent {
             self.persist_session_best_effort("missing tool-output repair");
             self.cache_tracker.reset();
             self.locked_tools = None;
+            self.locked_tools_chars = None;
+            self.locked_tools_token_estimate = None;
         }
 
         repaired
@@ -623,6 +647,59 @@ impl Agent {
     /// Get the last token usage from the most recent API request
     pub fn last_usage(&self) -> &TokenUsage {
         &self.last_usage
+    }
+
+    /// Snapshot of the most-recent turn's payload accounting. Populated by
+    /// the run loop right before the provider call so callers (debug UI,
+    /// `/debug last-turn`) can introspect what was actually sent without
+    /// re-walking the message history.
+    pub fn last_payload_accounting(
+        &self,
+    ) -> Option<&crate::provider::remote_telemetry::PayloadAccounting> {
+        self.last_payload_accounting.as_ref()
+    }
+
+    /// Per-turn id of the most recent turn. Joins to `~/.kcode/turn-trace.jsonl`
+    /// and `~/.kcode/remote-provider-requests.jsonl`.
+    pub fn last_turn_id(&self) -> Option<&str> {
+        self.last_turn_id.as_deref()
+    }
+
+    /// Compact, human-readable summary of the most-recent turn's payload
+    /// accounting. Returns `None` when no turn has run since startup.
+    pub fn last_turn_summary(&self) -> Option<String> {
+        let acc = self.last_payload_accounting.as_ref()?;
+        let est = acc
+            .system_static_chars
+            .saturating_add(acc.system_dynamic_chars)
+            .saturating_add(acc.messages_chars)
+            .saturating_add(acc.tools_json_chars);
+        Some(format!(
+            "turn_id={} admission={} provider={} model={} \
+             system_static={}c system_dynamic={}c messages={}c (text={} tool_use={} tool_result={} reasoning={}) \
+             tools={} ({}c) memory_inject={}c memory_anchor={}c interlang_refs={}c ({} blocks) \
+             top_blocks={} estimated_total~={}c short_turn_compact={}",
+            self.last_turn_id.as_deref().unwrap_or("<none>"),
+            acc.admission.unwrap_or("?"),
+            acc.provider,
+            acc.model.as_deref().unwrap_or("?"),
+            acc.system_static_chars,
+            acc.system_dynamic_chars,
+            acc.messages_chars,
+            acc.messages_text_chars,
+            acc.messages_tool_use_chars,
+            acc.messages_tool_result_chars,
+            acc.messages_reasoning_chars,
+            acc.tools_count,
+            acc.tools_json_chars,
+            acc.memory_inject_chars,
+            acc.memory_anchor_chars,
+            acc.interlang_refs_chars,
+            acc.interlang_refs_blocks,
+            acc.top_blocks.len(),
+            est,
+            acc.compacted_short_turn,
+        ))
     }
 
     /// Export the full conversation as a markdown transcript.

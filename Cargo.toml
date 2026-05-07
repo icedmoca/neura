@@ -146,6 +146,12 @@ jemalloc-prof = [
 ]
 embeddings = ["dep:kcode-embedding"]
 pdf = ["dep:kcode-pdf"]
+probe-bins = []
+
+[[bin]]
+name = "mermaid_side_panel_probe"
+path = "src/bin/mermaid_side_panel_probe.rs"
+required-features = ["probe-bins"]
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading"] }

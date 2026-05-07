@@ -44,6 +44,11 @@ struct SeenBlock {
     sensitive: bool,
     topics: Vec<&'static str>,
     lexical_keys: Vec<String>,
+    /// Cached encoded reference string (e.g., `<ctx ... />` or
+    /// `<il:seen ... />`). Filled on first encode; reused on later turns to
+    /// avoid recomputing the deterministic ref body. Different ref kinds
+    /// produce different strings, so we key on a small `(kind)` discriminant.
+    encoded_refs: HashMap<&'static str, String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,6 +82,35 @@ struct ContextMetadata {
 fn seen_blocks() -> &'static Mutex<HashMap<String, SeenBlock>> {
     static SEEN: OnceLock<Mutex<HashMap<String, SeenBlock>>> = OnceLock::new();
     SEEN.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+// Per-thread per-call budget. Set by `maybe_compact_messages_with_budget`,
+// consulted by `context_diet_recent_byte_budget` and `context_diet_max_blocks`.
+thread_local! {
+    static ACTIVE_BUDGET: std::cell::RefCell<Option<CompactBudget>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+struct CompactBudgetGuard {
+    previous: Option<CompactBudget>,
+}
+
+impl CompactBudgetGuard {
+    fn install(budget: CompactBudget) -> Self {
+        let previous = ACTIVE_BUDGET.with(|cell| cell.replace(Some(budget)));
+        Self { previous }
+    }
+}
+
+impl Drop for CompactBudgetGuard {
+    fn drop(&mut self) {
+        let previous = self.previous.take();
+        ACTIVE_BUDGET.with(|cell| *cell.borrow_mut() = previous);
+    }
+}
+
+fn current_budget() -> Option<CompactBudget> {
+    ACTIVE_BUDGET.with(|cell| *cell.borrow())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
@@ -236,15 +270,27 @@ fn local_tokenizer() -> Option<&'static Tokenizer> {
         .as_ref()
 }
 
-pub(crate) fn exact_token_count(text: &str) -> Option<usize> {
-    local_tokenizer()
-        .and_then(|tokenizer| {
-            let mut tokenizer = tokenizer.clone();
-            let _ = tokenizer.with_truncation(None);
-            let _ = tokenizer.with_padding(None);
-            tokenizer.encode(text, false).ok()
+/// Tokenizer pre-configured with truncation and padding disabled, so
+/// `exact_token_count` does not have to clone-and-mutate a fresh tokenizer per
+/// call. The clone+with_truncation cost was the dominant per-block hotspot in
+/// long sessions.
+fn precomputed_tokenizer_no_trunc() -> Option<&'static Tokenizer> {
+    static TOKENIZER: OnceLock<Option<Tokenizer>> = OnceLock::new();
+    TOKENIZER
+        .get_or_init(|| {
+            local_tokenizer().map(|tokenizer| {
+                let mut clone = tokenizer.clone();
+                let _ = clone.with_truncation(None);
+                let _ = clone.with_padding(None);
+                clone
+            })
         })
-        .map(|encoding| encoding.len())
+        .as_ref()
+}
+
+pub(crate) fn exact_token_count(text: &str) -> Option<usize> {
+    let tokenizer = precomputed_tokenizer_no_trunc()?;
+    tokenizer.encode(text, false).ok().map(|enc| enc.len())
 }
 
 fn estimate_tokens(chars: usize) -> usize {
@@ -406,10 +452,41 @@ pub fn status_json() -> serde_json::Value {
     })
 }
 
+/// Per-call interlang budget. Lets the v2 context compiler enforce per-tier
+/// caps without baking new env vars in: Direct turns pass `max_blocks=Some(0)`
+/// to disable encoding entirely; Light turns pass `max_blocks=Some(8)` to cap
+/// noise; Deep/Continuation pass `None` to use the legacy global behaviour.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CompactBudget {
+    pub max_blocks: Option<usize>,
+    pub recent_bytes: Option<usize>,
+}
+
+impl CompactBudget {
+    pub fn unbounded() -> Self {
+        Self::default()
+    }
+}
+
 pub fn maybe_compact_messages(messages: &[Message]) -> (Vec<Message>, InterlangStats) {
+    maybe_compact_messages_with_budget(messages, CompactBudget::unbounded())
+}
+
+/// Like `maybe_compact_messages`, but lets the caller cap the number of
+/// emitted ref blocks and override the recent-window byte budget for this
+/// invocation only. Returns `(messages_unchanged, default_stats)` when
+/// `max_blocks == Some(0)`, which v2 uses for Direct turns.
+pub fn maybe_compact_messages_with_budget(
+    messages: &[Message],
+    budget: CompactBudget,
+) -> (Vec<Message>, InterlangStats) {
     if mode() == InterlangMode::Off {
         return (messages.to_vec(), InterlangStats::default());
     }
+    if matches!(budget.max_blocks, Some(0)) {
+        return (messages.to_vec(), InterlangStats::default());
+    }
+    let _budget_guard = CompactBudgetGuard::install(budget);
     let (dieted, mut stats) = maybe_context_diet_messages(messages);
     let (mut compacted, compact_stats) = compact_messages_for_test(&dieted);
     merge_stats(&mut stats, compact_stats);
@@ -505,43 +582,156 @@ fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, Interlang
     let cutoff = messages
         .len()
         .saturating_sub(context_diet_recent_messages());
+    // Phase 2.B — adaptive recent-window byte budget. When enabled, recent
+    // messages still pass through exact unless their cumulative byte budget is
+    // exceeded. The fixed `=6` recent floor stays as a hard baseline.
+    let recent_byte_budget = context_diet_recent_byte_budget();
+    // Most recent message is at index N-1; budget is consumed walking
+    // backwards from the latest. The bool answers "is this recent message
+    // protected from byte-budget eviction?".
+    let mut bytes_so_far = 0usize;
+    let mut recent_protected = vec![false; messages.len()];
+    if let Some(budget) = recent_byte_budget {
+        for (rev_idx, message) in messages.iter().rev().enumerate() {
+            let idx = messages.len() - 1 - rev_idx;
+            let chars: usize = message_visible_chars(message);
+            if bytes_so_far + chars <= budget && idx >= cutoff {
+                recent_protected[idx] = true;
+                bytes_so_far += chars;
+            } else if idx >= cutoff && bytes_so_far == 0 {
+                // Always keep the last message exact, even if it alone is huge
+                recent_protected[idx] = true;
+                bytes_so_far = chars;
+            } else {
+                break;
+            }
+        }
+    }
+    let diet_tool_input = diet_tool_input_enabled();
+    let max_blocks = context_diet_max_blocks();
+    let mut emitted_blocks = 0usize;
+    // The most recent assistant message's tool_use blocks must NEVER be
+    // diet'd: the model just emitted them and may reference exact input on
+    // the very next iteration.
+    let last_assistant_idx = messages
+        .iter()
+        .rposition(|message| message.role == Role::Assistant);
     let mut out = Vec::with_capacity(messages.len());
     for (idx, message) in messages.iter().enumerate() {
-        let is_recent = idx >= cutoff;
+        let is_recent_byte_protected = recent_byte_budget.is_some() && recent_protected[idx];
+        let is_recent = if recent_byte_budget.is_some() {
+            is_recent_byte_protected
+        } else {
+            idx >= cutoff
+        };
+        let is_last_assistant = Some(idx) == last_assistant_idx;
         let mut msg = message.clone();
         let mut changed = false;
-        for block in &mut msg.content {
-            match block {
-                ContentBlock::Text { text, .. } if !is_recent && should_diet_text(text) => {
-                    *text = encode_context_diet_ref(text, "old-text", &mut stats);
-                    changed = true;
+        // If we already hit the per-call max_blocks cap, only clone-pass-through.
+        let cap_reached = max_blocks.map(|cap| emitted_blocks >= cap).unwrap_or(false);
+        if !cap_reached {
+            for block in &mut msg.content {
+                match block {
+                    ContentBlock::Text { text, .. } if !is_recent && should_diet_text(text) => {
+                        *text = encode_context_diet_ref(text, "old-text", &mut stats);
+                        changed = true;
+                    }
+                    ContentBlock::ToolResult { content, .. }
+                        if should_diet_tool_result(content)
+                            && (!is_recent || should_diet_recent_tool_result(content)) =>
+                    {
+                        // Keep recent human/assistant text exact, but do not let a large
+                        // grep/read/build output inside the recent-message window dominate
+                        // every following provider request. Exact content remains available
+                        // through the context vault if the model needs it.
+                        *content = encode_context_diet_ref(content, "old-tool-result", &mut stats);
+                        changed = true;
+                    }
+                    ContentBlock::Reasoning { text }
+                        if !is_recent && text.len() > context_diet_min_block_chars() =>
+                    {
+                        *text = encode_context_diet_ref(text, "old-reasoning", &mut stats);
+                        changed = true;
+                    }
+                    ContentBlock::ToolUse { input, .. } if diet_tool_input => {
+                        let big = should_diet_tool_input(&*input);
+                        if !is_recent && !is_last_assistant && big {
+                            let serialized = input.to_string();
+                            let encoded =
+                                encode_context_diet_ref(&serialized, "old-tool-input", &mut stats);
+                            *input = serde_json::json!({"_kcode_ctx_ref": encoded});
+                            changed = true;
+                        }
+                    }
+                    _ => {}
                 }
-                ContentBlock::ToolResult { content, .. }
-                    if should_diet_tool_result(content)
-                        && (!is_recent || should_diet_recent_tool_result(content)) =>
+                if max_blocks
+                    .map(|cap| emitted_blocks + (changed as usize) >= cap)
+                    .unwrap_or(false)
                 {
-                    // Keep recent human/assistant text exact, but do not let a large
-                    // grep/read/build output inside the recent-message window dominate
-                    // every following provider request. Exact content remains available
-                    // through the context vault if the model needs it.
-                    *content = encode_context_diet_ref(content, "old-tool-result", &mut stats);
-                    changed = true;
+                    break;
                 }
-                ContentBlock::Reasoning { text }
-                    if !is_recent && text.len() > context_diet_min_block_chars() =>
-                {
-                    *text = encode_context_diet_ref(text, "old-reasoning", &mut stats);
-                    changed = true;
-                }
-                _ => {}
             }
         }
         if changed {
             stats.blocks_encoded += 1;
+            emitted_blocks += 1;
         }
         out.push(msg);
     }
     (out, stats)
+}
+
+fn should_diet_tool_input(input: &serde_json::Value) -> bool {
+    // Avoid double-encoding wrappers we previously emitted, and only diet
+    // genuinely large payloads that would bloat the wire.
+    if let Some(map) = input.as_object() {
+        if map.contains_key("_kcode_ctx_ref") {
+            return false;
+        }
+    }
+    let serialized = input.to_string();
+    serialized.len() >= context_diet_min_block_chars().max(800)
+}
+
+fn diet_tool_input_enabled() -> bool {
+    std::env::var("KCODE_INTERLANG_DIET_TOOL_INPUT")
+        .map(|v| {
+            matches!(
+                v.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(false)
+}
+
+/// Optional byte budget for the recent message window. When set, the recent
+/// window stops being a fixed message count and instead protects the last N
+/// bytes of conversation from interlang eviction. Returns `None` when the
+/// feature is unset, preserving the legacy fixed-count behaviour.
+fn context_diet_recent_byte_budget() -> Option<usize> {
+    if let Some(budget) = current_budget()
+        && let Some(bytes) = budget.recent_bytes
+    {
+        return Some(bytes.max(1_000));
+    }
+    let raw = std::env::var("KCODE_CONTEXT_DIET_RECENT_BYTES").ok()?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if matches!(
+        trimmed.to_ascii_lowercase().as_str(),
+        "0" | "false" | "no" | "off"
+    ) {
+        return None;
+    }
+    trimmed.parse::<usize>().ok().map(|v| v.max(1_000))
+}
+
+/// Per-call max-blocks cap from `current_budget()`. None when not v2-active.
+fn context_diet_max_blocks() -> Option<usize> {
+    current_budget().and_then(|b| b.max_blocks)
 }
 
 fn should_diet_text(text: &str) -> bool {
@@ -579,21 +769,31 @@ fn context_diet_recent_tool_result_chars() -> usize {
 
 fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -> String {
     let hash = stable_hash(text);
+    // Phase 1.C — fast path: if we already encoded this hash with the same
+    // ref-kind on a previous turn, reuse the cached string and the metadata
+    // we computed then. Skips re-running summary/metadata/lexical-keys/etc.
+    let kind_tag = ref_kind_to_tag(kind);
+    if let Ok(seen) = seen_blocks().lock() {
+        if let Some(block) = seen.get(&hash) {
+            if let Some(cached) = block.encoded_refs.get(kind_tag) {
+                let cached = cached.clone();
+                let block_priority = block.priority;
+                let block_confidence = block.confidence;
+                let block_sensitive = block.sensitive;
+                drop(seen);
+                if !block_sensitive
+                    && (block_confidence <= AUTO_REHYDRATE_CONFIDENCE_THRESHOLD
+                        || block_priority == ContextPriority::High)
+                {
+                    stats.low_confidence_blocks += 1;
+                }
+                accumulate_diet_stats(stats, text, &cached);
+                return cached;
+            }
+        }
+    }
     let summary = memory_safe_summary(text);
     let meta = context_metadata(text, kind);
-    if let Ok(mut seen) = seen_blocks().lock() {
-        seen.entry(hash.clone()).or_insert_with(|| SeenBlock {
-            hash: hash.clone(),
-            original_chars: text.len(),
-            summary: summary.clone(),
-            exact: text.to_string(),
-            confidence: meta.confidence,
-            priority: meta.priority,
-            sensitive: meta.sensitive,
-            topics: meta.topics.clone(),
-            lexical_keys: meta.lexical_keys.clone(),
-        });
-    }
     let id = format!("ctx:{}", hash);
     let encoded = format!(
         r#"<ctx k="{}" id="{}" n={} c="{:.2}" p="{}" ar="{}" t="{}" s="{}"/>"#,
@@ -606,9 +806,35 @@ fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -
         meta.topics.join(","),
         escape_attr(&summary)
     );
+    if let Ok(mut seen) = seen_blocks().lock() {
+        let entry = seen.entry(hash.clone()).or_insert_with(|| SeenBlock {
+            hash: hash.clone(),
+            original_chars: text.len(),
+            summary: summary.clone(),
+            exact: text.to_string(),
+            confidence: meta.confidence,
+            priority: meta.priority,
+            sensitive: meta.sensitive,
+            topics: meta.topics.clone(),
+            lexical_keys: meta.lexical_keys.clone(),
+            encoded_refs: HashMap::new(),
+        });
+        entry
+            .encoded_refs
+            .entry(kind_tag)
+            .or_insert_with(|| encoded.clone());
+        // Best-effort persistence so a later Kcode process can still rehydrate
+        // exact text behind a `<ctx>` reference. Sensitive blocks are skipped.
+        ctx_vault::maybe_persist(entry);
+    }
     if should_auto_rehydrate(&meta) {
         stats.low_confidence_blocks += 1;
     }
+    accumulate_diet_stats(stats, text, &encoded);
+    encoded
+}
+
+fn accumulate_diet_stats(stats: &mut InterlangStats, text: &str, encoded: &str) {
     stats.original_chars += text.len();
     stats.encoded_chars += encoded.len();
     stats.raw_context_avoided_chars += text.len();
@@ -618,10 +844,23 @@ fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -
     if let Some(tokens) = exact_token_count(text) {
         stats.exact_original_tokens += tokens;
     }
-    if let Some(tokens) = exact_token_count(&encoded) {
+    if let Some(tokens) = exact_token_count(encoded) {
         stats.exact_encoded_tokens += tokens;
     }
-    encoded
+}
+
+/// Map a free-form ref kind (e.g., `"old-text"`, `"old-tool-result"`) to a
+/// stable interned tag used as the encoded_refs cache key.
+fn ref_kind_to_tag(kind: &str) -> &'static str {
+    match kind {
+        "old-text" => "old-text",
+        "old-tool-result" => "old-tool-result",
+        "old-reasoning" => "old-reasoning",
+        "old-tool-input" => "old-tool-input",
+        "vault" => "vault",
+        "seen" => "seen",
+        _ => "unknown",
+    }
 }
 
 fn exact_token_count_messages(messages: &[Message]) -> Option<usize> {
@@ -1196,20 +1435,20 @@ fn encode_seen_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
         // First sighting: remember exact content locally for later turns, but do
         // not replace it yet. The provider receives exact or self-contained
         // compressed content at least once before <il:seen> references appear.
-        seen.insert(
-            hash.clone(),
-            SeenBlock {
-                hash,
-                original_chars: text.len(),
-                summary: deterministic_summary(text),
-                exact: text.to_string(),
-                confidence: meta.confidence,
-                priority: meta.priority,
-                sensitive: meta.sensitive,
-                topics: meta.topics.clone(),
-                lexical_keys: meta.lexical_keys.clone(),
-            },
-        );
+        let block = SeenBlock {
+            hash: hash.clone(),
+            original_chars: text.len(),
+            summary: deterministic_summary(text),
+            exact: text.to_string(),
+            confidence: meta.confidence,
+            priority: meta.priority,
+            sensitive: meta.sensitive,
+            topics: meta.topics.clone(),
+            lexical_keys: meta.lexical_keys.clone(),
+            encoded_refs: HashMap::new(),
+        };
+        ctx_vault::maybe_persist(&block);
+        seen.insert(hash, block);
     }
     None
 }
@@ -1225,19 +1464,6 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
     let hash = stable_hash(text);
     let summary = deterministic_summary(text);
     let meta = context_metadata(text, "vault");
-    if let Ok(mut seen) = seen_blocks().lock() {
-        seen.entry(hash.clone()).or_insert_with(|| SeenBlock {
-            hash: hash.clone(),
-            original_chars: text.len(),
-            summary: summary.clone(),
-            exact: text.to_string(),
-            confidence: meta.confidence,
-            priority: meta.priority,
-            sensitive: meta.sensitive,
-            topics: meta.topics.clone(),
-            lexical_keys: meta.lexical_keys.clone(),
-        });
-    }
     let id = format!("ctx:{}", hash);
     let encoded = format!(
         "<ctx v=1 k=\"vault\" id=\"{}\" h=\"{}\" n={} c=\"{:.2}\" p=\"{}\" ar=\"{}\" t=\"{}\" s=\"{}\" />",
@@ -1250,6 +1476,25 @@ fn encode_vault_ref(text: &str, stats: &mut InterlangStats) -> Option<String> {
         meta.topics.join(","),
         escape_attr(&summary)
     );
+    if let Ok(mut seen) = seen_blocks().lock() {
+        let entry = seen.entry(hash.clone()).or_insert_with(|| SeenBlock {
+            hash: hash.clone(),
+            original_chars: text.len(),
+            summary: summary.clone(),
+            exact: text.to_string(),
+            confidence: meta.confidence,
+            priority: meta.priority,
+            sensitive: meta.sensitive,
+            topics: meta.topics.clone(),
+            lexical_keys: meta.lexical_keys.clone(),
+            encoded_refs: HashMap::new(),
+        });
+        entry
+            .encoded_refs
+            .entry("vault")
+            .or_insert_with(|| encoded.clone());
+        ctx_vault::maybe_persist(entry);
+    }
     let saved = text.len() as isize - encoded.len() as isize;
     if saved >= MIN_SAVED_CHARS as isize {
         stats.seen_ref_blocks += 1;
@@ -1305,8 +1550,18 @@ pub fn parse_exact_request(text: &str) -> Option<ExactRequest> {
 }
 
 pub fn exact_for_request(req: &ExactRequest) -> Option<String> {
-    let seen = seen_blocks().lock().ok()?;
-    seen.get(&req.hash).map(|block| block.exact.clone())
+    if let Ok(seen) = seen_blocks().lock() {
+        if let Some(block) = seen.get(&req.hash) {
+            return Some(block.exact.clone());
+        }
+    }
+    // Phase 1.C — fall back to the persistent vault. Lets `.ctx_get` succeed
+    // for `<ctx>` references emitted by a prior Kcode process. Sensitive
+    // blocks are never written to disk so this never reveals credentials.
+    if let Some(restored) = ctx_vault::load_into_seen_blocks(&req.hash) {
+        return Some(restored);
+    }
+    None
 }
 
 pub fn maybe_rehydrate_response(text: &str) -> Option<String> {
@@ -1507,6 +1762,137 @@ fn encode_repeated_lines(text: &str) -> Option<String> {
     }
 }
 
+/// Persistent context vault: writes non-sensitive `SeenBlock`s to disk so
+/// later Kcode processes can still rehydrate exact text behind `<ctx>` refs.
+///
+/// Layout: `~/.kcode/ctx-vault/<hash[..2]>/<hash>.json` (sharded for fs perf).
+/// Sensitive blocks (per `looks_sensitive`) are never persisted, so credentials
+/// and bearer tokens cannot leak into the vault. Disabled via
+/// `KCODE_CTX_VAULT_PERSIST=0`.
+mod ctx_vault {
+    use super::*;
+    use serde::{Deserialize, Serialize};
+
+    pub const ENV_DISABLE: &str = "KCODE_CTX_VAULT_PERSIST";
+
+    #[derive(Serialize, Deserialize)]
+    struct PersistedBlock {
+        hash: String,
+        original_chars: usize,
+        summary: String,
+        exact: String,
+        confidence: f32,
+        priority: String,
+        topics: Vec<String>,
+        lexical_keys: Vec<String>,
+    }
+
+    fn enabled() -> bool {
+        std::env::var(ENV_DISABLE)
+            .map(|v| {
+                !matches!(
+                    v.trim().to_ascii_lowercase().as_str(),
+                    "0" | "false" | "no" | "off"
+                )
+            })
+            .unwrap_or(true)
+    }
+
+    fn vault_dir() -> Option<std::path::PathBuf> {
+        let home = std::env::var_os("HOME")?;
+        Some(std::path::Path::new(&home).join(".kcode").join("ctx-vault"))
+    }
+
+    fn block_path(dir: &std::path::Path, hash: &str) -> Option<std::path::PathBuf> {
+        if hash.len() < 2 {
+            return None;
+        }
+        let shard = &hash[..2];
+        Some(dir.join(shard).join(format!("{}.json", hash)))
+    }
+
+    pub fn maybe_persist(block: &SeenBlock) {
+        if !enabled() || block.sensitive || block.exact.is_empty() {
+            return;
+        }
+        let Some(dir) = vault_dir() else {
+            return;
+        };
+        let Some(path) = block_path(&dir, &block.hash) else {
+            return;
+        };
+        if path.exists() {
+            return;
+        }
+        if let Some(shard_dir) = path.parent() {
+            if std::fs::create_dir_all(shard_dir).is_err() {
+                return;
+            }
+        }
+        let payload = PersistedBlock {
+            hash: block.hash.clone(),
+            original_chars: block.original_chars,
+            summary: block.summary.clone(),
+            exact: block.exact.clone(),
+            confidence: block.confidence,
+            priority: block.priority.as_str().to_string(),
+            topics: block.topics.iter().map(|t| (*t).to_string()).collect(),
+            lexical_keys: block.lexical_keys.clone(),
+        };
+        let Ok(json) = serde_json::to_string(&payload) else {
+            return;
+        };
+        // Best-effort atomic write: write to tmp then rename.
+        let tmp_path = path.with_extension("json.tmp");
+        if std::fs::write(&tmp_path, json).is_ok() {
+            let _ = std::fs::rename(&tmp_path, &path);
+        }
+    }
+
+    fn load_block(hash: &str) -> Option<PersistedBlock> {
+        if !enabled() || hash.is_empty() {
+            return None;
+        }
+        let path = block_path(&vault_dir()?, hash)?;
+        let bytes = std::fs::read(path).ok()?;
+        serde_json::from_slice(&bytes).ok()
+    }
+
+    fn priority_from_str(value: &str) -> ContextPriority {
+        match value {
+            "high" => ContextPriority::High,
+            "verify" => ContextPriority::Verify,
+            "low" => ContextPriority::Low,
+            _ => ContextPriority::Normal,
+        }
+    }
+
+    /// Load a vault block (if any) into the in-process `seen_blocks` map and
+    /// return its exact text. Used as a fallback when `.ctx_get` references
+    /// a hash that isn't in the current process's seen map (e.g., after a
+    /// Kcode restart).
+    pub fn load_into_seen_blocks(hash: &str) -> Option<String> {
+        let persisted = load_block(hash)?;
+        let exact = persisted.exact.clone();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.entry(persisted.hash.clone())
+                .or_insert_with(|| SeenBlock {
+                    hash: persisted.hash,
+                    original_chars: persisted.original_chars,
+                    summary: persisted.summary,
+                    exact: persisted.exact,
+                    confidence: persisted.confidence,
+                    priority: priority_from_str(&persisted.priority),
+                    sensitive: false, // sensitive blocks are never persisted
+                    topics: Vec::new(),
+                    lexical_keys: persisted.lexical_keys,
+                    encoded_refs: HashMap::new(),
+                });
+        }
+        Some(exact)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1515,7 +1901,13 @@ mod tests {
 
     fn seen_test_lock() -> MutexGuard<'static, ()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
+        // PoisonError can occur if a prior test panicked while holding the
+        // guard. Recover the inner guard so subsequent tests can still run
+        // serialised.
+        match LOCK.get_or_init(|| Mutex::new(())).lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        }
     }
 
     #[test]
@@ -1933,5 +2325,382 @@ mod tests {
             "related installer block should be restored"
         );
         assert_eq!(stats.auto_rehydrated_blocks, 1);
+    }
+
+    #[test]
+    fn encoded_ref_cache_returns_same_string_on_resight() {
+        let _guard = seen_test_lock();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let text = "long old block ".repeat(200);
+        let mut stats1 = InterlangStats::default();
+        let first = encode_context_diet_ref(&text, "old-text", &mut stats1);
+        let mut stats2 = InterlangStats::default();
+        let second = encode_context_diet_ref(&text, "old-text", &mut stats2);
+        assert_eq!(
+            first, second,
+            "second encode of same hash+kind must return identical ref"
+        );
+        // Both encodes update stats (they account for the per-turn savings),
+        // so the deltas should match the original block size.
+        assert_eq!(stats1.diet_blocks, 1);
+        assert_eq!(stats2.diet_blocks, 1);
+        assert_eq!(stats1.diet_original_chars, stats2.diet_original_chars);
+    }
+
+    #[test]
+    fn ctx_vault_persists_and_reloads_after_seen_clear() {
+        let _guard = seen_test_lock();
+        let temp = tempfile::TempDir::new().unwrap();
+        let prev_home = std::env::var_os("HOME");
+        unsafe {
+            std::env::set_var("HOME", temp.path());
+            std::env::remove_var(super::ctx_vault::ENV_DISABLE);
+        }
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+
+        let text = "vault round-trip test content ".repeat(200);
+        let mut stats = InterlangStats::default();
+        let _encoded = encode_context_diet_ref(&text, "old-text", &mut stats);
+        let hash = stable_hash(&text);
+
+        // Simulate a fresh process: drop the in-memory map.
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+
+        let req = ExactRequest {
+            id: format!("ctx:{}", hash),
+            hash: hash.clone(),
+            reason: None,
+        };
+        let restored = exact_for_request(&req).expect("vault should rehydrate");
+        assert_eq!(restored, text);
+
+        // Cleanup.
+        unsafe {
+            if let Some(prev) = prev_home {
+                std::env::set_var("HOME", prev);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+    }
+
+    #[test]
+    fn ctx_vault_skips_sensitive_blocks() {
+        let _guard = seen_test_lock();
+        let temp = tempfile::TempDir::new().unwrap();
+        let prev_home = std::env::var_os("HOME");
+        unsafe {
+            std::env::set_var("HOME", temp.path());
+            std::env::remove_var(super::ctx_vault::ENV_DISABLE);
+        }
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+
+        let text = "Authorization: Bearer ghp_secrettokenvalue\n".repeat(500);
+        let mut stats = InterlangStats::default();
+        let _encoded = encode_context_diet_ref(&text, "old-text", &mut stats);
+        let hash = stable_hash(&text);
+
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+
+        let req = ExactRequest {
+            id: format!("ctx:{}", hash),
+            hash,
+            reason: None,
+        };
+        let restored = exact_for_request(&req);
+        assert!(
+            restored.is_none(),
+            "sensitive block must NOT be persisted to vault"
+        );
+
+        unsafe {
+            if let Some(prev) = prev_home {
+                std::env::set_var("HOME", prev);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+    }
+
+    #[test]
+    fn tool_use_diet_off_by_default_keeps_input_exact() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        let prev_flag = std::env::var_os("KCODE_INTERLANG_DIET_TOOL_INPUT");
+        unsafe {
+            std::env::remove_var("KCODE_INTERLANG_DIET_TOOL_INPUT");
+        }
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let big_input =
+            serde_json::json!({"file_path": "src/foo.rs", "content": "x".repeat(4_000)});
+        let mut messages = Vec::new();
+        for idx in 0..20 {
+            messages.push(Message::user(&format!("filler {idx}")));
+        }
+        // Old assistant turn with a large tool_use input.
+        messages.push(crate::message::Message {
+            role: Role::Assistant,
+            content: vec![ContentBlock::ToolUse {
+                id: "old-1".to_string(),
+                name: "edit".to_string(),
+                input: big_input.clone(),
+            }],
+            timestamp: None,
+            tool_duration_ms: None,
+        });
+        // A tool_result then more turns to push the tool_use out of the recent window.
+        messages.push(Message::tool_result("old-1", "ok", false));
+        for idx in 0..30 {
+            messages.push(Message::user(&format!("more filler {idx}")));
+        }
+        messages.push(Message::user("recent question goes here"));
+
+        let (dieted, _stats) = maybe_context_diet_messages(&messages);
+        let preserved = dieted.iter().any(|m| {
+            m.content
+                .iter()
+                .any(|b| matches!(b, ContentBlock::ToolUse { input, .. } if input == &big_input))
+        });
+        assert!(preserved, "tool_use input must stay exact when flag is off");
+
+        unsafe {
+            if let Some(prev) = prev_flag {
+                std::env::set_var("KCODE_INTERLANG_DIET_TOOL_INPUT", prev);
+            }
+        }
+    }
+
+    #[test]
+    fn tool_use_diet_replaces_old_input_when_flag_on() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        let prev_flag = std::env::var_os("KCODE_INTERLANG_DIET_TOOL_INPUT");
+        unsafe {
+            std::env::set_var("KCODE_INTERLANG_DIET_TOOL_INPUT", "1");
+            std::env::remove_var("KCODE_CONTEXT_DIET_RECENT_BYTES");
+        }
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let big_input =
+            serde_json::json!({"file_path": "src/foo.rs", "content": "y".repeat(4_000)});
+        let mut messages = Vec::new();
+        for idx in 0..6 {
+            messages.push(Message::user(&format!("warmup {idx}")));
+        }
+        messages.push(crate::message::Message {
+            role: Role::Assistant,
+            content: vec![ContentBlock::ToolUse {
+                id: "old-2".to_string(),
+                name: "edit".to_string(),
+                input: big_input,
+            }],
+            timestamp: None,
+            tool_duration_ms: None,
+        });
+        messages.push(Message::tool_result("old-2", "ok", false));
+        // Real prose-ish filler so the WordPiece tokenizer counts each word
+        // distinctly and the cumulative token count crosses the 6k trigger.
+        let filler_chunk = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega ".repeat(30);
+        for idx in 0..40 {
+            messages.push(Message::user(&format!("filler {idx} {filler_chunk}")));
+        }
+        // Add a NEWER assistant turn so the test target is no longer the
+        // most-recent assistant (we never diet the last assistant's tool_use).
+        messages.push(Message::assistant_text(
+            "Recent assistant note about the next step",
+        ));
+        messages.push(Message::user("recent user request stays exact"));
+
+        let (dieted, _stats) = maybe_context_diet_messages(&messages);
+        let dieted_tool_use_compacted = dieted.iter().any(|m| {
+            m.content.iter().any(|b| match b {
+                ContentBlock::ToolUse { input, .. } => input
+                    .as_object()
+                    .and_then(|map| map.get("_kcode_ctx_ref"))
+                    .is_some(),
+                _ => false,
+            })
+        });
+        assert!(
+            dieted_tool_use_compacted,
+            "old tool_use input must be replaced by ctx ref when flag is on"
+        );
+
+        unsafe {
+            if let Some(prev) = prev_flag {
+                std::env::set_var("KCODE_INTERLANG_DIET_TOOL_INPUT", prev);
+            } else {
+                std::env::remove_var("KCODE_INTERLANG_DIET_TOOL_INPUT");
+            }
+        }
+    }
+
+    #[test]
+    fn recent_byte_budget_preserves_just_enough() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        let prev_budget = std::env::var_os("KCODE_CONTEXT_DIET_RECENT_BYTES");
+        unsafe {
+            std::env::set_var("KCODE_CONTEXT_DIET_RECENT_BYTES", "5000");
+        }
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let mut messages = Vec::new();
+        for idx in 0..30 {
+            messages.push(Message::tool_result(
+                &format!("c-{idx}"),
+                &"chunk-content-line ".repeat(120),
+                false,
+            ));
+        }
+        messages.push(Message::user(
+            "most recent fresh user turn that should stay exact",
+        ));
+
+        let (dieted, _stats) = maybe_context_diet_messages(&messages);
+        // The very last user message must remain exact.
+        let last = dieted.last().unwrap();
+        match &last.content[0] {
+            ContentBlock::Text { text, .. } => {
+                assert_eq!(text, "most recent fresh user turn that should stay exact");
+            }
+            _ => panic!("expected text"),
+        }
+
+        unsafe {
+            if let Some(prev) = prev_budget {
+                std::env::set_var("KCODE_CONTEXT_DIET_RECENT_BYTES", prev);
+            } else {
+                std::env::remove_var("KCODE_CONTEXT_DIET_RECENT_BYTES");
+            }
+        }
+    }
+
+    #[test]
+    fn max_blocks_zero_skips_all_encoding() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let big = "huge old context block that would normally be encoded ".repeat(200);
+        let mut messages = Vec::new();
+        for idx in 0..20 {
+            messages.push(Message::user(&format!("filler {idx}\n{big}")));
+        }
+        messages.push(Message::user("recent user message"));
+        let (compacted, stats) = maybe_compact_messages_with_budget(
+            &messages,
+            CompactBudget {
+                max_blocks: Some(0),
+                recent_bytes: None,
+            },
+        );
+        assert_eq!(stats.blocks_encoded, 0, "max_blocks=0 must skip encoding");
+        assert_eq!(compacted.len(), messages.len());
+        // First filler block is left exact (no <ctx> wrapper).
+        match &compacted[0].content[0] {
+            ContentBlock::Text { text, .. } => assert!(!text.contains("<ctx ")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn max_blocks_caps_emitted_refs() {
+        if mode() != InterlangMode::Ultra {
+            return;
+        }
+        let _guard = seen_test_lock();
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+        let chunk = "alpha beta gamma delta epsilon zeta eta theta iota kappa ".repeat(40);
+        let mut messages = Vec::new();
+        for idx in 0..30 {
+            messages.push(Message::user(&format!("entry {idx}: {chunk}")));
+        }
+        messages.push(Message::user("recent question"));
+        let (_compacted, stats) = maybe_compact_messages_with_budget(
+            &messages,
+            CompactBudget {
+                max_blocks: Some(2),
+                recent_bytes: None,
+            },
+        );
+        assert!(
+            stats.blocks_encoded <= 2,
+            "blocks_encoded {} should be capped at 2",
+            stats.blocks_encoded
+        );
+        assert!(
+            stats.blocks_encoded >= 1,
+            "should encode at least one block"
+        );
+    }
+
+    #[test]
+    fn ctx_vault_disabled_when_env_set_to_zero() {
+        let _guard = seen_test_lock();
+        let temp = tempfile::TempDir::new().unwrap();
+        let prev_home = std::env::var_os("HOME");
+        let prev_flag = std::env::var_os(super::ctx_vault::ENV_DISABLE);
+        unsafe {
+            std::env::set_var("HOME", temp.path());
+            std::env::set_var(super::ctx_vault::ENV_DISABLE, "0");
+        }
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+
+        let text = "vault disabled test ".repeat(200);
+        let mut stats = InterlangStats::default();
+        let _ = encode_context_diet_ref(&text, "old-text", &mut stats);
+        let hash = stable_hash(&text);
+
+        if let Ok(mut seen) = seen_blocks().lock() {
+            seen.clear();
+        }
+
+        let req = ExactRequest {
+            id: format!("ctx:{}", hash),
+            hash,
+            reason: None,
+        };
+        assert!(exact_for_request(&req).is_none());
+
+        unsafe {
+            if let Some(prev) = prev_home {
+                std::env::set_var("HOME", prev);
+            } else {
+                std::env::remove_var("HOME");
+            }
+            if let Some(prev) = prev_flag {
+                std::env::set_var(super::ctx_vault::ENV_DISABLE, prev);
+            } else {
+                std::env::remove_var(super::ctx_vault::ENV_DISABLE);
+            }
+        }
     }
 }

@@ -744,7 +744,23 @@ impl AnthropicProvider {
     /// Adds cache_control to the last tool for prompt caching
     fn format_tools(&self, tools: &[ToolDefinition], is_oauth: bool) -> Vec<ApiTool> {
         if is_oauth {
-            return vec![
+            // Phase 5 — honour an *explicitly empty* tools input even under
+            // OAuth. v1/legacy callers always pass `tools.len() > 0`, so the
+            // hardcoded Claude-Code identity tool list still fires for normal
+            // turns. v2 Direct turns deliberately filter the locked tool list
+            // down to zero (or just `tool_expand`); on those turns the
+            // upstream payload should not pay the ~5k-token tool-schema cost.
+            // Identity remains preserved via the system prompt blocks
+            // (CLAUDE_CODE_IDENTITY) and the `claude-cli` user-agent — the
+            // tool list is not part of the Claude-Code identity contract.
+            if tools.is_empty() {
+                return Vec::new();
+            }
+            // Likewise: when the caller passes a deliberate small subset that
+            // is fully contained in the hardcoded set (e.g. v2 Light turn
+            // sending `[bash, read, tool_expand]`), filter the hardcoded list
+            // down to that subset rather than re-expanding to all 10.
+            let hardcoded = vec![
                 ApiTool {
                     name: "Agent".to_string(),
                     description: "Launch a new agent to handle complex, multi-step tasks."
@@ -810,6 +826,32 @@ impl AnthropicProvider {
                     cache_control: Some(CacheControlParam::ephemeral()),
                 },
             ];
+            // Map caller-passed tool names into the OAuth identity list
+            // (case-insensitively, since locked Kcode tools are lowercase but
+            // the OAuth identity list uses TitleCase). When the caller passes
+            // a strict subset we filter; otherwise return the full list (legacy
+            // behaviour) so tool-heavy turns keep working unchanged.
+            let caller_names: std::collections::HashSet<String> =
+                tools.iter().map(|t| t.name.to_ascii_lowercase()).collect();
+            let mut filtered: Vec<ApiTool> = hardcoded
+                .into_iter()
+                .filter(|t| caller_names.contains(&t.name.to_ascii_lowercase()))
+                .collect();
+            // Fall back to the full hardcoded list when the caller's set is
+            // either (a) empty (already handled above) or (b) doesn't overlap
+            // at all — that's a v1 path passing the locked Kcode tool list,
+            // none of whose names match TitleCase identity tools. Keep legacy
+            // behaviour there: rebuild the full hardcoded list since the
+            // filter above consumed the original.
+            if filtered.is_empty() {
+                return Self::oauth_hardcoded_tools_full();
+            }
+            // Re-attach cache_control to the *last* element so prompt caching
+            // still keys on the (possibly smaller) tool block.
+            if let Some(last) = filtered.last_mut() {
+                last.cache_control = Some(CacheControlParam::ephemeral());
+            }
+            return filtered;
         }
 
         let len = tools.len();
@@ -827,6 +869,76 @@ impl AnthropicProvider {
                 },
             })
             .collect()
+    }
+
+    /// Full hardcoded Claude-Code identity tool list emitted under OAuth in
+    /// the legacy path (and as the fallback when caller's tool names don't
+    /// overlap the identity set).
+    fn oauth_hardcoded_tools_full() -> Vec<ApiTool> {
+        vec![
+            ApiTool {
+                name: "Agent".to_string(),
+                description: "Launch a new agent to handle complex, multi-step tasks.".to_string(),
+                input_schema: json!({"type":"object","properties":{"description":{"type":"string"},"prompt":{"type":"string"},"subagent_type":{"type":"string"},"run_in_background":{"type":"boolean"}},"required":["description","prompt"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "Bash".to_string(),
+                description: "Executes a given bash command and returns its output.".to_string(),
+                input_schema: json!({"type":"object","properties":{"command":{"type":"string"},"timeout":{"type":"integer"},"run_in_background":{"type":"boolean"}},"required":["command"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "Edit".to_string(),
+                description: "Performs exact string replacements in files.".to_string(),
+                input_schema: json!({"type":"object","properties":{"file_path":{"type":"string"},"old_string":{"type":"string"},"new_string":{"type":"string"},"replace_all":{"type":"boolean","default":false}},"required":["file_path","old_string","new_string"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "Glob".to_string(),
+                description: "Fast file pattern matching tool.".to_string(),
+                input_schema: json!({"type":"object","properties":{"pattern":{"type":"string"},"path":{"type":"string"}},"required":["pattern"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "Grep".to_string(),
+                description: "A powerful search tool built on ripgrep.".to_string(),
+                input_schema: json!({"type":"object","properties":{"pattern":{"type":"string"},"path":{"type":"string"},"glob":{"type":"string"},"output_mode":{"type":"string","enum":["content","files_with_matches","count"]},"-B":{"type":"number"},"-A":{"type":"number"},"-C":{"type":"number"},"context":{"type":"number"},"-n":{"type":"boolean"},"-i":{"type":"boolean"},"type":{"type":"string"},"head_limit":{"type":"number"},"offset":{"type":"number"},"multiline":{"type":"boolean"}},"required":["pattern"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "Read".to_string(),
+                description: "Reads a file from the local filesystem.".to_string(),
+                input_schema: json!({"type":"object","properties":{"file_path":{"type":"string"},"offset":{"type":"integer","minimum":0},"limit":{"type":"integer","exclusiveMinimum":0},"pages":{"type":"string"}},"required":["file_path"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "ScheduleWakeup".to_string(),
+                description: "Schedule when to resume work in /loop dynamic mode.".to_string(),
+                input_schema: json!({"type":"object","properties":{"delaySeconds":{"type":"number"},"reason":{"type":"string"},"prompt":{"type":"string"}},"required":["delaySeconds","reason","prompt"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "Skill".to_string(),
+                description: "Execute a skill within the main conversation".to_string(),
+                input_schema: json!({"type":"object","properties":{"skill":{"type":"string"},"args":{"type":"string"}},"required":["skill"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "ToolSearch".to_string(),
+                description:
+                    "Fetches full schema definitions for deferred tools so they can be called."
+                        .to_string(),
+                input_schema: json!({"type":"object","properties":{"query":{"type":"string"},"max_results":{"type":"number","default":5}},"required":["query","max_results"],"additionalProperties":false}),
+                cache_control: None,
+            },
+            ApiTool {
+                name: "Write".to_string(),
+                description: "Writes a file to the local filesystem.".to_string(),
+                input_schema: json!({"type":"object","properties":{"file_path":{"type":"string"},"content":{"type":"string"}},"required":["file_path","content"],"additionalProperties":false}),
+                cache_control: Some(CacheControlParam::ephemeral()),
+            },
+        ]
     }
 }
 

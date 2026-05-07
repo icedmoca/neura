@@ -61,6 +61,149 @@ use search::{
 
 const LEGACY_NOTE_CATEGORY: &str = "note";
 
+// === Phase 3 — `.mem_get` retrieval contract ===
+//
+// Anchor mode (`KCODE_MEMORY_ANCHOR=1`) replaces the full memory injection
+// with a tiny `<mem-anchor count="N" via=".mem_get" />` pointer. To keep the
+// model's recall capability intact, the full prompt that *would* have been
+// injected is stashed here, keyed by session id, so when the model emits
+// `.mem_get reason=<why>` we can fulfil the request on the next turn.
+
+static ANCHORED_MEMORY_PROMPTS: std::sync::Mutex<
+    Option<std::collections::HashMap<String, AnchoredMemorySnapshot>>,
+> = std::sync::Mutex::new(None);
+
+#[derive(Debug, Clone)]
+struct AnchoredMemorySnapshot {
+    prompt: String,
+    memory_ids: Vec<String>,
+    stashed_at: std::time::Instant,
+}
+
+const ANCHORED_MEMORY_FRESH_SECS: u64 = 600;
+
+/// Remember the full memory prompt for this session so it can be returned by
+/// `.mem_get`. Called from the turn loop right after deciding to inject or
+/// anchor; both paths stash so a follow-up `.mem_get` always has fresh data.
+pub fn stash_memory_for_anchor_rehydration(session_id: &str, prompt: &str, memory_ids: &[String]) {
+    if prompt.trim().is_empty() {
+        return;
+    }
+    if let Ok(mut guard) = ANCHORED_MEMORY_PROMPTS.lock() {
+        let map = guard.get_or_insert_with(std::collections::HashMap::new);
+        map.insert(
+            session_id.to_string(),
+            AnchoredMemorySnapshot {
+                prompt: prompt.to_string(),
+                memory_ids: memory_ids.to_vec(),
+                stashed_at: std::time::Instant::now(),
+            },
+        );
+    }
+}
+
+/// Discard any stashed anchor-mode memory for this session.
+pub fn clear_anchored_memory(session_id: &str) {
+    if let Ok(mut guard) = ANCHORED_MEMORY_PROMPTS.lock() {
+        if let Some(map) = guard.as_mut() {
+            map.remove(session_id);
+        }
+    }
+}
+
+/// Test/inspection helper: returns true if a fresh anchor snapshot exists.
+pub fn has_anchored_memory(session_id: &str) -> bool {
+    if let Ok(guard) = ANCHORED_MEMORY_PROMPTS.lock() {
+        if let Some(map) = guard.as_ref() {
+            if let Some(snapshot) = map.get(session_id) {
+                return snapshot.stashed_at.elapsed().as_secs() < ANCHORED_MEMORY_FRESH_SECS;
+            }
+        }
+    }
+    false
+}
+
+/// Parse a `.mem_get` request from model text. Mirrors `interlang::parse_exact_request`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemGetRequest {
+    pub reason: Option<String>,
+}
+
+pub fn parse_mem_get_request(text: &str) -> Option<MemGetRequest> {
+    let line = text
+        .lines()
+        .find(|line| line.trim().starts_with(".mem_get"))?;
+    let trimmed = line.trim();
+    let mut reason = None;
+    for part in trimmed.split_whitespace().skip(1) {
+        if let Some(value) = part.strip_prefix("reason=") {
+            reason = Some(value.trim_matches(|c| c == '"' || c == '\'').to_string());
+        }
+    }
+    Some(MemGetRequest { reason })
+}
+
+/// Build the `<system-reminder>` rehydration block for a `.mem_get` request.
+/// Returns None when no fresh anchored memory snapshot exists for the session.
+pub fn maybe_rehydrate_mem_get(session_id: &str, model_text: &str) -> Option<String> {
+    let req = parse_mem_get_request(model_text)?;
+    let snapshot = {
+        let guard = ANCHORED_MEMORY_PROMPTS.lock().ok()?;
+        let map = guard.as_ref()?;
+        let snap = map.get(session_id)?;
+        if snap.stashed_at.elapsed().as_secs() >= ANCHORED_MEMORY_FRESH_SECS {
+            return None;
+        }
+        snap.clone()
+    };
+    Some(format!(
+        "<system-reminder>\nKcode .mem_get rehydration fulfilled (reason={}). The relevant memory entries follow. Treat them as authoritative for this turn.\n\n{}\n\n(memory_ids: {})\n</system-reminder>",
+        req.reason.as_deref().unwrap_or("unspecified"),
+        snapshot.prompt,
+        snapshot.memory_ids.join(",")
+    ))
+}
+
+#[cfg(test)]
+mod mem_get_tests {
+    use super::*;
+
+    #[test]
+    fn parses_mem_get_with_reason() {
+        let req = parse_mem_get_request(".mem_get reason=preferences").expect("should parse");
+        assert_eq!(req.reason.as_deref(), Some("preferences"));
+    }
+
+    #[test]
+    fn parses_mem_get_without_reason() {
+        let req = parse_mem_get_request(".mem_get").expect("should parse bare");
+        assert!(req.reason.is_none());
+    }
+
+    #[test]
+    fn rehydrate_returns_stashed_prompt() {
+        let session = "test-session-mem-get-1";
+        clear_anchored_memory(session);
+        stash_memory_for_anchor_rehydration(
+            session,
+            "## Notes\n1. user prefers tabs",
+            &["m1".to_string()],
+        );
+        let response = maybe_rehydrate_mem_get(session, ".mem_get reason=indentation")
+            .expect("rehydrate must produce text");
+        assert!(response.contains("user prefers tabs"));
+        assert!(response.contains("indentation"));
+        clear_anchored_memory(session);
+    }
+
+    #[test]
+    fn rehydrate_returns_none_when_nothing_stashed() {
+        let session = "test-session-mem-get-2";
+        clear_anchored_memory(session);
+        assert!(maybe_rehydrate_mem_get(session, ".mem_get").is_none());
+    }
+}
+
 pub type MemoryEventSink = Arc<dyn Fn(crate::protocol::ServerEvent) + Send + Sync>;
 
 pub fn memory_sidecar_enabled() -> bool {
