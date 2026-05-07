@@ -17,7 +17,7 @@ pub mod openai;
 pub(crate) mod openai_request;
 pub mod openrouter;
 pub mod pricing;
-mod remote_telemetry;
+pub(crate) mod remote_telemetry;
 mod route_builders;
 mod routing;
 mod selection;

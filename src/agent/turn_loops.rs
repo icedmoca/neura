@@ -164,6 +164,14 @@ impl Agent {
             } else {
                 send_messages
             };
+            crate::provider::remote_telemetry::log_pre_provider_payload(
+                self.provider.name(),
+                provider_messages,
+                &tools,
+                &split_prompt.static_part,
+                &dynamic_part,
+                should_apply_final_prompt_admission(send_messages),
+            );
             self.last_status_detail = None;
             let mut stream = match self
                 .provider
