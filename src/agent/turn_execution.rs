@@ -709,19 +709,12 @@ fn latest_real_user_text(messages: &[crate::session::StoredMessage]) -> String {
 }
 
 fn is_always_on_tool(name: &str) -> bool {
-    matches!(
-        name,
-        "bash"
-            | "agentgrep"
-            | "read"
-            | "todo"
-            | "apply_patch"
-            | "edit"
-            | "multiedit"
-            | "write"
-            | "bg"
-            | "batch"
-    )
+    // Keep the floor intentionally tiny.  Most turns do not need the full tool
+    // catalog, and every schema sent to the provider is recurring prompt
+    // overhead.  Intent classification below expands this set when a request
+    // actually implies repo/file work, background execution, browsing, memory,
+    // or coordination.
+    matches!(name, "bash" | "read" | "tool_expand")
 }
 
 fn add_tool(names: &mut Vec<String>, name: &str) {
@@ -732,36 +725,103 @@ fn add_tool(names: &mut Vec<String>, name: &str) {
 
 fn classify_tools(latest: &str) -> Vec<String> {
     let mut wanted = Vec::new();
-    if latest.contains("weather")
-        || latest.contains("website")
-        || latest.contains("web")
-        || latest.contains("search")
-        || latest.contains("http")
-        || latest.contains("url")
-    {
+
+    let file_or_repo_work = contains_any(
+        latest,
+        &[
+            "repo",
+            "code",
+            "file",
+            "readme",
+            "docs",
+            ".md",
+            ".rs",
+            ".py",
+            "src/",
+            "fix",
+            "bug",
+            "implement",
+            "refactor",
+            "patch",
+            "edit",
+            "write",
+            "commit",
+            "push",
+            "test",
+            "build",
+            "benchmark",
+            "grep",
+            "search the code",
+            "find usage",
+            "symbol",
+        ],
+    );
+    if file_or_repo_work {
+        // read2.txt's recommended stack is: text search -> syntax-aware narrow
+        // region -> patch -> formatter/tests.  agentgrep is the primary low-token
+        // narrowing tool; patch/edit tools are only exposed when repository or
+        // file work is likely.
+        add_tool(&mut wanted, "agentgrep");
+        add_tool(&mut wanted, "grep");
+        add_tool(&mut wanted, "glob");
+        add_tool(&mut wanted, "ls");
+        add_tool(&mut wanted, "apply_patch");
+        add_tool(&mut wanted, "edit");
+        add_tool(&mut wanted, "multiedit");
+        add_tool(&mut wanted, "write");
+    }
+
+    if contains_any(
+        latest,
+        &["parallel", "batch", "multiple files", "many files"],
+    ) {
+        add_tool(&mut wanted, "batch");
+    }
+    if contains_any(
+        latest,
+        &["background", "long", "tail", "wait", "progress", "timeout"],
+    ) {
+        add_tool(&mut wanted, "bg");
+    }
+    if contains_any(
+        latest,
+        &["weather", "website", "web", "search", "http", "url"],
+    ) {
         add_tool(&mut wanted, "websearch");
         add_tool(&mut wanted, "webfetch");
     }
-    if latest.contains("browser")
-        || latest.contains("click")
-        || latest.contains("page")
-        || latest.contains("login")
-        || latest.contains("screenshot")
-    {
+    if contains_any(
+        latest,
+        &["browser", "click", "page", "login", "screenshot", "ui"],
+    ) {
         add_tool(&mut wanted, "browser");
         add_tool(&mut wanted, "mouse");
     }
-    if latest.contains("email") || latest.contains("gmail") || latest.contains("inbox") {
+    if contains_any(latest, &["email", "gmail", "inbox"]) {
         add_tool(&mut wanted, "gmail");
     }
-    if latest.contains("remember") || latest.contains("memory") || latest.contains("recall") {
+    if contains_any(latest, &["remember", "memory", "recall", "preference"]) {
         add_tool(&mut wanted, "memory");
     }
-    if latest.contains("goal") || latest.contains("schedule") || latest.contains("remind") {
+    if contains_any(latest, &["todo", "roadmap", "checklist"]) {
+        add_tool(&mut wanted, "todo");
+    }
+    if contains_any(latest, &["goal", "schedule", "remind", "later"]) {
         add_tool(&mut wanted, "goal");
         add_tool(&mut wanted, "schedule");
     }
+    if contains_any(
+        latest,
+        &["subagent", "swarm", "delegate", "parallel agents"],
+    ) {
+        add_tool(&mut wanted, "subagent");
+        add_tool(&mut wanted, "swarm");
+    }
     wanted
+}
+
+fn contains_any(haystack: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|needle| haystack.contains(needle))
 }
 
 fn fallback_tool_catalog(defs: &[ToolDefinition], wanted: &[String]) -> Option<ToolDefinition> {
@@ -828,7 +888,7 @@ mod dynamic_tool_filter_tests {
         let filtered = filter_tool_definitions_for_messages(defs, &messages);
         let names: Vec<_> = filtered.iter().map(|def| def.name.as_str()).collect();
         assert!(names.contains(&"bash"));
-        assert!(names.contains(&"agentgrep"));
+        assert!(!names.contains(&"agentgrep"));
         assert!(names.contains(&"websearch"));
         assert!(names.contains(&"webfetch"));
         assert!(names.contains(&"tool_expand"));
@@ -837,7 +897,7 @@ mod dynamic_tool_filter_tests {
 
     #[test]
     fn direct_answer_turn_keeps_only_core_tools() {
-        let defs = vec![def("bash"), def("websearch"), def("gmail")];
+        let defs = vec![def("bash"), def("read"), def("websearch"), def("gmail")];
         let messages = vec![crate::session::StoredMessage {
             id: "m1".to_string(),
             role: Role::User,
@@ -853,6 +913,39 @@ mod dynamic_tool_filter_tests {
 
         let filtered = filter_tool_definitions_for_messages(defs, &messages);
         let names: Vec<_> = filtered.iter().map(|def| def.name.as_str()).collect();
-        assert_eq!(names, vec!["bash", "tool_expand"]);
+        assert_eq!(names, vec!["bash", "read", "tool_expand"]);
+    }
+
+    #[test]
+    fn coding_turn_expands_search_and_edit_tools() {
+        let defs = vec![
+            def("bash"),
+            def("read"),
+            def("agentgrep"),
+            def("glob"),
+            def("apply_patch"),
+            def("edit"),
+            def("websearch"),
+        ];
+        let messages = vec![crate::session::StoredMessage {
+            id: "m1".to_string(),
+            role: Role::User,
+            content: vec![ContentBlock::Text {
+                text: "fix the bug in src/provider.rs and commit it".to_string(),
+                cache_control: None,
+            }],
+            timestamp: None,
+            display_role: None,
+            tool_duration_ms: None,
+            token_usage: None,
+        }];
+
+        let filtered = filter_tool_definitions_for_messages(defs, &messages);
+        let names: Vec<_> = filtered.iter().map(|def| def.name.as_str()).collect();
+        assert!(names.contains(&"agentgrep"));
+        assert!(names.contains(&"glob"));
+        assert!(names.contains(&"apply_patch"));
+        assert!(names.contains(&"edit"));
+        assert!(!names.contains(&"websearch"));
     }
 }
