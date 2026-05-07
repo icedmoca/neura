@@ -157,11 +157,18 @@ impl Agent {
                 .as_deref()
                 .unwrap_or(&split_prompt.dynamic_part);
             crate::local_model::pre_route_async(send_messages);
+            let provider_payload;
+            let provider_messages = if should_apply_short_turn_payload_diet(send_messages) {
+                provider_payload = compact_provider_messages_for_short_turn(send_messages);
+                &provider_payload
+            } else {
+                send_messages
+            };
             self.last_status_detail = None;
             let mut stream = match self
                 .provider
                 .complete_split(
-                    send_messages,
+                    provider_messages,
                     &tools,
                     &split_prompt.static_part,
                     &dynamic_part,
@@ -897,5 +904,153 @@ impl Agent {
         }
 
         Ok(final_text)
+    }
+}
+
+fn should_apply_short_turn_payload_diet(messages: &[Message]) -> bool {
+    let Some(latest) = latest_user_text_for_payload_diet(messages) else {
+        return false;
+    };
+    let lower = latest.to_ascii_lowercase();
+    let simple = latest.len() <= 120
+        && !latest.contains('\n')
+        && !latest.contains("```")
+        && !contains_any_for_payload_diet(
+            &lower,
+            &[
+                "fix", "debug", "build", "test", "error", "failed", "repo", "code", "file", "src/",
+                "docs/", ".rs", ".py", ".md", "continue", "previous", "earlier", "above", "that",
+                "those", "memory", "token", "context", "why", "how many",
+            ],
+        );
+    simple && aggregate_message_chars_for_payload_diet(messages) > 12_000
+}
+
+fn compact_provider_messages_for_short_turn(messages: &[Message]) -> Vec<Message> {
+    let latest_user_idx = messages
+        .iter()
+        .rposition(|message| message.role == Role::User);
+    let mut out = Vec::with_capacity(messages.len().min(8));
+    let keep_from = messages.len().saturating_sub(6);
+    for (idx, message) in messages.iter().enumerate() {
+        if idx < keep_from && Some(idx) != latest_user_idx {
+            continue;
+        }
+        let mut msg = message.clone();
+        let preserve_exact = Some(idx) == latest_user_idx;
+        if !preserve_exact {
+            for block in &mut msg.content {
+                match block {
+                    ContentBlock::Text { text, .. } if text.len() > 700 => {
+                        *text = summarize_provider_block_for_payload_diet(text, "text");
+                    }
+                    ContentBlock::ToolResult { content, .. } if content.len() > 500 => {
+                        *content =
+                            summarize_provider_block_for_payload_diet(content, "tool_result");
+                    }
+                    ContentBlock::Reasoning { text } if text.len() > 500 => {
+                        *text = summarize_provider_block_for_payload_diet(text, "reasoning");
+                    }
+                    ContentBlock::ToolUse { input, .. } if input.to_string().len() > 500 => {
+                        *input = serde_json::json!({
+                            "summary": "large tool input omitted for short direct turn"
+                        });
+                    }
+                    _ => {}
+                }
+            }
+        }
+        out.push(msg);
+    }
+    out
+}
+
+fn summarize_provider_block_for_payload_diet(text: &str, kind: &str) -> String {
+    let first = text.lines().next().unwrap_or_default().trim();
+    format!(
+        "<summary kind=\"{}\" lines=\"{}\" chars=\"{}\" first=\"{}\" />",
+        kind,
+        text.lines().count(),
+        text.len(),
+        escape_summary_attr_for_payload_diet(&crate::util::truncate_str(first, 160))
+    )
+}
+
+fn escape_summary_attr_for_payload_diet(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+fn aggregate_message_chars_for_payload_diet(messages: &[Message]) -> usize {
+    messages
+        .iter()
+        .flat_map(|message| message.content.iter())
+        .map(|block| match block {
+            ContentBlock::Text { text, .. } => text.len(),
+            ContentBlock::Reasoning { text } => text.len(),
+            ContentBlock::ToolResult { content, .. } => content.len(),
+            ContentBlock::ToolUse { name, input, .. } => name.len() + input.to_string().len(),
+            ContentBlock::Image { data, .. } => data.len(),
+            ContentBlock::OpenAICompaction { encrypted_content } => encrypted_content.len(),
+        })
+        .sum()
+}
+
+fn latest_user_text_for_payload_diet(messages: &[Message]) -> Option<String> {
+    messages.iter().rev().find_map(|message| {
+        if message.role != Role::User {
+            return None;
+        }
+        let text = message
+            .content
+            .iter()
+            .filter_map(|block| match block {
+                ContentBlock::Text { text, .. } => Some(text.as_str()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        (!text.trim().is_empty()).then_some(text)
+    })
+}
+
+fn contains_any_for_payload_diet(haystack: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|needle| haystack.contains(needle))
+}
+
+#[cfg(test)]
+mod short_turn_payload_diet_tests {
+    use super::*;
+
+    #[test]
+    fn simple_turn_with_large_history_gets_compacted_provider_payload() {
+        let mut messages = Vec::new();
+        for idx in 0..12 {
+            messages.push(Message::user(&format!(
+                "old verbose context {idx}\n{}",
+                "alpha beta gamma delta epsilon\n".repeat(250)
+            )));
+        }
+        messages.push(Message::user("meow"));
+
+        assert!(should_apply_short_turn_payload_diet(&messages));
+        let compacted = compact_provider_messages_for_short_turn(&messages);
+        assert!(compacted.len() <= 6);
+        assert_eq!(
+            latest_user_text_for_payload_diet(&compacted).as_deref(),
+            Some("meow")
+        );
+        assert!(aggregate_message_chars_for_payload_diet(&compacted) < 8_000);
+    }
+
+    #[test]
+    fn coding_turn_does_not_get_short_turn_payload_diet() {
+        let messages = vec![
+            Message::user(&"old diagnostic context\n".repeat(900)),
+            Message::user("fix the failing build in src/provider/openai.rs"),
+        ];
+        assert!(!should_apply_short_turn_payload_diet(&messages));
     }
 }

@@ -25,7 +25,7 @@ const MIN_TEXT_CHARS: usize = 900;
 const MIN_SAVED_CHARS: usize = 240;
 const MIN_SEEN_REF_CHARS: usize = 2_400;
 const MIN_VAULT_REF_CHARS: usize = 16_000;
-const DEFAULT_CONTEXT_DIET_TRIGGER_TOKENS: usize = 12_000;
+const DEFAULT_CONTEXT_DIET_TRIGGER_TOKENS: usize = 6_000;
 const DEFAULT_CONTEXT_DIET_RECENT_MESSAGES: usize = 6;
 const DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 300;
 const APPROX_CHARS_PER_TOKEN: usize = 4;
@@ -459,7 +459,7 @@ fn context_diet_trigger_tokens() -> usize {
     env_usize(
         ENV_CONTEXT_DIET_TRIGGER_TOKENS,
         DEFAULT_CONTEXT_DIET_TRIGGER_TOKENS,
-        8_000,
+        2_000,
         200_000,
     )
 }
