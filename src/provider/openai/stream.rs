@@ -722,6 +722,18 @@ fn extract_usage_from_response(response: &Value) -> Option<StreamEvent> {
     let output_tokens = usage.get("output_tokens").and_then(|v| v.as_u64());
     let cache_read_input_tokens = extract_cached_input_tokens(usage);
     if input_tokens.is_some() || output_tokens.is_some() || cache_read_input_tokens.is_some() {
+        crate::provider::remote_telemetry::log_usage(
+            "openai",
+            response
+                .get("model")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown"),
+            input_tokens,
+            output_tokens,
+            input_tokens
+                .zip(output_tokens)
+                .map(|(input, output)| input + output),
+        );
         Some(StreamEvent::TokenUsage {
             input_tokens,
             output_tokens,

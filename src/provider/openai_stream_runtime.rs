@@ -86,6 +86,21 @@ pub(super) async fn stream_response(
         }
     }
 
+    let request_body_bytes = serde_json::to_vec(&request)
+        .map(|body| body.len())
+        .unwrap_or(0);
+    let request_model = request
+        .get("model")
+        .and_then(|model| model.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    crate::provider::remote_telemetry::log_request(
+        "openai",
+        &request_model,
+        "responses",
+        request_body_bytes,
+    );
+
     emit_connection_phase(&tx, ConnectionPhase::Connecting).await;
     let connect_start = std::time::Instant::now();
 
