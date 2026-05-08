@@ -669,6 +669,7 @@ pub struct App {
     todos_view_updated_at_ms: u64,
     todos_view_rendered_hash: u64,
     last_side_panel_refresh: Option<Instant>,
+    pub(crate) next_provider_usage_refresh: Option<Instant>,
     // Most recently persisted focus target for dictation routing.
     last_client_focus_recorded_at: Option<Instant>,
     last_client_focus_session_id: Option<String>,

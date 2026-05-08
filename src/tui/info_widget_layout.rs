@@ -104,8 +104,7 @@ pub(crate) fn calculate_placements(
         };
 
         let still_fits = row_end <= widths.len()
-            && (row_start..row_end)
-                .all(|row| widths[row] + STICKY_WIDTH_TOLERANCE >= prev.rect.width);
+            && (row_start..row_end).all(|row| widths[row] >= prev.rect.width);
         if !still_fits {
             continue;
         }

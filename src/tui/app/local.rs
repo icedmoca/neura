@@ -16,6 +16,7 @@ use tokio::sync::broadcast::error::RecvError;
 
 const BACKGROUND_PROGRESS_NOTICE_MIN_INTERVAL: Duration = Duration::from_millis(400);
 const BACKGROUND_PROGRESS_IDENTICAL_NOTICE_TTL: Duration = Duration::from_secs(2);
+const PROVIDER_USAGE_REFRESH_INTERVAL: Duration = Duration::from_secs(30);
 
 pub(super) async fn process_turn_with_input(
     app: &mut App,
@@ -62,6 +63,7 @@ pub(super) fn handle_tick(app: &mut App) -> bool {
     }
     needs_redraw |= app.refresh_todos_view_if_needed();
     needs_redraw |= app.refresh_side_panel_linked_content_if_due();
+    app.refresh_provider_usage_if_due();
     needs_redraw |= app.poll_model_picker_load();
     needs_redraw |= app.poll_session_picker_load();
     needs_redraw |= app.poll_compaction_completion();
@@ -381,4 +383,19 @@ pub(super) fn finish_turn(app: &mut App) {
         app.clear_visible_turn_started();
     }
     let _ = super::commands::maybe_begin_pending_local_transfer(app);
+}
+
+impl App {
+    pub(crate) fn refresh_provider_usage_if_due(&mut self) {
+        let now = Instant::now();
+        if self
+            .next_provider_usage_refresh
+            .is_some_and(|due| now < due)
+        {
+            return;
+        }
+
+        self.next_provider_usage_refresh = Some(now + PROVIDER_USAGE_REFRESH_INTERVAL);
+        crate::usage::request_openai_usage_refresh();
+    }
 }

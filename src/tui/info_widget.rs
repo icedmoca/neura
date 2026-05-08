@@ -606,11 +606,10 @@ impl InfoWidgetData {
                 .map(|b| b.running_count > 0)
                 .unwrap_or(false),
             WidgetKind::AmbientMode => false,
-            WidgetKind::UsageLimits => self
-                .usage_info
-                .as_ref()
-                .map(|u| u.available)
-                .unwrap_or(false),
+            // Provider usage and IL savings are rendered inside the IL Stats box.
+            // Keep the legacy standalone usage panel disabled so the sidebar never
+            // sprouts a second stats box when fresh usage data arrives.
+            WidgetKind::UsageLimits => false,
             WidgetKind::ModelInfo => self.model.is_some(),
             WidgetKind::Tips => false,
             WidgetKind::GitStatus => self
