@@ -77,7 +77,17 @@ Kcode also prunes tool schemas dynamically. Simple direct-answer turns do not ne
 | `todo` | manage the visible todo list |
 | `goal` | create and update longer-running goals |
 | `schedule` | schedule a task for later |
-| `skill_manage` | load/list/reload/read skills |
+| `skill_manage` | load/list/reload/read Hermes-style skills; use `.skill_get name=<skill> reason=<why>` for on-demand exact rehydration |
+
+### Hermes-style skills
+
+Kcode discovers skills as directories containing a `SKILL.md` file. The prompt only injects a compact skill anchor with the available skill names, not the full skill bodies. When exact instructions are needed, the model should emit:
+
+```text
+.skill_get name=<skill-name> reason=<why this skill is needed>
+```
+
+Kcode intercepts that request, rehydrates the exact `SKILL.md` content into a system reminder, and retries the turn. This mirrors `.mem_get`/`.ctx_get` token discipline: advertise availability cheaply, then load large skill text only on demand. For immediate tool-driven inspection, call `skill_manage` with `action="list"` or `action="read"`.
 
 ## Agent and swarm tools
 

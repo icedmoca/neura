@@ -326,8 +326,24 @@ impl Agent {
         // message is a tool-result-only continuation reuse that admission so
         // the model stays on a coherent budget for the duration of a tool loop.
         let mut originating_admission: Option<TurnAdmission> = None;
+        let mut skill_anchor_injected = false;
 
         loop {
+            if !skill_anchor_injected {
+                let skills_registry = self.registry.skills();
+                let skills = skills_registry.read().await;
+                if let Some(anchor) = crate::skill::build_skill_anchor(&skills) {
+                    self.add_message(
+                        Role::User,
+                        vec![ContentBlock::Text {
+                            text: anchor,
+                            cache_control: None,
+                        }],
+                    );
+                }
+            }
+            skill_anchor_injected = true;
+
             let repaired = self.repair_missing_tool_outputs();
             if repaired > 0 {
                 logging::warn(&format!(
@@ -1250,6 +1266,24 @@ impl Agent {
                     );
                     self.session.save()?;
                     continue;
+                }
+                {
+                    let skills_registry = self.registry.skills();
+                    let skills = skills_registry.read().await;
+                    if let Some(rehydrated) =
+                        crate::skill::maybe_rehydrate_skill_get(&skills, &text_content)
+                    {
+                        logging::info("Skill anchor .skill_get fulfilled; retrying turn");
+                        self.add_message(
+                            Role::User,
+                            vec![ContentBlock::Text {
+                                text: rehydrated,
+                                cache_control: None,
+                            }],
+                        );
+                        self.session.save()?;
+                        continue;
+                    }
                 }
                 if self.maybe_continue_incomplete_response(
                     stop_reason.as_deref(),

@@ -4,6 +4,14 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+
+const SKILL_GET_MAX_CHARS: usize = 20_000;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SkillGetRequest {
+    pub name: String,
+    pub reason: Option<String>,
+}
 #[cfg(not(test))]
 use std::sync::OnceLock;
 
@@ -286,7 +294,16 @@ impl SkillRegistry {
 
     /// List all available skills
     pub fn list(&self) -> Vec<&Skill> {
-        self.skills.values().collect()
+        let mut skills: Vec<&Skill> = self.skills.values().collect();
+        skills.sort_by(|a, b| a.name.cmp(&b.name));
+        skills
+    }
+
+    pub fn skill_names(&self) -> Vec<String> {
+        self.list()
+            .into_iter()
+            .map(|skill| skill.name.clone())
+            .collect()
     }
 
     /// Reload a specific skill by name
@@ -372,6 +389,91 @@ impl SkillRegistry {
             None
         }
     }
+}
+
+pub fn parse_skill_get_request(text: &str) -> Option<SkillGetRequest> {
+    let line = text
+        .lines()
+        .find(|line| line.trim_start().starts_with(".skill_get"))?
+        .trim();
+    let rest = line.strip_prefix(".skill_get")?.trim();
+    if rest.is_empty() {
+        return None;
+    }
+
+    let mut name: Option<String> = None;
+    let mut reason: Option<String> = None;
+    let mut positional: Vec<&str> = Vec::new();
+    let parts: Vec<&str> = rest.split_whitespace().collect();
+    let mut idx = 0;
+    while idx < parts.len() {
+        let part = parts[idx];
+        if let Some(value) = part
+            .strip_prefix("name=")
+            .or_else(|| part.strip_prefix("skill="))
+        {
+            if !value.is_empty() {
+                name = Some(value.to_string());
+            }
+        } else if let Some(value) = part.strip_prefix("reason=") {
+            let mut pieces = Vec::new();
+            if !value.is_empty() {
+                pieces.push(value);
+            }
+            pieces.extend_from_slice(&parts[idx + 1..]);
+            if !pieces.is_empty() {
+                reason = Some(pieces.join(" "));
+            }
+            break;
+        } else {
+            positional.push(part);
+        }
+        idx += 1;
+    }
+
+    if name.is_none() && !positional.is_empty() {
+        name = Some(positional[0].to_string());
+        if reason.is_none() && positional.len() > 1 {
+            reason = Some(positional[1..].join(" "));
+        }
+    }
+
+    name.map(|name| SkillGetRequest {
+        name: name.trim().to_string(),
+        reason: reason
+            .map(|r| r.trim().to_string())
+            .filter(|r| !r.is_empty()),
+    })
+    .filter(|req| !req.name.is_empty())
+}
+
+pub fn build_skill_anchor(registry: &SkillRegistry) -> Option<String> {
+    let names = registry.skill_names();
+    if names.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "<system-reminder>\n<skill-anchor count=\"{}\" via=\".skill_get\" />\nHermes-style skills available: {}. Load exact instructions only when needed with `.skill_get name=<skill> reason=<why>`. Keep the anchor compact; do not infer hidden skill details from the names alone.\n</system-reminder>",
+        names.len(),
+        names.join(", ")
+    ))
+}
+
+pub fn maybe_rehydrate_skill_get(registry: &SkillRegistry, model_text: &str) -> Option<String> {
+    let req = parse_skill_get_request(model_text)?;
+    let skill = registry.get(&req.name)?;
+    let mut body = skill.get_prompt();
+    if body.len() > SKILL_GET_MAX_CHARS {
+        body.truncate(SKILL_GET_MAX_CHARS);
+        body.push_str("\n\n[skill truncated to 20000 chars; inspect the skill files directly if more detail is needed]");
+    }
+
+    Some(format!(
+        "<system-reminder>\nKcode .skill_get rehydration fulfilled (skill={}, reason={}). Treat the following SKILL.md instructions as authoritative for this turn only.\n\n```skill\n{}\n```\n</system-reminder>",
+        req.name,
+        req.reason.as_deref().unwrap_or("unspecified"),
+        body
+    ))
 }
 
 impl Skill {
@@ -473,5 +575,43 @@ mod tests {
         assert!(entry.content.contains("/firefox-browser"));
         assert!(entry.content.contains("# Skill: firefox-browser"));
         assert_eq!(entry.source.as_deref(), Some("skill_registry"));
+    }
+
+    #[test]
+    fn parses_skill_get_requests() {
+        assert_eq!(
+            parse_skill_get_request(".skill_get name=rust-tests reason=need exact steps"),
+            Some(SkillGetRequest {
+                name: "rust-tests".to_string(),
+                reason: Some("need exact steps".to_string()),
+            })
+        );
+        assert_eq!(
+            parse_skill_get_request("please load\n.skill_get firefox-browser clicking"),
+            Some(SkillGetRequest {
+                name: "firefox-browser".to_string(),
+                reason: Some("clicking".to_string()),
+            })
+        );
+        assert!(parse_skill_get_request(".skill_get").is_none());
+    }
+
+    #[test]
+    fn skill_anchor_is_compact_and_names_only() {
+        let mut registry = SkillRegistry::default();
+        registry.skills.insert(
+            "firefox-browser".to_string(),
+            test_skill(
+                "firefox-browser",
+                "Browser automation",
+                "Long hidden instructions",
+            ),
+        );
+
+        let anchor = build_skill_anchor(&registry).expect("anchor should render");
+        assert!(anchor.contains("skill-anchor"));
+        assert!(anchor.contains(".skill_get name=<skill>"));
+        assert!(anchor.contains("firefox-browser"));
+        assert!(!anchor.contains("Long hidden instructions"));
     }
 }

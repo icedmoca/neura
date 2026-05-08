@@ -40,7 +40,7 @@ impl Tool for SkillTool {
     }
 
     fn description(&self) -> &str {
-        "Manage skills."
+        "Manage skills. Use action=list to discover available Hermes-style skills, action=read to inspect a skill immediately, and prefer `.skill_get name=<skill> reason=<why>` when a compact skill anchor asks for exact skill rehydration."
     }
 
     fn parameters_schema(&self) -> Value {
