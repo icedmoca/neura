@@ -334,6 +334,7 @@ async fn smoke_e_continuation_inherits_deep_admission() {
 #[tokio::test]
 async fn smoke_f_ctx_vault_round_trips_after_seen_clear() {
     let _g = smoke_env_lock();
+    let _guard = crate::interlang::tests::seen_test_lock();
     let temp = tempfile::TempDir::new().unwrap();
     let prev_home = std::env::var_os("HOME");
     unsafe {

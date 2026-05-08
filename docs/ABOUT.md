@@ -665,6 +665,16 @@ or:
 
 Kcode parses that request, retrieves the exact block from the local vault, and injects it back into the conversation.
 
+If the model knows the topic but not the id, it can search refs first:
+
+```text
+.ctx_search query=<path/function/error/topic> reason=<why this search is needed>
+```
+
+Kcode returns matching context references and summaries only. The model must still call `.ctx_get id=<id> reason=<why>` for exact text; summaries are not authority.
+
+You can inspect retrieval state in the TUI with `/context` or `/tokens`. This reports current-turn retrieval counts, duplicate/cap suppressions, injected chars, and recent retrieval events.
+
 ```mermaid
 sequenceDiagram
     participant M as Remote model

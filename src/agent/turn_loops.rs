@@ -317,6 +317,7 @@ impl Agent {
 
     pub(super) async fn run_turn(&mut self, print_output: bool) -> Result<String> {
         self.set_log_context();
+        crate::interlang::reset_retrieval_turn();
         let mut final_text = String::new();
         let trace = trace_enabled();
         let mut context_limit_retries = 0u32;
@@ -1235,6 +1236,21 @@ impl Agent {
 
             // If no tool calls, we're done
             if tool_calls.is_empty() {
+                if let Some(rehydrated) =
+                    crate::interlang::maybe_rehydrate_context_search(&text_content)
+                {
+                    logging::info("Context vault .ctx_search fulfilled; retrying turn");
+                    self.add_message(
+                        Role::User,
+                        vec![ContentBlock::Text {
+                            text: rehydrated,
+                            cache_control: None,
+                        }],
+                    );
+                    self.session.save()?;
+                    continue;
+                }
+
                 if let Some(rehydrated) = crate::interlang::maybe_rehydrate_response(&text_content)
                 {
                     logging::info("Interlang exact context request fulfilled; retrying turn");

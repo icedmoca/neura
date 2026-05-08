@@ -1045,6 +1045,7 @@ pub(super) fn handle_session_command(app: &mut App, trimmed: &str) -> bool {
         || handle_observe_command(app, trimmed)
         || handle_todos_view_command(app, trimmed)
         || super::split_view::handle_split_view_command(app, trimmed)
+        || handle_context_command_local(app, trimmed)
         || handle_btw_command(app, trimmed)
         || handle_git_command(app, trimmed)
         || handle_catchup_command(app, trimmed)
@@ -2030,6 +2031,16 @@ pub(super) fn handle_feedback_command(app: &mut App, trimmed: &str) -> bool {
 
 pub(super) fn handle_dev_command(app: &mut App, trimmed: &str) -> bool {
     super::tui_lifecycle_runtime::handle_dev_command(app, trimmed)
+}
+
+fn handle_context_command_local(app: &mut App, trimmed: &str) -> bool {
+    if trimmed != "/context" && trimmed != "/tokens" {
+        return false;
+    }
+    app.push_display_message(DisplayMessage::system(
+        crate::interlang::retrieval_diagnostics(),
+    ));
+    true
 }
 
 #[cfg(test)]

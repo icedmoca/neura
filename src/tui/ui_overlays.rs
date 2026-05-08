@@ -129,6 +129,10 @@ pub(super) fn draw_help_overlay(frame: &mut Frame, area: Rect, scroll: usize, ap
         "Show details for one command",
     ));
     lines.push(help_entry("/model", "List or switch models"));
+    lines.push(help_entry(
+        "/context",
+        "Show retrieval/rehydration diagnostics",
+    ));
     lines.push(help_entry("/model <name>", "Switch to a different model"));
     lines.push(help_entry("/agents", "Configure models for agent roles"));
     lines.push(help_entry(

@@ -45,6 +45,7 @@ impl Agent {
         event_tx: mpsc::UnboundedSender<ServerEvent>,
     ) -> Result<()> {
         self.set_log_context();
+        crate::interlang::reset_retrieval_turn();
         let trace = trace_enabled();
         let mut context_limit_retries = 0u32;
         let mut incomplete_continuations = 0u32;
@@ -690,6 +691,20 @@ impl Agent {
             // Injecting before tool_results would break the API requirement that
             // tool_use must be immediately followed by tool_result.
             if tool_calls.is_empty() {
+                if let Some(rehydrated) =
+                    crate::interlang::maybe_rehydrate_context_search(&text_content)
+                {
+                    logging::info("Interlang context search fulfilled; retrying turn");
+                    self.add_message(
+                        Role::User,
+                        vec![ContentBlock::Text {
+                            text: rehydrated,
+                            cache_control: None,
+                        }],
+                    );
+                    self.session.save()?;
+                    continue;
+                }
                 if let Some(rehydrated) = crate::interlang::maybe_rehydrate_response(&text_content)
                 {
                     logging::info("Interlang exact context request fulfilled; retrying turn");

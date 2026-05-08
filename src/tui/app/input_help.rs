@@ -22,6 +22,9 @@ impl App {
             "clear" => {
                 "`/clear`\nClear current conversation, queue, and display; starts a fresh session."
             }
+            "context" | "tokens" => {
+                "`/context` or `/tokens`\nShow retrieval-backed exact context diagnostics: current-turn retrieval counts, caps, duplicate suppressions, chars injected, and recent `.ctx_get`/`.ctx_search` events."
+            }
             "model" => {
                 "`/model`\nOpen model picker.\n\n`/model <name>`\nSwitch model.\n\n`/model <name>@<provider>`\nPin OpenRouter routing (`@auto` clears pin)."
             }
@@ -122,9 +125,6 @@ impl App {
                 "`/resume`\nOpen the interactive session picker. Browse and search all sessions, preview conversation history, and open any session in a new terminal window.\n\nPress `Esc` to return to your current session."
             }
             "info" => "`/info`\nShow session metadata and token usage.",
-            "context" => {
-                "`/context`\nShow the full session context snapshot: prompt/context composition, compaction state, model/provider/runtime details, queued work, todos, and side-panel state."
-            }
             "usage" => {
                 "`/usage`\nFetch and display usage limits for connected providers. This command only reports real connected-provider usage windows and reset times."
             }

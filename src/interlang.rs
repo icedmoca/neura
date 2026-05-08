@@ -6,7 +6,7 @@
 
 use crate::message::{ContentBlock, Message, Role};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
 use std::sync::{Mutex, OnceLock};
@@ -82,6 +82,125 @@ struct ContextMetadata {
 fn seen_blocks() -> &'static Mutex<HashMap<String, SeenBlock>> {
     static SEEN: OnceLock<Mutex<HashMap<String, SeenBlock>>> = OnceLock::new();
     SEEN.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+const RETRIEVAL_MAX_PER_TURN: usize = 3;
+const RETRIEVAL_MAX_CHARS_PER_TURN: usize = 48_000;
+const RETRIEVAL_RECENT_EVENT_LIMIT: usize = 64;
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct RetrievalTurnStats {
+    pub requests: usize,
+    pub fulfilled: usize,
+    pub failed: usize,
+    pub duplicate_suppressed: usize,
+    pub cap_suppressed: usize,
+    pub chars_injected: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RetrievalEvent {
+    pub kind: String,
+    pub key: String,
+    pub reason: Option<String>,
+    pub outcome: String,
+    pub source: Option<String>,
+    pub chars: usize,
+}
+
+#[derive(Default)]
+struct RetrievalState {
+    turn: RetrievalTurnStats,
+    requested_this_turn: HashSet<String>,
+    recent: VecDeque<RetrievalEvent>,
+}
+
+fn retrieval_state() -> &'static Mutex<RetrievalState> {
+    static STATE: OnceLock<Mutex<RetrievalState>> = OnceLock::new();
+    STATE.get_or_init(|| Mutex::new(RetrievalState::default()))
+}
+
+pub fn reset_retrieval_turn() {
+    if let Ok(mut state) = retrieval_state().lock() {
+        state.turn = RetrievalTurnStats::default();
+        state.requested_this_turn.clear();
+    }
+}
+
+fn record_retrieval_event(event: RetrievalEvent) {
+    if let Ok(mut state) = retrieval_state().lock() {
+        while state.recent.len() >= RETRIEVAL_RECENT_EVENT_LIMIT {
+            state.recent.pop_front();
+        }
+        state.recent.push_back(event);
+    }
+}
+
+fn retrieval_can_fulfill(kind: &str, key: &str, requested_chars: usize) -> Result<(), String> {
+    let mut state = retrieval_state()
+        .lock()
+        .map_err(|_| "retrieval state unavailable".to_string())?;
+    state.turn.requests += 1;
+    let request_key = format!("{}:{}", kind, key);
+    if state.requested_this_turn.contains(&request_key) {
+        state.turn.duplicate_suppressed += 1;
+        state.turn.failed += 1;
+        return Err("duplicate request suppressed for this turn".to_string());
+    }
+    if state.turn.fulfilled >= RETRIEVAL_MAX_PER_TURN {
+        state.turn.cap_suppressed += 1;
+        state.turn.failed += 1;
+        return Err(format!(
+            "per-turn retrieval cap reached ({})",
+            RETRIEVAL_MAX_PER_TURN
+        ));
+    }
+    if state.turn.chars_injected.saturating_add(requested_chars) > RETRIEVAL_MAX_CHARS_PER_TURN {
+        state.turn.cap_suppressed += 1;
+        state.turn.failed += 1;
+        return Err(format!(
+            "per-turn retrieval char cap reached ({})",
+            RETRIEVAL_MAX_CHARS_PER_TURN
+        ));
+    }
+    state.requested_this_turn.insert(request_key);
+    state.turn.fulfilled += 1;
+    state.turn.chars_injected += requested_chars;
+    Ok(())
+}
+
+pub fn retrieval_diagnostics() -> String {
+    let Ok(state) = retrieval_state().lock() else {
+        return "retrieval diagnostics unavailable".to_string();
+    };
+    let mut out = String::new();
+    out.push_str("# Retrieval context diagnostics\n\n");
+    out.push_str(&format!(
+        "Current turn: requests={}, fulfilled={}, failed={}, duplicate_suppressed={}, cap_suppressed={}, chars_injected={}\n\n",
+        state.turn.requests,
+        state.turn.fulfilled,
+        state.turn.failed,
+        state.turn.duplicate_suppressed,
+        state.turn.cap_suppressed,
+        state.turn.chars_injected
+    ));
+    out.push_str("Recent retrieval events:\n");
+    if state.recent.is_empty() {
+        out.push_str("- none\n");
+    } else {
+        for event in state.recent.iter().rev().take(12) {
+            out.push_str(&format!(
+                "- kind={} key={} outcome={} source={} chars={} reason={}\n",
+                event.kind,
+                event.key,
+                event.outcome,
+                event.source.as_deref().unwrap_or("none"),
+                event.chars,
+                event.reason.as_deref().unwrap_or("unspecified")
+            ));
+        }
+    }
+    out
 }
 
 // Per-thread per-call budget. Set by `maybe_compact_messages_with_budget`,
@@ -1520,6 +1639,23 @@ pub struct ExactRequest {
     pub reason: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContextSearchRequest {
+    pub query: String,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContextSearchHit {
+    pub id: String,
+    pub hash: String,
+    pub summary: String,
+    pub original_chars: usize,
+    pub priority: String,
+    pub topics: Vec<String>,
+    pub score: usize,
+}
+
 pub fn parse_exact_request(text: &str) -> Option<ExactRequest> {
     let line = text.lines().find(|line| {
         let trimmed = line.trim();
@@ -1549,31 +1685,200 @@ pub fn parse_exact_request(text: &str) -> Option<ExactRequest> {
     Some(ExactRequest { id, hash, reason })
 }
 
-pub fn exact_for_request(req: &ExactRequest) -> Option<String> {
+pub fn parse_context_search_request(text: &str) -> Option<ContextSearchRequest> {
+    let line = text
+        .lines()
+        .find(|line| line.trim().starts_with(".ctx_search"))?
+        .trim();
+    let rest = line.strip_prefix(".ctx_search")?.trim();
+    if rest.is_empty() {
+        return None;
+    }
+    let mut query_parts = Vec::new();
+    let mut reason = None;
+    for part in rest.split_whitespace() {
+        if let Some(value) = part.strip_prefix("query=") {
+            query_parts.push(value.trim_matches(|c| c == '"' || c == '\''));
+        } else if let Some(value) = part.strip_prefix("reason=") {
+            reason = Some(value.trim_matches(|c| c == '"' || c == '\'').to_string());
+        } else if reason.is_none() {
+            query_parts.push(part);
+        }
+    }
+    let query = query_parts.join(" ").trim().to_string();
+    if query.is_empty() {
+        return None;
+    }
+    Some(ContextSearchRequest { query, reason })
+}
+
+fn score_search_block(block: &SeenBlock, terms: &[String]) -> usize {
+    let haystack = format!(
+        "{} {} {} {}",
+        block.summary,
+        block.lexical_keys.join(" "),
+        block.topics.join(" "),
+        block.exact.lines().next().unwrap_or("")
+    )
+    .to_ascii_lowercase();
+    terms
+        .iter()
+        .filter(|term| haystack.contains(term.as_str()))
+        .count()
+}
+
+pub fn search_context_refs(query: &str, limit: usize) -> Vec<ContextSearchHit> {
+    let terms: Vec<String> = query
+        .split_whitespace()
+        .map(|term| term.trim_matches(|c: char| !c.is_alphanumeric()))
+        .filter(|term| term.len() >= 2)
+        .map(|term| term.to_ascii_lowercase())
+        .collect();
+    if terms.is_empty() {
+        return Vec::new();
+    }
+    let Ok(seen) = seen_blocks().lock() else {
+        return Vec::new();
+    };
+    let mut hits: Vec<ContextSearchHit> = seen
+        .values()
+        .filter_map(|block| {
+            let score = score_search_block(block, &terms);
+            if score == 0 {
+                return None;
+            }
+            Some(ContextSearchHit {
+                id: format!("ctx:{}", block.hash),
+                hash: block.hash.clone(),
+                summary: block.summary.clone(),
+                original_chars: block.original_chars,
+                priority: block.priority.as_str().to_string(),
+                topics: block
+                    .topics
+                    .iter()
+                    .map(|topic| (*topic).to_string())
+                    .collect(),
+                score,
+            })
+        })
+        .collect();
+    hits.sort_by(|a, b| {
+        b.score
+            .cmp(&a.score)
+            .then_with(|| b.original_chars.cmp(&a.original_chars))
+    });
+    hits.truncate(limit);
+    hits
+}
+
+pub fn maybe_rehydrate_context_search(text: &str) -> Option<String> {
+    let req = parse_context_search_request(text)?;
+    let hits = search_context_refs(&req.query, 8);
+    record_retrieval_event(RetrievalEvent {
+        kind: "ctx_search".to_string(),
+        key: req.query.clone(),
+        reason: req.reason.clone(),
+        outcome: if hits.is_empty() {
+            "no_hits"
+        } else {
+            "fulfilled"
+        }
+        .to_string(),
+        source: Some("seen_blocks".to_string()),
+        chars: 0,
+    });
+    let body = if hits.is_empty() {
+        format!(
+            "No context refs matched query {:?}. Try a more specific path, function, error, test, or topic.",
+            req.query
+        )
+    } else {
+        hits.iter()
+            .map(|hit| {
+                format!(
+                    "- id={} score={} chars={} priority={} topics={} summary={}",
+                    hit.id,
+                    hit.score,
+                    hit.original_chars,
+                    hit.priority,
+                    hit.topics.join(","),
+                    hit.summary
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    Some(format!(
+        "<system-reminder>\nKcode ctx_search results for query={:?} reason={}. Use `.ctx_get id=<id> reason=<why>` if exact text is required; do not invent hidden content from summaries alone.\n\n{}\n</system-reminder>",
+        req.query,
+        req.reason.as_deref().unwrap_or("unspecified"),
+        body
+    ))
+}
+
+pub fn exact_for_request(req: &ExactRequest) -> Option<(String, &'static str)> {
     if let Ok(seen) = seen_blocks().lock() {
         if let Some(block) = seen.get(&req.hash) {
-            return Some(block.exact.clone());
+            return Some((block.exact.clone(), "memory"));
         }
     }
     // Phase 1.C — fall back to the persistent vault. Lets `.ctx_get` succeed
     // for `<ctx>` references emitted by a prior Kcode process. Sensitive
     // blocks are never written to disk so this never reveals credentials.
     if let Some(restored) = ctx_vault::load_into_seen_blocks(&req.hash) {
-        return Some(restored);
+        return Some((restored, "persistent_vault"));
     }
     None
 }
 
 pub fn maybe_rehydrate_response(text: &str) -> Option<String> {
     let req = parse_exact_request(text)?;
-    let exact = exact_for_request(&req)?;
+    let Some((exact, source)) = exact_for_request(&req) else {
+        record_retrieval_event(RetrievalEvent {
+            kind: "ctx".to_string(),
+            key: req.id.clone(),
+            reason: req.reason.clone(),
+            outcome: "not_found".to_string(),
+            source: None,
+            chars: 0,
+        });
+        return Some(format!(
+            "<system-reminder>\nKcode ctx_get failed for id={} reason={}. The exact context was not found in the in-memory cache or persistent vault. Do not invent hidden content. Use `.ctx_search query=<terms> reason=<why>` or inspect current files/tools directly.\n</system-reminder>",
+            req.id,
+            req.reason.as_deref().unwrap_or("unspecified")
+        ));
+    };
+    if let Err(reason) = retrieval_can_fulfill("ctx", &req.id, exact.len()) {
+        record_retrieval_event(RetrievalEvent {
+            kind: "ctx".to_string(),
+            key: req.id.clone(),
+            reason: req.reason.clone(),
+            outcome: "suppressed".to_string(),
+            source: Some(reason.clone()),
+            chars: 0,
+        });
+        return Some(format!(
+            "<system-reminder>\nKcode ctx_get for id={} was suppressed: {}. Do not invent hidden content; narrow the request or inspect files/tools directly.\n</system-reminder>",
+            req.id, reason
+        ));
+    }
+    record_retrieval_event(RetrievalEvent {
+        kind: "ctx".to_string(),
+        key: req.id.clone(),
+        reason: req.reason.clone(),
+        outcome: "fulfilled".to_string(),
+        source: Some(source.to_string()),
+        chars: exact.len(),
+    });
     Some(format!(
-        "<system-reminder>\nKcode ctx_get rehydration fulfilled for id={} hash={} reason={}. Exact original content follows. Treat it as authoritative and continue the task using this exact content.\n\n<ctx_exact id=\"{}\" hash=\"{}\" original_chars={}>\n{}\n</ctx_exact>\n</system-reminder>",
+        "<system-reminder>\nKcode ctx_get rehydration fulfilled for id={} hash={} source={} reason={}. Exact original content follows. Treat it as authoritative historical context and continue the task using this exact content. If it is a file excerpt, verify current file state before editing.\n\n<ctx_exact id=\"{}\" hash=\"{}\" source=\"{}\" original_chars={}>\n{}\n</ctx_exact>\n</system-reminder>",
         req.id,
         req.hash,
+        source,
         req.reason.as_deref().unwrap_or("unspecified"),
         req.id,
         req.hash,
+        source,
         exact.len(),
         exact
     ))
@@ -1894,20 +2199,13 @@ mod ctx_vault {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::message::Message;
-    use std::sync::{Mutex, MutexGuard, OnceLock};
+    use std::sync::MutexGuard;
 
-    fn seen_test_lock() -> MutexGuard<'static, ()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        // PoisonError can occur if a prior test panicked while holding the
-        // guard. Recover the inner guard so subsequent tests can still run
-        // serialised.
-        match LOCK.get_or_init(|| Mutex::new(())).lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => poisoned.into_inner(),
-        }
+    pub(crate) fn seen_test_lock() -> MutexGuard<'static, ()> {
+        crate::storage::lock_test_env()
     }
 
     #[test]
@@ -2086,6 +2384,43 @@ mod tests {
         let req = parse_exact_request(". err need_ref deadbeef").expect("need_ref should parse");
         assert_eq!(req.id, "ctx:deadbeef");
         assert_eq!(req.hash, "deadbeef");
+    }
+
+    #[test]
+    fn parses_ctx_search_requests() {
+        let req =
+            parse_context_search_request(".ctx_search query=rust compiler error reason=debug")
+                .expect("ctx_search should parse");
+        assert_eq!(req.query, "rust compiler error");
+        assert_eq!(req.reason.as_deref(), Some("debug"));
+    }
+
+    #[test]
+    fn ctx_search_lists_matching_refs_without_exact_text() {
+        let _guard = seen_test_lock();
+        seen_blocks().lock().unwrap().clear();
+        let exact = "massive exact rust compiler error E0308 hidden detail".repeat(80);
+        let mut stats = InterlangStats::default();
+        let encoded = encode_context_diet_ref(&exact, "old-text", &mut stats);
+        assert!(encoded.contains("<ctx"));
+
+        let results =
+            maybe_rehydrate_context_search(".ctx_search query=compiler E0308 reason=find")
+                .expect("search should produce reminder");
+        assert!(results.contains("ctx_search results"));
+        assert!(results.contains("id=ctx:"));
+        assert!(!results.contains("hidden detailhidden detail"));
+    }
+
+    #[test]
+    fn ctx_get_failure_is_explicit() {
+        let _guard = seen_test_lock();
+        seen_blocks().lock().unwrap().clear();
+        reset_retrieval_turn();
+        let response = maybe_rehydrate_response(".ctx_get id=ctx:missing reason=test")
+            .expect("failed lookup should still return guidance");
+        assert!(response.contains("ctx_get failed"));
+        assert!(response.contains("Do not invent hidden content"));
     }
 
     #[test]
@@ -2377,7 +2712,7 @@ mod tests {
             hash: hash.clone(),
             reason: None,
         };
-        let restored = exact_for_request(&req).expect("vault should rehydrate");
+        let (restored, _source) = exact_for_request(&req).expect("vault should rehydrate");
         assert_eq!(restored, text);
 
         // Cleanup.
