@@ -4,12 +4,23 @@ use super::{App, DisplayMessage, ImproveMode, ProcessingStatus};
 use crate::message::{ContentBlock, Message, Role};
 use std::time::Instant;
 
-pub(super) fn improve_usage() -> &'static str {
+pub(super) fn slash_command_rest<'a>(trimmed: &'a str, command: &str) -> Option<&'a str> {
+    let rest = trimmed.strip_prefix(command)?;
+    if rest.is_empty() {
+        return Some(rest);
+    }
+    if rest.starts_with(char::is_whitespace) {
+        return Some(rest.trim());
+    }
+    None
+}
+
+fn improve_usage() -> &'static str {
     "Usage: `/improve [focus]`, `/improve plan [focus]`, `/improve resume`, `/improve status`, or `/improve stop`"
 }
 
 pub(super) fn parse_improve_command(trimmed: &str) -> Option<Result<ImproveCommand, String>> {
-    let rest = trimmed.strip_prefix("/improve")?.trim();
+    let rest = slash_command_rest(trimmed, "/improve")?;
     if rest.is_empty() {
         return Some(Ok(ImproveCommand::Run {
             plan_only: false,
@@ -63,7 +74,7 @@ pub(super) fn refactor_usage() -> &'static str {
 }
 
 pub(super) fn parse_refactor_command(trimmed: &str) -> Option<Result<RefactorCommand, String>> {
-    let rest = trimmed.strip_prefix("/refactor")?.trim();
+    let rest = slash_command_rest(trimmed, "/refactor")?;
     if rest.is_empty() {
         return Some(Ok(RefactorCommand::Run {
             plan_only: false,
