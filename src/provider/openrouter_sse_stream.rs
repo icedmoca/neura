@@ -119,8 +119,8 @@ async fn stream_response(
 
     if send_openrouter_headers {
         req = req
-            .header("HTTP-Referer", "https://github.com/kcode")
-            .header("X-Title", "kcode");
+            .header("HTTP-Referer", "https://github.com/icedmoca/kcode")
+            .header("X-Title", "Kcode");
     }
 
     let response = req
