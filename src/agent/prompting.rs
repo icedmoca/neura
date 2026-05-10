@@ -9,12 +9,7 @@ impl Agent {
         tools: &[ToolDefinition],
     ) {
         let system_tokens = split.estimated_tokens();
-        // Reuse the cached aggregate token estimate when the tool list has
-        // already been locked (the common case after the first turn). Falls
-        // back to a fresh aggregation otherwise.
-        let tool_tokens = self
-            .locked_tools_token_estimate()
-            .unwrap_or_else(|| ToolDefinition::aggregate_prompt_token_estimate(tools));
+        let tool_tokens = ToolDefinition::aggregate_prompt_token_estimate(tools);
         let prefix_tokens = system_tokens + tool_tokens;
         logging::info(&format!(
             "Prompt prefix estimate: total={} tokens (system={} tools={})",
@@ -113,6 +108,9 @@ impl Agent {
         );
 
         self.append_current_turn_system_reminder(&mut split);
+        if let Some(memory_block) = crate::kcode_memory::prompt_memory_block() {
+            split.dynamic_part.push_str(&memory_block);
+        }
 
         split
     }

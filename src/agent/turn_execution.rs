@@ -3,6 +3,7 @@ use super::*;
 impl Agent {
     /// Run a single turn with the given user message
     pub async fn run_once(&mut self, user_message: &str) -> Result<()> {
+        let _ = crate::kcode_memory::ingest_text("agent.run_once", user_message);
         self.add_message(
             Role::User,
             vec![ContentBlock::Text {
@@ -19,6 +20,7 @@ impl Agent {
     }
 
     pub async fn run_once_capture(&mut self, user_message: &str) -> Result<String> {
+        let _ = crate::kcode_memory::ingest_text("agent.run_once_capture", user_message);
         self.add_message(
             Role::User,
             vec![ContentBlock::Text {
@@ -39,6 +41,7 @@ impl Agent {
         user_message: &str,
         event_tx: broadcast::Sender<ServerEvent>,
     ) -> Result<()> {
+        let _ = crate::kcode_memory::ingest_text("agent.streaming", user_message);
         // Inject any pending notifications before the user message
         let alerts = self.take_alerts();
         if !alerts.is_empty() {
@@ -75,6 +78,7 @@ impl Agent {
         system_reminder: Option<String>,
         event_tx: mpsc::UnboundedSender<ServerEvent>,
     ) -> Result<()> {
+        let _ = crate::kcode_memory::ingest_text("agent.streaming", user_message);
         // Inject any pending notifications before the user message
         let alerts = self.take_alerts();
         if !alerts.is_empty() {
