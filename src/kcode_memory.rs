@@ -294,6 +294,18 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_hardening_runtime("prompt_memory_block") {
+        lines.push(format!(
+            "Hardening runtime: maturity={:.2} anchors={} ontology={} gc={} immune={} heartbeat={}",
+            report.maturity_score,
+            report.reality_anchors.len(),
+            report.ontology_checks.len(),
+            report.garbage_collection.len(),
+            report.immune_responses.len(),
+            report.pulse.heartbeat_ok
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");

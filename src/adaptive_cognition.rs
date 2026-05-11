@@ -810,6 +810,8 @@ pub struct OperationalCognitionState {
     pub civilization_os: CivilizationOsState,
     #[serde(default)]
     pub sovereign_ecosystem: SovereignEcosystemState,
+    #[serde(default)]
+    pub hardening_runtime: HardeningRuntimeState,
 }
 
 impl Default for OperationalCognitionState {
@@ -829,6 +831,7 @@ impl Default for OperationalCognitionState {
             strategic_civilization: StrategicCivilizationState::default(),
             civilization_os: CivilizationOsState::default(),
             sovereign_ecosystem: SovereignEcosystemState::default(),
+            hardening_runtime: HardeningRuntimeState::default(),
         }
     }
 }
@@ -842,6 +845,87 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum RealityAnchorKind {
+    TestResult,
+    BuildResult,
+    GitCommit,
+    FileState,
+    UserDirective,
+    RuntimeInstall,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RealityAnchor {
+    pub id: String,
+    pub kind: RealityAnchorKind,
+    pub observed_at: DateTime<Utc>,
+    pub evidence: String,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OntologyStabilityCheck {
+    pub name: String,
+    pub stable: bool,
+    pub drift: f64,
+    pub action: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GarbageCollectionDecision {
+    pub target_id: String,
+    pub reason: String,
+    pub action: String,
+    pub reclaimed_pressure: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NervousSystemPulse {
+    pub pulsed_at: DateTime<Utc>,
+    pub heartbeat_ok: bool,
+    pub store_size: usize,
+    pub pending_queues: usize,
+    pub warning: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DelusionCheck {
+    pub claim: String,
+    pub grounded: bool,
+    pub evidence_count: usize,
+    pub corrective_note: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ImmuneResponse {
+    pub trigger: String,
+    pub severity: f64,
+    pub response: String,
+    pub quarantined: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HardeningReport {
+    pub generated_at: DateTime<Utc>,
+    pub reality_anchors: Vec<RealityAnchor>,
+    pub ontology_checks: Vec<OntologyStabilityCheck>,
+    pub garbage_collection: Vec<GarbageCollectionDecision>,
+    pub pulse: NervousSystemPulse,
+    pub delusion_checks: Vec<DelusionCheck>,
+    pub immune_responses: Vec<ImmuneResponse>,
+    pub maturity_score: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct HardeningRuntimeState {
+    #[serde(default)]
+    pub anchors: VecDeque<RealityAnchor>,
+    #[serde(default)]
+    pub reports: VecDeque<HardeningReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -4517,6 +4601,310 @@ fn sovereign_score(store: &CognitiveStore, os: &CivilizationOsReport) -> f64 {
     (inv * 0.35 + cont * 0.25 + currency * 0.20 + os.os_health * 0.20).clamp(0.0, 1.0)
 }
 
+pub fn run_hardening_runtime(reason: impl Into<String>) -> io::Result<HardeningReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_hardening_runtime_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_hardening_runtime_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> HardeningReport {
+    evolve_store(store);
+    let anchors = collect_reality_anchors(store, &reason);
+    for anchor in &anchors {
+        store
+            .operational_state
+            .hardening_runtime
+            .anchors
+            .push_back(anchor.clone());
+    }
+    while store.operational_state.hardening_runtime.anchors.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .hardening_runtime
+            .anchors
+            .pop_front();
+    }
+    let ontology_checks = ontology_stability_checks(store);
+    let garbage_collection = garbage_collection_decisions(store);
+    apply_garbage_collection(store, &garbage_collection);
+    let pulse = nervous_system_pulse(store);
+    let delusion_checks = anti_delusion_checks(store, &anchors);
+    let immune_responses = immune_responses(store, &ontology_checks, &delusion_checks, &pulse);
+    let maturity_score = maturity_score(
+        &anchors,
+        &ontology_checks,
+        &garbage_collection,
+        &pulse,
+        &delusion_checks,
+        &immune_responses,
+    );
+    let report = HardeningReport {
+        generated_at: Utc::now(),
+        reality_anchors: anchors,
+        ontology_checks,
+        garbage_collection,
+        pulse,
+        delusion_checks,
+        immune_responses,
+        maturity_score,
+        summary: format!(
+            "hardening maturity={maturity_score:.2} reason={}",
+            compact(&reason, 100)
+        ),
+    };
+    store
+        .operational_state
+        .hardening_runtime
+        .reports
+        .push_back(report.clone());
+    while store.operational_state.hardening_runtime.reports.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .hardening_runtime
+            .reports
+            .pop_front();
+    }
+    report
+}
+
+fn collect_reality_anchors(store: &CognitiveStore, reason: &str) -> Vec<RealityAnchor> {
+    let now = Utc::now();
+    let mut anchors = Vec::new();
+    anchors.push(RealityAnchor {
+        id: format!("anchor-user-{}", now.timestamp_millis()),
+        kind: RealityAnchorKind::UserDirective,
+        observed_at: now,
+        evidence: compact(reason, 200),
+        confidence: 0.95,
+    });
+    anchors.push(RealityAnchor {
+        id: format!("anchor-store-{}", now.timestamp_millis()),
+        kind: RealityAnchorKind::FileState,
+        observed_at: now,
+        evidence: format!(
+            "nodes={} edges={} reports={}",
+            store.nodes.len(),
+            store.edges.len(),
+            store.operational_state.hardening_runtime.reports.len()
+        ),
+        confidence: 0.85,
+    });
+    if store
+        .operational_state
+        .civilization_os
+        .reports
+        .back()
+        .is_some()
+    {
+        anchors.push(RealityAnchor {
+            id: format!("anchor-runtime-{}", now.timestamp_millis()),
+            kind: RealityAnchorKind::RuntimeInstall,
+            observed_at: now,
+            evidence: "civilization runtime report exists in persistent store".to_string(),
+            confidence: 0.75,
+        });
+    }
+    anchors
+}
+
+fn ontology_stability_checks(store: &CognitiveStore) -> Vec<OntologyStabilityCheck> {
+    let known_layers = [
+        ("adaptive_cognition", !store.nodes.is_empty()),
+        ("operational_state", true),
+        (
+            "procedural_runtime",
+            !store
+                .operational_state
+                .procedural_runtime
+                .procedures
+                .is_empty(),
+        ),
+        (
+            "distributed_fabric",
+            !store.operational_state.distributed_fabric.nodes.is_empty(),
+        ),
+        (
+            "civilization_os",
+            !store
+                .operational_state
+                .civilization_os
+                .institutions
+                .is_empty(),
+        ),
+        (
+            "sovereign_ecosystem",
+            !store
+                .operational_state
+                .sovereign_ecosystem
+                .invariants
+                .is_empty(),
+        ),
+    ];
+    known_layers
+        .into_iter()
+        .map(|(name, present)| OntologyStabilityCheck {
+            name: name.to_string(),
+            stable: present,
+            drift: if present { 0.05 } else { 0.65 },
+            action: if present {
+                "monitor".to_string()
+            } else {
+                "seed or rebuild layer from lower-level anchors".to_string()
+            },
+        })
+        .collect()
+}
+
+fn garbage_collection_decisions(store: &CognitiveStore) -> Vec<GarbageCollectionDecision> {
+    let mut decisions = Vec::new();
+    for node in store.nodes.values() {
+        if node.weights.confidence < 0.2 || node.weights.contradiction > 0.85 {
+            decisions.push(GarbageCollectionDecision {
+                target_id: node.id.clone(),
+                reason: format!(
+                    "confidence={:.2} contradiction={:.2}",
+                    node.weights.confidence, node.weights.contradiction
+                ),
+                action: "deactivate".to_string(),
+                reclaimed_pressure: node.token_count_estimate as f64 / 10_000.0,
+            });
+        }
+    }
+    if store.operational_state.hardening_runtime.reports.len() > 128 {
+        decisions.push(GarbageCollectionDecision {
+            target_id: "hardening_reports".to_string(),
+            reason: "report history too large".to_string(),
+            action: "truncate_oldest".to_string(),
+            reclaimed_pressure: 0.1,
+        });
+    }
+    decisions
+}
+
+fn apply_garbage_collection(store: &mut CognitiveStore, decisions: &[GarbageCollectionDecision]) {
+    for d in decisions {
+        if d.action == "deactivate" {
+            if let Some(node) = store.nodes.get_mut(&d.target_id) {
+                node.active = false;
+            }
+        }
+    }
+}
+
+fn nervous_system_pulse(store: &CognitiveStore) -> NervousSystemPulse {
+    let pending = store.operational_state.task_queue.len()
+        + store.operational_state.procedural_runtime.reports.len()
+        + store.operational_state.distributed_fabric.consensus.len();
+    let warning = if pending > 384 {
+        Some("queue pressure high".to_string())
+    } else if store.nodes.len() > 512 {
+        Some("node pressure high".to_string())
+    } else {
+        None
+    };
+    NervousSystemPulse {
+        pulsed_at: Utc::now(),
+        heartbeat_ok: warning.is_none(),
+        store_size: store.nodes.len(),
+        pending_queues: pending,
+        warning,
+    }
+}
+
+fn anti_delusion_checks(store: &CognitiveStore, anchors: &[RealityAnchor]) -> Vec<DelusionCheck> {
+    let mut checks = Vec::new();
+    let evidence_count = anchors.len();
+    checks.push(DelusionCheck {
+        claim: "runtime state exists in persistent store".to_string(),
+        grounded: evidence_count > 0,
+        evidence_count,
+        corrective_note: "Use file/store anchors, not self-assertion.".to_string(),
+    });
+    checks.push(DelusionCheck {
+        claim: "all cognition layers are mature".to_string(),
+        grounded: store.operational_state.sovereign_ecosystem.reports.len() > 0
+            && store.operational_state.civilization_os.reports.len() > 0,
+        evidence_count: store.operational_state.sovereign_ecosystem.reports.len()
+            + store.operational_state.civilization_os.reports.len(),
+        corrective_note: "If false, report as prototype/hardened layer rather than mature system."
+            .to_string(),
+    });
+    checks
+}
+
+fn immune_responses(
+    store: &CognitiveStore,
+    ontology: &[OntologyStabilityCheck],
+    delusions: &[DelusionCheck],
+    pulse: &NervousSystemPulse,
+) -> Vec<ImmuneResponse> {
+    let mut responses = Vec::new();
+    for check in ontology.iter().filter(|c| !c.stable) {
+        responses.push(ImmuneResponse {
+            trigger: format!("ontology_missing:{}", check.name),
+            severity: check.drift,
+            response: check.action.clone(),
+            quarantined: false,
+        });
+    }
+    for check in delusions.iter().filter(|c| !c.grounded) {
+        responses.push(ImmuneResponse {
+            trigger: format!("ungrounded_claim:{}", check.claim),
+            severity: 0.7,
+            response: check.corrective_note.clone(),
+            quarantined: true,
+        });
+    }
+    if let Some(warning) = &pulse.warning {
+        responses.push(ImmuneResponse {
+            trigger: warning.clone(),
+            severity: 0.5,
+            response: "Prefer compression/GC before expansion".to_string(),
+            quarantined: false,
+        });
+    }
+    if store.nodes.values().any(|n| !n.active) {
+        responses.push(ImmuneResponse {
+            trigger: "inactive_nodes_present".to_string(),
+            severity: 0.2,
+            response: "Keep deactivated nodes out of retrieval unless explicitly inspected"
+                .to_string(),
+            quarantined: false,
+        });
+    }
+    responses
+}
+
+fn maturity_score(
+    anchors: &[RealityAnchor],
+    ontology: &[OntologyStabilityCheck],
+    gc: &[GarbageCollectionDecision],
+    pulse: &NervousSystemPulse,
+    delusions: &[DelusionCheck],
+    immune: &[ImmuneResponse],
+) -> f64 {
+    let anchor_score = (anchors.len() as f64 / 3.0).clamp(0.0, 1.0);
+    let ontology_score =
+        ontology.iter().filter(|c| c.stable).count() as f64 / ontology.len().max(1) as f64;
+    let pulse_score = if pulse.heartbeat_ok { 1.0 } else { 0.55 };
+    let delusion_score =
+        delusions.iter().filter(|d| d.grounded).count() as f64 / delusions.len().max(1) as f64;
+    let gc_penalty = (gc.len() as f64 * 0.05).clamp(0.0, 0.25);
+    let immune_penalty =
+        (immune.iter().filter(|i| i.quarantined).count() as f64 * 0.1).clamp(0.0, 0.25);
+    (anchor_score * 0.25
+        + ontology_score * 0.25
+        + pulse_score * 0.20
+        + delusion_score * 0.20
+        + (1.0 - gc_penalty - immune_penalty).clamp(0.0, 1.0) * 0.10)
+        .clamp(0.0, 1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5028,5 +5416,42 @@ mod tests {
         run_sovereign_ecosystem_in_store(&mut store, "first".to_string());
         run_sovereign_ecosystem_in_store(&mut store, "second".to_string());
         assert!(store.operational_state.sovereign_ecosystem.reports.len() >= 2);
+    }
+
+    #[test]
+    fn hardening_runtime_collects_anchors_and_pulse() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode hardening runtime anchors"));
+        run_sovereign_ecosystem_in_store(&mut store, "seed".to_string());
+        let report = run_hardening_runtime_in_store(&mut store, "hardening".to_string());
+        assert!(!report.reality_anchors.is_empty());
+        assert!(report.pulse.store_size > 0);
+        assert!(report.maturity_score > 0.0);
+    }
+
+    #[test]
+    fn hardening_runtime_deactivates_bad_nodes() {
+        let mut store = CognitiveStore::default();
+        let id = upsert_node_in_store(&mut store, upsert(".kcode bad contradicted node"));
+        if let Some(node) = store.nodes.get_mut(&id) {
+            node.weights.contradiction = 0.95;
+            node.weights.confidence = 0.1;
+        }
+        let report = run_hardening_runtime_in_store(&mut store, "gc".to_string());
+        assert!(report.garbage_collection.iter().any(|d| d.target_id == id));
+        assert!(!store.nodes[&id].active);
+    }
+
+    #[test]
+    fn hardening_runtime_flags_missing_maturity_as_corrective_not_delusion() {
+        let mut store = CognitiveStore::default();
+        let report = run_hardening_runtime_in_store(&mut store, "fresh".to_string());
+        assert!(
+            report
+                .delusion_checks
+                .iter()
+                .any(|c| c.claim.contains("all cognition layers") && !c.grounded)
+        );
+        assert!(report.immune_responses.iter().any(|r| r.quarantined));
     }
 }
