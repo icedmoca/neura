@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -10,16 +10,33 @@ use crate::memory_graph::{EdgeKind, MemoryGraph};
 
 const MAX_DIRECTIVES_IN_PROMPT: usize = 24;
 const MAX_DIRECTIVE_CHARS: usize = 1_200;
+const DEFAULT_REINFORCEMENT_WEIGHT: f64 = 1.0;
+const TEMPORAL_HALF_LIFE_DAYS: f64 = 90.0;
+const CONTRADICTION_PENALTY: f64 = 0.35;
+const GRAPH_TRAVERSAL_BONUS_CAP: f64 = 0.40;
+const OUTCOME_WEIGHT_CAP: f64 = 0.50;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct KcodeDirective {
     pub id: String,
     pub created_at: DateTime<Utc>,
     pub source: String,
     pub content: String,
     pub tags: Vec<String>,
+    #[serde(default)]
     pub token_count_estimate: usize,
+    #[serde(default)]
     pub compression_key: String,
+    #[serde(default = "default_reinforcement_weight")]
+    pub reinforcement_weight: f64,
+    #[serde(default)]
+    pub last_reinforced_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub contradiction_score: f64,
+    #[serde(default)]
+    pub graph_traversal_score: f64,
+    #[serde(default)]
+    pub execution_outcome_score: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -31,10 +48,30 @@ pub struct KcodeTokenCompressionLink {
     pub graph_node_id: String,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct KcodeExecutionOutcome {
+    pub directive_id: String,
+    pub recorded_at: DateTime<Utc>,
+    pub source: String,
+    pub success: bool,
+    pub weight_delta: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct RankedDirective<'a> {
+    directive: &'a KcodeDirective,
+    score: f64,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub struct KcodeMemoryStore {
+    #[serde(default)]
     pub directives: Vec<KcodeDirective>,
+    #[serde(default)]
     pub token_compression_links: Vec<KcodeTokenCompressionLink>,
+    #[serde(default)]
+    pub execution_outcomes: Vec<KcodeExecutionOutcome>,
 }
 
 pub fn kcode_home() -> PathBuf {
@@ -58,6 +95,7 @@ pub fn ingest_text(source: impl Into<String>, text: &str) -> io::Result<Vec<Kcod
 
     let path = memory_path();
     let mut store = load_store_from_path(&path)?;
+    normalize_store(&mut store);
     let mut known: BTreeSet<String> = store
         .directives
         .iter()
@@ -65,42 +103,81 @@ pub fn ingest_text(source: impl Into<String>, text: &str) -> io::Result<Vec<Kcod
         .collect();
 
     let mut added = Vec::new();
-    for directive in extracted {
-        if known.insert(normalize(&directive.content)) {
+    for mut directive in extracted {
+        let normalized = normalize(&directive.content);
+        if known.insert(normalized.clone()) {
+            directive.contradiction_score = contradiction_score(&directive, &store.directives);
+            directive.graph_traversal_score = graph_traversal_score(&directive, &store);
             added.push(directive.clone());
             store.directives.push(directive);
+        } else {
+            reinforce_matching_directive(&mut store, &normalized, 0.20, Utc::now());
         }
     }
 
     if !added.is_empty() {
         project_into_memory_graph(&path, &mut store, &added)?;
-        save_store_to_path(&path, &store)?;
     }
+    recompute_adaptive_scores(&mut store);
+    save_store_to_path(&path, &store)?;
 
     Ok(added)
 }
 
+pub fn record_execution_outcome(
+    directive_id: &str,
+    source: impl Into<String>,
+    success: bool,
+    summary: impl Into<String>,
+) -> io::Result<()> {
+    let path = memory_path();
+    let mut store = load_store_from_path(&path)?;
+    normalize_store(&mut store);
+    let weight_delta = if success { 0.15 } else { -0.20 };
+    store.execution_outcomes.push(KcodeExecutionOutcome {
+        directive_id: directive_id.to_string(),
+        recorded_at: Utc::now(),
+        source: source.into(),
+        success,
+        weight_delta,
+        summary: summary.into(),
+    });
+    recompute_adaptive_scores(&mut store);
+    save_store_to_path(&path, &store)
+}
+
 pub fn prompt_memory_block() -> Option<String> {
-    let store = load_store_from_path(&memory_path()).ok()?;
+    let mut store = load_store_from_path(&memory_path()).ok()?;
+    normalize_store(&mut store);
+    recompute_adaptive_scores(&mut store);
     if store.directives.is_empty() {
         return None;
     }
 
+    let ranked = rank_directives(&store);
     let mut lines = vec![
         "\n# Dynamic .kcode memory".to_string(),
-        "The user wants instructions or intent containing `.kcode` to persistently improve Kcode behavior. Treat these as user preferences unless they conflict with safety, security, or explicit later instructions.".to_string(),
-        "Apply the following remembered directives recursively in future turns:".to_string(),
+        "The user wants instructions or intent containing `.kcode` to persistently improve Kcode behavior. Treat these as adaptive memory nodes unless they conflict with safety, security, or explicit later instructions.".to_string(),
+        "Rank remembered directives by reinforcement weight, temporal decay, contradiction score, graph traversal relevance, and execution outcomes. Prefer high-scoring directives and demote contradicted or stale directives.".to_string(),
+        "Apply the following active directives recursively in future turns:".to_string(),
     ];
 
-    for directive in store.directives.iter().rev().take(MAX_DIRECTIVES_IN_PROMPT) {
+    for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
+        let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
         if content.len() > MAX_DIRECTIVE_CHARS {
             content.truncate(MAX_DIRECTIVE_CHARS);
             content.push_str("...");
         }
         lines.push(format!(
-            "- [{}] {}",
-            directive.created_at.to_rfc3339(),
+            "- [score={:.3}, reinforce={:.2}, decay={:.2}, contradiction={:.2}, graph={:.2}, outcome={:.2}, tokens~{}] {}",
+            ranked.score,
+            directive.reinforcement_weight,
+            temporal_decay_factor(directive, Utc::now()),
+            directive.contradiction_score,
+            directive.graph_traversal_score,
+            directive.execution_outcome_score,
+            directive.token_count_estimate,
             content
         ));
     }
@@ -128,6 +205,11 @@ fn extract_kcode_directives(source: String, text: &str) -> Vec<KcodeDirective> {
                 tags: infer_tags(line),
                 token_count_estimate,
                 compression_key: compression_key(line, token_count_estimate),
+                reinforcement_weight: DEFAULT_REINFORCEMENT_WEIGHT,
+                last_reinforced_at: Some(now),
+                contradiction_score: 0.0,
+                graph_traversal_score: 0.0,
+                execution_outcome_score: 0.0,
             }
         })
         .collect()
@@ -181,6 +263,174 @@ fn project_into_memory_graph(
     fs::write(graph_path, json)
 }
 
+fn rank_directives(store: &KcodeMemoryStore) -> Vec<RankedDirective<'_>> {
+    let now = Utc::now();
+    let mut ranked: Vec<_> = store
+        .directives
+        .iter()
+        .map(|directive| RankedDirective {
+            directive,
+            score: directive_score(directive, now),
+        })
+        .collect();
+    ranked.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| b.directive.created_at.cmp(&a.directive.created_at))
+    });
+    ranked
+}
+
+fn directive_score(directive: &KcodeDirective, now: DateTime<Utc>) -> f64 {
+    let reinforcement = directive.reinforcement_weight.max(0.0);
+    let decay = temporal_decay_factor(directive, now);
+    let contradiction =
+        (1.0 - directive.contradiction_score.clamp(0.0, 1.0) * CONTRADICTION_PENALTY).max(0.0);
+    let graph = 1.0
+        + directive
+            .graph_traversal_score
+            .clamp(0.0, GRAPH_TRAVERSAL_BONUS_CAP);
+    let outcome = 1.0
+        + directive
+            .execution_outcome_score
+            .clamp(-OUTCOME_WEIGHT_CAP, OUTCOME_WEIGHT_CAP);
+    reinforcement * decay * contradiction * graph * outcome
+}
+
+fn temporal_decay_factor(directive: &KcodeDirective, now: DateTime<Utc>) -> f64 {
+    let anchor = directive.last_reinforced_at.unwrap_or(directive.created_at);
+    let age_days = (now - anchor).num_seconds().max(0) as f64 / 86_400.0;
+    0.5_f64
+        .powf(age_days / TEMPORAL_HALF_LIFE_DAYS)
+        .clamp(0.05, 1.0)
+}
+
+fn reinforce_matching_directive(
+    store: &mut KcodeMemoryStore,
+    normalized: &str,
+    delta: f64,
+    now: DateTime<Utc>,
+) {
+    for directive in &mut store.directives {
+        if normalize(&directive.content) == normalized {
+            directive.reinforcement_weight =
+                (directive.reinforcement_weight + delta).clamp(0.0, 10.0);
+            directive.last_reinforced_at = Some(now);
+        }
+    }
+}
+
+fn recompute_adaptive_scores(store: &mut KcodeMemoryStore) {
+    normalize_store(store);
+    let snapshots = store.directives.clone();
+    let outcome_totals = execution_outcome_totals(&store.execution_outcomes);
+    for directive in &mut store.directives {
+        directive.contradiction_score = contradiction_score(directive, &snapshots);
+        directive.graph_traversal_score =
+            graph_traversal_score_from_directives(directive, &snapshots);
+        directive.execution_outcome_score = outcome_totals
+            .get(&directive.id)
+            .copied()
+            .unwrap_or_default()
+            .clamp(-OUTCOME_WEIGHT_CAP, OUTCOME_WEIGHT_CAP);
+    }
+}
+
+fn execution_outcome_totals(outcomes: &[KcodeExecutionOutcome]) -> HashMap<String, f64> {
+    let mut totals = HashMap::new();
+    for outcome in outcomes {
+        *totals.entry(outcome.directive_id.clone()).or_insert(0.0) += outcome.weight_delta;
+    }
+    totals
+}
+
+fn contradiction_score(directive: &KcodeDirective, directives: &[KcodeDirective]) -> f64 {
+    let terms = salient_tokens(&directive.content);
+    let negated = is_negating(&directive.content);
+    let mut score: f64 = 0.0;
+    for other in directives {
+        if other.id == directive.id {
+            continue;
+        }
+        let overlap = token_overlap_ratio(&terms, &salient_tokens(&other.content));
+        if overlap < 0.25 {
+            continue;
+        }
+        if negated != is_negating(&other.content)
+            || has_explicit_contradiction_pair(&directive.content, &other.content)
+        {
+            score = score.max(overlap);
+        }
+    }
+    score.clamp(0.0, 1.0)
+}
+
+fn graph_traversal_score(directive: &KcodeDirective, store: &KcodeMemoryStore) -> f64 {
+    graph_traversal_score_from_directives(directive, &store.directives)
+}
+
+fn graph_traversal_score_from_directives(
+    directive: &KcodeDirective,
+    directives: &[KcodeDirective],
+) -> f64 {
+    let directive_tags: BTreeSet<_> = directive.tags.iter().collect();
+    let directive_tokens = salient_tokens(&directive.content);
+    let mut score: f64 = 0.0;
+    for other in directives {
+        if other.id == directive.id {
+            continue;
+        }
+        let shared_tags = other
+            .tags
+            .iter()
+            .filter(|tag| directive_tags.contains(tag))
+            .count() as f64;
+        let token_overlap = token_overlap_ratio(&directive_tokens, &salient_tokens(&other.content));
+        score += shared_tags * 0.04 + token_overlap * 0.08;
+    }
+    score.clamp(0.0, GRAPH_TRAVERSAL_BONUS_CAP)
+}
+
+fn is_negating(text: &str) -> bool {
+    let lower = text.to_ascii_lowercase();
+    [
+        " don't ",
+        " do not ",
+        " never ",
+        " stop ",
+        " disable ",
+        " remove ",
+        " not ",
+    ]
+    .iter()
+    .any(|needle| format!(" {lower} ").contains(needle))
+}
+
+fn has_explicit_contradiction_pair(left: &str, right: &str) -> bool {
+    let left = left.to_ascii_lowercase();
+    let right = right.to_ascii_lowercase();
+    [
+        ("enable", "disable"),
+        ("always", "never"),
+        ("remember", "forget"),
+        ("increase", "decrease"),
+    ]
+    .iter()
+    .any(|(a, b)| {
+        (left.contains(a) && right.contains(b)) || (left.contains(b) && right.contains(a))
+    })
+}
+
+fn token_overlap_ratio(left: &[String], right: &[String]) -> f64 {
+    if left.is_empty() || right.is_empty() {
+        return 0.0;
+    }
+    let right: BTreeSet<_> = right.iter().collect();
+    let overlap = left.iter().filter(|token| right.contains(token)).count();
+    overlap as f64 / left.len().max(right.len()) as f64
+}
+
 fn estimate_token_count(text: &str) -> usize {
     // Cheap deterministic estimate used before provider-specific tokenizers are available.
     // Keeps .kcode memory linked to compaction budgets without requiring model IO.
@@ -217,6 +467,14 @@ fn infer_tags(text: &str) -> Vec<String> {
         ("token", "token"),
         ("build-src", "build-src"),
         ("function", "behavior"),
+        ("reinforcement", "reinforcement"),
+        ("temporal", "temporal-decay"),
+        ("decay", "temporal-decay"),
+        ("contradiction", "contradiction"),
+        ("graph", "graph-traversal"),
+        ("execution", "execution-outcome"),
+        ("outcome", "execution-outcome"),
+        ("directive", "directive"),
     ] {
         if lower.contains(needle) {
             tags.push(tag.to_string());
@@ -225,6 +483,21 @@ fn infer_tags(text: &str) -> Vec<String> {
     tags.sort();
     tags.dedup();
     tags
+}
+
+fn normalize_store(store: &mut KcodeMemoryStore) {
+    for directive in &mut store.directives {
+        if directive.token_count_estimate == 0 {
+            directive.token_count_estimate = estimate_token_count(&directive.content);
+        }
+        if directive.compression_key.is_empty() {
+            directive.compression_key =
+                compression_key(&directive.content, directive.token_count_estimate);
+        }
+        if directive.reinforcement_weight == 0.0 {
+            directive.reinforcement_weight = DEFAULT_REINFORCEMENT_WEIGHT;
+        }
+    }
 }
 
 fn normalize(text: &str) -> String {
@@ -252,6 +525,10 @@ fn save_store_to_path(path: &Path, store: &KcodeMemoryStore) -> io::Result<()> {
     fs::write(path, json)
 }
 
+fn default_reinforcement_weight() -> f64 {
+    DEFAULT_REINFORCEMENT_WEIGHT
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -265,10 +542,76 @@ mod tests {
         assert_eq!(directives.len(), 1);
         assert_eq!(directives[0].content, "remember .kcode recursively");
         assert!(directives[0].tags.contains(&"memory".to_string()));
+        assert!(directives[0].token_count_estimate > 0);
+        assert!(directives[0].reinforcement_weight > 0.0);
     }
 
     #[test]
     fn normalizes_for_deduplication() {
         assert_eq!(normalize("Remember   .KCODE"), normalize("remember .kcode"));
+    }
+
+    #[test]
+    fn repeated_directives_reinforce_instead_of_duplicate() {
+        let now = Utc::now();
+        let mut store = KcodeMemoryStore {
+            directives: vec![KcodeDirective {
+                id: "one".to_string(),
+                created_at: now,
+                source: "test".to_string(),
+                content: "remember .kcode memory".to_string(),
+                tags: vec![".kcode".to_string(), "memory".to_string()],
+                token_count_estimate: 3,
+                compression_key: "k".to_string(),
+                reinforcement_weight: 1.0,
+                last_reinforced_at: Some(now),
+                contradiction_score: 0.0,
+                graph_traversal_score: 0.0,
+                execution_outcome_score: 0.0,
+            }],
+            ..Default::default()
+        };
+        reinforce_matching_directive(&mut store, "remember .kcode memory", 0.2, now);
+        assert_eq!(store.directives.len(), 1);
+        assert!(store.directives[0].reinforcement_weight > 1.0);
+    }
+
+    #[test]
+    fn contradiction_scoring_detects_opposing_directives() {
+        let now = Utc::now();
+        let older = KcodeDirective {
+            id: "a".to_string(),
+            created_at: now,
+            source: "test".to_string(),
+            content: "always remember .kcode graph memory".to_string(),
+            tags: infer_tags("always remember .kcode graph memory"),
+            token_count_estimate: 4,
+            compression_key: "a".to_string(),
+            reinforcement_weight: 1.0,
+            last_reinforced_at: Some(now),
+            contradiction_score: 0.0,
+            graph_traversal_score: 0.0,
+            execution_outcome_score: 0.0,
+        };
+        let newer = KcodeDirective {
+            content: "never remember .kcode graph memory".to_string(),
+            id: "b".to_string(),
+            ..older.clone()
+        };
+        assert!(contradiction_score(&newer, &[older, newer.clone()]) > 0.0);
+    }
+
+    #[test]
+    fn directive_score_uses_outcome_and_contradiction() {
+        let now = Utc::now();
+        let mut directive =
+            extract_kcode_directives("test".to_string(), ".kcode use execution outcome linkage")
+                .remove(0);
+        directive.execution_outcome_score = 0.3;
+        let boosted = directive_score(&directive, now);
+        directive.execution_outcome_score = -0.3;
+        directive.contradiction_score = 1.0;
+        let penalized = directive_score(&directive, now);
+        assert!(boosted > penalized);
     }
 }
