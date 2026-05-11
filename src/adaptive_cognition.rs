@@ -794,6 +794,10 @@ pub struct OperationalCognitionState {
     pub snapshots: Vec<CognitionSnapshotRef>,
     #[serde(default)]
     pub last_cycle_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub execution_plans: VecDeque<CognitionExecutionPlan>,
+    #[serde(default)]
+    pub governor_reports: VecDeque<ExecutionGovernorReport>,
 }
 
 impl Default for OperationalCognitionState {
@@ -805,6 +809,8 @@ impl Default for OperationalCognitionState {
             cycle_history: VecDeque::new(),
             snapshots: Vec::new(),
             last_cycle_at: None,
+            execution_plans: VecDeque::new(),
+            governor_reports: VecDeque::new(),
         }
     }
 }
@@ -817,6 +823,65 @@ pub struct OperationalCycleReport {
     pub scheduled_tasks: Vec<OperationalTask>,
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ExecutionStrategy {
+    Conservative,
+    Balanced,
+    Exploratory,
+    RepairFirst,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ExecutionActionKind {
+    RetrieveContext,
+    Replan,
+    Reflect,
+    CompressMemory,
+    AuditContradictions,
+    RecordOutcome,
+    SnapshotRuntime,
+    Noop,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExecutionAction {
+    pub id: String,
+    pub kind: ExecutionActionKind,
+    pub target_node_ids: Vec<String>,
+    pub rationale: String,
+    pub expected_benefit: f64,
+    pub risk: f64,
+    pub dry_run: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitionExecutionPlan {
+    pub id: String,
+    pub created_at: DateTime<Utc>,
+    pub strategy: ExecutionStrategy,
+    pub health_score: f64,
+    pub entropy: f64,
+    pub stability: f64,
+    pub risk_budget: f64,
+    pub actions: Vec<ExecutionAction>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExecutionActionResult {
+    pub action_id: String,
+    pub success: bool,
+    pub score_delta: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExecutionGovernorReport {
+    pub plan: CognitionExecutionPlan,
+    pub applied_results: Vec<ExecutionActionResult>,
+    pub blocked_actions: Vec<ExecutionAction>,
     pub summary: String,
 }
 
@@ -1704,6 +1769,338 @@ fn default_snapshot_interval_minutes() -> i64 {
     30
 }
 
+pub fn run_execution_governor(reason: impl Into<String>) -> io::Result<ExecutionGovernorReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_execution_governor_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_execution_governor_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> ExecutionGovernorReport {
+    evolve_store(store);
+    let plan = build_execution_plan(store, &reason);
+    let (applied_results, blocked_actions) = apply_execution_plan(store, &plan);
+    let summary = format!(
+        "strategy={:?} health={:.2} entropy={:.2} stability={:.2} actions={} applied={} blocked={} reason={}",
+        plan.strategy,
+        plan.health_score,
+        plan.entropy,
+        plan.stability,
+        plan.actions.len(),
+        applied_results.len(),
+        blocked_actions.len(),
+        compact(&reason, 120)
+    );
+    let report = ExecutionGovernorReport {
+        plan: plan.clone(),
+        applied_results,
+        blocked_actions,
+        summary,
+    };
+    store.operational_state.execution_plans.push_back(plan);
+    store
+        .operational_state
+        .governor_reports
+        .push_back(report.clone());
+    while store.operational_state.execution_plans.len() > MAX_DECISIONS {
+        store.operational_state.execution_plans.pop_front();
+    }
+    while store.operational_state.governor_reports.len() > MAX_DECISIONS {
+        store.operational_state.governor_reports.pop_front();
+    }
+    report
+}
+
+pub fn build_execution_plan(store: &CognitiveStore, reason: &str) -> CognitionExecutionPlan {
+    let clusters = cognition_clusters(store);
+    let entropy = cognition_entropy(store, &clusters);
+    let stability = cognition_stability(store, &clusters);
+    let health_score = cognition_health_score(store, entropy, stability);
+    let strategy = choose_execution_strategy(store, entropy, stability, health_score);
+    let risk_budget = match strategy {
+        ExecutionStrategy::Conservative => 0.15,
+        ExecutionStrategy::Balanced => 0.35,
+        ExecutionStrategy::Exploratory => 0.55,
+        ExecutionStrategy::RepairFirst => 0.25,
+    };
+    let now = Utc::now();
+    let mut actions = Vec::new();
+
+    let contradicted: Vec<String> = store
+        .nodes
+        .values()
+        .filter(|node| node.weights.contradiction > 0.25)
+        .map(|node| node.id.clone())
+        .take(8)
+        .collect();
+    if !contradicted.is_empty() {
+        append_execution_action(
+            &mut actions,
+            now,
+            ExecutionActionKind::AuditContradictions,
+            contradicted,
+            "resolve high contradiction pressure before executing memory-derived behavior"
+                .to_string(),
+            0.75,
+            0.10,
+            true,
+        );
+    }
+    if entropy > store.operational_state.policy.entropy_threshold {
+        append_execution_action(
+            &mut actions,
+            now,
+            ExecutionActionKind::CompressMemory,
+            Vec::new(),
+            format!("entropy {entropy:.2} exceeds threshold"),
+            0.65,
+            0.12,
+            true,
+        );
+    }
+    match strategy {
+        ExecutionStrategy::RepairFirst => append_execution_action(
+            &mut actions,
+            now,
+            ExecutionActionKind::Reflect,
+            Vec::new(),
+            "health below target; reflect before action".to_string(),
+            0.60,
+            0.08,
+            true,
+        ),
+        ExecutionStrategy::Exploratory => append_execution_action(
+            &mut actions,
+            now,
+            ExecutionActionKind::RetrieveContext,
+            Vec::new(),
+            format!("exploratory retrieval for {reason}"),
+            0.45,
+            0.18,
+            true,
+        ),
+        ExecutionStrategy::Balanced => append_execution_action(
+            &mut actions,
+            now,
+            ExecutionActionKind::Replan,
+            Vec::new(),
+            format!("balanced adaptive planning for {reason}"),
+            0.50,
+            0.16,
+            true,
+        ),
+        ExecutionStrategy::Conservative => append_execution_action(
+            &mut actions,
+            now,
+            ExecutionActionKind::SnapshotRuntime,
+            Vec::new(),
+            "conservative snapshot before further changes".to_string(),
+            0.35,
+            0.04,
+            true,
+        ),
+    }
+    let no_actions = actions.is_empty();
+    if no_actions {
+        append_execution_action(
+            &mut actions,
+            now,
+            ExecutionActionKind::Noop,
+            Vec::new(),
+            "cognition runtime is stable; no operation needed".to_string(),
+            0.05,
+            0.0,
+            true,
+        );
+    }
+    actions.sort_by(|a, b| {
+        (b.expected_benefit - b.risk)
+            .partial_cmp(&(a.expected_benefit - a.risk))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    CognitionExecutionPlan {
+        id: format!("plan-{}", now.timestamp_millis()),
+        created_at: now,
+        strategy,
+        health_score,
+        entropy,
+        stability,
+        risk_budget,
+        actions,
+    }
+}
+
+fn apply_execution_plan(
+    store: &mut CognitiveStore,
+    plan: &CognitionExecutionPlan,
+) -> (Vec<ExecutionActionResult>, Vec<ExecutionAction>) {
+    let mut applied = Vec::new();
+    let mut blocked = Vec::new();
+    let mut risk_used = 0.0;
+    for action in &plan.actions {
+        if risk_used + action.risk > plan.risk_budget {
+            blocked.push(action.clone());
+            continue;
+        }
+        risk_used += action.risk;
+        let result = apply_execution_action(store, action);
+        applied.push(result);
+    }
+    (applied, blocked)
+}
+
+fn apply_execution_action(
+    store: &mut CognitiveStore,
+    action: &ExecutionAction,
+) -> ExecutionActionResult {
+    match action.kind {
+        ExecutionActionKind::AuditContradictions => {
+            recompute_edges(store);
+            recompute_weights(store);
+            ExecutionActionResult {
+                action_id: action.id.clone(),
+                success: true,
+                score_delta: 0.05,
+                summary: "audited contradiction graph and refreshed weights".to_string(),
+            }
+        }
+        ExecutionActionKind::CompressMemory => {
+            let clusters = cognition_clusters(store);
+            let content = clusters
+                .iter()
+                .take(4)
+                .map(|cluster| format!("{} [{}]", cluster.id, cluster.centroid_tokens.join(",")))
+                .collect::<Vec<_>>()
+                .join("; ");
+            if !content.is_empty() {
+                let mut provenance = BTreeMap::new();
+                provenance.insert("execution_action".to_string(), action.id.clone());
+                upsert_node_in_store(
+                    store,
+                    UpsertNode {
+                        id_hint: action.id.clone(),
+                        kind: CognitiveNodeKind::CompressionSummary,
+                        scope: CognitiveScope::Project,
+                        content,
+                        tags: vec!["execution-governor".to_string(), "compression".to_string()],
+                        source: "execution_governor".to_string(),
+                        provenance,
+                    },
+                );
+            }
+            ExecutionActionResult {
+                action_id: action.id.clone(),
+                success: true,
+                score_delta: 0.08,
+                summary: "created/updated compression summary from cognition clusters".to_string(),
+            }
+        }
+        ExecutionActionKind::Reflect
+        | ExecutionActionKind::Replan
+        | ExecutionActionKind::RetrieveContext => {
+            for node_id in &action.target_node_ids {
+                if let Some(node) = store.nodes.get_mut(node_id) {
+                    node.last_used_at = Some(Utc::now());
+                    node.weights.reinforcement =
+                        (node.weights.reinforcement + 0.03).clamp(0.0, 10.0);
+                }
+            }
+            ExecutionActionResult {
+                action_id: action.id.clone(),
+                success: true,
+                score_delta: 0.03,
+                summary: format!("dry-run {:?} completed safely", action.kind),
+            }
+        }
+        ExecutionActionKind::SnapshotRuntime => {
+            let clusters = cognition_clusters(store);
+            let entropy = cognition_entropy(store, &clusters);
+            let stability = cognition_stability(store, &clusters);
+            maybe_create_operational_snapshot(store, entropy, stability, Utc::now());
+            ExecutionActionResult {
+                action_id: action.id.clone(),
+                success: true,
+                score_delta: 0.02,
+                summary: "runtime snapshot ensured".to_string(),
+            }
+        }
+        ExecutionActionKind::RecordOutcome => ExecutionActionResult {
+            action_id: action.id.clone(),
+            success: true,
+            score_delta: 0.01,
+            summary: "outcome recording is handled by external execution signals".to_string(),
+        },
+        ExecutionActionKind::Noop => ExecutionActionResult {
+            action_id: action.id.clone(),
+            success: true,
+            score_delta: 0.0,
+            summary: "no-op; runtime stable".to_string(),
+        },
+    }
+}
+
+fn append_execution_action(
+    actions: &mut Vec<ExecutionAction>,
+    now: DateTime<Utc>,
+    kind: ExecutionActionKind,
+    target_node_ids: Vec<String>,
+    rationale: String,
+    expected_benefit: f64,
+    risk: f64,
+    dry_run: bool,
+) {
+    let id = format!("act-{}-{}", now.timestamp_millis(), actions.len());
+    actions.push(ExecutionAction {
+        id,
+        kind,
+        target_node_ids,
+        rationale,
+        expected_benefit,
+        risk,
+        dry_run,
+    });
+}
+
+fn choose_execution_strategy(
+    store: &CognitiveStore,
+    entropy: f64,
+    stability: f64,
+    health_score: f64,
+) -> ExecutionStrategy {
+    if stability < store.operational_state.policy.stability_floor || health_score < 0.45 {
+        ExecutionStrategy::RepairFirst
+    } else if entropy > store.operational_state.policy.entropy_threshold {
+        ExecutionStrategy::Conservative
+    } else if health_score > 0.82 && entropy < 0.45 {
+        ExecutionStrategy::Exploratory
+    } else {
+        ExecutionStrategy::Balanced
+    }
+}
+
+fn cognition_health_score(store: &CognitiveStore, entropy: f64, stability: f64) -> f64 {
+    if store.nodes.is_empty() {
+        return 1.0;
+    }
+    let avg_confidence = store
+        .nodes
+        .values()
+        .map(|n| n.weights.confidence)
+        .sum::<f64>()
+        / store.nodes.len() as f64;
+    let avg_outcome =
+        store.nodes.values().map(|n| n.weights.outcome).sum::<f64>() / store.nodes.len() as f64;
+    (stability * 0.45
+        + (1.0 - entropy) * 0.25
+        + avg_confidence.clamp(0.0, 1.0) * 0.20
+        + (0.5 + avg_outcome / 2.0).clamp(0.0, 1.0) * 0.10)
+        .clamp(0.0, 1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1880,5 +2277,56 @@ mod tests {
         let json = serde_json::to_string(&report).unwrap();
         assert!(json.contains("entropy"));
         assert!(json.contains("scheduled_tasks"));
+    }
+
+    #[test]
+    fn execution_governor_builds_and_applies_safe_plan() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode execution governor adaptive planning"),
+        );
+        evolve_store(&mut store);
+        let report = run_execution_governor_in_store(&mut store, "test governor".to_string());
+        assert!(!report.plan.actions.is_empty());
+        assert!(!report.applied_results.is_empty());
+        assert!(!store.operational_state.execution_plans.is_empty());
+        assert!(!store.operational_state.governor_reports.is_empty());
+    }
+
+    #[test]
+    fn execution_governor_prefers_repair_for_unhealthy_state() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert("always remember .kcode execution governor"),
+        );
+        upsert_node_in_store(
+            &mut store,
+            upsert("never remember .kcode execution governor"),
+        );
+        evolve_store(&mut store);
+        store.operational_state.policy.stability_floor = 0.99;
+        let report = run_execution_governor_in_store(&mut store, "repair".to_string());
+        assert!(matches!(
+            report.plan.strategy,
+            ExecutionStrategy::RepairFirst
+        ));
+        assert!(report.plan.actions.iter().any(|action| matches!(
+            action.kind,
+            ExecutionActionKind::AuditContradictions | ExecutionActionKind::Reflect
+        )));
+    }
+
+    #[test]
+    fn execution_plan_blocks_actions_over_risk_budget() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode risk budget execution governor"));
+        evolve_store(&mut store);
+        let mut plan = build_execution_plan(&store, "risk");
+        plan.risk_budget = 0.01;
+        let (applied, blocked) = apply_execution_plan(&mut store, &plan);
+        assert!(applied.len() <= 1);
+        assert!(!blocked.is_empty() || plan.actions.iter().all(|a| a.risk <= 0.01));
     }
 }

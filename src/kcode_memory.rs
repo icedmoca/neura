@@ -212,6 +212,18 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_execution_governor("prompt_memory_block") {
+        lines.push(format!(
+            "Execution cognition governor: strategy={:?} health={:.2} risk_budget={:.2} actions={} applied={} blocked={}",
+            report.plan.strategy,
+            report.plan.health_score,
+            report.plan.risk_budget,
+            report.plan.actions.len(),
+            report.applied_results.len(),
+            report.blocked_actions.len()
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
