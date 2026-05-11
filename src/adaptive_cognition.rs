@@ -800,6 +800,8 @@ pub struct OperationalCognitionState {
     pub governor_reports: VecDeque<ExecutionGovernorReport>,
     #[serde(default)]
     pub procedural_runtime: ProceduralRuntimeState,
+    #[serde(default)]
+    pub cognitive_fabric: CognitiveFabricState,
 }
 
 impl Default for OperationalCognitionState {
@@ -814,6 +816,7 @@ impl Default for OperationalCognitionState {
             execution_plans: VecDeque::new(),
             governor_reports: VecDeque::new(),
             procedural_runtime: ProceduralRuntimeState::default(),
+            cognitive_fabric: CognitiveFabricState::default(),
         }
     }
 }
@@ -827,6 +830,86 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum AbstractionLevel {
+    Token,
+    Directive,
+    Procedure,
+    Subsystem,
+    Doctrine,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SubsystemKind {
+    Memory,
+    Retrieval,
+    Planning,
+    Execution,
+    Verification,
+    Reflection,
+    Compression,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EnvironmentState {
+    pub captured_at: DateTime<Utc>,
+    pub node_pressure: f64,
+    pub contradiction_pressure: f64,
+    pub entropy: f64,
+    pub stability: f64,
+    pub build_ready: bool,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubsystemState {
+    pub kind: SubsystemKind,
+    pub health: f64,
+    pub load: f64,
+    pub confidence: f64,
+    pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LatentStateEstimate {
+    pub name: String,
+    pub probability: f64,
+    pub evidence: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TemporalForecast {
+    pub horizon_minutes: i64,
+    pub expected_entropy: f64,
+    pub expected_stability: f64,
+    pub recommended_mode: OperationalMode,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FabricArbitrationDecision {
+    pub selected_subsystems: Vec<SubsystemKind>,
+    pub suppressed_subsystems: Vec<SubsystemKind>,
+    pub rationale: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveFabricReport {
+    pub generated_at: DateTime<Utc>,
+    pub abstraction_levels: Vec<AbstractionLevel>,
+    pub environment: EnvironmentState,
+    pub subsystems: Vec<SubsystemState>,
+    pub latent_states: Vec<LatentStateEstimate>,
+    pub forecasts: Vec<TemporalForecast>,
+    pub arbitration: FabricArbitrationDecision,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CognitiveFabricState {
+    #[serde(default)]
+    pub reports: VecDeque<CognitiveFabricReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -2452,6 +2535,231 @@ fn default_autonomy_limit() -> f64 {
     0.35
 }
 
+pub fn run_cognitive_fabric(reason: impl Into<String>) -> io::Result<CognitiveFabricReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_cognitive_fabric_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_cognitive_fabric_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> CognitiveFabricReport {
+    evolve_store(store);
+    let clusters = cognition_clusters(store);
+    let entropy = cognition_entropy(store, &clusters);
+    let stability = cognition_stability(store, &clusters);
+    let env = EnvironmentState {
+        captured_at: Utc::now(),
+        node_pressure: (store.nodes.len() as f64 / 256.0).clamp(0.0, 1.0),
+        contradiction_pressure: store
+            .nodes
+            .values()
+            .map(|n| n.weights.contradiction)
+            .sum::<f64>()
+            / store.nodes.len().max(1) as f64,
+        entropy,
+        stability,
+        build_ready: stability > 0.35 && entropy < 0.9,
+        summary: format!(
+            "nodes={} clusters={} reason={}",
+            store.nodes.len(),
+            clusters.len(),
+            compact(&reason, 90)
+        ),
+    };
+    let subsystems = fabric_subsystems(store, &env);
+    let latent_states = fabric_latent_states(store, &env, &subsystems);
+    let forecasts = fabric_forecasts(&env);
+    let arbitration = fabric_arbitrate(&subsystems, &latent_states, &env);
+    let report = CognitiveFabricReport {
+        generated_at: Utc::now(),
+        abstraction_levels: vec![
+            AbstractionLevel::Token,
+            AbstractionLevel::Directive,
+            AbstractionLevel::Procedure,
+            AbstractionLevel::Subsystem,
+            AbstractionLevel::Doctrine,
+        ],
+        environment: env,
+        subsystems,
+        latent_states,
+        forecasts,
+        arbitration,
+        summary: String::new(),
+    };
+    let mut report = report;
+    report.summary = format!(
+        "fabric stability={:.2} entropy={:.2} selected={:?}",
+        report.environment.stability,
+        report.environment.entropy,
+        report.arbitration.selected_subsystems
+    );
+    store
+        .operational_state
+        .cognitive_fabric
+        .reports
+        .push_back(report.clone());
+    while store.operational_state.cognitive_fabric.reports.len() > MAX_DECISIONS {
+        store.operational_state.cognitive_fabric.reports.pop_front();
+    }
+    report
+}
+
+fn fabric_subsystems(store: &CognitiveStore, env: &EnvironmentState) -> Vec<SubsystemState> {
+    let proc_count = store.operational_state.procedural_runtime.procedures.len() as f64;
+    vec![
+        SubsystemState {
+            kind: SubsystemKind::Memory,
+            health: env.stability,
+            load: env.node_pressure,
+            confidence: 0.9,
+            notes: vec![format!("nodes={}", store.nodes.len())],
+        },
+        SubsystemState {
+            kind: SubsystemKind::Retrieval,
+            health: (1.0 - env.entropy * 0.4).clamp(0.0, 1.0),
+            load: env.entropy,
+            confidence: 0.8,
+            notes: vec![format!("decisions={}", store.retrieval_decisions.len())],
+        },
+        SubsystemState {
+            kind: SubsystemKind::Planning,
+            health: (0.5 + proc_count / 20.0).clamp(0.0, 1.0),
+            load: (proc_count / 32.0).clamp(0.0, 1.0),
+            confidence: 0.75,
+            notes: vec![format!("procedures={proc_count:.0}")],
+        },
+        SubsystemState {
+            kind: SubsystemKind::Execution,
+            health: cognition_health_score(store, env.entropy, env.stability),
+            load: store.execution_signals.len() as f64 / 64.0,
+            confidence: 0.75,
+            notes: vec!["governor mediated".to_string()],
+        },
+        SubsystemState {
+            kind: SubsystemKind::Verification,
+            health: if env.build_ready { 0.85 } else { 0.45 },
+            load: 0.3,
+            confidence: 0.7,
+            notes: vec!["tests before install doctrine".to_string()],
+        },
+        SubsystemState {
+            kind: SubsystemKind::Reflection,
+            health: (1.0 - env.contradiction_pressure).clamp(0.0, 1.0),
+            load: env.contradiction_pressure,
+            confidence: 0.7,
+            notes: vec!["contradiction-aware".to_string()],
+        },
+        SubsystemState {
+            kind: SubsystemKind::Compression,
+            health: (1.0 - env.entropy * 0.5).clamp(0.0, 1.0),
+            load: env.entropy,
+            confidence: 0.7,
+            notes: vec!["entropy controlled".to_string()],
+        },
+    ]
+}
+
+fn fabric_latent_states(
+    store: &CognitiveStore,
+    env: &EnvironmentState,
+    subsystems: &[SubsystemState],
+) -> Vec<LatentStateEstimate> {
+    let avg_health =
+        subsystems.iter().map(|s| s.health).sum::<f64>() / subsystems.len().max(1) as f64;
+    vec![
+        LatentStateEstimate {
+            name: "ready_for_autonomous_workflow".to_string(),
+            probability: (avg_health * env.stability).clamp(0.0, 1.0),
+            evidence: vec![
+                format!("avg_health={avg_health:.2}"),
+                format!("stability={:.2}", env.stability),
+            ],
+        },
+        LatentStateEstimate {
+            name: "needs_compression".to_string(),
+            probability: env.entropy.clamp(0.0, 1.0),
+            evidence: vec![format!("entropy={:.2}", env.entropy)],
+        },
+        LatentStateEstimate {
+            name: "needs_reflection".to_string(),
+            probability: env.contradiction_pressure.clamp(0.0, 1.0),
+            evidence: vec![format!("contradiction={:.2}", env.contradiction_pressure)],
+        },
+        LatentStateEstimate {
+            name: "procedural_memory_mature".to_string(),
+            probability: (store.operational_state.procedural_runtime.procedures.len() as f64 / 8.0)
+                .clamp(0.0, 1.0),
+            evidence: vec![format!(
+                "procedures={}",
+                store.operational_state.procedural_runtime.procedures.len()
+            )],
+        },
+    ]
+}
+
+fn fabric_forecasts(env: &EnvironmentState) -> Vec<TemporalForecast> {
+    [5, 30, 120]
+        .into_iter()
+        .map(|h| {
+            let drift = h as f64 / 240.0;
+            let expected_entropy = (env.entropy + drift * 0.05).clamp(0.0, 1.0);
+            let expected_stability = (env.stability - drift * 0.03).clamp(0.0, 1.0);
+            let recommended_mode = if expected_stability < 0.45 {
+                OperationalMode::Repair
+            } else if expected_entropy > 0.72 {
+                OperationalMode::Compress
+            } else {
+                OperationalMode::Retrieve
+            };
+            TemporalForecast {
+                horizon_minutes: h,
+                expected_entropy,
+                expected_stability,
+                recommended_mode,
+            }
+        })
+        .collect()
+}
+
+fn fabric_arbitrate(
+    subsystems: &[SubsystemState],
+    latent: &[LatentStateEstimate],
+    env: &EnvironmentState,
+) -> FabricArbitrationDecision {
+    let mut selected = Vec::new();
+    let mut suppressed = Vec::new();
+    for s in subsystems {
+        if s.health >= 0.5
+            || matches!(
+                s.kind,
+                SubsystemKind::Reflection | SubsystemKind::Compression
+            ) && (env.contradiction_pressure > 0.2 || env.entropy > 0.7)
+        {
+            selected.push(s.kind.clone());
+        } else {
+            suppressed.push(s.kind.clone());
+        }
+    }
+    let top_latent = latent
+        .iter()
+        .max_by(|a, b| {
+            a.probability
+                .partial_cmp(&b.probability)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|l| format!("{}={:.2}", l.name, l.probability))
+        .unwrap_or_else(|| "none".to_string());
+    FabricArbitrationDecision {
+        selected_subsystems: selected,
+        suppressed_subsystems: suppressed,
+        rationale: format!("top_latent={top_latent}; build_ready={}", env.build_ready),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2753,5 +3061,52 @@ mod tests {
                 .iter()
                 .any(|note| note.contains("tests"))
         );
+    }
+
+    #[test]
+    fn cognitive_fabric_reports_environment_subsystems_and_forecasts() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode cognitive fabric environment subsystem"),
+        );
+        run_procedural_runtime_in_store(&mut store, "fabric setup".to_string());
+        let report = run_cognitive_fabric_in_store(&mut store, "fabric".to_string());
+        assert!(!report.subsystems.is_empty());
+        assert!(!report.latent_states.is_empty());
+        assert_eq!(report.forecasts.len(), 3);
+        assert!(!report.arbitration.selected_subsystems.is_empty());
+        assert!(!store.operational_state.cognitive_fabric.reports.is_empty());
+    }
+
+    #[test]
+    fn cognitive_fabric_detects_compression_and_reflection_needs() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert("always remember .kcode fabric contradiction"),
+        );
+        upsert_node_in_store(
+            &mut store,
+            upsert("never remember .kcode fabric contradiction"),
+        );
+        evolve_store(&mut store);
+        let report = run_cognitive_fabric_in_store(&mut store, "fabric contradiction".to_string());
+        assert!(
+            report
+                .latent_states
+                .iter()
+                .any(|state| state.name == "needs_reflection")
+        );
+        assert!(report.environment.contradiction_pressure >= 0.0);
+    }
+
+    #[test]
+    fn cognitive_fabric_arbitration_has_rationale() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode fabric arbitration doctrine"));
+        let report = run_cognitive_fabric_in_store(&mut store, "arbitrate".to_string());
+        assert!(report.arbitration.rationale.contains("top_latent"));
+        assert!(report.summary.contains("fabric stability"));
     }
 }

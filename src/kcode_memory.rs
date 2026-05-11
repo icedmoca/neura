@@ -234,6 +234,19 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_cognitive_fabric("prompt_memory_block") {
+        lines.push(format!(
+            "Cognitive fabric: stability={:.2} entropy={:.2} selected_subsystems={:?} latent_top={}",
+            report.environment.stability,
+            report.environment.entropy,
+            report.arbitration.selected_subsystems,
+            report.latent_states
+                .first()
+                .map(|s| format!("{}={:.2}", s.name, s.probability))
+                .unwrap_or_else(|| "none".to_string())
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
