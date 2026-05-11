@@ -684,6 +684,479 @@ fn default_half_life() -> f64 {
     DEFAULT_HALF_LIFE_DAYS
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ObservationLayer {
+    Raw,
+    Signals,
+    Graph,
+    Clusters,
+    Replay,
+    Summary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitionFrame {
+    pub generated_at: DateTime<Utc>,
+    pub layer: ObservationLayer,
+    pub title: String,
+    pub body: String,
+    pub node_ids: Vec<String>,
+    pub edge_count: usize,
+    pub token_count_estimate: usize,
+    pub stability_score: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitionCluster {
+    pub id: String,
+    pub tags: Vec<String>,
+    pub node_ids: Vec<String>,
+    pub centroid_tokens: Vec<String>,
+    pub stability_score: f64,
+    pub contradiction_pressure: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitionReplayEvent {
+    pub at: DateTime<Utc>,
+    pub event_type: String,
+    pub target_id: String,
+    pub summary: String,
+    pub score_delta: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ObservableCognitionSnapshot {
+    pub generated_at: DateTime<Utc>,
+    pub store_version: u32,
+    pub node_count: usize,
+    pub edge_count: usize,
+    pub cluster_count: usize,
+    pub stability_score: f64,
+    pub frames: Vec<CognitionFrame>,
+    pub clusters: Vec<CognitionCluster>,
+    pub replay: Vec<CognitionReplayEvent>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RenderOptions {
+    pub layers: Vec<ObservationLayer>,
+    pub token_budget: usize,
+    pub include_replay: bool,
+    pub include_graph: bool,
+}
+
+impl Default for RenderOptions {
+    fn default() -> Self {
+        Self {
+            layers: vec![
+                ObservationLayer::Summary,
+                ObservationLayer::Clusters,
+                ObservationLayer::Graph,
+                ObservationLayer::Replay,
+            ],
+            token_budget: 1_600,
+            include_replay: true,
+            include_graph: true,
+        }
+    }
+}
+
+pub fn observable_snapshot(options: RenderOptions) -> io::Result<ObservableCognitionSnapshot> {
+    let mut store = load_store()?;
+    evolve_store(&mut store);
+    Ok(observable_snapshot_from_store(&store, options))
+}
+
+pub fn observable_snapshot_from_store(
+    store: &CognitiveStore,
+    options: RenderOptions,
+) -> ObservableCognitionSnapshot {
+    let clusters = cognition_clusters(store);
+    let replay = if options.include_replay {
+        cognition_replay(store, 64)
+    } else {
+        Vec::new()
+    };
+    let stability_score = cognition_stability(store, &clusters);
+    let mut frames = Vec::new();
+    let mut remaining_budget = options.token_budget.max(128);
+    for layer in &options.layers {
+        let frame = render_frame(store, &clusters, &replay, layer.clone(), remaining_budget);
+        remaining_budget = remaining_budget.saturating_sub(frame.token_count_estimate);
+        frames.push(frame);
+        if remaining_budget == 0 {
+            break;
+        }
+    }
+    ObservableCognitionSnapshot {
+        generated_at: Utc::now(),
+        store_version: store.version,
+        node_count: store.nodes.len(),
+        edge_count: store.edges.len(),
+        cluster_count: clusters.len(),
+        stability_score,
+        frames,
+        clusters,
+        replay,
+    }
+}
+
+pub fn render_observable_markdown(options: RenderOptions) -> io::Result<String> {
+    let snapshot = observable_snapshot(options)?;
+    Ok(render_snapshot_markdown(&snapshot))
+}
+
+pub fn render_observable_sideband(options: RenderOptions) -> io::Result<String> {
+    let snapshot = observable_snapshot(options)?;
+    let summary = format!(
+        "nodes={},edges={},clusters={},stability={:.2}",
+        snapshot.node_count, snapshot.edge_count, snapshot.cluster_count, snapshot.stability_score
+    );
+    let topics = snapshot
+        .clusters
+        .iter()
+        .flat_map(|cluster| cluster.tags.iter().take(2).cloned())
+        .take(8)
+        .collect::<Vec<_>>()
+        .join(",");
+    Ok(format!(
+        "<ctx k=\"cognition\" id=\"cog:{}\" n={} c=\"{:.2}\" p=\"normal\" ar=\"false\" t=\"{}\" s=\"{}\" />",
+        snapshot.generated_at.timestamp_millis(),
+        estimate_token_count(&summary),
+        snapshot.stability_score,
+        escape_attr(&topics),
+        escape_attr(&summary)
+    ))
+}
+
+pub fn export_observable_graph_json(options: RenderOptions) -> io::Result<String> {
+    let snapshot = observable_snapshot(options)?;
+    serde_json::to_string_pretty(&snapshot)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+}
+
+fn render_snapshot_markdown(snapshot: &ObservableCognitionSnapshot) -> String {
+    let mut lines = vec![
+        "# Observable adaptive cognition".to_string(),
+        format!(
+            "nodes={} edges={} clusters={} stability={:.2}",
+            snapshot.node_count,
+            snapshot.edge_count,
+            snapshot.cluster_count,
+            snapshot.stability_score
+        ),
+        String::new(),
+    ];
+    for frame in &snapshot.frames {
+        lines.push(format!("## {:?}: {}", frame.layer, frame.title));
+        lines.push(frame.body.clone());
+        lines.push(String::new());
+    }
+    lines.join("\n")
+}
+
+fn render_frame(
+    store: &CognitiveStore,
+    clusters: &[CognitionCluster],
+    replay: &[CognitionReplayEvent],
+    layer: ObservationLayer,
+    token_budget: usize,
+) -> CognitionFrame {
+    let mut body = String::new();
+    let mut node_ids = Vec::new();
+    let edge_count = store.edges.len();
+    match layer {
+        ObservationLayer::Raw => {
+            for node in store.nodes.values().take(12) {
+                node_ids.push(node.id.clone());
+                body.push_str(&format!(
+                    "- {} {:?}/{:?} r={:.2} c={:.2}: {}\n",
+                    node.id,
+                    node.kind,
+                    node.scope,
+                    node.weights.reinforcement,
+                    node.weights.contradiction,
+                    compact(&node.content, 120)
+                ));
+            }
+        }
+        ObservationLayer::Signals => {
+            for signal in store.execution_signals.iter().rev().take(16) {
+                node_ids.push(signal.node_id.clone());
+                body.push_str(&format!(
+                    "- {} {} delta={:.2}: {}\n",
+                    signal.recorded_at,
+                    if signal.success { "success" } else { "failure" },
+                    signal.delta,
+                    compact(&signal.summary, 140)
+                ));
+            }
+        }
+        ObservationLayer::Graph => {
+            for edge in store.edges.iter().take(24) {
+                node_ids.push(edge.from.clone());
+                node_ids.push(edge.to.clone());
+                body.push_str(&format!(
+                    "- {} -{:?}/{:.2}-> {} ({})\n",
+                    edge.from,
+                    edge.kind,
+                    edge.weight,
+                    edge.to,
+                    compact(&edge.evidence, 100)
+                ));
+            }
+        }
+        ObservationLayer::Clusters => {
+            for cluster in clusters.iter().take(12) {
+                node_ids.extend(cluster.node_ids.clone());
+                body.push_str(&format!(
+                    "- {} nodes={} stability={:.2} contradiction={:.2} tags=[{}] tokens=[{}]\n",
+                    cluster.id,
+                    cluster.node_ids.len(),
+                    cluster.stability_score,
+                    cluster.contradiction_pressure,
+                    cluster.tags.join(","),
+                    cluster.centroid_tokens.join(",")
+                ));
+            }
+        }
+        ObservationLayer::Replay => {
+            for event in replay.iter().take(20) {
+                node_ids.push(event.target_id.clone());
+                body.push_str(&format!(
+                    "- {} {} {} delta={:.2}: {}\n",
+                    event.at,
+                    event.event_type,
+                    event.target_id,
+                    event.score_delta,
+                    compact(&event.summary, 120)
+                ));
+            }
+        }
+        ObservationLayer::Summary => {
+            let top = retrieve_from_store(store, ".kcode cognition memory", 900);
+            for scored in top.into_iter().take(8) {
+                node_ids.push(scored.id.clone());
+                if let Some(node) = store.nodes.get(&scored.id) {
+                    body.push_str(&format!(
+                        "- score={:.2} {} {:?}: {} reasons={}\n",
+                        scored.score,
+                        node.id,
+                        node.kind,
+                        compact(&node.summary, 140),
+                        scored.reasons.join(",")
+                    ));
+                }
+            }
+        }
+    }
+    if body.is_empty() {
+        body = "No cognition artifacts recorded yet.".to_string();
+    }
+    body = truncate_to_token_budget(&body, token_budget);
+    node_ids.sort();
+    node_ids.dedup();
+    let stability_score = if clusters.is_empty() {
+        1.0
+    } else {
+        clusters
+            .iter()
+            .map(|cluster| cluster.stability_score)
+            .sum::<f64>()
+            / clusters.len() as f64
+    };
+    CognitionFrame {
+        generated_at: Utc::now(),
+        layer: layer.clone(),
+        title: match layer {
+            ObservationLayer::Raw => "raw memory nodes",
+            ObservationLayer::Signals => "execution and reinforcement signals",
+            ObservationLayer::Graph => "weighted memory graph traversal",
+            ObservationLayer::Clusters => "abstraction clusters",
+            ObservationLayer::Replay => "cognitive replay timeline",
+            ObservationLayer::Summary => "token-bounded retrieval summary",
+        }
+        .to_string(),
+        token_count_estimate: estimate_token_count(&body),
+        body,
+        node_ids,
+        edge_count,
+        stability_score,
+    }
+}
+
+fn cognition_clusters(store: &CognitiveStore) -> Vec<CognitionCluster> {
+    let mut groups: BTreeMap<String, Vec<&CognitiveNode>> = BTreeMap::new();
+    for node in store.nodes.values() {
+        let key = node
+            .tags
+            .first()
+            .cloned()
+            .or_else(|| node.salient_tokens.first().cloned())
+            .unwrap_or_else(|| "untagged".to_string());
+        groups.entry(key).or_default().push(node);
+    }
+    let mut clusters = Vec::new();
+    for (key, nodes) in groups {
+        let mut tag_counts: BTreeMap<String, usize> = BTreeMap::new();
+        let mut token_counts: BTreeMap<String, usize> = BTreeMap::new();
+        let mut node_ids = Vec::new();
+        let mut contradiction = 0.0;
+        let mut reinforcement = 0.0;
+        for node in nodes {
+            node_ids.push(node.id.clone());
+            contradiction += node.weights.contradiction;
+            reinforcement += node.weights.reinforcement;
+            for tag in &node.tags {
+                *tag_counts.entry(tag.clone()).or_default() += 1;
+            }
+            for token in &node.salient_tokens {
+                *token_counts.entry(token.clone()).or_default() += 1;
+            }
+        }
+        let tags = top_counts(tag_counts, 8);
+        let centroid_tokens = top_counts(token_counts, 10);
+        let size = node_ids.len().max(1) as f64;
+        let contradiction_pressure = (contradiction / size).clamp(0.0, 1.0);
+        let avg_reinforcement = (reinforcement / size).clamp(0.0, 10.0);
+        let stability_score = ((1.0 - contradiction_pressure)
+            * (avg_reinforcement / (avg_reinforcement + 1.0)))
+            .clamp(0.0, 1.0);
+        clusters.push(CognitionCluster {
+            id: format!("cluster-{key}"),
+            tags,
+            node_ids,
+            centroid_tokens,
+            stability_score,
+            contradiction_pressure,
+        });
+    }
+    clusters.sort_by(|a, b| {
+        b.stability_score
+            .partial_cmp(&a.stability_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| b.node_ids.len().cmp(&a.node_ids.len()))
+    });
+    clusters
+}
+
+fn cognition_replay(store: &CognitiveStore, limit: usize) -> Vec<CognitionReplayEvent> {
+    let mut events = Vec::new();
+    for node in store.nodes.values() {
+        events.push(CognitionReplayEvent {
+            at: node.created_at,
+            event_type: "node_created".to_string(),
+            target_id: node.id.clone(),
+            summary: compact(&node.content, 160),
+            score_delta: node.weights.reinforcement,
+        });
+        if node.version > 1 {
+            events.push(CognitionReplayEvent {
+                at: node.updated_at,
+                event_type: "node_reinforced".to_string(),
+                target_id: node.id.clone(),
+                summary: format!(
+                    "version={} reinforcement={:.2}",
+                    node.version, node.weights.reinforcement
+                ),
+                score_delta: node.weights.reinforcement - 1.0,
+            });
+        }
+    }
+    for signal in &store.execution_signals {
+        events.push(CognitionReplayEvent {
+            at: signal.recorded_at,
+            event_type: if signal.success {
+                "execution_success"
+            } else {
+                "execution_failure"
+            }
+            .to_string(),
+            target_id: signal.node_id.clone(),
+            summary: signal.summary.clone(),
+            score_delta: signal.delta,
+        });
+    }
+    for decision in &store.retrieval_decisions {
+        events.push(CognitionReplayEvent {
+            at: decision.recorded_at,
+            event_type: "retrieval".to_string(),
+            target_id: decision.selected_node_ids.join(","),
+            summary: format!(
+                "query={} score={:.2}",
+                compact(&decision.query, 120),
+                decision.total_score
+            ),
+            score_delta: decision.total_score,
+        });
+    }
+    events.sort_by(|a, b| b.at.cmp(&a.at));
+    events.truncate(limit);
+    events
+}
+
+fn cognition_stability(store: &CognitiveStore, clusters: &[CognitionCluster]) -> f64 {
+    if store.nodes.is_empty() {
+        return 1.0;
+    }
+    let contradiction = store
+        .nodes
+        .values()
+        .map(|node| node.weights.contradiction)
+        .sum::<f64>()
+        / store.nodes.len() as f64;
+    let cluster_stability = if clusters.is_empty() {
+        1.0
+    } else {
+        clusters
+            .iter()
+            .map(|cluster| cluster.stability_score)
+            .sum::<f64>()
+            / clusters.len() as f64
+    };
+    ((1.0 - contradiction.clamp(0.0, 1.0)) * 0.55 + cluster_stability * 0.45).clamp(0.0, 1.0)
+}
+
+fn top_counts(counts: BTreeMap<String, usize>, limit: usize) -> Vec<String> {
+    let mut counts: Vec<_> = counts.into_iter().collect();
+    counts.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    counts
+        .into_iter()
+        .take(limit)
+        .map(|(item, _)| item)
+        .collect()
+}
+
+fn truncate_to_token_budget(text: &str, token_budget: usize) -> String {
+    let mut out = String::new();
+    let mut used = 0;
+    for word in text.split_whitespace() {
+        let cost = (word.len().max(1) + 3) / 4;
+        if used + cost > token_budget {
+            out.push_str(" ...");
+            break;
+        }
+        if !out.is_empty() {
+            out.push(' ');
+        }
+        out.push_str(word);
+        used += cost;
+    }
+    if out.is_empty() {
+        compact(text, token_budget.saturating_mul(4).max(32))
+    } else {
+        out
+    }
+}
+
+fn escape_attr(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -762,5 +1235,52 @@ mod tests {
         evolve_store(&mut store);
         let after = retrieve_from_store(&store, "execution", 100)[0].score;
         assert!(after > before);
+    }
+
+    #[test]
+    fn observable_snapshot_renders_layers_and_clusters() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode observable cognition graph rendering"),
+        );
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode observable cognition replay export"),
+        );
+        evolve_store(&mut store);
+        let snapshot = observable_snapshot_from_store(
+            &store,
+            RenderOptions {
+                layers: vec![
+                    ObservationLayer::Summary,
+                    ObservationLayer::Clusters,
+                    ObservationLayer::Graph,
+                ],
+                token_budget: 600,
+                include_replay: true,
+                include_graph: true,
+            },
+        );
+        assert!(!snapshot.frames.is_empty());
+        assert!(!snapshot.clusters.is_empty());
+        assert!(snapshot.stability_score >= 0.0 && snapshot.stability_score <= 1.0);
+        assert!(render_snapshot_markdown(&snapshot).contains("Observable adaptive cognition"));
+    }
+
+    #[test]
+    fn sideband_render_is_ctx_like_and_bounded() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode sideband observable cognition"));
+        evolve_store(&mut store);
+        let snapshot = observable_snapshot_from_store(&store, RenderOptions::default());
+        let md = render_snapshot_markdown(&snapshot);
+        assert!(md.len() < 10_000);
+        assert!(
+            snapshot
+                .frames
+                .iter()
+                .all(|frame| frame.token_count_estimate <= 1_600)
+        );
     }
 }

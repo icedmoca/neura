@@ -190,6 +190,17 @@ pub fn prompt_memory_block() -> Option<String> {
         }
     }
 
+    if let Ok(sideband) =
+        adaptive_cognition::render_observable_sideband(adaptive_cognition::RenderOptions {
+            layers: vec![adaptive_cognition::ObservationLayer::Summary],
+            token_budget: 320,
+            include_replay: false,
+            include_graph: false,
+        })
+    {
+        lines.push(format!("Observable cognition sideband: {sideband}"));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
