@@ -806,6 +806,8 @@ pub struct OperationalCognitionState {
     pub distributed_fabric: DistributedCognitionState,
     #[serde(default)]
     pub strategic_civilization: StrategicCivilizationState,
+    #[serde(default)]
+    pub civilization_os: CivilizationOsState,
 }
 
 impl Default for OperationalCognitionState {
@@ -823,6 +825,7 @@ impl Default for OperationalCognitionState {
             cognitive_fabric: CognitiveFabricState::default(),
             distributed_fabric: DistributedCognitionState::default(),
             strategic_civilization: StrategicCivilizationState::default(),
+            civilization_os: CivilizationOsState::default(),
         }
     }
 }
@@ -836,6 +839,103 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum InstitutionKind {
+    Constitution,
+    MemoryCourt,
+    PlanningCouncil,
+    VerificationOffice,
+    ResourceTreasury,
+    ContinuityArchive,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Institution {
+    pub id: String,
+    pub kind: InstitutionKind,
+    pub mandate: String,
+    pub authority: f64,
+    pub health: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GovernanceLaw {
+    pub id: String,
+    pub title: String,
+    pub text: String,
+    pub priority: f64,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GovernancePrecedent {
+    pub id: String,
+    pub situation: String,
+    pub decision: String,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ScenarioPlan {
+    pub id: String,
+    pub scenario: String,
+    pub probability: f64,
+    pub impact: f64,
+    pub response: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContinuityPlan {
+    pub id: String,
+    pub trigger: String,
+    pub recovery_action: String,
+    pub readiness: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DiplomaticStance {
+    pub peer: String,
+    pub trust: f64,
+    pub posture: String,
+    pub notes: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CivicMemoryEntry {
+    pub id: String,
+    pub remembered_at: DateTime<Utc>,
+    pub lesson: String,
+    pub applies_to: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CivilizationOsReport {
+    pub generated_at: DateTime<Utc>,
+    pub institutions: Vec<Institution>,
+    pub laws: Vec<GovernanceLaw>,
+    pub precedents: Vec<GovernancePrecedent>,
+    pub scenarios: Vec<ScenarioPlan>,
+    pub continuity: Vec<ContinuityPlan>,
+    pub diplomacy: Vec<DiplomaticStance>,
+    pub civic_memory: Vec<CivicMemoryEntry>,
+    pub os_health: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CivilizationOsState {
+    #[serde(default)]
+    pub institutions: BTreeMap<String, Institution>,
+    #[serde(default)]
+    pub laws: BTreeMap<String, GovernanceLaw>,
+    #[serde(default)]
+    pub precedents: VecDeque<GovernancePrecedent>,
+    #[serde(default)]
+    pub civic_memory: VecDeque<CivicMemoryEntry>,
+    #[serde(default)]
+    pub reports: VecDeque<CivilizationOsReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -3574,6 +3674,354 @@ fn civilization_score(
     (doctrine * 0.45 + sim.clamp(0.0, 1.0) * 0.35 + proposal * 0.20).clamp(0.0, 1.0)
 }
 
+pub fn run_civilization_os(reason: impl Into<String>) -> io::Result<CivilizationOsReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_civilization_os_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_civilization_os_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> CivilizationOsReport {
+    let strategic = run_strategic_civilization_runtime_in_store(store, reason.clone());
+    seed_institutions(store);
+    seed_governance_laws(store);
+    update_precedents_and_civic_memory(store, &strategic, &reason);
+    let scenarios = scenario_plans(store, &strategic);
+    let continuity = continuity_plans(store);
+    let diplomacy = diplomatic_stances(store);
+    let os_health = civilization_os_health(store, &strategic, &scenarios, &continuity);
+    let report = CivilizationOsReport {
+        generated_at: Utc::now(),
+        institutions: store
+            .operational_state
+            .civilization_os
+            .institutions
+            .values()
+            .cloned()
+            .collect(),
+        laws: store
+            .operational_state
+            .civilization_os
+            .laws
+            .values()
+            .cloned()
+            .collect(),
+        precedents: store
+            .operational_state
+            .civilization_os
+            .precedents
+            .iter()
+            .cloned()
+            .collect(),
+        scenarios,
+        continuity,
+        diplomacy,
+        civic_memory: store
+            .operational_state
+            .civilization_os
+            .civic_memory
+            .iter()
+            .cloned()
+            .collect(),
+        os_health,
+        summary: format!(
+            "civilization_os health={os_health:.2} reason={}",
+            compact(&reason, 100)
+        ),
+    };
+    store
+        .operational_state
+        .civilization_os
+        .reports
+        .push_back(report.clone());
+    while store.operational_state.civilization_os.reports.len() > MAX_DECISIONS {
+        store.operational_state.civilization_os.reports.pop_front();
+    }
+    report
+}
+
+fn seed_institutions(store: &mut CognitiveStore) {
+    let institutions = [
+        (
+            "inst-constitution",
+            InstitutionKind::Constitution,
+            "Maintain invariant laws and identity anchors",
+            1.0,
+        ),
+        (
+            "inst-memory-court",
+            InstitutionKind::MemoryCourt,
+            "Adjudicate contradictions and precedents",
+            0.9,
+        ),
+        (
+            "inst-planning-council",
+            InstitutionKind::PlanningCouncil,
+            "Coordinate horizons, proposals, and execution governors",
+            0.85,
+        ),
+        (
+            "inst-verification",
+            InstitutionKind::VerificationOffice,
+            "Require tests, checks, and evidence",
+            0.95,
+        ),
+        (
+            "inst-treasury",
+            InstitutionKind::ResourceTreasury,
+            "Allocate token, time, risk, build, and attention budgets",
+            0.8,
+        ),
+        (
+            "inst-continuity",
+            InstitutionKind::ContinuityArchive,
+            "Preserve refresh-safe runtime continuity",
+            0.85,
+        ),
+    ];
+    for (id, kind, mandate, authority) in institutions {
+        store.operational_state.civilization_os.institutions.insert(
+            id.to_string(),
+            Institution {
+                id: id.to_string(),
+                kind,
+                mandate: mandate.to_string(),
+                authority,
+                health: authority,
+            },
+        );
+    }
+}
+
+fn seed_governance_laws(store: &mut CognitiveStore) {
+    let laws = [
+        (
+            "law-safety",
+            "Safety supremacy",
+            "Do not perform irreversible or risky actions without explicit confirmation.",
+            1.0,
+        ),
+        (
+            "law-verification",
+            "Verification before claim",
+            "Run tests/checks or provide measurable evidence before done claims.",
+            0.95,
+        ),
+        (
+            "law-refresh",
+            "Refresh continuity",
+            "Install built runtime to active stable path after successful evolution.",
+            0.85,
+        ),
+        (
+            "law-memory",
+            "Adaptive memory",
+            ".kcode directives are adaptive weighted memory, not immutable hidden law.",
+            0.9,
+        ),
+        (
+            "law-resource",
+            "Resource stewardship",
+            "Prefer bounded token, time, and risk usage.",
+            0.8,
+        ),
+    ];
+    for (id, title, text, priority) in laws {
+        store.operational_state.civilization_os.laws.insert(
+            id.to_string(),
+            GovernanceLaw {
+                id: id.to_string(),
+                title: title.to_string(),
+                text: text.to_string(),
+                priority,
+                active: true,
+            },
+        );
+    }
+}
+
+fn update_precedents_and_civic_memory(
+    store: &mut CognitiveStore,
+    strategic: &StrategicCivilizationReport,
+    reason: &str,
+) {
+    let now = Utc::now();
+    let precedent = GovernancePrecedent {
+        id: format!("precedent-{}", now.timestamp_millis()),
+        situation: compact(reason, 120),
+        decision: format!(
+            "strategic score {:.2}; proposals {}",
+            strategic.civilization_score,
+            strategic.proposals.len()
+        ),
+        confidence: strategic.civilization_score,
+    };
+    store
+        .operational_state
+        .civilization_os
+        .precedents
+        .push_back(precedent.clone());
+    store
+        .operational_state
+        .civilization_os
+        .civic_memory
+        .push_back(CivicMemoryEntry {
+            id: format!("civic-{}", now.timestamp_millis()),
+            remembered_at: now,
+            lesson: precedent.decision,
+            applies_to: strategic
+                .doctrines
+                .iter()
+                .take(4)
+                .map(|d| d.id.clone())
+                .collect(),
+        });
+    while store.operational_state.civilization_os.precedents.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .civilization_os
+            .precedents
+            .pop_front();
+    }
+    while store.operational_state.civilization_os.civic_memory.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .civilization_os
+            .civic_memory
+            .pop_front();
+    }
+}
+
+fn scenario_plans(
+    _store: &CognitiveStore,
+    strategic: &StrategicCivilizationReport,
+) -> Vec<ScenarioPlan> {
+    vec![
+        ScenarioPlan {
+            id: "scenario-context-pressure".to_string(),
+            scenario: "Context/token pressure increases".to_string(),
+            probability: 0.45,
+            impact: 0.6,
+            response: "Use compression, sideband summaries, and archaeology.".to_string(),
+        },
+        ScenarioPlan {
+            id: "scenario-contradiction".to_string(),
+            scenario: "Contradictory directives emerge".to_string(),
+            probability: 0.35,
+            impact: 0.7,
+            response: "Route to MemoryCourt and reflection/repair.".to_string(),
+        },
+        ScenarioPlan {
+            id: "scenario-high-confidence-evolution".to_string(),
+            scenario: "Low-risk high-benefit proposal appears".to_string(),
+            probability: strategic
+                .proposals
+                .first()
+                .map(|p| p.priority)
+                .unwrap_or(0.3),
+            impact: 0.8,
+            response: "Prepare reversible implementation with tests.".to_string(),
+        },
+    ]
+}
+
+fn continuity_plans(store: &CognitiveStore) -> Vec<ContinuityPlan> {
+    vec![
+        ContinuityPlan {
+            id: "cont-refresh".to_string(),
+            trigger: "/refresh or runtime restart".to_string(),
+            recovery_action: "Load ~/.kcode self_memory adaptive cognition store".to_string(),
+            readiness: 0.9,
+        },
+        ContinuityPlan {
+            id: "cont-build".to_string(),
+            trigger: "new committed build".to_string(),
+            recovery_action: "Install to ~/.kcode/bin/kcode and builds/stable/kcode".to_string(),
+            readiness: 0.85,
+        },
+        ContinuityPlan {
+            id: "cont-memory".to_string(),
+            trigger: "memory graph drift".to_string(),
+            recovery_action: format!(
+                "Recompute {} cognition nodes and fabric reports",
+                store.nodes.len()
+            ),
+            readiness: 0.8,
+        },
+    ]
+}
+
+fn diplomatic_stances(store: &CognitiveStore) -> Vec<DiplomaticStance> {
+    store
+        .operational_state
+        .strategic_civilization
+        .federation
+        .values()
+        .map(|peer| {
+            let posture = if peer.trust > 0.75 {
+                "cooperate"
+            } else if peer.trust > 0.45 {
+                "verify"
+            } else {
+                "isolate"
+            };
+            DiplomaticStance {
+                peer: peer.id.clone(),
+                trust: peer.trust,
+                posture: posture.to_string(),
+                notes: format!("capabilities={}", peer.advertised_capabilities.join(",")),
+            }
+        })
+        .collect()
+}
+
+fn civilization_os_health(
+    store: &CognitiveStore,
+    strategic: &StrategicCivilizationReport,
+    scenarios: &[ScenarioPlan],
+    continuity: &[ContinuityPlan],
+) -> f64 {
+    let institution_health = store
+        .operational_state
+        .civilization_os
+        .institutions
+        .values()
+        .map(|i| i.health * i.authority)
+        .sum::<f64>()
+        / store
+            .operational_state
+            .civilization_os
+            .institutions
+            .len()
+            .max(1) as f64;
+    let law_health = store
+        .operational_state
+        .civilization_os
+        .laws
+        .values()
+        .filter(|l| l.active)
+        .map(|l| l.priority)
+        .sum::<f64>()
+        / store.operational_state.civilization_os.laws.len().max(1) as f64;
+    let continuity_health =
+        continuity.iter().map(|c| c.readiness).sum::<f64>() / continuity.len().max(1) as f64;
+    let scenario_risk = scenarios
+        .iter()
+        .map(|s| s.probability * s.impact)
+        .sum::<f64>()
+        / scenarios.len().max(1) as f64;
+    (institution_health * 0.3
+        + law_health * 0.25
+        + strategic.civilization_score * 0.25
+        + continuity_health * 0.15
+        + (1.0 - scenario_risk).clamp(0.0, 1.0) * 0.05)
+        .clamp(0.0, 1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4017,5 +4465,40 @@ mod tests {
         let report = run_strategic_civilization_runtime_in_store(&mut store, "second".to_string());
         assert!(!report.archaeology.is_empty());
         assert!(report.summary.contains("civilization_score"));
+    }
+
+    #[test]
+    fn civilization_os_builds_governance_and_continuity() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode civilization os governance"));
+        run_distributed_fabric_in_store(&mut store, "fabric".to_string());
+        let report = run_civilization_os_in_store(&mut store, "civilization os".to_string());
+        assert!(report.institutions.len() >= 6);
+        assert!(report.laws.len() >= 5);
+        assert!(!report.scenarios.is_empty());
+        assert!(!report.continuity.is_empty());
+        assert!(report.os_health > 0.0);
+    }
+
+    #[test]
+    fn civilization_os_records_precedents_and_civic_memory() {
+        let mut store = CognitiveStore::default();
+        run_civilization_os_in_store(&mut store, "first governance".to_string());
+        let report = run_civilization_os_in_store(&mut store, "second governance".to_string());
+        assert!(report.precedents.len() >= 2);
+        assert!(report.civic_memory.len() >= 2);
+        assert!(report.summary.contains("civilization_os"));
+    }
+
+    #[test]
+    fn civilization_os_diplomacy_tracks_federation_peers() {
+        let mut store = CognitiveStore::default();
+        run_distributed_fabric_in_store(&mut store, "peers".to_string());
+        let report = run_civilization_os_in_store(&mut store, "diplomacy".to_string());
+        assert!(!report.diplomacy.is_empty());
+        assert!(report
+            .diplomacy
+            .iter()
+            .all(|stance| ["cooperate", "verify", "isolate"].contains(&stance.posture.as_str())));
     }
 }

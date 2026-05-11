@@ -270,6 +270,18 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_civilization_os("prompt_memory_block") {
+        lines.push(format!(
+            "Civilization OS: health={:.2} institutions={} laws={} scenarios={} continuity={} diplomacy={}",
+            report.os_health,
+            report.institutions.len(),
+            report.laws.len(),
+            report.scenarios.len(),
+            report.continuity.len(),
+            report.diplomacy.len()
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
