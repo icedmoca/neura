@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use crate::adaptive_cognition::{self, CognitiveNodeKind, CognitiveScope, UpsertNode};
 use crate::memory::{MemoryCategory, MemoryEntry};
 use crate::memory_graph::{EdgeKind, MemoryGraph};
 
@@ -117,6 +118,7 @@ pub fn ingest_text(source: impl Into<String>, text: &str) -> io::Result<Vec<Kcod
 
     if !added.is_empty() {
         project_into_memory_graph(&path, &mut store, &added)?;
+        project_into_adaptive_cognition(&added)?;
     }
     recompute_adaptive_scores(&mut store);
     save_store_to_path(&path, &store)?;
@@ -133,15 +135,24 @@ pub fn record_execution_outcome(
     let path = memory_path();
     let mut store = load_store_from_path(&path)?;
     normalize_store(&mut store);
+    let source_string = source.into();
+    let summary_string = summary.into();
     let weight_delta = if success { 0.15 } else { -0.20 };
     store.execution_outcomes.push(KcodeExecutionOutcome {
         directive_id: directive_id.to_string(),
         recorded_at: Utc::now(),
-        source: source.into(),
+        source: source_string.clone(),
         success,
         weight_delta,
-        summary: summary.into(),
+        summary: summary_string.clone(),
     });
+    let _ = adaptive_cognition::link_execution_outcome(
+        directive_id,
+        success,
+        weight_delta,
+        source_string,
+        summary_string,
+    );
     recompute_adaptive_scores(&mut store);
     save_store_to_path(&path, &store)
 }
@@ -161,6 +172,23 @@ pub fn prompt_memory_block() -> Option<String> {
         "Rank remembered directives by reinforcement weight, temporal decay, contradiction score, graph traversal relevance, and execution outcomes. Prefer high-scoring directives and demote contradicted or stale directives.".to_string(),
         "Apply the following active directives recursively in future turns:".to_string(),
     ];
+
+    if let Ok(cognition_nodes) =
+        adaptive_cognition::retrieve_for_prompt(".kcode adaptive cognition memory directives", 900)
+    {
+        if !cognition_nodes.is_empty() {
+            lines.push("Adaptive cognition retrieval selected these memory node ids:".to_string());
+            for node in cognition_nodes.into_iter().take(8) {
+                lines.push(format!(
+                    "  - {} score={:.3} tokens~{} reasons={}",
+                    node.id,
+                    node.score,
+                    node.token_count_estimate,
+                    node.reasons.join(",")
+                ));
+            }
+        }
+    }
 
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
@@ -261,6 +289,32 @@ fn project_into_memory_graph(
     let json = serde_json::to_string_pretty(&graph)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
     fs::write(graph_path, json)
+}
+
+fn project_into_adaptive_cognition(directives: &[KcodeDirective]) -> io::Result<()> {
+    for directive in directives {
+        let mut provenance = BTreeMap::new();
+        provenance.insert("kcode_directive_id".to_string(), directive.id.clone());
+        provenance.insert("source".to_string(), directive.source.clone());
+        provenance.insert(
+            "compression_key".to_string(),
+            directive.compression_key.clone(),
+        );
+        provenance.insert(
+            "token_count_estimate".to_string(),
+            directive.token_count_estimate.to_string(),
+        );
+        adaptive_cognition::upsert_node(UpsertNode {
+            id_hint: directive.id.clone(),
+            kind: CognitiveNodeKind::Directive,
+            scope: CognitiveScope::Project,
+            content: directive.content.clone(),
+            tags: directive.tags.clone(),
+            source: directive.source.clone(),
+            provenance,
+        })?;
+    }
+    Ok(())
 }
 
 fn rank_directives(store: &KcodeMemoryStore) -> Vec<RankedDirective<'_>> {
