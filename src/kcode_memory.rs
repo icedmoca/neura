@@ -306,6 +306,18 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_reality_coupling("prompt_memory_block") {
+        lines.push(format!(
+            "Reality coupling: score={:.2} telemetry={} claims={} verified={} world={} entropy_sources={}",
+            report.coupling_score,
+            report.telemetry.len(),
+            report.claims.len(),
+            report.claims.iter().filter(|c| c.verified).count(),
+            report.world_state.len(),
+            report.entropy_sources.len()
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");

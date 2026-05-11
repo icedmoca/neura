@@ -812,6 +812,8 @@ pub struct OperationalCognitionState {
     pub sovereign_ecosystem: SovereignEcosystemState,
     #[serde(default)]
     pub hardening_runtime: HardeningRuntimeState,
+    #[serde(default)]
+    pub reality_coupling: RealityCouplingState,
 }
 
 impl Default for OperationalCognitionState {
@@ -832,6 +834,7 @@ impl Default for OperationalCognitionState {
             civilization_os: CivilizationOsState::default(),
             sovereign_ecosystem: SovereignEcosystemState::default(),
             hardening_runtime: HardeningRuntimeState::default(),
+            reality_coupling: RealityCouplingState::default(),
         }
     }
 }
@@ -845,6 +848,86 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum TelemetryKind {
+    FileSystem,
+    GitState,
+    BuildResult,
+    TestResult,
+    RuntimeVersion,
+    MemoryStore,
+    UserFeedback,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TelemetrySample {
+    pub id: String,
+    pub kind: TelemetryKind,
+    pub captured_at: DateTime<Utc>,
+    pub value: String,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct VerificationClaim {
+    pub id: String,
+    pub claim: String,
+    pub evidence_ids: Vec<String>,
+    pub verified: bool,
+    pub confidence: f64,
+    pub corrective_action: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PredictionCalibration {
+    pub predictor: String,
+    pub predicted: f64,
+    pub observed: f64,
+    pub error: f64,
+    pub sample_count: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct WorldStateNode {
+    pub id: String,
+    pub label: String,
+    pub evidence_ids: Vec<String>,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EntropySource {
+    pub name: String,
+    pub contribution: f64,
+    pub evidence: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RealityCouplingReport {
+    pub generated_at: DateTime<Utc>,
+    pub telemetry: Vec<TelemetrySample>,
+    pub claims: Vec<VerificationClaim>,
+    pub calibrations: Vec<PredictionCalibration>,
+    pub world_state: Vec<WorldStateNode>,
+    pub entropy_sources: Vec<EntropySource>,
+    pub coupling_score: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RealityCouplingState {
+    #[serde(default)]
+    pub telemetry: VecDeque<TelemetrySample>,
+    #[serde(default)]
+    pub claims: VecDeque<VerificationClaim>,
+    #[serde(default)]
+    pub calibrations: BTreeMap<String, PredictionCalibration>,
+    #[serde(default)]
+    pub world_state: BTreeMap<String, WorldStateNode>,
+    #[serde(default)]
+    pub reports: VecDeque<RealityCouplingReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -4905,6 +4988,276 @@ fn maturity_score(
         .clamp(0.0, 1.0)
 }
 
+pub fn run_reality_coupling(reason: impl Into<String>) -> io::Result<RealityCouplingReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_reality_coupling_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_reality_coupling_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> RealityCouplingReport {
+    let hardening = run_hardening_runtime_in_store(store, reason.clone());
+    let telemetry = collect_telemetry_samples(store, &hardening, &reason);
+    for sample in &telemetry {
+        store
+            .operational_state
+            .reality_coupling
+            .telemetry
+            .push_back(sample.clone());
+    }
+    while store.operational_state.reality_coupling.telemetry.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .reality_coupling
+            .telemetry
+            .pop_front();
+    }
+    let claims = verify_runtime_claims(store, &telemetry, &hardening);
+    for claim in &claims {
+        store
+            .operational_state
+            .reality_coupling
+            .claims
+            .push_back(claim.clone());
+    }
+    while store.operational_state.reality_coupling.claims.len() > MAX_DECISIONS {
+        store.operational_state.reality_coupling.claims.pop_front();
+    }
+    let calibrations = update_prediction_calibration(store, &hardening);
+    let world_state = update_world_state_graph(store, &telemetry);
+    let entropy_sources = reality_entropy_sources(store, &hardening);
+    let coupling_score = reality_coupling_score(&telemetry, &claims, &calibrations, &world_state);
+    let report = RealityCouplingReport {
+        generated_at: Utc::now(),
+        telemetry,
+        claims,
+        calibrations,
+        world_state,
+        entropy_sources,
+        coupling_score,
+        summary: format!(
+            "reality_coupling score={coupling_score:.2} reason={}",
+            compact(&reason, 100)
+        ),
+    };
+    store
+        .operational_state
+        .reality_coupling
+        .reports
+        .push_back(report.clone());
+    while store.operational_state.reality_coupling.reports.len() > MAX_DECISIONS {
+        store.operational_state.reality_coupling.reports.pop_front();
+    }
+    report
+}
+
+fn collect_telemetry_samples(
+    store: &CognitiveStore,
+    hardening: &HardeningReport,
+    reason: &str,
+) -> Vec<TelemetrySample> {
+    let now = Utc::now();
+    vec![
+        TelemetrySample {
+            id: format!("tel-store-{}", now.timestamp_millis()),
+            kind: TelemetryKind::MemoryStore,
+            captured_at: now,
+            value: format!(
+                "nodes={} edges={} hardening_reports={}",
+                store.nodes.len(),
+                store.edges.len(),
+                store.operational_state.hardening_runtime.reports.len()
+            ),
+            confidence: 0.9,
+        },
+        TelemetrySample {
+            id: format!("tel-hardening-{}", now.timestamp_millis()),
+            kind: TelemetryKind::RuntimeVersion,
+            captured_at: now,
+            value: format!(
+                "maturity={:.2} heartbeat={}",
+                hardening.maturity_score, hardening.pulse.heartbeat_ok
+            ),
+            confidence: 0.85,
+        },
+        TelemetrySample {
+            id: format!("tel-user-{}", now.timestamp_millis()),
+            kind: TelemetryKind::UserFeedback,
+            captured_at: now,
+            value: compact(reason, 200),
+            confidence: 0.95,
+        },
+    ]
+}
+
+fn verify_runtime_claims(
+    store: &CognitiveStore,
+    telemetry: &[TelemetrySample],
+    hardening: &HardeningReport,
+) -> Vec<VerificationClaim> {
+    let evidence_ids: Vec<String> = telemetry.iter().map(|t| t.id.clone()).collect();
+    vec![
+        VerificationClaim {
+            id: "claim-store-populated".to_string(),
+            claim: "adaptive cognition store has persisted state".to_string(),
+            evidence_ids: evidence_ids.clone(),
+            verified: !store.nodes.is_empty(),
+            confidence: if store.nodes.is_empty() { 0.2 } else { 0.85 },
+            corrective_action:
+                "If false, seed from current directive and rerun cognition initialization."
+                    .to_string(),
+        },
+        VerificationClaim {
+            id: "claim-hardening-active".to_string(),
+            claim: "hardening runtime is active and grounded".to_string(),
+            evidence_ids: evidence_ids.clone(),
+            verified: hardening.maturity_score > 0.3,
+            confidence: hardening.maturity_score,
+            corrective_action:
+                "Run hardening runtime and inspect reality anchors before broad expansion."
+                    .to_string(),
+        },
+        VerificationClaim {
+            id: "claim-heartbeat-ok".to_string(),
+            claim: "nervous-system heartbeat is OK".to_string(),
+            evidence_ids,
+            verified: hardening.pulse.heartbeat_ok,
+            confidence: if hardening.pulse.heartbeat_ok {
+                0.9
+            } else {
+                0.45
+            },
+            corrective_action:
+                "Reduce queue/node pressure through compression or garbage collection.".to_string(),
+        },
+    ]
+}
+
+fn update_prediction_calibration(
+    store: &mut CognitiveStore,
+    hardening: &HardeningReport,
+) -> Vec<PredictionCalibration> {
+    let observed = hardening.maturity_score;
+    let entries = [
+        ("hardening_maturity", observed, hardening.maturity_score),
+        (
+            "heartbeat_reliability",
+            if hardening.pulse.heartbeat_ok {
+                0.9
+            } else {
+                0.4
+            },
+            if hardening.pulse.heartbeat_ok {
+                1.0
+            } else {
+                0.0
+            },
+        ),
+    ];
+    for (name, predicted, observed) in entries {
+        let entry = store
+            .operational_state
+            .reality_coupling
+            .calibrations
+            .entry(name.to_string())
+            .or_insert(PredictionCalibration {
+                predictor: name.to_string(),
+                predicted,
+                observed,
+                error: (predicted - observed).abs(),
+                sample_count: 0,
+            });
+        entry.sample_count += 1;
+        let n = entry.sample_count as f64;
+        entry.predicted = ((entry.predicted * (n - 1.0)) + predicted) / n;
+        entry.observed = ((entry.observed * (n - 1.0)) + observed) / n;
+        entry.error = (entry.predicted - entry.observed).abs();
+    }
+    store
+        .operational_state
+        .reality_coupling
+        .calibrations
+        .values()
+        .cloned()
+        .collect()
+}
+
+fn update_world_state_graph(
+    store: &mut CognitiveStore,
+    telemetry: &[TelemetrySample],
+) -> Vec<WorldStateNode> {
+    for sample in telemetry {
+        let id = format!("world-{:?}", sample.kind).to_ascii_lowercase();
+        store.operational_state.reality_coupling.world_state.insert(
+            id.clone(),
+            WorldStateNode {
+                id,
+                label: sample.value.clone(),
+                evidence_ids: vec![sample.id.clone()],
+                confidence: sample.confidence,
+            },
+        );
+    }
+    store
+        .operational_state
+        .reality_coupling
+        .world_state
+        .values()
+        .cloned()
+        .collect()
+}
+
+fn reality_entropy_sources(
+    store: &CognitiveStore,
+    hardening: &HardeningReport,
+) -> Vec<EntropySource> {
+    vec![
+        EntropySource {
+            name: "node_pressure".to_string(),
+            contribution: (store.nodes.len() as f64 / 512.0).clamp(0.0, 1.0),
+            evidence: format!("nodes={}", store.nodes.len()),
+        },
+        EntropySource {
+            name: "queue_pressure".to_string(),
+            contribution: (hardening.pulse.pending_queues as f64 / 512.0).clamp(0.0, 1.0),
+            evidence: format!("pending={}", hardening.pulse.pending_queues),
+        },
+        EntropySource {
+            name: "ungrounded_claims".to_string(),
+            contribution: hardening
+                .delusion_checks
+                .iter()
+                .filter(|c| !c.grounded)
+                .count() as f64
+                / hardening.delusion_checks.len().max(1) as f64,
+            evidence: format!("checks={}", hardening.delusion_checks.len()),
+        },
+    ]
+}
+
+fn reality_coupling_score(
+    telemetry: &[TelemetrySample],
+    claims: &[VerificationClaim],
+    calibrations: &[PredictionCalibration],
+    world_state: &[WorldStateNode],
+) -> f64 {
+    let telemetry_score =
+        telemetry.iter().map(|t| t.confidence).sum::<f64>() / telemetry.len().max(1) as f64;
+    let claim_score =
+        claims.iter().filter(|c| c.verified).count() as f64 / claims.len().max(1) as f64;
+    let calibration_score = 1.0
+        - (calibrations.iter().map(|c| c.error).sum::<f64>() / calibrations.len().max(1) as f64)
+            .clamp(0.0, 1.0);
+    let world_score =
+        world_state.iter().map(|w| w.confidence).sum::<f64>() / world_state.len().max(1) as f64;
+    (telemetry_score * 0.25 + claim_score * 0.30 + calibration_score * 0.20 + world_score * 0.25)
+        .clamp(0.0, 1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5453,5 +5806,52 @@ mod tests {
                 .any(|c| c.claim.contains("all cognition layers") && !c.grounded)
         );
         assert!(report.immune_responses.iter().any(|r| r.quarantined));
+    }
+
+    #[test]
+    fn reality_coupling_collects_telemetry_claims_and_world_state() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode reality coupling verification"));
+        let report = run_reality_coupling_in_store(&mut store, "reality".to_string());
+        assert!(!report.telemetry.is_empty());
+        assert!(!report.claims.is_empty());
+        assert!(!report.world_state.is_empty());
+        assert!(report.coupling_score > 0.0);
+    }
+
+    #[test]
+    fn reality_coupling_calibrates_prediction_error_over_samples() {
+        let mut store = CognitiveStore::default();
+        run_reality_coupling_in_store(&mut store, "sample one".to_string());
+        let report = run_reality_coupling_in_store(&mut store, "sample two".to_string());
+        assert!(report.calibrations.iter().any(|c| c.sample_count >= 2));
+    }
+
+    #[test]
+    fn reality_coupling_surfaces_corrective_actions_for_false_claims() {
+        let store = CognitiveStore::default();
+        let hardening = HardeningReport {
+            generated_at: Utc::now(),
+            reality_anchors: Vec::new(),
+            ontology_checks: Vec::new(),
+            garbage_collection: Vec::new(),
+            pulse: NervousSystemPulse {
+                pulsed_at: Utc::now(),
+                heartbeat_ok: true,
+                store_size: 0,
+                pending_queues: 0,
+                warning: None,
+            },
+            delusion_checks: Vec::new(),
+            immune_responses: Vec::new(),
+            maturity_score: 0.0,
+            summary: String::new(),
+        };
+        let claims = verify_runtime_claims(&store, &[], &hardening);
+        assert!(
+            claims
+                .iter()
+                .any(|c| !c.verified && !c.corrective_action.is_empty())
+        );
     }
 }
