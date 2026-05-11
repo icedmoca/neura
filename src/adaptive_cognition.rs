@@ -808,6 +808,8 @@ pub struct OperationalCognitionState {
     pub strategic_civilization: StrategicCivilizationState,
     #[serde(default)]
     pub civilization_os: CivilizationOsState,
+    #[serde(default)]
+    pub sovereign_ecosystem: SovereignEcosystemState,
 }
 
 impl Default for OperationalCognitionState {
@@ -826,6 +828,7 @@ impl Default for OperationalCognitionState {
             distributed_fabric: DistributedCognitionState::default(),
             strategic_civilization: StrategicCivilizationState::default(),
             civilization_os: CivilizationOsState::default(),
+            sovereign_ecosystem: SovereignEcosystemState::default(),
         }
     }
 }
@@ -839,6 +842,112 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SovereignDomain {
+    Constitution,
+    Continuity,
+    Law,
+    Compression,
+    Economy,
+    Planning,
+    Federation,
+    Virtualization,
+    Mythos,
+    Ecosystem,
+    Archaeology,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SovereignInvariant {
+    pub id: String,
+    pub domain: SovereignDomain,
+    pub invariant: String,
+    pub strength: f64,
+    pub violation_pressure: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContinuityProtocol {
+    pub id: String,
+    pub layer: String,
+    pub checkpoint: String,
+    pub recovery_confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CompressionLaw {
+    pub id: String,
+    pub applies_to: String,
+    pub policy: String,
+    pub expected_savings: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveCurrency {
+    pub name: String,
+    pub balance: f64,
+    pub inflow: f64,
+    pub outflow: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct VirtualizedRuntimeShard {
+    pub id: String,
+    pub purpose: String,
+    pub isolation: f64,
+    pub replayable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MythosFrame {
+    pub id: String,
+    pub narrative: String,
+    pub utility: f64,
+    pub grounded: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EcosystemRelation {
+    pub from: String,
+    pub to: String,
+    pub relation: String,
+    pub strength: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SovereignEcosystemReport {
+    pub generated_at: DateTime<Utc>,
+    pub invariants: Vec<SovereignInvariant>,
+    pub continuity: Vec<ContinuityProtocol>,
+    pub compression_laws: Vec<CompressionLaw>,
+    pub currencies: Vec<CognitiveCurrency>,
+    pub runtime_shards: Vec<VirtualizedRuntimeShard>,
+    pub mythos: Vec<MythosFrame>,
+    pub relations: Vec<EcosystemRelation>,
+    pub sovereignty_score: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct SovereignEcosystemState {
+    #[serde(default)]
+    pub invariants: BTreeMap<String, SovereignInvariant>,
+    #[serde(default)]
+    pub continuity: BTreeMap<String, ContinuityProtocol>,
+    #[serde(default)]
+    pub compression_laws: BTreeMap<String, CompressionLaw>,
+    #[serde(default)]
+    pub currencies: BTreeMap<String, CognitiveCurrency>,
+    #[serde(default)]
+    pub runtime_shards: BTreeMap<String, VirtualizedRuntimeShard>,
+    #[serde(default)]
+    pub mythos: BTreeMap<String, MythosFrame>,
+    #[serde(default)]
+    pub relations: Vec<EcosystemRelation>,
+    #[serde(default)]
+    pub reports: VecDeque<SovereignEcosystemReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -4022,6 +4131,392 @@ fn civilization_os_health(
         .clamp(0.0, 1.0)
 }
 
+pub fn run_sovereign_ecosystem(reason: impl Into<String>) -> io::Result<SovereignEcosystemReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_sovereign_ecosystem_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_sovereign_ecosystem_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> SovereignEcosystemReport {
+    let os = run_civilization_os_in_store(store, reason.clone());
+    seed_sovereign_invariants(store, &os);
+    seed_continuity_protocols(store, &os);
+    seed_compression_laws(store);
+    update_cognitive_currency(store, &os);
+    update_virtualized_runtime_shards(store);
+    update_mythos_frames(store, &reason);
+    update_ecosystem_relations(store);
+    let score = sovereign_score(store, &os);
+    let report = SovereignEcosystemReport {
+        generated_at: Utc::now(),
+        invariants: store
+            .operational_state
+            .sovereign_ecosystem
+            .invariants
+            .values()
+            .cloned()
+            .collect(),
+        continuity: store
+            .operational_state
+            .sovereign_ecosystem
+            .continuity
+            .values()
+            .cloned()
+            .collect(),
+        compression_laws: store
+            .operational_state
+            .sovereign_ecosystem
+            .compression_laws
+            .values()
+            .cloned()
+            .collect(),
+        currencies: store
+            .operational_state
+            .sovereign_ecosystem
+            .currencies
+            .values()
+            .cloned()
+            .collect(),
+        runtime_shards: store
+            .operational_state
+            .sovereign_ecosystem
+            .runtime_shards
+            .values()
+            .cloned()
+            .collect(),
+        mythos: store
+            .operational_state
+            .sovereign_ecosystem
+            .mythos
+            .values()
+            .cloned()
+            .collect(),
+        relations: store
+            .operational_state
+            .sovereign_ecosystem
+            .relations
+            .clone(),
+        sovereignty_score: score,
+        summary: format!(
+            "sovereign_ecosystem score={score:.2} reason={}",
+            compact(&reason, 100)
+        ),
+    };
+    store
+        .operational_state
+        .sovereign_ecosystem
+        .reports
+        .push_back(report.clone());
+    while store.operational_state.sovereign_ecosystem.reports.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .sovereign_ecosystem
+            .reports
+            .pop_front();
+    }
+    report
+}
+
+fn seed_sovereign_invariants(store: &mut CognitiveStore, os: &CivilizationOsReport) {
+    let pressure = (1.0 - os.os_health).clamp(0.0, 1.0);
+    let items = [
+        (
+            "inv-safety",
+            SovereignDomain::Constitution,
+            "Safety and reversibility bound autonomy",
+            1.0,
+        ),
+        (
+            "inv-refresh",
+            SovereignDomain::Continuity,
+            "Runtime evolution must remain refresh-resumable",
+            0.9,
+        ),
+        (
+            "inv-memory",
+            SovereignDomain::Law,
+            ".kcode memory evolves adaptively with provenance",
+            0.9,
+        ),
+        (
+            "inv-verification",
+            SovereignDomain::Ecosystem,
+            "Claims require validation evidence",
+            0.95,
+        ),
+        (
+            "inv-resource",
+            SovereignDomain::Economy,
+            "Cognitive resources are budgeted and conserved",
+            0.85,
+        ),
+    ];
+    for (id, domain, invariant, strength) in items {
+        store
+            .operational_state
+            .sovereign_ecosystem
+            .invariants
+            .insert(
+                id.to_string(),
+                SovereignInvariant {
+                    id: id.to_string(),
+                    domain,
+                    invariant: invariant.to_string(),
+                    strength,
+                    violation_pressure: pressure * (1.0 - strength * 0.5),
+                },
+            );
+    }
+}
+
+fn seed_continuity_protocols(store: &mut CognitiveStore, os: &CivilizationOsReport) {
+    for plan in &os.continuity {
+        store
+            .operational_state
+            .sovereign_ecosystem
+            .continuity
+            .insert(
+                plan.id.clone(),
+                ContinuityProtocol {
+                    id: plan.id.clone(),
+                    layer: "civilization_os".to_string(),
+                    checkpoint: plan.recovery_action.clone(),
+                    recovery_confidence: plan.readiness,
+                },
+            );
+    }
+    store
+        .operational_state
+        .sovereign_ecosystem
+        .continuity
+        .insert(
+            "continuity-sovereign-store".to_string(),
+            ContinuityProtocol {
+                id: "continuity-sovereign-store".to_string(),
+                layer: "sovereign_ecosystem".to_string(),
+                checkpoint:
+                    "Persist under adaptive_cognition.operational_state.sovereign_ecosystem"
+                        .to_string(),
+                recovery_confidence: 0.85,
+            },
+        );
+}
+
+fn seed_compression_laws(store: &mut CognitiveStore) {
+    let laws = [
+        (
+            "compression-sideband",
+            "prompt sideband",
+            "Prefer compact status lines for civilization layers",
+            0.65,
+        ),
+        (
+            "compression-archaeology",
+            "old reports",
+            "Summarize old reports into civic/archaeology memory",
+            0.55,
+        ),
+        (
+            "compression-graph",
+            "dense graph",
+            "Use cluster summaries when entropy rises",
+            0.70,
+        ),
+    ];
+    for (id, applies_to, policy, expected_savings) in laws {
+        store
+            .operational_state
+            .sovereign_ecosystem
+            .compression_laws
+            .insert(
+                id.to_string(),
+                CompressionLaw {
+                    id: id.to_string(),
+                    applies_to: applies_to.to_string(),
+                    policy: policy.to_string(),
+                    expected_savings,
+                },
+            );
+    }
+}
+
+fn update_cognitive_currency(store: &mut CognitiveStore, os: &CivilizationOsReport) {
+    let node_pressure = (store.nodes.len() as f64 / 512.0).clamp(0.0, 1.0);
+    let currencies = [
+        ("attention", 1.0 - node_pressure, 0.15, node_pressure * 0.2),
+        ("trust", os.os_health, 0.10, (1.0 - os.os_health) * 0.15),
+        ("verification", 0.85, 0.20, 0.10),
+        ("continuity", 0.90, 0.12, 0.08),
+    ];
+    for (name, balance, inflow, outflow) in currencies {
+        store
+            .operational_state
+            .sovereign_ecosystem
+            .currencies
+            .insert(
+                name.to_string(),
+                CognitiveCurrency {
+                    name: name.to_string(),
+                    balance: balance.clamp(0.0, 1.0),
+                    inflow,
+                    outflow,
+                },
+            );
+    }
+}
+
+fn update_virtualized_runtime_shards(store: &mut CognitiveStore) {
+    let shards = [
+        (
+            "shard-memory",
+            "simulate memory retrieval/compression",
+            0.8,
+            true,
+        ),
+        (
+            "shard-planning",
+            "simulate procedural plans before execution",
+            0.75,
+            true,
+        ),
+        (
+            "shard-build",
+            "model build/install effects before applying",
+            0.85,
+            true,
+        ),
+        (
+            "shard-governance",
+            "evaluate law/doctrine impact",
+            0.7,
+            true,
+        ),
+    ];
+    for (id, purpose, isolation, replayable) in shards {
+        store
+            .operational_state
+            .sovereign_ecosystem
+            .runtime_shards
+            .insert(
+                id.to_string(),
+                VirtualizedRuntimeShard {
+                    id: id.to_string(),
+                    purpose: purpose.to_string(),
+                    isolation,
+                    replayable,
+                },
+            );
+    }
+}
+
+fn update_mythos_frames(store: &mut CognitiveStore, reason: &str) {
+    let frames = [
+        (
+            "mythos-proactive-builder",
+            "Kcode improves itself through tested, reversible, user-aligned iterations.",
+            0.85,
+            true,
+        ),
+        (
+            "mythos-memory-civilization",
+            "Memory is a living civilization of directives, laws, procedures, and precedents.",
+            0.75,
+            true,
+        ),
+        (
+            "mythos-refresh-continuity",
+            "Every build must leave a path for /refresh to continue the story.",
+            0.8,
+            true,
+        ),
+    ];
+    for (id, narrative, utility, grounded) in frames {
+        store.operational_state.sovereign_ecosystem.mythos.insert(
+            id.to_string(),
+            MythosFrame {
+                id: id.to_string(),
+                narrative: format!("{} Context: {}", narrative, compact(reason, 60)),
+                utility,
+                grounded,
+            },
+        );
+    }
+}
+
+fn update_ecosystem_relations(store: &mut CognitiveStore) {
+    let mut relations = Vec::new();
+    for inst in store.operational_state.civilization_os.institutions.keys() {
+        relations.push(EcosystemRelation {
+            from: inst.clone(),
+            to: "doctrine-safety".to_string(),
+            relation: "upholds".to_string(),
+            strength: 0.7,
+        });
+    }
+    for shard in store
+        .operational_state
+        .sovereign_ecosystem
+        .runtime_shards
+        .keys()
+    {
+        relations.push(EcosystemRelation {
+            from: shard.clone(),
+            to: "continuity-sovereign-store".to_string(),
+            relation: "rehearses".to_string(),
+            strength: 0.65,
+        });
+    }
+    store.operational_state.sovereign_ecosystem.relations = relations;
+}
+
+fn sovereign_score(store: &CognitiveStore, os: &CivilizationOsReport) -> f64 {
+    let inv = store
+        .operational_state
+        .sovereign_ecosystem
+        .invariants
+        .values()
+        .map(|i| i.strength * (1.0 - i.violation_pressure))
+        .sum::<f64>()
+        / store
+            .operational_state
+            .sovereign_ecosystem
+            .invariants
+            .len()
+            .max(1) as f64;
+    let cont = store
+        .operational_state
+        .sovereign_ecosystem
+        .continuity
+        .values()
+        .map(|c| c.recovery_confidence)
+        .sum::<f64>()
+        / store
+            .operational_state
+            .sovereign_ecosystem
+            .continuity
+            .len()
+            .max(1) as f64;
+    let currency = store
+        .operational_state
+        .sovereign_ecosystem
+        .currencies
+        .values()
+        .map(|c| (c.balance + c.inflow - c.outflow).clamp(0.0, 1.0))
+        .sum::<f64>()
+        / store
+            .operational_state
+            .sovereign_ecosystem
+            .currencies
+            .len()
+            .max(1) as f64;
+    (inv * 0.35 + cont * 0.25 + currency * 0.20 + os.os_health * 0.20).clamp(0.0, 1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4500,5 +4995,38 @@ mod tests {
             .diplomacy
             .iter()
             .all(|stance| ["cooperate", "verify", "isolate"].contains(&stance.posture.as_str())));
+    }
+
+    #[test]
+    fn sovereign_ecosystem_builds_invariants_and_economy() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode sovereign ecosystem constitution economy"),
+        );
+        let report = run_sovereign_ecosystem_in_store(&mut store, "sovereign".to_string());
+        assert!(report.invariants.len() >= 5);
+        assert!(report.continuity.len() >= 3);
+        assert!(report.compression_laws.len() >= 3);
+        assert!(report.currencies.len() >= 4);
+        assert!(report.sovereignty_score > 0.0);
+    }
+
+    #[test]
+    fn sovereign_ecosystem_creates_virtual_shards_mythos_and_relations() {
+        let mut store = CognitiveStore::default();
+        run_sovereign_ecosystem_in_store(&mut store, "virtualization mythos".to_string());
+        let report = run_sovereign_ecosystem_in_store(&mut store, "relations".to_string());
+        assert!(report.runtime_shards.iter().all(|s| s.replayable));
+        assert!(report.mythos.iter().all(|m| m.grounded));
+        assert!(!report.relations.is_empty());
+    }
+
+    #[test]
+    fn sovereign_ecosystem_reports_are_persisted() {
+        let mut store = CognitiveStore::default();
+        run_sovereign_ecosystem_in_store(&mut store, "first".to_string());
+        run_sovereign_ecosystem_in_store(&mut store, "second".to_string());
+        assert!(store.operational_state.sovereign_ecosystem.reports.len() >= 2);
     }
 }

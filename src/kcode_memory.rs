@@ -282,6 +282,18 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_sovereign_ecosystem("prompt_memory_block") {
+        lines.push(format!(
+            "Sovereign ecosystem: score={:.2} invariants={} continuity={} currencies={} shards={} mythos={}",
+            report.sovereignty_score,
+            report.invariants.len(),
+            report.continuity.len(),
+            report.currencies.len(),
+            report.runtime_shards.len(),
+            report.mythos.len()
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
