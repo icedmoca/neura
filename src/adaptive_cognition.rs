@@ -151,6 +151,8 @@ pub struct CognitiveStore {
     pub execution_signals: Vec<ExecutionSignal>,
     #[serde(default)]
     pub retrieval_decisions: VecDeque<RetrievalDecision>,
+    #[serde(default)]
+    pub operational_state: OperationalCognitionState,
 }
 
 impl Default for CognitiveStore {
@@ -161,6 +163,7 @@ impl Default for CognitiveStore {
             edges: Vec::new(),
             execution_signals: Vec::new(),
             retrieval_decisions: VecDeque::new(),
+            operational_state: OperationalCognitionState::default(),
         }
     }
 }
@@ -685,6 +688,139 @@ fn default_half_life() -> f64 {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum OperationalMode {
+    Observe,
+    Retrieve,
+    Plan,
+    Execute,
+    Reflect,
+    Compress,
+    Repair,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum OperationalTaskKind {
+    Reinforce,
+    Decay,
+    ContradictionAudit,
+    StabilityAudit,
+    EntropyAudit,
+    Compression,
+    Reflection,
+    Snapshot,
+    SandboxDryRun,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalPolicy {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_entropy_threshold")]
+    pub entropy_threshold: f64,
+    #[serde(default = "default_stability_floor")]
+    pub stability_floor: f64,
+    #[serde(default = "default_max_tasks_per_cycle")]
+    pub max_tasks_per_cycle: usize,
+    #[serde(default = "default_snapshot_interval_minutes")]
+    pub snapshot_interval_minutes: i64,
+    #[serde(default)]
+    pub sandbox_required_for_destructive_actions: bool,
+}
+
+impl Default for OperationalPolicy {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            entropy_threshold: 0.72,
+            stability_floor: 0.45,
+            max_tasks_per_cycle: 8,
+            snapshot_interval_minutes: 30,
+            sandbox_required_for_destructive_actions: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalTask {
+    pub id: String,
+    pub kind: OperationalTaskKind,
+    pub created_at: DateTime<Utc>,
+    pub due_at: DateTime<Utc>,
+    #[serde(default = "default_one")]
+    pub priority: f64,
+    #[serde(default)]
+    pub target_node_ids: Vec<String>,
+    #[serde(default)]
+    pub reason: String,
+    #[serde(default)]
+    pub completed_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub outcome: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalCycleRecord {
+    pub recorded_at: DateTime<Utc>,
+    pub mode: OperationalMode,
+    pub entropy: f64,
+    pub stability: f64,
+    pub scheduled: usize,
+    pub executed: usize,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitionSnapshotRef {
+    pub id: String,
+    pub created_at: DateTime<Utc>,
+    pub node_count: usize,
+    pub edge_count: usize,
+    pub stability_score: f64,
+    pub entropy_score: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalCognitionState {
+    #[serde(default)]
+    pub policy: OperationalPolicy,
+    #[serde(default)]
+    pub active_mode: Option<OperationalMode>,
+    #[serde(default)]
+    pub task_queue: VecDeque<OperationalTask>,
+    #[serde(default)]
+    pub cycle_history: VecDeque<OperationalCycleRecord>,
+    #[serde(default)]
+    pub snapshots: Vec<CognitionSnapshotRef>,
+    #[serde(default)]
+    pub last_cycle_at: Option<DateTime<Utc>>,
+}
+
+impl Default for OperationalCognitionState {
+    fn default() -> Self {
+        Self {
+            policy: OperationalPolicy::default(),
+            active_mode: None,
+            task_queue: VecDeque::new(),
+            cycle_history: VecDeque::new(),
+            snapshots: Vec::new(),
+            last_cycle_at: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalCycleReport {
+    pub mode: OperationalMode,
+    pub entropy: f64,
+    pub stability: f64,
+    pub scheduled_tasks: Vec<OperationalTask>,
+    pub executed_tasks: Vec<OperationalTask>,
+    pub snapshot: Option<CognitionSnapshotRef>,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ObservationLayer {
     Raw,
     Signals,
@@ -1157,6 +1293,417 @@ fn escape_attr(text: &str) -> String {
         .replace('>', "&gt;")
 }
 
+pub fn run_operational_cycle(reason: impl Into<String>) -> io::Result<OperationalCycleReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_operational_cycle_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_operational_cycle_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> OperationalCycleReport {
+    evolve_store(store);
+    let now = Utc::now();
+    let clusters = cognition_clusters(store);
+    let stability = cognition_stability(store, &clusters);
+    let entropy = cognition_entropy(store, &clusters);
+    let mode = arbitrate_operational_mode(store, entropy, stability);
+    let scheduled_tasks =
+        schedule_operational_tasks(store, &mode, entropy, stability, &reason, now);
+    let executed_tasks = execute_due_operational_tasks(store, now);
+    let snapshot = maybe_create_operational_snapshot(store, entropy, stability, now);
+    let summary = format!(
+        "mode={mode:?} entropy={entropy:.2} stability={stability:.2} scheduled={} executed={} reason={}",
+        scheduled_tasks.len(),
+        executed_tasks.len(),
+        compact(&reason, 120)
+    );
+    store.operational_state.active_mode = Some(mode.clone());
+    store.operational_state.last_cycle_at = Some(now);
+    store
+        .operational_state
+        .cycle_history
+        .push_back(OperationalCycleRecord {
+            recorded_at: now,
+            mode: mode.clone(),
+            entropy,
+            stability,
+            scheduled: scheduled_tasks.len(),
+            executed: executed_tasks.len(),
+            summary: summary.clone(),
+        });
+    while store.operational_state.cycle_history.len() > MAX_DECISIONS {
+        store.operational_state.cycle_history.pop_front();
+    }
+    OperationalCycleReport {
+        mode,
+        entropy,
+        stability,
+        scheduled_tasks,
+        executed_tasks,
+        snapshot,
+        summary,
+    }
+}
+
+pub fn export_operational_runtime_json() -> io::Result<String> {
+    let mut store = load_store()?;
+    let report =
+        run_operational_cycle_in_store(&mut store, "export_operational_runtime_json".to_string());
+    let snapshot = observable_snapshot_from_store(&store, RenderOptions::default());
+    serde_json::json!({
+        "report": report,
+        "observable_snapshot": snapshot,
+        "operational_state": store.operational_state,
+    })
+    .to_string()
+    .pipe_pretty_json()
+}
+
+fn arbitrate_operational_mode(
+    store: &CognitiveStore,
+    entropy: f64,
+    stability: f64,
+) -> OperationalMode {
+    let policy = &store.operational_state.policy;
+    if !policy.enabled {
+        return OperationalMode::Observe;
+    }
+    if stability < policy.stability_floor {
+        OperationalMode::Repair
+    } else if entropy > policy.entropy_threshold {
+        OperationalMode::Compress
+    } else if store
+        .nodes
+        .values()
+        .any(|node| node.weights.contradiction > 0.5)
+    {
+        OperationalMode::Reflect
+    } else if store
+        .execution_signals
+        .iter()
+        .rev()
+        .take(8)
+        .any(|s| !s.success)
+    {
+        OperationalMode::Plan
+    } else {
+        OperationalMode::Retrieve
+    }
+}
+
+fn schedule_operational_tasks(
+    store: &mut CognitiveStore,
+    mode: &OperationalMode,
+    entropy: f64,
+    stability: f64,
+    reason: &str,
+    now: DateTime<Utc>,
+) -> Vec<OperationalTask> {
+    let mut tasks = Vec::new();
+    let policy = store.operational_state.policy.clone();
+    let mut push =
+        |kind: OperationalTaskKind, priority: f64, target_node_ids: Vec<String>, why: String| {
+            if tasks.len() >= policy.max_tasks_per_cycle {
+                return;
+            }
+            let id = format!("op-{}-{}", now.timestamp_millis(), tasks.len());
+            tasks.push(OperationalTask {
+                id,
+                kind,
+                created_at: now,
+                due_at: now,
+                priority,
+                target_node_ids,
+                reason: why,
+                completed_at: None,
+                outcome: None,
+            });
+        };
+    match mode {
+        OperationalMode::Repair => {
+            let targets = store
+                .nodes
+                .values()
+                .filter(|n| n.weights.contradiction > 0.25)
+                .map(|n| n.id.clone())
+                .take(8)
+                .collect();
+            push(
+                OperationalTaskKind::ContradictionAudit,
+                1.0,
+                targets,
+                format!("low stability {stability:.2}: {reason}"),
+            );
+            push(
+                OperationalTaskKind::StabilityAudit,
+                0.9,
+                Vec::new(),
+                "repair stability audit".to_string(),
+            );
+        }
+        OperationalMode::Compress => {
+            push(
+                OperationalTaskKind::EntropyAudit,
+                1.0,
+                Vec::new(),
+                format!("high entropy {entropy:.2}"),
+            );
+            push(
+                OperationalTaskKind::Compression,
+                0.8,
+                Vec::new(),
+                "summarize dense cognition clusters".to_string(),
+            );
+        }
+        OperationalMode::Reflect => {
+            push(
+                OperationalTaskKind::Reflection,
+                0.8,
+                Vec::new(),
+                "reflect on contradictions and stale directives".to_string(),
+            );
+        }
+        OperationalMode::Plan => {
+            push(
+                OperationalTaskKind::SandboxDryRun,
+                0.75,
+                Vec::new(),
+                "plan after failed execution signals".to_string(),
+            );
+        }
+        OperationalMode::Retrieve | OperationalMode::Observe | OperationalMode::Execute => {
+            push(
+                OperationalTaskKind::Reinforce,
+                0.5,
+                Vec::new(),
+                "routine reinforcement/decay pass".to_string(),
+            );
+            push(
+                OperationalTaskKind::Decay,
+                0.4,
+                Vec::new(),
+                "routine temporal decay pass".to_string(),
+            );
+        }
+    }
+    let need_snapshot = store
+        .operational_state
+        .snapshots
+        .last()
+        .map(|s| (now - s.created_at).num_minutes() >= policy.snapshot_interval_minutes)
+        .unwrap_or(true);
+    if need_snapshot {
+        push(
+            OperationalTaskKind::Snapshot,
+            0.6,
+            Vec::new(),
+            "periodic runtime snapshot".to_string(),
+        );
+    }
+    tasks.sort_by(|a, b| {
+        b.priority
+            .partial_cmp(&a.priority)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    for task in &tasks {
+        store.operational_state.task_queue.push_back(task.clone());
+    }
+    tasks
+}
+
+fn execute_due_operational_tasks(
+    store: &mut CognitiveStore,
+    now: DateTime<Utc>,
+) -> Vec<OperationalTask> {
+    let mut executed = Vec::new();
+    let mut remaining = VecDeque::new();
+    while let Some(mut task) = store.operational_state.task_queue.pop_front() {
+        if task.due_at <= now {
+            execute_operational_task(store, &mut task, now);
+            executed.push(task);
+        } else {
+            remaining.push_back(task);
+        }
+    }
+    store.operational_state.task_queue = remaining;
+    executed
+}
+
+fn execute_operational_task(
+    store: &mut CognitiveStore,
+    task: &mut OperationalTask,
+    now: DateTime<Utc>,
+) {
+    match task.kind {
+        OperationalTaskKind::Reinforce => {
+            for node in store
+                .nodes
+                .values_mut()
+                .filter(|n| n.last_used_at.is_some())
+            {
+                node.weights.reinforcement = (node.weights.reinforcement + 0.01).clamp(0.0, 10.0);
+            }
+            task.outcome = Some("reinforced recently-used nodes".to_string());
+        }
+        OperationalTaskKind::Decay => {
+            for node in store.nodes.values_mut() {
+                let decay = temporal_decay(node, now);
+                if decay < 0.5 {
+                    node.weights.confidence = (node.weights.confidence * 0.99).clamp(0.1, 1.0);
+                }
+            }
+            task.outcome = Some("applied confidence decay to stale nodes".to_string());
+        }
+        OperationalTaskKind::ContradictionAudit | OperationalTaskKind::StabilityAudit => {
+            recompute_edges(store);
+            recompute_weights(store);
+            task.outcome = Some("recomputed graph contradiction/stability weights".to_string());
+        }
+        OperationalTaskKind::EntropyAudit | OperationalTaskKind::Compression => {
+            let clusters = cognition_clusters(store);
+            let summary = format!(
+                "clusters={} entropy={:.2}",
+                clusters.len(),
+                cognition_entropy(store, &clusters)
+            );
+            task.outcome = Some(summary.clone());
+            if matches!(task.kind, OperationalTaskKind::Compression) && !clusters.is_empty() {
+                let content = clusters
+                    .iter()
+                    .take(6)
+                    .map(|c| format!("{}:{}", c.id, c.centroid_tokens.join(",")))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                let mut provenance = BTreeMap::new();
+                provenance.insert("operational_task".to_string(), task.id.clone());
+                upsert_node_in_store(
+                    store,
+                    UpsertNode {
+                        id_hint: task.id.clone(),
+                        kind: CognitiveNodeKind::CompressionSummary,
+                        scope: CognitiveScope::Project,
+                        content,
+                        tags: vec!["compression".to_string(), "operational-runtime".to_string()],
+                        source: "operational_cognition".to_string(),
+                        provenance,
+                    },
+                );
+            }
+        }
+        OperationalTaskKind::Reflection => {
+            task.outcome = Some(
+                "reflection scheduled; prompt retrieval will surface contradicted nodes"
+                    .to_string(),
+            );
+        }
+        OperationalTaskKind::Snapshot => {
+            task.outcome = Some("snapshot handled by cycle".to_string());
+        }
+        OperationalTaskKind::SandboxDryRun => {
+            task.outcome =
+                Some("sandbox metadata recorded; no destructive action executed".to_string());
+        }
+    }
+    task.completed_at = Some(now);
+}
+
+fn maybe_create_operational_snapshot(
+    store: &mut CognitiveStore,
+    entropy: f64,
+    stability: f64,
+    now: DateTime<Utc>,
+) -> Option<CognitionSnapshotRef> {
+    let policy = &store.operational_state.policy;
+    let needed = store
+        .operational_state
+        .snapshots
+        .last()
+        .map(|s| (now - s.created_at).num_minutes() >= policy.snapshot_interval_minutes)
+        .unwrap_or(true);
+    if !needed {
+        return None;
+    }
+    let snapshot = CognitionSnapshotRef {
+        id: format!("snap-{}", now.timestamp_millis()),
+        created_at: now,
+        node_count: store.nodes.len(),
+        edge_count: store.edges.len(),
+        stability_score: stability,
+        entropy_score: entropy,
+        summary: format!(
+            "nodes={} edges={} stability={stability:.2} entropy={entropy:.2}",
+            store.nodes.len(),
+            store.edges.len()
+        ),
+    };
+    store.operational_state.snapshots.push(snapshot.clone());
+    if store.operational_state.snapshots.len() > 128 {
+        let excess = store.operational_state.snapshots.len() - 128;
+        store.operational_state.snapshots.drain(0..excess);
+    }
+    Some(snapshot)
+}
+
+fn cognition_entropy(store: &CognitiveStore, clusters: &[CognitionCluster]) -> f64 {
+    if store.nodes.is_empty() {
+        return 0.0;
+    }
+    let cluster_spread = if clusters.is_empty() {
+        0.0
+    } else {
+        let total = store.nodes.len() as f64;
+        let mut entropy = 0.0;
+        for cluster in clusters {
+            let p = cluster.node_ids.len() as f64 / total;
+            if p > 0.0 {
+                entropy -= p * p.log2();
+            }
+        }
+        let max_entropy = (clusters.len() as f64).log2().max(1.0);
+        entropy / max_entropy
+    };
+    let contradiction = store
+        .nodes
+        .values()
+        .map(|n| n.weights.contradiction)
+        .sum::<f64>()
+        / store.nodes.len() as f64;
+    (cluster_spread * 0.7 + contradiction.clamp(0.0, 1.0) * 0.3).clamp(0.0, 1.0)
+}
+
+trait PrettyJsonPipe {
+    fn pipe_pretty_json(self) -> io::Result<String>;
+}
+
+impl PrettyJsonPipe for String {
+    fn pipe_pretty_json(self) -> io::Result<String> {
+        let value: serde_json::Value = serde_json::from_str(&self)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+        serde_json::to_string_pretty(&value)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+fn default_entropy_threshold() -> f64 {
+    0.72
+}
+fn default_stability_floor() -> f64 {
+    0.45
+}
+fn default_max_tasks_per_cycle() -> usize {
+    8
+}
+fn default_snapshot_interval_minutes() -> i64 {
+    30
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1282,5 +1829,56 @@ mod tests {
                 .iter()
                 .all(|frame| frame.token_count_estimate <= 1_600)
         );
+    }
+
+    #[test]
+    fn operational_cycle_schedules_executes_and_snapshots() {
+        let mut store = CognitiveStore::default();
+        store.operational_state.policy.max_tasks_per_cycle = 4;
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode operational cognition runtime scheduling"),
+        );
+        evolve_store(&mut store);
+        let report = run_operational_cycle_in_store(&mut store, "test cycle".to_string());
+        assert!(!report.scheduled_tasks.is_empty());
+        assert!(!report.executed_tasks.is_empty());
+        assert!(report.snapshot.is_some());
+        assert!(store.operational_state.last_cycle_at.is_some());
+        assert!(!store.operational_state.cycle_history.is_empty());
+    }
+
+    #[test]
+    fn operational_mode_repairs_unstable_contradictions() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert("always remember .kcode operational memory"),
+        );
+        upsert_node_in_store(
+            &mut store,
+            upsert("never remember .kcode operational memory"),
+        );
+        evolve_store(&mut store);
+        store.operational_state.policy.stability_floor = 0.99;
+        let report =
+            run_operational_cycle_in_store(&mut store, "repair contradictions".to_string());
+        assert!(matches!(report.mode, OperationalMode::Repair));
+        assert!(
+            report
+                .scheduled_tasks
+                .iter()
+                .any(|task| matches!(task.kind, OperationalTaskKind::ContradictionAudit))
+        );
+    }
+
+    #[test]
+    fn operational_json_export_shape_is_serializable() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode runtime export serialization"));
+        let report = run_operational_cycle_in_store(&mut store, "json test".to_string());
+        let json = serde_json::to_string(&report).unwrap();
+        assert!(json.contains("entropy"));
+        assert!(json.contains("scheduled_tasks"));
     }
 }

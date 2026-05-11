@@ -201,6 +201,17 @@ pub fn prompt_memory_block() -> Option<String> {
         lines.push(format!("Observable cognition sideband: {sideband}"));
     }
 
+    if let Ok(report) = adaptive_cognition::run_operational_cycle("prompt_memory_block") {
+        lines.push(format!(
+            "Operational cognition runtime: mode={:?} entropy={:.2} stability={:.2} scheduled={} executed={}",
+            report.mode,
+            report.entropy,
+            report.stability,
+            report.scheduled_tasks.len(),
+            report.executed_tasks.len()
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
