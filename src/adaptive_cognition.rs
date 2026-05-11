@@ -798,6 +798,8 @@ pub struct OperationalCognitionState {
     pub execution_plans: VecDeque<CognitionExecutionPlan>,
     #[serde(default)]
     pub governor_reports: VecDeque<ExecutionGovernorReport>,
+    #[serde(default)]
+    pub procedural_runtime: ProceduralRuntimeState,
 }
 
 impl Default for OperationalCognitionState {
@@ -811,6 +813,7 @@ impl Default for OperationalCognitionState {
             last_cycle_at: None,
             execution_plans: VecDeque::new(),
             governor_reports: VecDeque::new(),
+            procedural_runtime: ProceduralRuntimeState::default(),
         }
     }
 }
@@ -824,6 +827,109 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ProcedureStatus {
+    Candidate,
+    Active,
+    Deprecated,
+    Quarantined,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ProcedureStepKind {
+    Observe,
+    Retrieve,
+    Plan,
+    ActDryRun,
+    Verify,
+    Reflect,
+    Record,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProcedureStep {
+    pub kind: ProcedureStepKind,
+    pub description: String,
+    pub expected_signal: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LearnedProcedure {
+    pub id: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub name: String,
+    pub trigger_tags: Vec<String>,
+    pub steps: Vec<ProcedureStep>,
+    pub status: ProcedureStatus,
+    pub confidence: f64,
+    pub success_count: u64,
+    pub failure_count: u64,
+    pub lineage: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AutonomyDoctrine {
+    #[serde(default = "default_true")]
+    pub require_dry_run_for_code_changes: bool,
+    #[serde(default = "default_true")]
+    pub require_tests_before_install: bool,
+    #[serde(default = "default_true")]
+    pub require_commit_before_build_install: bool,
+    #[serde(default = "default_autonomy_limit")]
+    pub max_autonomous_risk: f64,
+}
+
+impl Default for AutonomyDoctrine {
+    fn default() -> Self {
+        Self {
+            require_dry_run_for_code_changes: true,
+            require_tests_before_install: true,
+            require_commit_before_build_install: true,
+            max_autonomous_risk: 0.35,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OutcomePrediction {
+    pub procedure_id: String,
+    pub predicted_success: f64,
+    pub predicted_risk: f64,
+    pub rationale: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProceduralRuntimeReport {
+    pub generated_at: DateTime<Utc>,
+    pub procedure_count: usize,
+    pub active_procedure_count: usize,
+    pub predictions: Vec<OutcomePrediction>,
+    pub selected_procedure_ids: Vec<String>,
+    pub safety_notes: Vec<String>,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProceduralRuntimeState {
+    #[serde(default)]
+    pub doctrine: AutonomyDoctrine,
+    #[serde(default)]
+    pub procedures: BTreeMap<String, LearnedProcedure>,
+    #[serde(default)]
+    pub reports: VecDeque<ProceduralRuntimeReport>,
+}
+
+impl Default for ProceduralRuntimeState {
+    fn default() -> Self {
+        Self {
+            doctrine: AutonomyDoctrine::default(),
+            procedures: BTreeMap::new(),
+            reports: VecDeque::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -2101,6 +2207,251 @@ fn cognition_health_score(store: &CognitiveStore, entropy: f64, stability: f64) 
         .clamp(0.0, 1.0)
 }
 
+pub fn run_procedural_runtime(reason: impl Into<String>) -> io::Result<ProceduralRuntimeReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_procedural_runtime_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_procedural_runtime_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> ProceduralRuntimeReport {
+    evolve_store(store);
+    synthesize_learned_procedures(store);
+    update_procedure_outcomes(store);
+    let predictions = predict_procedure_outcomes(store, &reason);
+    let selected_procedure_ids = arbitrate_procedures(store, &predictions);
+    let safety_notes = procedural_safety_notes(store, &selected_procedure_ids);
+    let active_procedure_count = store
+        .operational_state
+        .procedural_runtime
+        .procedures
+        .values()
+        .filter(|p| matches!(p.status, ProcedureStatus::Active))
+        .count();
+    let summary = format!(
+        "procedures={} active={} selected={} reason={}",
+        store.operational_state.procedural_runtime.procedures.len(),
+        active_procedure_count,
+        selected_procedure_ids.len(),
+        compact(&reason, 120)
+    );
+    let report = ProceduralRuntimeReport {
+        generated_at: Utc::now(),
+        procedure_count: store.operational_state.procedural_runtime.procedures.len(),
+        active_procedure_count,
+        predictions,
+        selected_procedure_ids,
+        safety_notes,
+        summary,
+    };
+    store
+        .operational_state
+        .procedural_runtime
+        .reports
+        .push_back(report.clone());
+    while store.operational_state.procedural_runtime.reports.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .procedural_runtime
+            .reports
+            .pop_front();
+    }
+    report
+}
+
+fn synthesize_learned_procedures(store: &mut CognitiveStore) {
+    let now = Utc::now();
+    let clusters = cognition_clusters(store);
+    for cluster in clusters.into_iter().take(16) {
+        let id = format!(
+            "proc-{}",
+            cluster.id.replace(|c: char| !c.is_alphanumeric(), "-")
+        );
+        let name = format!(
+            "Procedure for {}",
+            cluster
+                .tags
+                .first()
+                .cloned()
+                .unwrap_or_else(|| cluster.id.clone())
+        );
+        let steps = vec![
+            ProcedureStep {
+                kind: ProcedureStepKind::Observe,
+                description: "Inspect relevant cognition nodes and current task context"
+                    .to_string(),
+                expected_signal: "context loaded".to_string(),
+            },
+            ProcedureStep {
+                kind: ProcedureStepKind::Retrieve,
+                description: "Retrieve high-scoring memory and graph neighbors".to_string(),
+                expected_signal: "retrieval decision recorded".to_string(),
+            },
+            ProcedureStep {
+                kind: ProcedureStepKind::Plan,
+                description: "Create a risk-bounded execution plan".to_string(),
+                expected_signal: "governor plan available".to_string(),
+            },
+            ProcedureStep {
+                kind: ProcedureStepKind::ActDryRun,
+                description: "Prefer dry-run or reversible action first".to_string(),
+                expected_signal: "safe action result".to_string(),
+            },
+            ProcedureStep {
+                kind: ProcedureStepKind::Verify,
+                description: "Run tests or objective validation".to_string(),
+                expected_signal: "validation evidence".to_string(),
+            },
+            ProcedureStep {
+                kind: ProcedureStepKind::Record,
+                description: "Record execution outcome into cognition memory".to_string(),
+                expected_signal: "outcome linked".to_string(),
+            },
+        ];
+        let proc = store
+            .operational_state
+            .procedural_runtime
+            .procedures
+            .entry(id.clone())
+            .or_insert_with(|| LearnedProcedure {
+                id: id.clone(),
+                created_at: now,
+                updated_at: now,
+                name,
+                trigger_tags: cluster.tags.clone(),
+                steps,
+                status: ProcedureStatus::Candidate,
+                confidence: cluster.stability_score,
+                success_count: 0,
+                failure_count: 0,
+                lineage: cluster.node_ids.clone(),
+            });
+        proc.updated_at = now;
+        proc.trigger_tags = cluster.tags.clone();
+        proc.lineage = cluster.node_ids.clone();
+        proc.confidence = ((proc.confidence + cluster.stability_score) / 2.0).clamp(0.0, 1.0);
+        if proc.confidence >= 0.45 && !matches!(proc.status, ProcedureStatus::Quarantined) {
+            proc.status = ProcedureStatus::Active;
+        }
+    }
+}
+
+fn update_procedure_outcomes(store: &mut CognitiveStore) {
+    let signals = store.execution_signals.clone();
+    for procedure in store
+        .operational_state
+        .procedural_runtime
+        .procedures
+        .values_mut()
+    {
+        let mut success = 0;
+        let mut failure = 0;
+        for signal in &signals {
+            if procedure.lineage.iter().any(|id| id == &signal.node_id) {
+                if signal.success {
+                    success += 1;
+                } else {
+                    failure += 1;
+                }
+            }
+        }
+        procedure.success_count = success;
+        procedure.failure_count = failure;
+        let total = success + failure;
+        if total > 0 {
+            procedure.confidence = (success as f64 / total as f64).clamp(0.0, 1.0);
+        }
+        if failure > success + 2 {
+            procedure.status = ProcedureStatus::Quarantined;
+        }
+    }
+}
+
+fn predict_procedure_outcomes(store: &CognitiveStore, reason: &str) -> Vec<OutcomePrediction> {
+    let query_tokens = salient_tokens(reason);
+    let mut predictions = Vec::new();
+    for procedure in store
+        .operational_state
+        .procedural_runtime
+        .procedures
+        .values()
+    {
+        if matches!(
+            procedure.status,
+            ProcedureStatus::Deprecated | ProcedureStatus::Quarantined
+        ) {
+            continue;
+        }
+        let trigger_overlap = token_overlap_ratio(&procedure.trigger_tags, &query_tokens);
+        let total = procedure.success_count + procedure.failure_count;
+        let history = if total == 0 {
+            0.5
+        } else {
+            procedure.success_count as f64 / total as f64
+        };
+        let predicted_success =
+            (procedure.confidence * 0.55 + history * 0.25 + trigger_overlap * 0.20).clamp(0.0, 1.0);
+        let predicted_risk = (1.0 - predicted_success).clamp(0.0, 1.0) * 0.5;
+        predictions.push(OutcomePrediction {
+            procedure_id: procedure.id.clone(),
+            predicted_success,
+            predicted_risk,
+            rationale: format!(
+                "confidence={:.2} history={:.2} trigger_overlap={:.2}",
+                procedure.confidence, history, trigger_overlap
+            ),
+        });
+    }
+    predictions.sort_by(|a, b| {
+        (b.predicted_success - b.predicted_risk)
+            .partial_cmp(&(a.predicted_success - a.predicted_risk))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    predictions
+}
+
+fn arbitrate_procedures(store: &CognitiveStore, predictions: &[OutcomePrediction]) -> Vec<String> {
+    let max_risk = store
+        .operational_state
+        .procedural_runtime
+        .doctrine
+        .max_autonomous_risk;
+    predictions
+        .iter()
+        .filter(|p| p.predicted_risk <= max_risk && p.predicted_success >= 0.35)
+        .take(5)
+        .map(|p| p.procedure_id.clone())
+        .collect()
+}
+
+fn procedural_safety_notes(store: &CognitiveStore, selected: &[String]) -> Vec<String> {
+    let doctrine = &store.operational_state.procedural_runtime.doctrine;
+    let mut notes = Vec::new();
+    if doctrine.require_dry_run_for_code_changes {
+        notes.push("code-affecting procedures require dry-run/reversible first action".to_string());
+    }
+    if doctrine.require_tests_before_install {
+        notes.push("install/build procedures require tests or cargo check first".to_string());
+    }
+    if doctrine.require_commit_before_build_install {
+        notes.push(
+            "source changes should be committed before build/install when feasible".to_string(),
+        );
+    }
+    if selected.is_empty() {
+        notes.push("no procedure selected; fall back to governor planning".to_string());
+    }
+    notes
+}
+
+fn default_autonomy_limit() -> f64 {
+    0.35
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2328,5 +2679,79 @@ mod tests {
         let (applied, blocked) = apply_execution_plan(&mut store, &plan);
         assert!(applied.len() <= 1);
         assert!(!blocked.is_empty() || plan.actions.iter().all(|a| a.risk <= 0.01));
+    }
+
+    #[test]
+    fn procedural_runtime_synthesizes_and_selects_procedures() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode procedural intelligence runtime memory"),
+        );
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode procedural intelligence runtime testing"),
+        );
+        evolve_store(&mut store);
+        let report =
+            run_procedural_runtime_in_store(&mut store, "procedural intelligence".to_string());
+        assert!(report.procedure_count > 0);
+        assert!(report.active_procedure_count > 0);
+        assert!(!report.predictions.is_empty());
+        assert!(
+            !store
+                .operational_state
+                .procedural_runtime
+                .reports
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn procedural_runtime_quarantines_failing_procedures() {
+        let mut store = CognitiveStore::default();
+        let id = upsert_node_in_store(&mut store, upsert(".kcode failing procedure lineage"));
+        evolve_store(&mut store);
+        run_procedural_runtime_in_store(&mut store, "failing procedure".to_string());
+        for _ in 0..4 {
+            store.execution_signals.push(ExecutionSignal {
+                node_id: id.clone(),
+                recorded_at: Utc::now(),
+                success: false,
+                delta: -0.2,
+                source: "test".to_string(),
+                summary: "failed".to_string(),
+            });
+        }
+        let report = run_procedural_runtime_in_store(&mut store, "failing procedure".to_string());
+        assert!(report.procedure_count > 0);
+        assert!(
+            store
+                .operational_state
+                .procedural_runtime
+                .procedures
+                .values()
+                .any(|p| matches!(p.status, ProcedureStatus::Quarantined))
+        );
+    }
+
+    #[test]
+    fn procedural_safety_notes_enforce_doctrine() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode safe procedural runtime"));
+        let report =
+            run_procedural_runtime_in_store(&mut store, "safe procedural runtime".to_string());
+        assert!(
+            report
+                .safety_notes
+                .iter()
+                .any(|note| note.contains("dry-run"))
+        );
+        assert!(
+            report
+                .safety_notes
+                .iter()
+                .any(|note| note.contains("tests"))
+        );
     }
 }

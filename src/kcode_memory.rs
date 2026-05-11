@@ -224,6 +224,16 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_procedural_runtime("prompt_memory_block") {
+        lines.push(format!(
+            "Procedural intelligence runtime: procedures={} active={} selected={} notes={}",
+            report.procedure_count,
+            report.active_procedure_count,
+            report.selected_procedure_ids.len(),
+            report.safety_notes.join(" | ")
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
