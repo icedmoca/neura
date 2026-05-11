@@ -802,6 +802,8 @@ pub struct OperationalCognitionState {
     pub procedural_runtime: ProceduralRuntimeState,
     #[serde(default)]
     pub cognitive_fabric: CognitiveFabricState,
+    #[serde(default)]
+    pub distributed_fabric: DistributedCognitionState,
 }
 
 impl Default for OperationalCognitionState {
@@ -817,6 +819,7 @@ impl Default for OperationalCognitionState {
             governor_reports: VecDeque::new(),
             procedural_runtime: ProceduralRuntimeState::default(),
             cognitive_fabric: CognitiveFabricState::default(),
+            distributed_fabric: DistributedCognitionState::default(),
         }
     }
 }
@@ -830,6 +833,84 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum FabricNodeKind {
+    LocalRuntime,
+    MemorySubsystem,
+    PlannerSubsystem,
+    ExecutorSubsystem,
+    VerifierSubsystem,
+    ObserverSubsystem,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FabricNode {
+    pub id: String,
+    pub kind: FabricNodeKind,
+    pub capabilities: Vec<String>,
+    pub health: f64,
+    pub load: f64,
+    pub last_seen_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ConsensusStatus {
+    Pending,
+    Accepted,
+    Rejected,
+    Degraded,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ConsensusSignal {
+    pub id: String,
+    pub created_at: DateTime<Utc>,
+    pub topic: String,
+    pub participating_nodes: Vec<String>,
+    pub confidence: f64,
+    pub status: ConsensusStatus,
+    pub rationale: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FabricRoute {
+    pub capability: String,
+    pub node_id: String,
+    pub score: f64,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FabricSyncRecord {
+    pub synced_at: DateTime<Utc>,
+    pub node_count: usize,
+    pub consensus_count: usize,
+    pub quorum_health: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DistributedFabricReport {
+    pub generated_at: DateTime<Utc>,
+    pub nodes: Vec<FabricNode>,
+    pub routes: Vec<FabricRoute>,
+    pub consensus: Vec<ConsensusSignal>,
+    pub quorum_health: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct DistributedCognitionState {
+    #[serde(default)]
+    pub nodes: BTreeMap<String, FabricNode>,
+    #[serde(default)]
+    pub consensus: VecDeque<ConsensusSignal>,
+    #[serde(default)]
+    pub routes: Vec<FabricRoute>,
+    #[serde(default)]
+    pub sync_history: VecDeque<FabricSyncRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -2760,6 +2841,211 @@ fn fabric_arbitrate(
     }
 }
 
+pub fn run_distributed_fabric(reason: impl Into<String>) -> io::Result<DistributedFabricReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_distributed_fabric_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_distributed_fabric_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> DistributedFabricReport {
+    evolve_store(store);
+    register_default_fabric_nodes(store);
+    let quorum_health = compute_quorum_health(&store.operational_state.distributed_fabric.nodes);
+    let routes = compute_fabric_routes(&store.operational_state.distributed_fabric.nodes);
+    let consensus = compute_consensus_signals(store, quorum_health, &reason);
+    store.operational_state.distributed_fabric.routes = routes.clone();
+    for signal in &consensus {
+        store
+            .operational_state
+            .distributed_fabric
+            .consensus
+            .push_back(signal.clone());
+    }
+    while store.operational_state.distributed_fabric.consensus.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .distributed_fabric
+            .consensus
+            .pop_front();
+    }
+    let summary = format!(
+        "distributed_fabric nodes={} routes={} consensus={} quorum={:.2} reason={}",
+        store.operational_state.distributed_fabric.nodes.len(),
+        routes.len(),
+        consensus.len(),
+        quorum_health,
+        compact(&reason, 100)
+    );
+    store
+        .operational_state
+        .distributed_fabric
+        .sync_history
+        .push_back(FabricSyncRecord {
+            synced_at: Utc::now(),
+            node_count: store.operational_state.distributed_fabric.nodes.len(),
+            consensus_count: consensus.len(),
+            quorum_health,
+            summary: summary.clone(),
+        });
+    while store
+        .operational_state
+        .distributed_fabric
+        .sync_history
+        .len()
+        > MAX_DECISIONS
+    {
+        store
+            .operational_state
+            .distributed_fabric
+            .sync_history
+            .pop_front();
+    }
+    DistributedFabricReport {
+        generated_at: Utc::now(),
+        nodes: store
+            .operational_state
+            .distributed_fabric
+            .nodes
+            .values()
+            .cloned()
+            .collect(),
+        routes,
+        consensus,
+        quorum_health,
+        summary,
+    }
+}
+
+fn register_default_fabric_nodes(store: &mut CognitiveStore) {
+    let now = Utc::now();
+    let fabric = &mut store.operational_state.distributed_fabric;
+    let defaults = [
+        (
+            "fabric-local-runtime",
+            FabricNodeKind::LocalRuntime,
+            vec!["orchestrate", "persist", "refresh"],
+        ),
+        (
+            "fabric-memory",
+            FabricNodeKind::MemorySubsystem,
+            vec!["retrieve", "score", "compress"],
+        ),
+        (
+            "fabric-planner",
+            FabricNodeKind::PlannerSubsystem,
+            vec!["plan", "arbitrate", "forecast"],
+        ),
+        (
+            "fabric-executor",
+            FabricNodeKind::ExecutorSubsystem,
+            vec!["dry-run", "execute", "record-outcome"],
+        ),
+        (
+            "fabric-verifier",
+            FabricNodeKind::VerifierSubsystem,
+            vec!["test", "check", "audit"],
+        ),
+        (
+            "fabric-observer",
+            FabricNodeKind::ObserverSubsystem,
+            vec!["observe", "render", "sideband"],
+        ),
+    ];
+    let node_pressure = (store.nodes.len() as f64 / 256.0).clamp(0.0, 1.0);
+    for (id, kind, caps) in defaults {
+        let health = match kind {
+            FabricNodeKind::MemorySubsystem => (1.0 - node_pressure * 0.2).clamp(0.0, 1.0),
+            FabricNodeKind::VerifierSubsystem => 0.85,
+            FabricNodeKind::ExecutorSubsystem => 0.75,
+            _ => 0.8,
+        };
+        fabric.nodes.insert(
+            id.to_string(),
+            FabricNode {
+                id: id.to_string(),
+                kind,
+                capabilities: caps.into_iter().map(str::to_string).collect(),
+                health,
+                load: node_pressure,
+                last_seen_at: now,
+            },
+        );
+    }
+}
+
+fn compute_quorum_health(nodes: &BTreeMap<String, FabricNode>) -> f64 {
+    if nodes.is_empty() {
+        return 0.0;
+    }
+    nodes
+        .values()
+        .map(|n| n.health * (1.0 - n.load * 0.25))
+        .sum::<f64>()
+        / nodes.len() as f64
+}
+
+fn compute_fabric_routes(nodes: &BTreeMap<String, FabricNode>) -> Vec<FabricRoute> {
+    let mut routes = Vec::new();
+    for node in nodes.values() {
+        for cap in &node.capabilities {
+            routes.push(FabricRoute {
+                capability: cap.clone(),
+                node_id: node.id.clone(),
+                score: (node.health * (1.0 - node.load * 0.25)).clamp(0.0, 1.0),
+                reason: format!("{:?} advertises {cap}", node.kind),
+            });
+        }
+    }
+    routes.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    routes
+}
+
+fn compute_consensus_signals(
+    store: &CognitiveStore,
+    quorum_health: f64,
+    reason: &str,
+) -> Vec<ConsensusSignal> {
+    let mut signals = Vec::new();
+    let nodes = store
+        .operational_state
+        .distributed_fabric
+        .nodes
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>();
+    let clusters = cognition_clusters(store);
+    let entropy = cognition_entropy(store, &clusters);
+    let stability = cognition_stability(store, &clusters);
+    let status = if quorum_health < 0.45 {
+        ConsensusStatus::Degraded
+    } else if stability > 0.4 && entropy < 0.85 {
+        ConsensusStatus::Accepted
+    } else {
+        ConsensusStatus::Pending
+    };
+    signals.push(ConsensusSignal {
+        id: format!("consensus-{}", Utc::now().timestamp_millis()),
+        created_at: Utc::now(),
+        topic: compact(reason, 80),
+        participating_nodes: nodes,
+        confidence: ((quorum_health + stability + (1.0 - entropy)) / 3.0).clamp(0.0, 1.0),
+        status,
+        rationale: format!(
+            "quorum={quorum_health:.2} stability={stability:.2} entropy={entropy:.2}"
+        ),
+    });
+    signals
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3108,5 +3394,63 @@ mod tests {
         let report = run_cognitive_fabric_in_store(&mut store, "arbitrate".to_string());
         assert!(report.arbitration.rationale.contains("top_latent"));
         assert!(report.summary.contains("fabric stability"));
+    }
+
+    #[test]
+    fn distributed_fabric_registers_nodes_routes_and_consensus() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode distributed fabric consensus routing"),
+        );
+        let report = run_distributed_fabric_in_store(&mut store, "distributed fabric".to_string());
+        assert!(report.nodes.len() >= 6);
+        assert!(!report.routes.is_empty());
+        assert!(!report.consensus.is_empty());
+        assert!(report.quorum_health > 0.0);
+        assert!(
+            !store
+                .operational_state
+                .distributed_fabric
+                .sync_history
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn distributed_fabric_routes_capabilities_by_score() {
+        let mut store = CognitiveStore::default();
+        let report = run_distributed_fabric_in_store(&mut store, "routing".to_string());
+        assert!(report.routes.windows(2).all(|w| w[0].score >= w[1].score));
+        assert!(report.routes.iter().any(|r| r.capability == "test"));
+        assert!(report.routes.iter().any(|r| r.capability == "retrieve"));
+    }
+
+    #[test]
+    fn distributed_fabric_quorum_health_detects_unhealthy_nodes() {
+        let mut nodes = BTreeMap::new();
+        nodes.insert(
+            "a".to_string(),
+            FabricNode {
+                id: "a".to_string(),
+                kind: FabricNodeKind::LocalRuntime,
+                capabilities: vec!["orchestrate".to_string()],
+                health: 0.1,
+                load: 1.0,
+                last_seen_at: Utc::now(),
+            },
+        );
+        nodes.insert(
+            "b".to_string(),
+            FabricNode {
+                id: "b".to_string(),
+                kind: FabricNodeKind::VerifierSubsystem,
+                capabilities: vec!["test".to_string()],
+                health: 0.2,
+                load: 1.0,
+                last_seen_at: Utc::now(),
+            },
+        );
+        assert!(compute_quorum_health(&nodes) < 0.45);
     }
 }

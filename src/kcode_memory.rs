@@ -247,6 +247,16 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_distributed_fabric("prompt_memory_block") {
+        lines.push(format!(
+            "Distributed cognition fabric: nodes={} routes={} consensus={} quorum={:.2}",
+            report.nodes.len(),
+            report.routes.len(),
+            report.consensus.len(),
+            report.quorum_health
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
