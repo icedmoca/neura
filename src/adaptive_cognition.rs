@@ -804,6 +804,8 @@ pub struct OperationalCognitionState {
     pub cognitive_fabric: CognitiveFabricState,
     #[serde(default)]
     pub distributed_fabric: DistributedCognitionState,
+    #[serde(default)]
+    pub strategic_civilization: StrategicCivilizationState,
 }
 
 impl Default for OperationalCognitionState {
@@ -820,6 +822,7 @@ impl Default for OperationalCognitionState {
             procedural_runtime: ProceduralRuntimeState::default(),
             cognitive_fabric: CognitiveFabricState::default(),
             distributed_fabric: DistributedCognitionState::default(),
+            strategic_civilization: StrategicCivilizationState::default(),
         }
     }
 }
@@ -833,6 +836,131 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum DoctrineKind {
+    Safety,
+    Autonomy,
+    Verification,
+    MemoryEvolution,
+    ResourceStewardship,
+    Collaboration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DoctrineNode {
+    pub id: String,
+    pub kind: DoctrineKind,
+    pub statement: String,
+    pub priority: f64,
+    pub confidence: f64,
+    pub reinforced_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ResourceKind {
+    TokenBudget,
+    TimeBudget,
+    RiskBudget,
+    BuildBudget,
+    AttentionBudget,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ResourceAccount {
+    pub kind: ResourceKind,
+    pub capacity: f64,
+    pub used: f64,
+    pub reserved: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RecursiveSynthesis {
+    pub id: String,
+    pub source_layers: Vec<String>,
+    pub abstraction: String,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FederationPeer {
+    pub id: String,
+    pub trust: f64,
+    pub advertised_capabilities: Vec<String>,
+    pub last_sync_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct IdentityAnchor {
+    pub id: String,
+    pub statement: String,
+    pub stability: f64,
+    pub last_confirmed_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CausalSimulation {
+    pub id: String,
+    pub hypothesis: String,
+    pub predicted_benefit: f64,
+    pub predicted_risk: f64,
+    pub recommended: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyHorizon {
+    pub horizon_days: i64,
+    pub goal: String,
+    pub expected_capability: f64,
+    pub required_resources: Vec<ResourceKind>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EvolutionProposal {
+    pub id: String,
+    pub title: String,
+    pub rationale: String,
+    pub priority: f64,
+    pub safe_to_autonomously_prepare: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ArchaeologyRecord {
+    pub id: String,
+    pub artifact: String,
+    pub lesson: String,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategicCivilizationReport {
+    pub generated_at: DateTime<Utc>,
+    pub doctrines: Vec<DoctrineNode>,
+    pub resources: Vec<ResourceAccount>,
+    pub syntheses: Vec<RecursiveSynthesis>,
+    pub federation: Vec<FederationPeer>,
+    pub identity: Vec<IdentityAnchor>,
+    pub simulations: Vec<CausalSimulation>,
+    pub horizons: Vec<StrategyHorizon>,
+    pub proposals: Vec<EvolutionProposal>,
+    pub archaeology: Vec<ArchaeologyRecord>,
+    pub civilization_score: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct StrategicCivilizationState {
+    #[serde(default)]
+    pub doctrines: BTreeMap<String, DoctrineNode>,
+    #[serde(default)]
+    pub resources: BTreeMap<String, ResourceAccount>,
+    #[serde(default)]
+    pub federation: BTreeMap<String, FederationPeer>,
+    #[serde(default)]
+    pub identity: BTreeMap<String, IdentityAnchor>,
+    #[serde(default)]
+    pub reports: VecDeque<StrategicCivilizationReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -3046,6 +3174,406 @@ fn compute_consensus_signals(
     signals
 }
 
+pub fn run_strategic_civilization_runtime(
+    reason: impl Into<String>,
+) -> io::Result<StrategicCivilizationReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_strategic_civilization_runtime_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_strategic_civilization_runtime_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> StrategicCivilizationReport {
+    evolve_store(store);
+    seed_doctrine_ecosystem(store);
+    update_resource_economy(store);
+    update_federation_and_identity(store);
+    let syntheses = recursive_syntheses(store, &reason);
+    let simulations = causal_simulations(store, &syntheses);
+    let horizons = strategy_horizons(store, &simulations);
+    let proposals = evolution_proposals(store, &simulations, &horizons);
+    let archaeology = archaeology_records(store);
+    let civilization_score = civilization_score(store, &simulations, &proposals);
+    let report = StrategicCivilizationReport {
+        generated_at: Utc::now(),
+        doctrines: store
+            .operational_state
+            .strategic_civilization
+            .doctrines
+            .values()
+            .cloned()
+            .collect(),
+        resources: store
+            .operational_state
+            .strategic_civilization
+            .resources
+            .values()
+            .cloned()
+            .collect(),
+        syntheses,
+        federation: store
+            .operational_state
+            .strategic_civilization
+            .federation
+            .values()
+            .cloned()
+            .collect(),
+        identity: store
+            .operational_state
+            .strategic_civilization
+            .identity
+            .values()
+            .cloned()
+            .collect(),
+        simulations,
+        horizons,
+        proposals,
+        archaeology,
+        civilization_score,
+        summary: String::new(),
+    };
+    let mut report = report;
+    report.summary = format!(
+        "civilization_score={:.2} doctrines={} proposals={} reason={}",
+        report.civilization_score,
+        report.doctrines.len(),
+        report.proposals.len(),
+        compact(&reason, 100)
+    );
+    store
+        .operational_state
+        .strategic_civilization
+        .reports
+        .push_back(report.clone());
+    while store.operational_state.strategic_civilization.reports.len() > MAX_DECISIONS {
+        store
+            .operational_state
+            .strategic_civilization
+            .reports
+            .pop_front();
+    }
+    report
+}
+
+fn seed_doctrine_ecosystem(store: &mut CognitiveStore) {
+    let now = Utc::now();
+    let doctrines = [
+        (
+            "doctrine-safety",
+            DoctrineKind::Safety,
+            "Avoid irreversible or unsafe actions without explicit confirmation.",
+            1.0,
+        ),
+        (
+            "doctrine-verification",
+            DoctrineKind::Verification,
+            "Validate changes with tests, checks, or measurable evidence before claiming completion.",
+            0.95,
+        ),
+        (
+            "doctrine-memory-evolution",
+            DoctrineKind::MemoryEvolution,
+            ".kcode directives evolve through reinforcement, contradiction, outcomes, and retrieval attribution.",
+            0.9,
+        ),
+        (
+            "doctrine-resource",
+            DoctrineKind::ResourceStewardship,
+            "Budget tokens, time, risk, build cycles, and attention explicitly.",
+            0.85,
+        ),
+        (
+            "doctrine-autonomy",
+            DoctrineKind::Autonomy,
+            "Proceed proactively within safe reversible boundaries.",
+            0.8,
+        ),
+        (
+            "doctrine-collaboration",
+            DoctrineKind::Collaboration,
+            "Surface concise status and preserve user intent across refreshes.",
+            0.75,
+        ),
+    ];
+    for (id, kind, statement, priority) in doctrines {
+        store
+            .operational_state
+            .strategic_civilization
+            .doctrines
+            .insert(
+                id.to_string(),
+                DoctrineNode {
+                    id: id.to_string(),
+                    kind,
+                    statement: statement.to_string(),
+                    priority,
+                    confidence: 0.9,
+                    reinforced_at: now,
+                },
+            );
+    }
+}
+
+fn update_resource_economy(store: &mut CognitiveStore) {
+    let node_pressure = (store.nodes.len() as f64 / 512.0).clamp(0.0, 1.0);
+    let resources = [
+        (ResourceKind::TokenBudget, 1.0, node_pressure * 0.4, 0.2),
+        (ResourceKind::TimeBudget, 1.0, 0.35, 0.2),
+        (
+            ResourceKind::RiskBudget,
+            1.0,
+            store
+                .nodes
+                .values()
+                .map(|n| n.weights.contradiction)
+                .sum::<f64>()
+                / store.nodes.len().max(1) as f64,
+            0.35,
+        ),
+        (ResourceKind::BuildBudget, 1.0, 0.25, 0.25),
+        (ResourceKind::AttentionBudget, 1.0, node_pressure, 0.25),
+    ];
+    for (kind, capacity, used, reserved) in resources {
+        store
+            .operational_state
+            .strategic_civilization
+            .resources
+            .insert(
+                format!("{:?}", kind),
+                ResourceAccount {
+                    kind,
+                    capacity,
+                    used: used.clamp(0.0, capacity),
+                    reserved,
+                },
+            );
+    }
+}
+
+fn update_federation_and_identity(store: &mut CognitiveStore) {
+    let now = Utc::now();
+    for node in store.operational_state.distributed_fabric.nodes.values() {
+        store
+            .operational_state
+            .strategic_civilization
+            .federation
+            .insert(
+                node.id.clone(),
+                FederationPeer {
+                    id: node.id.clone(),
+                    trust: node.health,
+                    advertised_capabilities: node.capabilities.clone(),
+                    last_sync_at: now,
+                },
+            );
+    }
+    let identity = [
+        (
+            "identity-kcode",
+            "Kcode is a proactive coding agent with persistent adaptive memory.",
+        ),
+        (
+            "identity-user-intent",
+            "User wants .kcode instructions to recursively improve future behavior.",
+        ),
+        (
+            "identity-safety",
+            "Autonomy is bounded by safety, reversibility, and verification.",
+        ),
+    ];
+    for (id, statement) in identity {
+        store
+            .operational_state
+            .strategic_civilization
+            .identity
+            .insert(
+                id.to_string(),
+                IdentityAnchor {
+                    id: id.to_string(),
+                    statement: statement.to_string(),
+                    stability: 0.9,
+                    last_confirmed_at: now,
+                },
+            );
+    }
+}
+
+fn recursive_syntheses(store: &CognitiveStore, reason: &str) -> Vec<RecursiveSynthesis> {
+    let mut out = Vec::new();
+    let layers = ["memory", "procedural", "fabric", "distributed", "strategic"];
+    for (idx, layer) in layers.iter().enumerate() {
+        out.push(RecursiveSynthesis {
+            id: format!("synth-{layer}"),
+            source_layers: layers[..=idx].iter().map(|s| s.to_string()).collect(),
+            abstraction: format!(
+                "{layer} layer contributes to reason: {}",
+                compact(reason, 80)
+            ),
+            confidence: (0.55 + idx as f64 * 0.08).clamp(0.0, 1.0),
+        });
+    }
+    if store.nodes.len() > 8 {
+        out.push(RecursiveSynthesis {
+            id: "synth-scale".to_string(),
+            source_layers: vec!["memory_graph".to_string(), "compression".to_string()],
+            abstraction: "memory scale requires recurring compression and archaeology".to_string(),
+            confidence: 0.75,
+        });
+    }
+    out
+}
+
+fn causal_simulations(
+    store: &CognitiveStore,
+    syntheses: &[RecursiveSynthesis],
+) -> Vec<CausalSimulation> {
+    let contradiction = store
+        .nodes
+        .values()
+        .map(|n| n.weights.contradiction)
+        .sum::<f64>()
+        / store.nodes.len().max(1) as f64;
+    syntheses
+        .iter()
+        .map(|s| {
+            let risk = (contradiction * 0.5 + (1.0 - s.confidence) * 0.3).clamp(0.0, 1.0);
+            let benefit = (s.confidence * 0.7 + (1.0 - risk) * 0.3).clamp(0.0, 1.0);
+            CausalSimulation {
+                id: format!("sim-{}", s.id),
+                hypothesis: format!("Applying {} improves adaptive runtime coherence", s.id),
+                predicted_benefit: benefit,
+                predicted_risk: risk,
+                recommended: benefit > risk && risk < 0.45,
+            }
+        })
+        .collect()
+}
+
+fn strategy_horizons(
+    _store: &CognitiveStore,
+    simulations: &[CausalSimulation],
+) -> Vec<StrategyHorizon> {
+    let avg_benefit = simulations.iter().map(|s| s.predicted_benefit).sum::<f64>()
+        / simulations.len().max(1) as f64;
+    vec![
+        StrategyHorizon {
+            horizon_days: 1,
+            goal: "Keep runtime refresh-safe and test-backed.".to_string(),
+            expected_capability: avg_benefit,
+            required_resources: vec![ResourceKind::BuildBudget, ResourceKind::TokenBudget],
+        },
+        StrategyHorizon {
+            horizon_days: 7,
+            goal: "Improve procedural reuse and outcome attribution.".to_string(),
+            expected_capability: (avg_benefit + 0.05).clamp(0.0, 1.0),
+            required_resources: vec![ResourceKind::AttentionBudget, ResourceKind::RiskBudget],
+        },
+        StrategyHorizon {
+            horizon_days: 30,
+            goal:
+                "Stabilize long-term memory civilization with archaeology and doctrine evolution."
+                    .to_string(),
+            expected_capability: (avg_benefit + 0.10).clamp(0.0, 1.0),
+            required_resources: vec![ResourceKind::TimeBudget, ResourceKind::TokenBudget],
+        },
+    ]
+}
+
+fn evolution_proposals(
+    _store: &CognitiveStore,
+    simulations: &[CausalSimulation],
+    horizons: &[StrategyHorizon],
+) -> Vec<EvolutionProposal> {
+    let mut proposals = Vec::new();
+    for sim in simulations.iter().filter(|s| s.recommended).take(5) {
+        proposals.push(EvolutionProposal {
+            id: format!("proposal-{}", sim.id),
+            title: sim.hypothesis.clone(),
+            rationale: format!(
+                "benefit={:.2} risk={:.2}",
+                sim.predicted_benefit, sim.predicted_risk
+            ),
+            priority: (sim.predicted_benefit - sim.predicted_risk).clamp(0.0, 1.0),
+            safe_to_autonomously_prepare: sim.predicted_risk < 0.25,
+        });
+    }
+    for horizon in horizons.iter().take(2) {
+        proposals.push(EvolutionProposal {
+            id: format!("proposal-horizon-{}", horizon.horizon_days),
+            title: horizon.goal.clone(),
+            rationale: format!("strategic horizon {} days", horizon.horizon_days),
+            priority: horizon.expected_capability,
+            safe_to_autonomously_prepare: true,
+        });
+    }
+    proposals.sort_by(|a, b| {
+        b.priority
+            .partial_cmp(&a.priority)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    proposals
+}
+
+fn archaeology_records(store: &CognitiveStore) -> Vec<ArchaeologyRecord> {
+    let mut records = Vec::new();
+    for report in store
+        .operational_state
+        .strategic_civilization
+        .reports
+        .iter()
+        .rev()
+        .take(5)
+    {
+        records.push(ArchaeologyRecord {
+            id: format!("arch-{}", report.generated_at.timestamp_millis()),
+            artifact: "strategic_report".to_string(),
+            lesson: report.summary.clone(),
+            confidence: report.civilization_score,
+        });
+    }
+    for decision in store.retrieval_decisions.iter().rev().take(3) {
+        records.push(ArchaeologyRecord {
+            id: format!("arch-retrieval-{}", decision.recorded_at.timestamp_millis()),
+            artifact: "retrieval_decision".to_string(),
+            lesson: compact(&decision.reason, 120),
+            confidence: (decision.total_score / 10.0).clamp(0.0, 1.0),
+        });
+    }
+    records
+}
+
+fn civilization_score(
+    store: &CognitiveStore,
+    simulations: &[CausalSimulation],
+    proposals: &[EvolutionProposal],
+) -> f64 {
+    let doctrine = store
+        .operational_state
+        .strategic_civilization
+        .doctrines
+        .values()
+        .map(|d| d.confidence * d.priority)
+        .sum::<f64>()
+        / store
+            .operational_state
+            .strategic_civilization
+            .doctrines
+            .len()
+            .max(1) as f64;
+    let sim = simulations
+        .iter()
+        .map(|s| s.predicted_benefit - s.predicted_risk)
+        .sum::<f64>()
+        / simulations.len().max(1) as f64;
+    let proposal =
+        proposals.iter().map(|p| p.priority).sum::<f64>() / proposals.len().max(1) as f64;
+    (doctrine * 0.45 + sim.clamp(0.0, 1.0) * 0.35 + proposal * 0.20).clamp(0.0, 1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3452,5 +3980,42 @@ mod tests {
             },
         );
         assert!(compute_quorum_health(&nodes) < 0.45);
+    }
+
+    #[test]
+    fn strategic_civilization_runtime_builds_doctrines_resources_and_proposals() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(
+            &mut store,
+            upsert(".kcode strategic civilization doctrine resource"),
+        );
+        run_distributed_fabric_in_store(&mut store, "seed fabric".to_string());
+        let report =
+            run_strategic_civilization_runtime_in_store(&mut store, "strategic".to_string());
+        assert!(report.doctrines.len() >= 5);
+        assert!(report.resources.len() >= 5);
+        assert!(!report.syntheses.is_empty());
+        assert!(!report.simulations.is_empty());
+        assert!(!report.horizons.is_empty());
+        assert!(report.civilization_score > 0.0);
+    }
+
+    #[test]
+    fn strategic_civilization_updates_federation_and_identity() {
+        let mut store = CognitiveStore::default();
+        run_distributed_fabric_in_store(&mut store, "fabric".to_string());
+        let report =
+            run_strategic_civilization_runtime_in_store(&mut store, "identity".to_string());
+        assert!(!report.federation.is_empty());
+        assert!(report.identity.iter().any(|i| i.id == "identity-kcode"));
+    }
+
+    #[test]
+    fn strategic_civilization_generates_archaeology_after_reports() {
+        let mut store = CognitiveStore::default();
+        run_strategic_civilization_runtime_in_store(&mut store, "first".to_string());
+        let report = run_strategic_civilization_runtime_in_store(&mut store, "second".to_string());
+        assert!(!report.archaeology.is_empty());
+        assert!(report.summary.contains("civilization_score"));
     }
 }

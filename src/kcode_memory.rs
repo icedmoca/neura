@@ -257,6 +257,19 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) =
+        adaptive_cognition::run_strategic_civilization_runtime("prompt_memory_block")
+    {
+        lines.push(format!(
+            "Strategic civilization runtime: score={:.2} doctrines={} proposals={} horizons={} identity={}",
+            report.civilization_score,
+            report.doctrines.len(),
+            report.proposals.len(),
+            report.horizons.len(),
+            report.identity.len()
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
