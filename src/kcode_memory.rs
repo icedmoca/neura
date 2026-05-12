@@ -362,6 +362,12 @@ pub fn prompt_memory_block() -> Option<String> {
         lines.push(report.prompt_status);
     }
 
+    if let Ok(report) =
+        adaptive_cognition::run_structure_discovery_representation("prompt_memory_block")
+    {
+        lines.push(report.prompt_status);
+    }
+
     if let Ok(report) = adaptive_cognition::run_epistemology("prompt_memory_block") {
         lines.push(format!(
             "Operational epistemology: health={:.2} claims={} evidence={} relations={} conflicts={} deltas={} wrongness={} revisions={} sources={}",

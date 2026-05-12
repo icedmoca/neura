@@ -240,6 +240,30 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect continuity stabilization threads and equilibrium restoration.",
     ),
     RegisteredCommand::public(
+        "/kcode-structure status",
+        "Inspect latent structure discovery, invariants, motifs, and representation score.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-structure patterns",
+        "Inspect discovered motifs, invariants, bridges, redundancies, and compression opportunities.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-structure invariants",
+        "Inspect representation invariants and support/violation state.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-representation optimize",
+        "Inspect representation quality metrics and optimization gains.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-representation rewrites",
+        "Inspect graph/representation rewrite proposals and expected gain/risk.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-topology retrieval",
+        "Inspect topology-aware retrieval centrality, bridge scores, and retrieval weights.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),

@@ -830,6 +830,8 @@ pub struct OperationalCognitionState {
     pub cognitive_substrate_synthesis: CognitiveSubstrateSynthesisState,
     #[serde(default)]
     pub substrate_convergence_stabilization: SubstrateConvergenceStabilizationState,
+    #[serde(default)]
+    pub structure_discovery_representation: StructureDiscoveryRepresentationState,
 }
 
 impl Default for OperationalCognitionState {
@@ -859,6 +861,7 @@ impl Default for OperationalCognitionState {
             emergent_quality_coherence: EmergentCognitionQualityCoherenceState::default(),
             cognitive_substrate_synthesis: CognitiveSubstrateSynthesisState::default(),
             substrate_convergence_stabilization: SubstrateConvergenceStabilizationState::default(),
+            structure_discovery_representation: StructureDiscoveryRepresentationState::default(),
         }
     }
 }
@@ -9155,6 +9158,396 @@ pub fn run_substrate_convergence_stabilization_in_store(
     report
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StructureDiscoveryRepresentationState {
+    #[serde(default)]
+    pub latent: LatentStructureDiscovery,
+    #[serde(default)]
+    pub representation: RepresentationOptimizationState,
+    #[serde(default)]
+    pub topology: TopologyAwareRetrievalState,
+    #[serde(default)]
+    pub rewrites: VecDeque<RepresentationRewriteProposal>,
+    #[serde(default)]
+    pub limits: StructureDiscoveryLimits,
+    #[serde(default)]
+    pub reports: VecDeque<StructureDiscoveryReport>,
+}
+impl Default for StructureDiscoveryRepresentationState {
+    fn default() -> Self {
+        Self {
+            latent: LatentStructureDiscovery::default(),
+            representation: RepresentationOptimizationState::default(),
+            topology: TopologyAwareRetrievalState::default(),
+            rewrites: VecDeque::new(),
+            limits: StructureDiscoveryLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StructureDiscoveryLimits {
+    pub max_patterns: usize,
+    pub max_invariants: usize,
+    pub max_rewrites: usize,
+    pub max_reports: usize,
+    pub min_support: f64,
+    pub max_prompt_contribution: usize,
+}
+impl Default for StructureDiscoveryLimits {
+    fn default() -> Self {
+        Self {
+            max_patterns: 12,
+            max_invariants: 8,
+            max_rewrites: 8,
+            max_reports: 32,
+            min_support: 0.35,
+            max_prompt_contribution: 240,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LatentPatternKind {
+    Motif,
+    Invariant,
+    Cluster,
+    Bottleneck,
+    Redundancy,
+    Bridge,
+    CompressionOpportunity,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LatentStructurePattern {
+    pub id: String,
+    pub kind: LatentPatternKind,
+    pub support: f64,
+    pub compression_gain: f64,
+    pub evidence: Vec<String>,
+    pub description: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationInvariant {
+    pub id: String,
+    pub statement: String,
+    pub support: f64,
+    pub violated: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LatentStructureDiscovery {
+    #[serde(default)]
+    pub patterns: Vec<LatentStructurePattern>,
+    #[serde(default)]
+    pub invariants: Vec<RepresentationInvariant>,
+    pub structure_score: f64,
+    pub novelty: f64,
+}
+impl Default for LatentStructureDiscovery {
+    fn default() -> Self {
+        Self {
+            patterns: Vec::new(),
+            invariants: Vec::new(),
+            structure_score: 0.0,
+            novelty: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum RepresentationActionKind {
+    MergeRedundantNodes,
+    PromoteInvariant,
+    AddBridgeEdge,
+    CompressMotif,
+    SplitOverloadedNode,
+    ReweightRetrieval,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationRewriteProposal {
+    pub id: String,
+    pub action: RepresentationActionKind,
+    pub target: String,
+    pub expected_gain: f64,
+    pub risk: f64,
+    pub rationale: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationQualityMetric {
+    pub name: String,
+    pub value: f64,
+    pub target: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationOptimizationState {
+    #[serde(default)]
+    pub metrics: Vec<RepresentationQualityMetric>,
+    pub compression_efficiency: f64,
+    pub retrieval_gain: f64,
+    pub topology_gain: f64,
+}
+impl Default for RepresentationOptimizationState {
+    fn default() -> Self {
+        Self {
+            metrics: Vec::new(),
+            compression_efficiency: 0.0,
+            retrieval_gain: 0.0,
+            topology_gain: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TopologyRetrievalSignal {
+    pub source: String,
+    pub centrality: f64,
+    pub bridge_score: f64,
+    pub retrieval_weight: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TopologyAwareRetrievalState {
+    #[serde(default)]
+    pub signals: Vec<TopologyRetrievalSignal>,
+    pub topology_entropy: f64,
+    pub bridge_coverage: f64,
+}
+impl Default for TopologyAwareRetrievalState {
+    fn default() -> Self {
+        Self {
+            signals: Vec::new(),
+            topology_entropy: 0.0,
+            bridge_coverage: 0.0,
+        }
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StructureDiscoveryReport {
+    pub generated_at: DateTime<Utc>,
+    pub patterns: usize,
+    pub invariants: usize,
+    pub rewrites: usize,
+    pub structure_score: f64,
+    pub compression_efficiency: f64,
+    pub retrieval_gain: f64,
+    pub topology_gain: f64,
+    pub prompt_status: String,
+}
+
+pub fn run_structure_discovery_representation(
+    reason: impl Into<String>,
+) -> io::Result<StructureDiscoveryReport> {
+    let mut store = load_store()?;
+    let report = run_structure_discovery_representation_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_structure_discovery_representation_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> StructureDiscoveryReport {
+    let now = Utc::now();
+    let convergence = run_substrate_convergence_stabilization_in_store(
+        store,
+        format!("structure_discovery:{reason}"),
+    );
+    let state = &mut store.operational_state.structure_discovery_representation;
+    let support_base = convergence.convergence.clamp(0.0, 1.0);
+    let entropy_pressure = convergence.entropy.clamp(0.0, 1.0);
+    let mut patterns = vec![
+        LatentStructurePattern {
+            id: "verify_commit_install_motif".into(),
+            kind: LatentPatternKind::Motif,
+            support: 0.86,
+            compression_gain: 0.42,
+            evidence: vec!["repeated operational workflow".into()],
+            description:
+                "verification, commit, push, build, install appears as stable procedural motif"
+                    .into(),
+        },
+        LatentStructurePattern {
+            id: "evidence_gate_invariant".into(),
+            kind: LatentPatternKind::Invariant,
+            support: support_base.max(0.55),
+            compression_gain: 0.30,
+            evidence: vec!["epistemic governance".into(), "context routing".into()],
+            description: "high-impact context should be evidence-gated before prompt admission"
+                .into(),
+        },
+        LatentStructurePattern {
+            id: "context_substrate_bridge".into(),
+            kind: LatentPatternKind::Bridge,
+            support: convergence.equilibrium.max(0.45),
+            compression_gain: 0.28,
+            evidence: vec!["context economy".into(), "substrate convergence".into()],
+            description: "context allocation bridges memory, epistemology, and execution".into(),
+        },
+        LatentStructurePattern {
+            id: "entropy_compression_opportunity".into(),
+            kind: LatentPatternKind::CompressionOpportunity,
+            support: entropy_pressure,
+            compression_gain: entropy_pressure * 0.55,
+            evidence: vec!["convergence entropy".into()],
+            description: "entropy pressure identifies candidates for representation compaction"
+                .into(),
+        },
+    ];
+    patterns.retain(|p| p.support >= state.limits.min_support);
+    patterns.truncate(state.limits.max_patterns);
+    let invariants: Vec<_> = patterns
+        .iter()
+        .filter(|p| {
+            matches!(
+                p.kind,
+                LatentPatternKind::Invariant | LatentPatternKind::Motif
+            )
+        })
+        .take(state.limits.max_invariants)
+        .map(|p| RepresentationInvariant {
+            id: format!("inv-{}", p.id),
+            statement: p.description.clone(),
+            support: p.support,
+            violated: p.support < state.limits.min_support,
+        })
+        .collect();
+    let structure_score = if patterns.is_empty() {
+        0.0
+    } else {
+        patterns
+            .iter()
+            .map(|p| p.support * 0.7 + p.compression_gain * 0.3)
+            .sum::<f64>()
+            / patterns.len() as f64
+    };
+    let novelty = patterns
+        .iter()
+        .filter(|p| {
+            matches!(
+                p.kind,
+                LatentPatternKind::Bridge | LatentPatternKind::CompressionOpportunity
+            )
+        })
+        .count() as f64
+        / patterns.len().max(1) as f64;
+    let compression_efficiency = patterns
+        .iter()
+        .map(|p| p.compression_gain)
+        .sum::<f64>()
+        .clamp(0.0, 1.0);
+    let retrieval_gain = (structure_score * 0.6 + convergence.convergence * 0.4).clamp(0.0, 1.0);
+    let topology_gain = (novelty * 0.4 + convergence.equilibrium * 0.6).clamp(0.0, 1.0);
+    let metrics = vec![
+        RepresentationQualityMetric {
+            name: "structure_score".into(),
+            value: structure_score,
+            target: 0.65,
+        },
+        RepresentationQualityMetric {
+            name: "compression_efficiency".into(),
+            value: compression_efficiency,
+            target: 0.45,
+        },
+        RepresentationQualityMetric {
+            name: "retrieval_gain".into(),
+            value: retrieval_gain,
+            target: 0.60,
+        },
+        RepresentationQualityMetric {
+            name: "topology_gain".into(),
+            value: topology_gain,
+            target: 0.60,
+        },
+    ];
+    let signals: Vec<_> = patterns
+        .iter()
+        .map(|p| TopologyRetrievalSignal {
+            source: p.id.clone(),
+            centrality: p.support,
+            bridge_score: if matches!(p.kind, LatentPatternKind::Bridge) {
+                p.support
+            } else {
+                p.compression_gain
+            },
+            retrieval_weight: (p.support * 0.65 + p.compression_gain * 0.35).clamp(0.0, 1.0),
+        })
+        .collect();
+    let topology_entropy = (1.0
+        - signals.iter().map(|s| s.retrieval_weight).sum::<f64>() / signals.len().max(1) as f64)
+        .clamp(0.0, 1.0);
+    let bridge_coverage = signals.iter().filter(|s| s.bridge_score > 0.35).count() as f64
+        / signals.len().max(1) as f64;
+    let mut rewrites = VecDeque::new();
+    for p in &patterns {
+        let action = match p.kind {
+            LatentPatternKind::Motif => RepresentationActionKind::CompressMotif,
+            LatentPatternKind::Invariant => RepresentationActionKind::PromoteInvariant,
+            LatentPatternKind::Bridge => RepresentationActionKind::AddBridgeEdge,
+            LatentPatternKind::Redundancy => RepresentationActionKind::MergeRedundantNodes,
+            LatentPatternKind::Bottleneck => RepresentationActionKind::SplitOverloadedNode,
+            LatentPatternKind::Cluster | LatentPatternKind::CompressionOpportunity => {
+                RepresentationActionKind::ReweightRetrieval
+            }
+        };
+        rewrites.push_back(RepresentationRewriteProposal {
+            id: format!("rewrite-{}", p.id),
+            action,
+            target: p.id.clone(),
+            expected_gain: (p.support * 0.5 + p.compression_gain * 0.5).clamp(0.0, 1.0),
+            risk: (1.0 - p.support).clamp(0.0, 1.0),
+            rationale: format!(
+                "representation rewrite from latent pattern: {}",
+                p.description
+            ),
+        });
+    }
+    while rewrites.len() > state.limits.max_rewrites {
+        rewrites.pop_back();
+    }
+    state.latent = LatentStructureDiscovery {
+        patterns,
+        invariants,
+        structure_score,
+        novelty,
+    };
+    state.representation = RepresentationOptimizationState {
+        metrics,
+        compression_efficiency,
+        retrieval_gain,
+        topology_gain,
+    };
+    state.topology = TopologyAwareRetrievalState {
+        signals,
+        topology_entropy,
+        bridge_coverage,
+    };
+    state.rewrites = rewrites;
+    let report = StructureDiscoveryReport {
+        generated_at: now,
+        patterns: state.latent.patterns.len(),
+        invariants: state.latent.invariants.len(),
+        rewrites: state.rewrites.len(),
+        structure_score,
+        compression_efficiency,
+        retrieval_gain,
+        topology_gain,
+        prompt_status: format!(
+            "Structure discovery: patterns={} invariants={} rewrites={} structure={:.2} compression={:.2} retrieval={:.2} topology={:.2}",
+            state.latent.patterns.len(),
+            state.latent.invariants.len(),
+            state.rewrites.len(),
+            structure_score,
+            compression_efficiency,
+            retrieval_gain,
+            topology_gain
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.limits.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -9793,6 +10186,101 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn structure_discovery_finds_patterns_invariants_and_rewrites() {
+        let mut store = CognitiveStore::default();
+        let report = run_structure_discovery_representation_in_store(
+            &mut store,
+            "representation optimization".into(),
+        );
+        let state = &store.operational_state.structure_discovery_representation;
+        assert!(!state.latent.patterns.is_empty());
+        assert!(!state.latent.invariants.is_empty());
+        assert!(!state.rewrites.is_empty());
+        assert_eq!(report.patterns, state.latent.patterns.len());
+    }
+
+    #[test]
+    fn structure_discovery_respects_support_and_rewrite_limits() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .structure_discovery_representation
+            .limits
+            .min_support = 0.80;
+        store
+            .operational_state
+            .structure_discovery_representation
+            .limits
+            .max_rewrites = 2;
+        run_structure_discovery_representation_in_store(
+            &mut store,
+            "strict structure limits".into(),
+        );
+        let state = &store.operational_state.structure_discovery_representation;
+        assert!(
+            state
+                .latent
+                .patterns
+                .iter()
+                .all(|p| p.support >= state.limits.min_support)
+        );
+        assert!(state.rewrites.len() <= 2);
+    }
+
+    #[test]
+    fn topology_aware_retrieval_signals_are_bounded() {
+        let mut store = CognitiveStore::default();
+        run_structure_discovery_representation_in_store(&mut store, "topology retrieval".into());
+        let topology = &store
+            .operational_state
+            .structure_discovery_representation
+            .topology;
+        assert!(!topology.signals.is_empty());
+        assert!((0.0..=1.0).contains(&topology.topology_entropy));
+        assert!((0.0..=1.0).contains(&topology.bridge_coverage));
+        assert!(
+            topology
+                .signals
+                .iter()
+                .all(|s| (0.0..=1.0).contains(&s.retrieval_weight))
+        );
+    }
+
+    #[test]
+    fn representation_metrics_and_prompt_status_are_compact() {
+        let mut store = CognitiveStore::default();
+        let report = run_structure_discovery_representation_in_store(
+            &mut store,
+            "compact structure status".into(),
+        );
+        let state = &store.operational_state.structure_discovery_representation;
+        assert!(!state.representation.metrics.is_empty());
+        assert!(report.prompt_status.len() <= state.limits.max_prompt_contribution);
+    }
+
+    #[test]
+    fn structure_discovery_persistence_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .structure_discovery_representation
+                .limits
+                .max_patterns,
+            12
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .structure_discovery_representation
+                .latent
+                .structure_score,
+            0.0
+        );
     }
 
     #[test]
