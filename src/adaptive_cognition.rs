@@ -832,6 +832,8 @@ pub struct OperationalCognitionState {
     pub substrate_convergence_stabilization: SubstrateConvergenceStabilizationState,
     #[serde(default)]
     pub structure_discovery_representation: StructureDiscoveryRepresentationState,
+    #[serde(default)]
+    pub adaptive_complexity_collapse: AdaptiveComplexityCollapseState,
 }
 
 impl Default for OperationalCognitionState {
@@ -862,6 +864,7 @@ impl Default for OperationalCognitionState {
             cognitive_substrate_synthesis: CognitiveSubstrateSynthesisState::default(),
             substrate_convergence_stabilization: SubstrateConvergenceStabilizationState::default(),
             structure_discovery_representation: StructureDiscoveryRepresentationState::default(),
+            adaptive_complexity_collapse: AdaptiveComplexityCollapseState::default(),
         }
     }
 }
@@ -9548,6 +9551,508 @@ pub fn run_structure_discovery_representation_in_store(
     report
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AdaptiveComplexityCollapseState {
+    #[serde(default)]
+    pub analysis: AdaptiveComplexityAnalysis,
+    #[serde(default)]
+    pub collapse: RepresentationCollapseIntelligence,
+    #[serde(default)]
+    pub decomposition: ComplexityDecompositionPlan,
+    #[serde(default)]
+    pub routing: ComplexitySolverRouting,
+    #[serde(default)]
+    pub limits: ComplexityCollapseLimits,
+    #[serde(default)]
+    pub reports: VecDeque<ComplexityCollapseReport>,
+}
+impl Default for AdaptiveComplexityCollapseState {
+    fn default() -> Self {
+        Self {
+            analysis: AdaptiveComplexityAnalysis::default(),
+            collapse: RepresentationCollapseIntelligence::default(),
+            decomposition: ComplexityDecompositionPlan::default(),
+            routing: ComplexitySolverRouting::default(),
+            limits: ComplexityCollapseLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComplexityCollapseLimits {
+    pub max_reports: usize,
+    pub max_factors: usize,
+    pub max_collapses: usize,
+    pub max_subproblems: usize,
+    pub max_routes: usize,
+    pub max_prompt_contribution: usize,
+    pub collapse_threshold: f64,
+    pub hardness_threshold: f64,
+}
+impl Default for ComplexityCollapseLimits {
+    fn default() -> Self {
+        Self {
+            max_reports: 32,
+            max_factors: 10,
+            max_collapses: 8,
+            max_subproblems: 8,
+            max_routes: 8,
+            max_prompt_contribution: 240,
+            collapse_threshold: 0.35,
+            hardness_threshold: 0.70,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ComplexityEvidenceKind {
+    Formal,
+    Empirical,
+    Heuristic,
+    Structural,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComplexityFactor {
+    pub name: String,
+    pub kind: ComplexityEvidenceKind,
+    pub estimated_hardness: f64,
+    pub confidence: f64,
+    pub evidence: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComplexityEntropySignal {
+    pub source: String,
+    pub entropy: f64,
+    pub reducible: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AdaptiveComplexityAnalysis {
+    #[serde(default)]
+    pub factors: Vec<ComplexityFactor>,
+    #[serde(default)]
+    pub entropy: Vec<ComplexityEntropySignal>,
+    pub formal_hardness: f64,
+    pub empirical_hardness: f64,
+    pub structural_hardness: f64,
+    pub calibrated_hardness: f64,
+}
+impl Default for AdaptiveComplexityAnalysis {
+    fn default() -> Self {
+        Self {
+            factors: Vec::new(),
+            entropy: Vec::new(),
+            formal_hardness: 0.0,
+            empirical_hardness: 0.0,
+            structural_hardness: 0.0,
+            calibrated_hardness: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CollapseKind {
+    Invariant,
+    Symmetry,
+    MotifReuse,
+    ConstraintPropagation,
+    GraphRewrite,
+    Memoization,
+    Abstraction,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CollapseOpportunity {
+    pub id: String,
+    pub kind: CollapseKind,
+    pub reducible_fraction: f64,
+    pub confidence: f64,
+    pub representation: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CollapseDecision {
+    pub opportunity_id: String,
+    pub apply: bool,
+    pub expected_hardness_after: f64,
+    pub risk: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationCollapseIntelligence {
+    #[serde(default)]
+    pub opportunities: Vec<CollapseOpportunity>,
+    #[serde(default)]
+    pub decisions: Vec<CollapseDecision>,
+    pub collapse_potential: f64,
+    pub hardness_after_collapse: f64,
+}
+impl Default for RepresentationCollapseIntelligence {
+    fn default() -> Self {
+        Self {
+            opportunities: Vec::new(),
+            decisions: Vec::new(),
+            collapse_potential: 0.0,
+            hardness_after_collapse: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum SubproblemComplexityClass {
+    Trivial,
+    Linear,
+    Polynomial,
+    Exponential,
+    Unknown,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComplexitySubproblem {
+    pub id: String,
+    pub description: String,
+    pub class_estimate: SubproblemComplexityClass,
+    pub hardness: f64,
+    pub depends_on: Vec<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComplexityDecompositionPlan {
+    #[serde(default)]
+    pub subproblems: Vec<ComplexitySubproblem>,
+    pub decomposition_gain: f64,
+    pub parallelizable: bool,
+}
+impl Default for ComplexityDecompositionPlan {
+    fn default() -> Self {
+        Self {
+            subproblems: Vec::new(),
+            decomposition_gain: 0.0,
+            parallelizable: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SolverRouteKind {
+    Direct,
+    DynamicProgramming,
+    GraphSearch,
+    ConstraintSolver,
+    Approximation,
+    RepresentationRewrite,
+    HumanReview,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SolverRoute {
+    pub route: SolverRouteKind,
+    pub target: String,
+    pub expected_cost: f64,
+    pub expected_success: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComplexitySolverRouting {
+    #[serde(default)]
+    pub routes: Vec<SolverRoute>,
+    pub selected_route: Option<SolverRouteKind>,
+    pub routing_confidence: f64,
+}
+impl Default for ComplexitySolverRouting {
+    fn default() -> Self {
+        Self {
+            routes: Vec::new(),
+            selected_route: None,
+            routing_confidence: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComplexityCollapseReport {
+    pub generated_at: DateTime<Utc>,
+    pub formal: f64,
+    pub empirical: f64,
+    pub structural: f64,
+    pub calibrated: f64,
+    pub collapse_potential: f64,
+    pub after_collapse: f64,
+    pub subproblems: usize,
+    pub routes: usize,
+    pub prompt_status: String,
+}
+
+pub fn run_adaptive_complexity_collapse(
+    reason: impl Into<String>,
+) -> io::Result<ComplexityCollapseReport> {
+    let mut store = load_store()?;
+    let report = run_adaptive_complexity_collapse_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_adaptive_complexity_collapse_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> ComplexityCollapseReport {
+    let now = Utc::now();
+    let structure = run_structure_discovery_representation_in_store(
+        store,
+        format!("complexity_collapse:{reason}"),
+    );
+    let state = &mut store.operational_state.adaptive_complexity_collapse;
+    let formal = estimate_formal_hardness(&reason);
+    let empirical =
+        (1.0 - structure.retrieval_gain * 0.45 - structure.compression_efficiency * 0.25)
+            .clamp(0.0, 1.0);
+    let structural =
+        (1.0 - structure.structure_score * 0.60 - structure.topology_gain * 0.25).clamp(0.0, 1.0);
+    let calibrated = (formal * 0.35 + empirical * 0.35 + structural * 0.30).clamp(0.0, 1.0);
+    let mut factors = vec![
+        ComplexityFactor {
+            name: "formal_search_space".into(),
+            kind: ComplexityEvidenceKind::Formal,
+            estimated_hardness: formal,
+            confidence: 0.62,
+            evidence: "token and branching estimate".into(),
+        },
+        ComplexityFactor {
+            name: "empirical_retrieval_cost".into(),
+            kind: ComplexityEvidenceKind::Empirical,
+            estimated_hardness: empirical,
+            confidence: 0.70,
+            evidence: "retrieval and compression gains".into(),
+        },
+        ComplexityFactor {
+            name: "structural_representation_cost".into(),
+            kind: ComplexityEvidenceKind::Structural,
+            estimated_hardness: structural,
+            confidence: 0.74,
+            evidence: "latent structure score and topology gain".into(),
+        },
+    ];
+    factors.truncate(state.limits.max_factors);
+    let entropy = vec![
+        ComplexityEntropySignal {
+            source: "problem_statement".into(),
+            entropy: formal,
+            reducible: formal > state.limits.collapse_threshold,
+        },
+        ComplexityEntropySignal {
+            source: "representation".into(),
+            entropy: structural,
+            reducible: structure.compression_efficiency > 0.25,
+        },
+    ];
+    let opportunities = derive_collapse_opportunities(&structure, calibrated, &state.limits);
+    let collapse_potential = opportunities
+        .iter()
+        .map(|o| o.reducible_fraction * o.confidence)
+        .sum::<f64>()
+        .clamp(0.0, 1.0);
+    let after = (calibrated * (1.0 - collapse_potential * 0.65)).clamp(0.0, 1.0);
+    let decisions: Vec<_> = opportunities
+        .iter()
+        .map(|o| CollapseDecision {
+            opportunity_id: o.id.clone(),
+            apply: o.reducible_fraction >= state.limits.collapse_threshold && o.confidence >= 0.45,
+            expected_hardness_after: (calibrated * (1.0 - o.reducible_fraction * o.confidence))
+                .clamp(0.0, 1.0),
+            risk: (1.0 - o.confidence).clamp(0.0, 1.0),
+        })
+        .collect();
+    let subproblems = decompose_complexity(&reason, after, state.limits.max_subproblems);
+    let decomposition_gain =
+        subproblems.iter().map(|s| 1.0 - s.hardness).sum::<f64>() / subproblems.len().max(1) as f64;
+    let routes = route_complexity_solvers(
+        after,
+        collapse_potential,
+        &subproblems,
+        state.limits.max_routes,
+    );
+    let selected_route = routes
+        .iter()
+        .max_by(|a, b| {
+            a.expected_success
+                .partial_cmp(&b.expected_success)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|r| r.route.clone());
+    let routing_confidence = routes
+        .iter()
+        .map(|r| r.expected_success)
+        .fold(0.0, f64::max);
+    state.analysis = AdaptiveComplexityAnalysis {
+        factors,
+        entropy,
+        formal_hardness: formal,
+        empirical_hardness: empirical,
+        structural_hardness: structural,
+        calibrated_hardness: calibrated,
+    };
+    state.collapse = RepresentationCollapseIntelligence {
+        opportunities,
+        decisions,
+        collapse_potential,
+        hardness_after_collapse: after,
+    };
+    state.decomposition = ComplexityDecompositionPlan {
+        subproblems,
+        decomposition_gain,
+        parallelizable: after < state.limits.hardness_threshold,
+    };
+    state.routing = ComplexitySolverRouting {
+        routes,
+        selected_route,
+        routing_confidence,
+    };
+    let report = ComplexityCollapseReport {
+        generated_at: now,
+        formal,
+        empirical,
+        structural,
+        calibrated,
+        collapse_potential,
+        after_collapse: after,
+        subproblems: state.decomposition.subproblems.len(),
+        routes: state.routing.routes.len(),
+        prompt_status: format!(
+            "Complexity collapse: formal={:.2} empirical={:.2} structural={:.2} calibrated={:.2} collapse={:.2} after={:.2} subproblems={} routes={}",
+            formal,
+            empirical,
+            structural,
+            calibrated,
+            collapse_potential,
+            after,
+            state.decomposition.subproblems.len(),
+            state.routing.routes.len()
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.limits.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
+fn estimate_formal_hardness(reason: &str) -> f64 {
+    let tokens = estimate_token_count(reason) as f64;
+    let branches =
+        reason.matches(" or ").count() as f64 + reason.matches(" and ").count() as f64 + 1.0;
+    ((tokens / 400.0) * 0.45
+        + (branches / 12.0) * 0.35
+        + if reason.contains("NP") || reason.contains("exponential") {
+            0.25
+        } else {
+            0.0
+        })
+    .clamp(0.05, 1.0)
+}
+fn derive_collapse_opportunities(
+    structure: &StructureDiscoveryReport,
+    calibrated: f64,
+    limits: &ComplexityCollapseLimits,
+) -> Vec<CollapseOpportunity> {
+    let mut out = vec![
+        CollapseOpportunity {
+            id: "motif_reuse".into(),
+            kind: CollapseKind::MotifReuse,
+            reducible_fraction: structure.compression_efficiency,
+            confidence: structure.structure_score,
+            representation: "reuse discovered motifs as macro operators".into(),
+        },
+        CollapseOpportunity {
+            id: "invariant_constraint".into(),
+            kind: CollapseKind::Invariant,
+            reducible_fraction: structure.structure_score * 0.5,
+            confidence: structure.retrieval_gain,
+            representation: "promote invariants into constraints".into(),
+        },
+        CollapseOpportunity {
+            id: "topology_rewrite".into(),
+            kind: CollapseKind::GraphRewrite,
+            reducible_fraction: structure.topology_gain * 0.45,
+            confidence: 1.0 - calibrated * 0.35,
+            representation: "rewrite graph around bridge nodes".into(),
+        },
+    ];
+    out.retain(|o| o.reducible_fraction > 0.0);
+    out.truncate(limits.max_collapses);
+    out
+}
+fn decompose_complexity(reason: &str, hardness: f64, max: usize) -> Vec<ComplexitySubproblem> {
+    let class = if hardness < 0.2 {
+        SubproblemComplexityClass::Linear
+    } else if hardness < 0.55 {
+        SubproblemComplexityClass::Polynomial
+    } else if hardness < 0.85 {
+        SubproblemComplexityClass::Unknown
+    } else {
+        SubproblemComplexityClass::Exponential
+    };
+    let mut v = vec![
+        ComplexitySubproblem {
+            id: "represent".into(),
+            description: format!("Choose representation for {}", compact(reason, 80)),
+            class_estimate: SubproblemComplexityClass::Polynomial,
+            hardness: hardness * 0.6,
+            depends_on: vec![],
+        },
+        ComplexitySubproblem {
+            id: "collapse".into(),
+            description: "Apply invariants/motifs/rewrites to reduce search".into(),
+            class_estimate: class,
+            hardness,
+            depends_on: vec!["represent".into()],
+        },
+        ComplexitySubproblem {
+            id: "verify".into(),
+            description: "Verify collapsed representation against evidence".into(),
+            class_estimate: SubproblemComplexityClass::Polynomial,
+            hardness: (hardness * 0.5).clamp(0.0, 1.0),
+            depends_on: vec!["collapse".into()],
+        },
+    ];
+    v.truncate(max);
+    v
+}
+fn route_complexity_solvers(
+    after: f64,
+    collapse: f64,
+    subs: &[ComplexitySubproblem],
+    max: usize,
+) -> Vec<SolverRoute> {
+    let mut routes = vec![
+        SolverRoute {
+            route: SolverRouteKind::RepresentationRewrite,
+            target: "collapse_opportunities".into(),
+            expected_cost: after,
+            expected_success: collapse.max(0.2),
+        },
+        SolverRoute {
+            route: SolverRouteKind::DynamicProgramming,
+            target: "decomposed_subproblems".into(),
+            expected_cost: after * 0.8,
+            expected_success: (1.0 - after * 0.6).clamp(0.0, 1.0),
+        },
+        SolverRoute {
+            route: SolverRouteKind::GraphSearch,
+            target: "topology_routes".into(),
+            expected_cost: after * 0.9,
+            expected_success: (0.6 + collapse * 0.25).clamp(0.0, 1.0),
+        },
+    ];
+    if subs.iter().any(|s| {
+        matches!(
+            s.class_estimate,
+            SubproblemComplexityClass::Exponential | SubproblemComplexityClass::Unknown
+        )
+    }) {
+        routes.push(SolverRoute {
+            route: SolverRouteKind::Approximation,
+            target: "hard_subproblem".into(),
+            expected_cost: after * 0.5,
+            expected_success: 0.55,
+        });
+    }
+    routes.truncate(max);
+    routes
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -10186,6 +10691,104 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn complexity_analysis_separates_formal_empirical_and_structural_hardness() {
+        let mut store = CognitiveStore::default();
+        let report =
+            run_adaptive_complexity_collapse_in_store(&mut store, "complexity collapse".into());
+        let state = &store.operational_state.adaptive_complexity_collapse;
+        assert!((0.0..=1.0).contains(&report.formal));
+        assert!((0.0..=1.0).contains(&report.empirical));
+        assert!((0.0..=1.0).contains(&report.structural));
+        assert!(
+            state
+                .analysis
+                .factors
+                .iter()
+                .any(|f| matches!(f.kind, ComplexityEvidenceKind::Formal))
+        );
+        assert!(
+            state
+                .analysis
+                .factors
+                .iter()
+                .any(|f| matches!(f.kind, ComplexityEvidenceKind::Empirical))
+        );
+    }
+
+    #[test]
+    fn representation_collapse_produces_decisions_and_after_hardness() {
+        let mut store = CognitiveStore::default();
+        let report = run_adaptive_complexity_collapse_in_store(
+            &mut store,
+            "representation collapse intelligence".into(),
+        );
+        let collapse = &store
+            .operational_state
+            .adaptive_complexity_collapse
+            .collapse;
+        assert!(!collapse.opportunities.is_empty());
+        assert_eq!(collapse.opportunities.len(), collapse.decisions.len());
+        assert!(report.after_collapse <= report.calibrated + f64::EPSILON);
+    }
+
+    #[test]
+    fn complexity_decomposition_and_solver_routing_are_bounded() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .adaptive_complexity_collapse
+            .limits
+            .max_subproblems = 2;
+        store
+            .operational_state
+            .adaptive_complexity_collapse
+            .limits
+            .max_routes = 2;
+        run_adaptive_complexity_collapse_in_store(
+            &mut store,
+            "bounded decomposition routes".into(),
+        );
+        let state = &store.operational_state.adaptive_complexity_collapse;
+        assert!(state.decomposition.subproblems.len() <= 2);
+        assert!(state.routing.routes.len() <= 2);
+        assert!(state.routing.selected_route.is_some());
+    }
+
+    #[test]
+    fn complexity_entropy_and_prompt_status_are_compact() {
+        let mut store = CognitiveStore::default();
+        let report = run_adaptive_complexity_collapse_in_store(
+            &mut store,
+            "compact complexity status".into(),
+        );
+        let state = &store.operational_state.adaptive_complexity_collapse;
+        assert!(!state.analysis.entropy.is_empty());
+        assert!(report.prompt_status.len() <= state.limits.max_prompt_contribution);
+    }
+
+    #[test]
+    fn adaptive_complexity_collapse_persistence_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .adaptive_complexity_collapse
+                .limits
+                .max_collapses,
+            8
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .adaptive_complexity_collapse
+                .analysis
+                .calibrated_hardness,
+            0.0
+        );
     }
 
     #[test]

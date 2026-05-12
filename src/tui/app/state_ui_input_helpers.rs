@@ -264,6 +264,30 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect topology-aware retrieval centrality, bridge scores, and retrieval weights.",
     ),
     RegisteredCommand::public(
+        "/kcode-complexity status",
+        "Inspect adaptive complexity analysis and calibrated hardness.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-complexity factors",
+        "Inspect formal, empirical, heuristic, and structural complexity factors.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-complexity entropy",
+        "Inspect complexity entropy and reducibility signals.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-collapse opportunities",
+        "Inspect representation-collapse opportunities and decisions.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-collapse decomposition",
+        "Inspect complexity subproblem decomposition and dependencies.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-complexity routes",
+        "Inspect complexity-aware solver routes and selected route confidence.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),
