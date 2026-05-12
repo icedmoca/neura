@@ -824,6 +824,8 @@ pub struct OperationalCognitionState {
     pub cognitive_context_economy: CognitiveIntegrationContextEconomyState,
     #[serde(default)]
     pub hierarchical_epistemic_context: HierarchicalActivationEpistemicContextState,
+    #[serde(default)]
+    pub emergent_quality_coherence: EmergentCognitionQualityCoherenceState,
 }
 
 impl Default for OperationalCognitionState {
@@ -850,6 +852,7 @@ impl Default for OperationalCognitionState {
             synthetic_governance: SyntheticScientificGovernanceState::default(),
             cognitive_context_economy: CognitiveIntegrationContextEconomyState::default(),
             hierarchical_epistemic_context: HierarchicalActivationEpistemicContextState::default(),
+            emergent_quality_coherence: EmergentCognitionQualityCoherenceState::default(),
         }
     }
 }
@@ -8111,6 +8114,299 @@ fn build_hierarchical_activation_edges(
         .collect()
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EmergentCognitionQualityCoherenceState {
+    #[serde(default)]
+    pub quality: EmergentCognitionQuality,
+    #[serde(default)]
+    pub horizon: LongHorizonOperationalCoherence,
+    #[serde(default)]
+    pub regulation: CoherenceRegulationPolicy,
+    #[serde(default)]
+    pub reports: VecDeque<EmergentQualityReport>,
+}
+impl Default for EmergentCognitionQualityCoherenceState {
+    fn default() -> Self {
+        Self {
+            quality: EmergentCognitionQuality::default(),
+            horizon: LongHorizonOperationalCoherence::default(),
+            regulation: CoherenceRegulationPolicy::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CoherenceRegulationPolicy {
+    pub max_reports: usize,
+    pub min_quality: f64,
+    pub min_horizon_coherence: f64,
+    pub max_drift: f64,
+    pub max_prompt_contribution: usize,
+}
+impl Default for CoherenceRegulationPolicy {
+    fn default() -> Self {
+        Self {
+            max_reports: 32,
+            min_quality: 0.55,
+            min_horizon_coherence: 0.60,
+            max_drift: 0.35,
+            max_prompt_contribution: 240,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitionQualityMetric {
+    pub name: String,
+    pub value: f64,
+    pub target: f64,
+    pub trend: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EmergentBehaviorSignal {
+    pub behavior: String,
+    pub quality_delta: f64,
+    pub evidence: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct QualityIntervention {
+    pub action: String,
+    pub intensity: f64,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EmergentCognitionQuality {
+    #[serde(default)]
+    pub metrics: Vec<CognitionQualityMetric>,
+    #[serde(default)]
+    pub emergent_signals: Vec<EmergentBehaviorSignal>,
+    #[serde(default)]
+    pub interventions: Vec<QualityIntervention>,
+    pub overall_quality: f64,
+    pub quality_debt: f64,
+}
+impl Default for EmergentCognitionQuality {
+    fn default() -> Self {
+        Self {
+            metrics: Vec::new(),
+            emergent_signals: Vec::new(),
+            interventions: Vec::new(),
+            overall_quality: 1.0,
+            quality_debt: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HorizonObjective {
+    pub id: String,
+    pub description: String,
+    pub horizon_steps: usize,
+    pub coherence: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalContinuityThread {
+    pub id: String,
+    pub anchors: Vec<String>,
+    pub drift: f64,
+    pub stable: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CoherenceBreakCandidate {
+    pub source: String,
+    pub risk: f64,
+    pub mitigation: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LongHorizonOperationalCoherence {
+    #[serde(default)]
+    pub objectives: Vec<HorizonObjective>,
+    #[serde(default)]
+    pub continuity_threads: Vec<OperationalContinuityThread>,
+    #[serde(default)]
+    pub break_candidates: Vec<CoherenceBreakCandidate>,
+    pub horizon_coherence: f64,
+    pub drift: f64,
+}
+impl Default for LongHorizonOperationalCoherence {
+    fn default() -> Self {
+        Self {
+            objectives: Vec::new(),
+            continuity_threads: Vec::new(),
+            break_candidates: Vec::new(),
+            horizon_coherence: 1.0,
+            drift: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EmergentQualityReport {
+    pub generated_at: DateTime<Utc>,
+    pub quality: f64,
+    pub horizon_coherence: f64,
+    pub drift: f64,
+    pub debt: f64,
+    pub interventions: usize,
+    pub breaks: usize,
+    pub prompt_status: String,
+}
+
+pub fn run_emergent_quality_coherence(
+    reason: impl Into<String>,
+) -> io::Result<EmergentQualityReport> {
+    let mut store = load_store()?;
+    let report = run_emergent_quality_coherence_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_emergent_quality_coherence_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> EmergentQualityReport {
+    let now = Utc::now();
+    let hierarchical =
+        run_hierarchical_epistemic_context_in_store(store, format!("quality_coherence:{reason}"));
+    let state = &mut store.operational_state.emergent_quality_coherence;
+    let activation_quality = (1.0 - hierarchical.governance_pressure).clamp(0.0, 1.0);
+    let routing_quality = (hierarchical.routed_tokens as f64
+        / (hierarchical.routed_tokens + hierarchical.saved_tokens).max(1) as f64)
+        .clamp(0.0, 1.0);
+    let depth_quality = (hierarchical.active_depth as f64 / 4.0).clamp(0.0, 1.0);
+    let drift = (hierarchical.governance_pressure * 0.55
+        + (1.0 - routing_quality) * 0.25
+        + (1.0 - depth_quality) * 0.20)
+        .clamp(0.0, 1.0);
+    let overall = (activation_quality * 0.45
+        + routing_quality * 0.25
+        + depth_quality * 0.20
+        + (1.0 - drift) * 0.10)
+        .clamp(0.0, 1.0);
+    let debt = (state.regulation.min_quality - overall).max(0.0)
+        + (drift - state.regulation.max_drift).max(0.0);
+    let metrics = vec![
+        CognitionQualityMetric {
+            name: "activation_quality".into(),
+            value: activation_quality,
+            target: 0.75,
+            trend: if activation_quality >= 0.75 {
+                "stable"
+            } else {
+                "needs_regulation"
+            }
+            .into(),
+        },
+        CognitionQualityMetric {
+            name: "routing_quality".into(),
+            value: routing_quality,
+            target: 0.65,
+            trend: if routing_quality >= 0.65 {
+                "efficient"
+            } else {
+                "overcompressed"
+            }
+            .into(),
+        },
+        CognitionQualityMetric {
+            name: "long_horizon_drift".into(),
+            value: drift,
+            target: state.regulation.max_drift,
+            trend: if drift <= state.regulation.max_drift {
+                "bounded"
+            } else {
+                "rising"
+            }
+            .into(),
+        },
+    ];
+    let emergent_signals = vec![EmergentBehaviorSignal {
+        behavior: "hierarchical context governance affects long-horizon coherence".into(),
+        quality_delta: overall - 0.5,
+        evidence: hierarchical.prompt_status.clone(),
+    }];
+    let mut interventions = Vec::new();
+    if overall < state.regulation.min_quality {
+        interventions.push(QualityIntervention {
+            action: "increase evidence-gating and reduce raw context admission".into(),
+            intensity: state.regulation.min_quality - overall,
+            reason: "emergent quality below target".into(),
+        });
+    }
+    if drift > state.regulation.max_drift {
+        interventions.push(QualityIntervention {
+            action: "stabilize continuity anchors and compress divergent branches".into(),
+            intensity: drift - state.regulation.max_drift,
+            reason: "long-horizon drift above policy".into(),
+        });
+    }
+    let horizon_coherence = (1.0 - drift * 0.65 + overall * 0.35).clamp(0.0, 1.0);
+    let objectives = vec![HorizonObjective {
+        id: "maintain_operational_coherence".into(),
+        description: compact(&reason, 120),
+        horizon_steps: 8,
+        coherence: horizon_coherence,
+    }];
+    let continuity_threads = vec![OperationalContinuityThread {
+        id: "verification_memory_context_thread".into(),
+        anchors: vec![
+            "test".into(),
+            "commit".into(),
+            "install".into(),
+            "prompt_budget".into(),
+        ],
+        drift,
+        stable: drift <= state.regulation.max_drift,
+    }];
+    let break_candidates = if horizon_coherence < state.regulation.min_horizon_coherence {
+        vec![CoherenceBreakCandidate {
+            source: "context pressure or activation contamination".into(),
+            risk: 1.0 - horizon_coherence,
+            mitigation: "defer low-confidence context and strengthen evidence anchors".into(),
+        }]
+    } else {
+        Vec::new()
+    };
+    state.quality = EmergentCognitionQuality {
+        metrics,
+        emergent_signals,
+        interventions,
+        overall_quality: overall,
+        quality_debt: debt,
+    };
+    state.horizon = LongHorizonOperationalCoherence {
+        objectives,
+        continuity_threads,
+        break_candidates,
+        horizon_coherence,
+        drift,
+    };
+    let report = EmergentQualityReport {
+        generated_at: now,
+        quality: overall,
+        horizon_coherence,
+        drift,
+        debt,
+        interventions: state.quality.interventions.len(),
+        breaks: state.horizon.break_candidates.len(),
+        prompt_status: format!(
+            "Emergent quality: quality={:.2} horizon={:.2} drift={:.2} debt={:.2} interventions={} breaks={}",
+            overall,
+            horizon_coherence,
+            drift,
+            debt,
+            state.quality.interventions.len(),
+            state.horizon.break_candidates.len()
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.regulation.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -8749,6 +9045,89 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn emergent_quality_generates_metrics_and_report() {
+        let mut store = CognitiveStore::default();
+        let report = run_emergent_quality_coherence_in_store(
+            &mut store,
+            "emergent cognition quality".into(),
+        );
+        let state = &store.operational_state.emergent_quality_coherence;
+        assert!(!state.quality.metrics.is_empty());
+        assert!((0.0..=1.0).contains(&report.quality));
+        assert!(report.prompt_status.len() <= state.regulation.max_prompt_contribution);
+    }
+
+    #[test]
+    fn long_horizon_coherence_tracks_drift_and_threads() {
+        let mut store = CognitiveStore::default();
+        run_emergent_quality_coherence_in_store(&mut store, "long horizon coherence".into());
+        let horizon = &store.operational_state.emergent_quality_coherence.horizon;
+        assert!(!horizon.objectives.is_empty());
+        assert!(!horizon.continuity_threads.is_empty());
+        assert!((0.0..=1.0).contains(&horizon.drift));
+        assert!((0.0..=1.0).contains(&horizon.horizon_coherence));
+    }
+
+    #[test]
+    fn quality_regulation_intervenes_when_thresholds_are_strict() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .emergent_quality_coherence
+            .regulation
+            .min_quality = 0.99;
+        store
+            .operational_state
+            .emergent_quality_coherence
+            .regulation
+            .max_drift = 0.01;
+        run_emergent_quality_coherence_in_store(&mut store, "strict quality policy".into());
+        assert!(
+            !store
+                .operational_state
+                .emergent_quality_coherence
+                .quality
+                .interventions
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn coherence_breaks_surface_under_high_horizon_requirement() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .emergent_quality_coherence
+            .regulation
+            .min_horizon_coherence = 1.01;
+        run_emergent_quality_coherence_in_store(&mut store, "coherence break detection".into());
+        let horizon = &store.operational_state.emergent_quality_coherence.horizon;
+        assert!(!horizon.break_candidates.is_empty());
+    }
+
+    #[test]
+    fn emergent_quality_persistence_compatibility_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .emergent_quality_coherence
+                .regulation
+                .max_reports,
+            32
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .emergent_quality_coherence
+                .quality
+                .overall_quality,
+            1.0
+        );
     }
 
     #[test]

@@ -180,6 +180,26 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect quarantined or evidence-gated high-risk context activations.",
     ),
     RegisteredCommand::public(
+        "/kcode-emergent-quality status",
+        "Inspect emergent cognition quality metrics, debt, interventions, and trends.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-emergent-quality signals",
+        "Inspect emergent behavior signals and quality deltas.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-emergent-quality interventions",
+        "Inspect quality interventions and regulation policy actions.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-long-horizon status",
+        "Inspect long-horizon operational coherence, drift, and continuity threads.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-long-horizon breaks",
+        "Inspect coherence break candidates and mitigation plans.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),
