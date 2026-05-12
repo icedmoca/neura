@@ -814,6 +814,8 @@ pub struct OperationalCognitionState {
     pub hardening_runtime: HardeningRuntimeState,
     #[serde(default)]
     pub reality_coupling: RealityCouplingState,
+    #[serde(default)]
+    pub epistemology: EpistemologyState,
 }
 
 impl Default for OperationalCognitionState {
@@ -835,6 +837,7 @@ impl Default for OperationalCognitionState {
             sovereign_ecosystem: SovereignEcosystemState::default(),
             hardening_runtime: HardeningRuntimeState::default(),
             reality_coupling: RealityCouplingState::default(),
+            epistemology: EpistemologyState::default(),
         }
     }
 }
@@ -848,6 +851,99 @@ pub struct OperationalCycleReport {
     pub executed_tasks: Vec<OperationalTask>,
     pub snapshot: Option<CognitionSnapshotRef>,
     pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum EpistemicStatus {
+    Unknown,
+    Hypothesis,
+    Supported,
+    Verified,
+    Contradicted,
+    Deprecated,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum EvidenceKind {
+    Telemetry,
+    Test,
+    Build,
+    UserStatement,
+    MemoryTrace,
+    RuntimeObservation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EvidenceRecord {
+    pub id: String,
+    pub kind: EvidenceKind,
+    pub observed_at: DateTime<Utc>,
+    pub content: String,
+    pub reliability: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicClaim {
+    pub id: String,
+    pub statement: String,
+    pub status: EpistemicStatus,
+    pub confidence: f64,
+    pub evidence_ids: Vec<String>,
+    pub contradiction_ids: Vec<String>,
+    pub last_revised_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SourceReliability {
+    pub source: String,
+    pub reliability: f64,
+    pub observations: u64,
+    pub failures: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct WrongnessSignal {
+    pub claim_id: String,
+    pub severity: f64,
+    pub reason: String,
+    pub correction: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct BeliefRevision {
+    pub claim_id: String,
+    pub revised_at: DateTime<Utc>,
+    pub old_confidence: f64,
+    pub new_confidence: f64,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemologyReport {
+    pub generated_at: DateTime<Utc>,
+    pub claims: Vec<EpistemicClaim>,
+    pub evidence: Vec<EvidenceRecord>,
+    pub reliabilities: Vec<SourceReliability>,
+    pub wrongness: Vec<WrongnessSignal>,
+    pub revisions: Vec<BeliefRevision>,
+    pub epistemic_health: f64,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct EpistemologyState {
+    #[serde(default)]
+    pub claims: BTreeMap<String, EpistemicClaim>,
+    #[serde(default)]
+    pub evidence: BTreeMap<String, EvidenceRecord>,
+    #[serde(default)]
+    pub source_reliability: BTreeMap<String, SourceReliability>,
+    #[serde(default)]
+    pub wrongness: VecDeque<WrongnessSignal>,
+    #[serde(default)]
+    pub revisions: VecDeque<BeliefRevision>,
+    #[serde(default)]
+    pub reports: VecDeque<EpistemologyReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -5258,6 +5354,258 @@ fn reality_coupling_score(
         .clamp(0.0, 1.0)
 }
 
+pub fn run_epistemology(reason: impl Into<String>) -> io::Result<EpistemologyReport> {
+    let path = store_path();
+    let mut store = load_store_from_path(&path)?;
+    let report = run_epistemology_in_store(&mut store, reason.into());
+    save_store_to_path(&path, &store)?;
+    Ok(report)
+}
+
+pub fn run_epistemology_in_store(store: &mut CognitiveStore, reason: String) -> EpistemologyReport {
+    let reality = run_reality_coupling_in_store(store, reason.clone());
+    ingest_epistemic_evidence(store, &reality, &reason);
+    maintain_epistemic_claims(store, &reality);
+    update_source_reliability(store, &reality);
+    let wrongness = detect_wrongness(store);
+    revise_beliefs(store, &wrongness);
+    let health = epistemic_health(store);
+    let report = EpistemologyReport {
+        generated_at: Utc::now(),
+        claims: store
+            .operational_state
+            .epistemology
+            .claims
+            .values()
+            .cloned()
+            .collect(),
+        evidence: store
+            .operational_state
+            .epistemology
+            .evidence
+            .values()
+            .cloned()
+            .collect(),
+        reliabilities: store
+            .operational_state
+            .epistemology
+            .source_reliability
+            .values()
+            .cloned()
+            .collect(),
+        wrongness,
+        revisions: store
+            .operational_state
+            .epistemology
+            .revisions
+            .iter()
+            .cloned()
+            .collect(),
+        epistemic_health: health,
+        summary: format!(
+            "epistemology health={health:.2} reason={}",
+            compact(&reason, 100)
+        ),
+    };
+    store
+        .operational_state
+        .epistemology
+        .reports
+        .push_back(report.clone());
+    while store.operational_state.epistemology.reports.len() > MAX_DECISIONS {
+        store.operational_state.epistemology.reports.pop_front();
+    }
+    report
+}
+
+fn ingest_epistemic_evidence(
+    store: &mut CognitiveStore,
+    reality: &RealityCouplingReport,
+    reason: &str,
+) {
+    let now = Utc::now();
+    for sample in &reality.telemetry {
+        store.operational_state.epistemology.evidence.insert(
+            sample.id.clone(),
+            EvidenceRecord {
+                id: sample.id.clone(),
+                kind: EvidenceKind::Telemetry,
+                observed_at: sample.captured_at,
+                content: sample.value.clone(),
+                reliability: sample.confidence,
+            },
+        );
+    }
+    store.operational_state.epistemology.evidence.insert(
+        format!("evidence-user-{}", now.timestamp_millis()),
+        EvidenceRecord {
+            id: format!("evidence-user-{}", now.timestamp_millis()),
+            kind: EvidenceKind::UserStatement,
+            observed_at: now,
+            content: compact(reason, 240),
+            reliability: 0.95,
+        },
+    );
+}
+
+fn maintain_epistemic_claims(store: &mut CognitiveStore, reality: &RealityCouplingReport) {
+    let now = Utc::now();
+    for rc in &reality.claims {
+        let status = if rc.verified {
+            EpistemicStatus::Verified
+        } else {
+            EpistemicStatus::Hypothesis
+        };
+        store.operational_state.epistemology.claims.insert(
+            rc.id.clone(),
+            EpistemicClaim {
+                id: rc.id.clone(),
+                statement: rc.claim.clone(),
+                status,
+                confidence: rc.confidence,
+                evidence_ids: rc.evidence_ids.clone(),
+                contradiction_ids: Vec::new(),
+                last_revised_at: now,
+            },
+        );
+    }
+    for node in store.nodes.values().take(24) {
+        let id = format!("claim-node-{}", node.id);
+        store
+            .operational_state
+            .epistemology
+            .claims
+            .entry(id.clone())
+            .or_insert(EpistemicClaim {
+                id,
+                statement: format!("memory node active: {}", compact(&node.summary, 120)),
+                status: if node.active {
+                    EpistemicStatus::Supported
+                } else {
+                    EpistemicStatus::Deprecated
+                },
+                confidence: node.weights.confidence,
+                evidence_ids: Vec::new(),
+                contradiction_ids: Vec::new(),
+                last_revised_at: now,
+            });
+    }
+}
+
+fn update_source_reliability(store: &mut CognitiveStore, reality: &RealityCouplingReport) {
+    for claim in &reality.claims {
+        let src = "reality_coupling".to_string();
+        let entry = store
+            .operational_state
+            .epistemology
+            .source_reliability
+            .entry(src.clone())
+            .or_insert(SourceReliability {
+                source: src,
+                reliability: 0.8,
+                observations: 0,
+                failures: 0,
+            });
+        entry.observations += 1;
+        if !claim.verified {
+            entry.failures += 1;
+        }
+        entry.reliability = ((entry.observations - entry.failures) as f64
+            / entry.observations.max(1) as f64)
+            .clamp(0.0, 1.0);
+    }
+}
+
+fn detect_wrongness(store: &mut CognitiveStore) -> Vec<WrongnessSignal> {
+    let mut signals = Vec::new();
+    for claim in store.operational_state.epistemology.claims.values() {
+        if claim.confidence < 0.35 || matches!(claim.status, EpistemicStatus::Contradicted) {
+            signals.push(WrongnessSignal {
+                claim_id: claim.id.clone(),
+                severity: 1.0 - claim.confidence,
+                reason: "low confidence or contradiction".to_string(),
+                correction: "downgrade confidence; require new evidence before use".to_string(),
+            });
+        }
+    }
+    for signal in &signals {
+        store
+            .operational_state
+            .epistemology
+            .wrongness
+            .push_back(signal.clone());
+    }
+    while store.operational_state.epistemology.wrongness.len() > MAX_DECISIONS {
+        store.operational_state.epistemology.wrongness.pop_front();
+    }
+    signals
+}
+
+fn revise_beliefs(store: &mut CognitiveStore, wrongness: &[WrongnessSignal]) {
+    let now = Utc::now();
+    for w in wrongness {
+        if let Some(claim) = store
+            .operational_state
+            .epistemology
+            .claims
+            .get_mut(&w.claim_id)
+        {
+            let old = claim.confidence;
+            claim.confidence = (claim.confidence * (1.0 - w.severity * 0.25)).clamp(0.0, 1.0);
+            if claim.confidence < 0.25 {
+                claim.status = EpistemicStatus::Deprecated;
+            }
+            claim.last_revised_at = now;
+            store
+                .operational_state
+                .epistemology
+                .revisions
+                .push_back(BeliefRevision {
+                    claim_id: claim.id.clone(),
+                    revised_at: now,
+                    old_confidence: old,
+                    new_confidence: claim.confidence,
+                    reason: w.reason.clone(),
+                });
+        }
+    }
+    while store.operational_state.epistemology.revisions.len() > MAX_DECISIONS {
+        store.operational_state.epistemology.revisions.pop_front();
+    }
+}
+
+fn epistemic_health(store: &CognitiveStore) -> f64 {
+    let claims = &store.operational_state.epistemology.claims;
+    if claims.is_empty() {
+        return 0.0;
+    }
+    let verified = claims
+        .values()
+        .filter(|c| {
+            matches!(
+                c.status,
+                EpistemicStatus::Verified | EpistemicStatus::Supported
+            )
+        })
+        .count() as f64
+        / claims.len() as f64;
+    let conf = claims.values().map(|c| c.confidence).sum::<f64>() / claims.len() as f64;
+    let reliability = store
+        .operational_state
+        .epistemology
+        .source_reliability
+        .values()
+        .map(|r| r.reliability)
+        .sum::<f64>()
+        / store
+            .operational_state
+            .epistemology
+            .source_reliability
+            .len()
+            .max(1) as f64;
+    (verified * 0.35 + conf * 0.40 + reliability * 0.25).clamp(0.0, 1.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5853,5 +6201,48 @@ mod tests {
                 .iter()
                 .any(|c| !c.verified && !c.corrective_action.is_empty())
         );
+    }
+
+    #[test]
+    fn epistemology_builds_claims_evidence_and_health() {
+        let mut store = CognitiveStore::default();
+        upsert_node_in_store(&mut store, upsert(".kcode epistemology claim evidence"));
+        let report = run_epistemology_in_store(&mut store, "epistemology".to_string());
+        assert!(!report.claims.is_empty());
+        assert!(!report.evidence.is_empty());
+        assert!(report.epistemic_health >= 0.0);
+    }
+
+    #[test]
+    fn epistemology_revises_low_confidence_claims() {
+        let mut store = CognitiveStore::default();
+        let now = Utc::now();
+        store.operational_state.epistemology.claims.insert(
+            "bad".to_string(),
+            EpistemicClaim {
+                id: "bad".to_string(),
+                statement: "unsupported low confidence claim".to_string(),
+                status: EpistemicStatus::Hypothesis,
+                confidence: 0.2,
+                evidence_ids: Vec::new(),
+                contradiction_ids: Vec::new(),
+                last_revised_at: now,
+            },
+        );
+        let wrong = detect_wrongness(&mut store);
+        revise_beliefs(&mut store, &wrong);
+        assert!(!store.operational_state.epistemology.revisions.is_empty());
+        assert!(matches!(
+            store.operational_state.epistemology.claims["bad"].status,
+            EpistemicStatus::Deprecated
+        ));
+    }
+
+    #[test]
+    fn epistemology_tracks_source_reliability() {
+        let mut store = CognitiveStore::default();
+        run_epistemology_in_store(&mut store, "first".to_string());
+        let report = run_epistemology_in_store(&mut store, "second".to_string());
+        assert!(report.reliabilities.iter().any(|r| r.observations > 0));
     }
 }

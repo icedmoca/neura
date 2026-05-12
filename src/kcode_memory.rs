@@ -318,6 +318,18 @@ pub fn prompt_memory_block() -> Option<String> {
         ));
     }
 
+    if let Ok(report) = adaptive_cognition::run_epistemology("prompt_memory_block") {
+        lines.push(format!(
+            "Operational epistemology: health={:.2} claims={} evidence={} wrongness={} revisions={} sources={}",
+            report.epistemic_health,
+            report.claims.len(),
+            report.evidence.len(),
+            report.wrongness.len(),
+            report.revisions.len(),
+            report.reliabilities.len()
+        ));
+    }
+
     for ranked in ranked.into_iter().take(MAX_DIRECTIVES_IN_PROMPT) {
         let directive = ranked.directive;
         let mut content = directive.content.replace('\n', " ");
