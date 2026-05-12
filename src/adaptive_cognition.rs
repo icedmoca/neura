@@ -816,6 +816,8 @@ pub struct OperationalCognitionState {
     pub reality_coupling: RealityCouplingState,
     #[serde(default)]
     pub epistemology: EpistemologyState,
+    #[serde(default)]
+    pub deliberative_science: DeliberativeScienceState,
 }
 
 impl Default for OperationalCognitionState {
@@ -838,6 +840,7 @@ impl Default for OperationalCognitionState {
             hardening_runtime: HardeningRuntimeState::default(),
             reality_coupling: RealityCouplingState::default(),
             epistemology: EpistemologyState::default(),
+            deliberative_science: DeliberativeScienceState::default(),
         }
     }
 }
@@ -5873,6 +5876,873 @@ fn couple_epistemology_to_governor(store: &mut CognitiveStore, conflicts: &[Epis
         });
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberativeScienceState {
+    #[serde(default)]
+    pub deliberation: DeliberationRuntime,
+    #[serde(default)]
+    pub science: ActiveScientificCognition,
+    #[serde(default)]
+    pub safety: DeliberativeSafetyLimits,
+}
+impl Default for DeliberativeScienceState {
+    fn default() -> Self {
+        Self {
+            deliberation: DeliberationRuntime::default(),
+            science: ActiveScientificCognition::default(),
+            safety: DeliberativeSafetyLimits::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberativeSafetyLimits {
+    pub max_deliberation_turns: usize,
+    pub max_active_hypotheses: usize,
+    pub max_experiments_per_cycle: usize,
+    pub max_exploration_budget: f64,
+    pub max_prompt_contribution: usize,
+}
+impl Default for DeliberativeSafetyLimits {
+    fn default() -> Self {
+        Self {
+            max_deliberation_turns: 6,
+            max_active_hypotheses: 12,
+            max_experiments_per_cycle: 3,
+            max_exploration_budget: 1.0,
+            max_prompt_contribution: 240,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DeliberationActorRole {
+    Planner,
+    Epistemology,
+    Simulator,
+    Governor,
+    Verifier,
+    Repair,
+    Doctrine,
+    Reality,
+    Strategy,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationActor {
+    pub role: DeliberationActorRole,
+    pub confidence: f64,
+    pub evidence_requirements: Vec<String>,
+    pub calibration_history: Vec<f64>,
+    pub operational_scope: String,
+    pub bounded_response_budget: usize,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationClaim {
+    pub id: String,
+    pub text: String,
+    pub confidence: f64,
+    pub evidence_refs: Vec<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationObjection {
+    pub actor: DeliberationActorRole,
+    pub reason: String,
+    pub severity: f64,
+    pub unresolved: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationEvidence {
+    pub id: String,
+    pub source: String,
+    pub weight: f64,
+    pub supports: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationTrace {
+    pub at: DateTime<Utc>,
+    pub actor: DeliberationActorRole,
+    pub event: String,
+    pub confidence: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EvidenceWeightedVote {
+    pub actor: DeliberationActorRole,
+    pub support: f64,
+    pub evidence_weight: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ConfidenceNegotiation {
+    pub initial: f64,
+    pub negotiated: f64,
+    pub evidence_weight: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationConsensus {
+    pub reached: bool,
+    pub score: f64,
+    pub rationale: String,
+    pub votes: Vec<EvidenceWeightedVote>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationDissent {
+    pub actor: DeliberationActorRole,
+    pub reason: String,
+    pub severity: f64,
+    pub persisted_at: DateTime<Utc>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ArbitrationDecision {
+    pub approved: bool,
+    pub risk: String,
+    pub action: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ReviewOutcome {
+    Pass,
+    Blocked,
+    RepairRequired,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FailureModeCandidate {
+    pub mode: String,
+    pub likelihood: f64,
+    pub impact: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RiskObjection {
+    pub risk: String,
+    pub severity: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Counterargument {
+    pub text: String,
+    pub strength: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AdversarialReview {
+    pub failure_modes: Vec<FailureModeCandidate>,
+    pub objections: Vec<RiskObjection>,
+    pub counterarguments: Vec<Counterargument>,
+    pub outcome: ReviewOutcome,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationOutcome {
+    pub consensus: DeliberationConsensus,
+    pub dissent: Vec<DeliberationDissent>,
+    pub arbitration: ArbitrationDecision,
+    pub adversarial_review: AdversarialReview,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationSession {
+    pub id: String,
+    pub proposal: String,
+    pub started_at: DateTime<Utc>,
+    pub actors: Vec<DeliberationActor>,
+    pub claims: Vec<DeliberationClaim>,
+    pub objections: Vec<DeliberationObjection>,
+    pub evidence: Vec<DeliberationEvidence>,
+    pub trace: Vec<DeliberationTrace>,
+    pub outcome: DeliberationOutcome,
+    pub bounded_turns: usize,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DeliberationRuntime {
+    #[serde(default)]
+    pub actors: Vec<DeliberationActor>,
+    #[serde(default)]
+    pub sessions: VecDeque<DeliberationSession>,
+    #[serde(default)]
+    pub persistent_dissent: VecDeque<DeliberationDissent>,
+    pub consensus_count: usize,
+    pub bounded_risk_count: usize,
+}
+impl Default for DeliberationRuntime {
+    fn default() -> Self {
+        Self {
+            actors: default_deliberation_actors(),
+            sessions: VecDeque::new(),
+            persistent_dissent: VecDeque::new(),
+            consensus_count: 0,
+            bounded_risk_count: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum HypothesisStatus {
+    Proposed,
+    Testable,
+    Testing,
+    Supported,
+    Contradicted,
+    Inconclusive,
+    Promoted,
+    Archived,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HypothesisEvidence {
+    pub evidence_id: String,
+    pub sufficiency: f64,
+    pub supports: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HypothesisPrediction {
+    pub claim: String,
+    pub expected: String,
+    pub confidence: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HypothesisTest {
+    pub id: String,
+    pub safe: bool,
+    pub information_gain: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HypothesisResult {
+    pub test_id: String,
+    pub prediction_error: f64,
+    pub supported: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HypothesisConfidence {
+    pub evidence_sufficiency: f64,
+    pub calibration: f64,
+    pub wrongness: f64,
+    pub contradiction_pressure: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HypothesisPromotionDecision {
+    pub promoted: bool,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalHypothesis {
+    pub id: String,
+    pub text: String,
+    pub status: HypothesisStatus,
+    pub evidence: Vec<HypothesisEvidence>,
+    pub predictions: Vec<HypothesisPrediction>,
+    pub tests: Vec<HypothesisTest>,
+    pub results: Vec<HypothesisResult>,
+    pub confidence: HypothesisConfidence,
+    pub promotion: HypothesisPromotionDecision,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CuriositySignal {
+    pub target: String,
+    pub uncertainty: f64,
+    pub impact: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UncertaintyPriority {
+    pub target: String,
+    pub score: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InformationGainScore {
+    pub target: String,
+    pub score: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EvidenceGap {
+    pub claim: String,
+    pub gap: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExplorationBudget {
+    pub remaining: f64,
+    pub max_per_cycle: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExplorationPolicy {
+    pub risk_bounded: bool,
+    pub prioritize_information_gain: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EvidenceAcquisitionPlan {
+    pub target: String,
+    pub safe_action: String,
+    pub expected_information_gain: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InformationGainEstimate {
+    pub target: String,
+    pub expected: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UncertaintyReductionPlan {
+    pub priorities: Vec<UncertaintyPriority>,
+    pub evidence_plans: Vec<EvidenceAcquisitionPlan>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CausalDiscoveryCandidate {
+    pub cause: String,
+    pub effect: String,
+    pub evidence_count: usize,
+    pub confounder_risk: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CandidateCausalEdge {
+    pub cause: String,
+    pub effect: String,
+    pub strength: CausalStrength,
+    pub evidence_count: usize,
+    pub confounder_risk: ConfounderRisk,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CausalStrength(pub f64);
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ConfounderRisk(pub f64);
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InterventionPlan {
+    pub safe: bool,
+    pub description: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CounterfactualTest {
+    pub question: String,
+    pub feasible: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct CausalDiscoveryEngine {
+    pub candidates: Vec<CausalDiscoveryCandidate>,
+    pub accepted_edges: Vec<CandidateCausalEdge>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ModelPrediction {
+    pub predicted: String,
+    pub confidence: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ModelScore {
+    pub predictive_accuracy: f64,
+    pub evidence_fit: f64,
+    pub simplicity: f64,
+    pub calibration: f64,
+    pub wrongness_penalty: f64,
+    pub total: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ModelCalibration {
+    pub stable: bool,
+    pub error_rate: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CompetingModel {
+    pub id: String,
+    pub explanation: String,
+    pub predictions: Vec<ModelPrediction>,
+    pub score: ModelScore,
+    pub calibration: ModelCalibration,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ModelSelectionDecision {
+    pub selected_model_id: Option<String>,
+    pub rationale: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HypothesisEngine {
+    pub max_active: usize,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExperimentPlanner {
+    pub max_per_cycle: usize,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ScientificCognitionState {
+    pub uncertainty_level: String,
+    pub information_gain: String,
+    pub calibration: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ScientificLoopReport {
+    pub generated_at: DateTime<Utc>,
+    pub hypotheses: usize,
+    pub testing: usize,
+    pub uncertainty: String,
+    pub information_gain: String,
+    pub calibration: String,
+    pub prompt_status: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ActiveScientificCognition {
+    #[serde(default)]
+    pub hypotheses: VecDeque<OperationalHypothesis>,
+    #[serde(default)]
+    pub curiosity: Vec<CuriositySignal>,
+    #[serde(default)]
+    pub evidence_gaps: Vec<EvidenceGap>,
+    #[serde(default)]
+    pub uncertainty_plan: Option<UncertaintyReductionPlan>,
+    #[serde(default)]
+    pub causal_engine: CausalDiscoveryEngine,
+    #[serde(default)]
+    pub competing_models: Vec<CompetingModel>,
+    #[serde(default)]
+    pub model_selection: Option<ModelSelectionDecision>,
+    #[serde(default)]
+    pub reports: VecDeque<ScientificLoopReport>,
+    pub state: ScientificCognitionState,
+    pub hypothesis_engine: HypothesisEngine,
+    pub experiment_planner: ExperimentPlanner,
+    pub exploration_budget: ExplorationBudget,
+    pub exploration_policy: ExplorationPolicy,
+}
+impl Default for ActiveScientificCognition {
+    fn default() -> Self {
+        Self {
+            hypotheses: VecDeque::new(),
+            curiosity: Vec::new(),
+            evidence_gaps: Vec::new(),
+            uncertainty_plan: None,
+            causal_engine: CausalDiscoveryEngine {
+                candidates: Vec::new(),
+                accepted_edges: Vec::new(),
+            },
+            competing_models: Vec::new(),
+            model_selection: None,
+            reports: VecDeque::new(),
+            state: ScientificCognitionState {
+                uncertainty_level: "low".into(),
+                information_gain: "low".into(),
+                calibration: "stable".into(),
+            },
+            hypothesis_engine: HypothesisEngine { max_active: 12 },
+            experiment_planner: ExperimentPlanner { max_per_cycle: 3 },
+            exploration_budget: ExplorationBudget {
+                remaining: 1.0,
+                max_per_cycle: 1.0,
+            },
+            exploration_policy: ExplorationPolicy {
+                risk_bounded: true,
+                prioritize_information_gain: true,
+            },
+        }
+    }
+}
+
+fn default_deliberation_actors() -> Vec<DeliberationActor> {
+    [
+        DeliberationActorRole::Planner,
+        DeliberationActorRole::Epistemology,
+        DeliberationActorRole::Simulator,
+        DeliberationActorRole::Governor,
+        DeliberationActorRole::Verifier,
+        DeliberationActorRole::Repair,
+        DeliberationActorRole::Doctrine,
+        DeliberationActorRole::Reality,
+        DeliberationActorRole::Strategy,
+    ]
+    .into_iter()
+    .map(|role| DeliberationActor {
+        role,
+        confidence: 0.72,
+        evidence_requirements: vec!["bounded evidence check".into()],
+        calibration_history: vec![0.72],
+        operational_scope: "truth-seeking operational cognition".into(),
+        bounded_response_budget: 1,
+    })
+    .collect()
+}
+
+pub fn run_deliberative_science(
+    reason: impl Into<String>,
+) -> io::Result<(DeliberationSession, ScientificLoopReport)> {
+    let mut store = load_store()?;
+    let out = run_deliberative_science_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(out)
+}
+
+pub fn run_deliberative_science_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> (DeliberationSession, ScientificLoopReport) {
+    let now = Utc::now();
+    let limits = store.operational_state.deliberative_science.safety.clone();
+    let epistemology_report =
+        run_epistemology_in_store(store, format!("deliberative_science:{reason}"));
+    let evidence_weight = (epistemology_report.evidence.len() as f64
+        / (epistemology_report.claims.len().max(1) as f64))
+        .clamp(0.0, 1.0);
+    let contradiction_pressure = (epistemology_report.conflict_sets.len() as f64
+        / epistemology_report.claims.len().max(1) as f64)
+        .clamp(0.0, 1.0);
+    let actors = store
+        .operational_state
+        .deliberative_science
+        .deliberation
+        .actors
+        .clone();
+    let votes: Vec<_> = actors
+        .iter()
+        .map(|a| EvidenceWeightedVote {
+            actor: a.role.clone(),
+            support: (a.confidence
+                * (0.55 + evidence_weight * 0.45)
+                * (1.0 - contradiction_pressure * 0.5))
+                .clamp(0.0, 1.0),
+            evidence_weight,
+        })
+        .collect();
+    let consensus_score = if votes.is_empty() {
+        0.0
+    } else {
+        votes
+            .iter()
+            .map(|v| v.support * v.evidence_weight.max(0.25))
+            .sum::<f64>()
+            / votes.len() as f64
+    };
+    let risky = contradiction_pressure > 0.30
+        || evidence_weight < 0.20
+        || reason.contains("risky")
+        || reason.contains("autonomy");
+    let review = AdversarialReview {
+        failure_modes: vec![FailureModeCandidate {
+            mode: "unsupported action or unresolved contradiction".into(),
+            likelihood: (1.0 - evidence_weight).clamp(0.0, 1.0),
+            impact: contradiction_pressure.max(if risky { 0.7 } else { 0.2 }),
+        }],
+        objections: if risky {
+            vec![RiskObjection {
+                risk: "evidence insufficient or contradiction pressure elevated".into(),
+                severity: 0.8,
+            }]
+        } else {
+            Vec::new()
+        },
+        counterarguments: vec![Counterargument {
+            text: "bounded execution with verification and repair fallback".into(),
+            strength: evidence_weight,
+        }],
+        outcome: if risky {
+            ReviewOutcome::RepairRequired
+        } else {
+            ReviewOutcome::Pass
+        },
+    };
+    let dissent: Vec<_> = review
+        .objections
+        .iter()
+        .map(|o| DeliberationDissent {
+            actor: DeliberationActorRole::Verifier,
+            reason: o.risk.clone(),
+            severity: o.severity,
+            persisted_at: now,
+        })
+        .collect();
+    let outcome = DeliberationOutcome {
+        consensus: DeliberationConsensus {
+            reached: consensus_score >= 0.45 && !matches!(review.outcome, ReviewOutcome::Blocked),
+            score: consensus_score,
+            rationale: "evidence-weighted bounded deliberation".into(),
+            votes,
+        },
+        dissent: dissent.clone(),
+        arbitration: ArbitrationDecision {
+            approved: !matches!(review.outcome, ReviewOutcome::Blocked) && !risky,
+            risk: if risky { "bounded-repair" } else { "bounded" }.into(),
+            action: if risky {
+                "repair_or_gather_evidence"
+            } else {
+                "proceed_with_verification"
+            }
+            .into(),
+        },
+        adversarial_review: review,
+    };
+    let session = DeliberationSession {
+        id: format!("delib-{}", now.timestamp_millis()),
+        proposal: compact(&reason, 160),
+        started_at: now,
+        actors: actors.clone(),
+        claims: vec![DeliberationClaim {
+            id: "proposal".into(),
+            text: compact(&reason, 160),
+            confidence: consensus_score,
+            evidence_refs: vec!["epistemology_report".into()],
+        }],
+        objections: dissent
+            .iter()
+            .map(|d| DeliberationObjection {
+                actor: d.actor.clone(),
+                reason: d.reason.clone(),
+                severity: d.severity,
+                unresolved: true,
+            })
+            .collect(),
+        evidence: vec![DeliberationEvidence {
+            id: "epistemology_report".into(),
+            source: "truth-maintenance".into(),
+            weight: evidence_weight,
+            supports: evidence_weight >= 0.2,
+        }],
+        trace: actors
+            .iter()
+            .take(limits.max_deliberation_turns)
+            .map(|a| DeliberationTrace {
+                at: now,
+                actor: a.role.clone(),
+                event: "bounded evidence review".into(),
+                confidence: a.confidence,
+            })
+            .collect(),
+        outcome,
+        bounded_turns: limits.max_deliberation_turns.min(9),
+    };
+    let ds = &mut store.operational_state.deliberative_science;
+    ds.deliberation.sessions.push_back(session.clone());
+    while ds.deliberation.sessions.len() > MAX_DECISIONS {
+        ds.deliberation.sessions.pop_front();
+    }
+    if session.outcome.consensus.reached {
+        ds.deliberation.consensus_count += 1;
+    }
+    if session.outcome.arbitration.risk.contains("bounded") {
+        ds.deliberation.bounded_risk_count += 1;
+    }
+    for d in dissent {
+        ds.deliberation.persistent_dissent.push_back(d);
+    }
+    while ds.deliberation.persistent_dissent.len() > MAX_DECISIONS {
+        ds.deliberation.persistent_dissent.pop_front();
+    }
+    evolve_scientific_cognition(ds, &reason, evidence_weight, contradiction_pressure, now);
+    let report = ds.science.reports.back().cloned().unwrap();
+    (session, report)
+}
+
+fn evolve_scientific_cognition(
+    ds: &mut DeliberativeScienceState,
+    reason: &str,
+    evidence_weight: f64,
+    contradiction_pressure: f64,
+    now: DateTime<Utc>,
+) {
+    let active = ds
+        .science
+        .hypotheses
+        .iter()
+        .filter(|h| {
+            !matches!(
+                h.status,
+                HypothesisStatus::Archived | HypothesisStatus::Promoted
+            )
+        })
+        .count();
+    if active < ds.safety.max_active_hypotheses {
+        ds.science.hypotheses.push_back(OperationalHypothesis {
+            id: format!("hyp-{}", now.timestamp_millis()),
+            text: format!("Operational uncertainty about {}", compact(reason, 80)),
+            status: if evidence_weight > 0.35 {
+                HypothesisStatus::Testable
+            } else {
+                HypothesisStatus::Proposed
+            },
+            evidence: vec![HypothesisEvidence {
+                evidence_id: "epistemology_report".into(),
+                sufficiency: evidence_weight,
+                supports: evidence_weight >= 0.3,
+            }],
+            predictions: vec![HypothesisPrediction {
+                claim: "additional verification reduces uncertainty".into(),
+                expected: "lower contradiction pressure".into(),
+                confidence: 0.62,
+            }],
+            tests: vec![HypothesisTest {
+                id: "safe-evidence-check".into(),
+                safe: true,
+                information_gain: ((1.0 - evidence_weight) * (1.0 + contradiction_pressure))
+                    .clamp(0.0, 1.0),
+            }],
+            results: Vec::new(),
+            confidence: HypothesisConfidence {
+                evidence_sufficiency: evidence_weight,
+                calibration: 0.72,
+                wrongness: 0.0,
+                contradiction_pressure,
+            },
+            promotion: decide_hypothesis_promotion(
+                evidence_weight,
+                0.72,
+                0.0,
+                contradiction_pressure,
+            ),
+        });
+    }
+    while ds.science.hypotheses.len() > ds.safety.max_active_hypotheses {
+        ds.science.hypotheses.pop_front();
+    }
+    let info = ((1.0 - evidence_weight) * (1.0 + contradiction_pressure)).clamp(0.0, 1.0);
+    ds.science.curiosity = vec![CuriositySignal {
+        target: compact(reason, 80),
+        uncertainty: 1.0 - evidence_weight,
+        impact: contradiction_pressure.max(0.4),
+    }];
+    ds.science.evidence_gaps = vec![EvidenceGap {
+        claim: compact(reason, 80),
+        gap: 1.0 - evidence_weight,
+    }];
+    ds.science.uncertainty_plan = Some(UncertaintyReductionPlan {
+        priorities: vec![UncertaintyPriority {
+            target: compact(reason, 80),
+            score: info,
+        }],
+        evidence_plans: vec![EvidenceAcquisitionPlan {
+            target: compact(reason, 80),
+            safe_action: "run bounded verification before doctrine/autonomy changes".into(),
+            expected_information_gain: info,
+        }],
+    });
+    let candidate = CausalDiscoveryCandidate {
+        cause: "verification coverage".into(),
+        effect: "confidence stability".into(),
+        evidence_count: if evidence_weight > 0.4 { 2 } else { 1 },
+        confounder_risk: contradiction_pressure,
+    };
+    ds.science.causal_engine.candidates = vec![candidate.clone()];
+    ds.science.causal_engine.accepted_edges =
+        if candidate.evidence_count >= 2 && candidate.confounder_risk < 0.4 {
+            vec![CandidateCausalEdge {
+                cause: candidate.cause,
+                effect: candidate.effect,
+                strength: CausalStrength(evidence_weight),
+                evidence_count: candidate.evidence_count,
+                confounder_risk: ConfounderRisk(candidate.confounder_risk),
+            }]
+        } else {
+            Vec::new()
+        };
+    ds.science.competing_models = score_competing_models(evidence_weight, contradiction_pressure);
+    ds.science.model_selection = ds.science.competing_models.iter().max_by(|a,b| a.score.total.partial_cmp(&b.score.total).unwrap_or(std::cmp::Ordering::Equal)).map(|m| ModelSelectionDecision { selected_model_id: Some(m.id.clone()), rationale: "selected by predictive accuracy, evidence fit, simplicity, calibration, and wrongness penalty".into() });
+    ds.science.state = ScientificCognitionState {
+        uncertainty_level: if info > 0.66 {
+            "high"
+        } else if info > 0.33 {
+            "moderate"
+        } else {
+            "low"
+        }
+        .into(),
+        information_gain: if info > 0.66 {
+            "high"
+        } else if info > 0.33 {
+            "moderate"
+        } else {
+            "low"
+        }
+        .into(),
+        calibration: if contradiction_pressure < 0.25 {
+            "stable"
+        } else {
+            "watch"
+        }
+        .into(),
+    };
+    let testing = ds
+        .science
+        .hypotheses
+        .iter()
+        .filter(|h| {
+            matches!(
+                h.status,
+                HypothesisStatus::Testing | HypothesisStatus::Testable
+            )
+        })
+        .count();
+    let report = ScientificLoopReport {
+        generated_at: now,
+        hypotheses: ds.science.hypotheses.len(),
+        testing,
+        uncertainty: ds.science.state.uncertainty_level.clone(),
+        information_gain: ds.science.state.information_gain.clone(),
+        calibration: ds.science.state.calibration.clone(),
+        prompt_status: format!(
+            "Scientific cognition: hypotheses={} testing={} uncertainty={} info_gain={} calibration={}",
+            ds.science.hypotheses.len(),
+            testing,
+            ds.science.state.uncertainty_level,
+            ds.science.state.information_gain,
+            ds.science.state.calibration
+        ),
+    };
+    ds.science.reports.push_back(report);
+    while ds.science.reports.len() > MAX_DECISIONS {
+        ds.science.reports.pop_front();
+    }
+}
+
+pub fn decide_hypothesis_promotion(
+    evidence_sufficiency: f64,
+    calibration: f64,
+    wrongness: f64,
+    contradiction_pressure: f64,
+) -> HypothesisPromotionDecision {
+    let ok = evidence_sufficiency >= 0.75
+        && calibration >= 0.70
+        && wrongness <= 0.15
+        && contradiction_pressure <= 0.20;
+    HypothesisPromotionDecision {
+        promoted: ok,
+        reason: if ok {
+            "evidence sufficient, calibration stable, wrongness low, contradictions low"
+        } else {
+            "promotion blocked until evidence/calibration/contradiction thresholds pass"
+        }
+        .into(),
+    }
+}
+
+pub fn score_competing_models(
+    evidence_weight: f64,
+    contradiction_pressure: f64,
+) -> Vec<CompetingModel> {
+    [
+        ("stale-retrieval", 0.64, 0.60, 0.80),
+        (
+            "unstable-doctrine",
+            0.55,
+            1.0 - contradiction_pressure,
+            0.70,
+        ),
+        (
+            "insufficient-verification",
+            0.72,
+            1.0 - evidence_weight,
+            0.85,
+        ),
+    ]
+    .into_iter()
+    .map(|(id, acc, fit, simp)| {
+        let cal = 0.72;
+        let wrong = contradiction_pressure * 0.25;
+        let total = acc * 0.30 + fit * 0.30 + simp * 0.15 + cal * 0.20 - wrong * 0.25;
+        CompetingModel {
+            id: id.into(),
+            explanation: id.replace('-', " "),
+            predictions: vec![ModelPrediction {
+                predicted: "verification changes outcome confidence".into(),
+                confidence: acc,
+            }],
+            score: ModelScore {
+                predictive_accuracy: acc,
+                evidence_fit: fit,
+                simplicity: simp,
+                calibration: cal,
+                wrongness_penalty: wrong,
+                total,
+            },
+            calibration: ModelCalibration {
+                stable: contradiction_pressure < 0.4,
+                error_rate: wrong,
+            },
+        }
+    })
+    .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -6511,6 +7381,108 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn deliberation_is_bounded_and_persists_dissent() {
+        let mut store = CognitiveStore::default();
+        let (session, _) =
+            run_deliberative_science_in_store(&mut store, "risky autonomy increase".into());
+        assert!(
+            session.bounded_turns
+                <= store
+                    .operational_state
+                    .deliberative_science
+                    .safety
+                    .max_deliberation_turns
+        );
+        assert!(!session.outcome.dissent.is_empty());
+        assert!(
+            !store
+                .operational_state
+                .deliberative_science
+                .deliberation
+                .persistent_dissent
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn evidence_weighted_consensus_and_adversarial_review_blocks_risk() {
+        let mut store = CognitiveStore::default();
+        let (session, _) = run_deliberative_science_in_store(
+            &mut store,
+            "risky execution with low evidence".into(),
+        );
+        assert!(session.outcome.consensus.score >= 0.0);
+        assert_ne!(
+            session.outcome.adversarial_review.outcome,
+            ReviewOutcome::Pass
+        );
+        assert_eq!(
+            session.outcome.arbitration.action,
+            "repair_or_gather_evidence"
+        );
+    }
+
+    #[test]
+    fn hypothesis_lifecycle_information_gain_and_prompt_budget_are_protected() {
+        let mut store = CognitiveStore::default();
+        let (_, report) =
+            run_deliberative_science_in_store(&mut store, "testable uncertainty".into());
+        let ds = &store.operational_state.deliberative_science;
+        assert!(ds.science.hypotheses.len() <= ds.safety.max_active_hypotheses);
+        assert!(ds.science.uncertainty_plan.as_ref().unwrap().priorities[0].score >= 0.0);
+        assert!(report.prompt_status.len() <= ds.safety.max_prompt_contribution);
+    }
+
+    #[test]
+    fn causal_edges_require_evidence_and_low_confounding() {
+        let mut store = CognitiveStore::default();
+        run_deliberative_science_in_store(&mut store, "causal caution".into());
+        let causal = &store
+            .operational_state
+            .deliberative_science
+            .science
+            .causal_engine;
+        assert!(
+            causal
+                .accepted_edges
+                .iter()
+                .all(|e| e.evidence_count >= 2 && e.confounder_risk.0 < 0.4)
+        );
+    }
+
+    #[test]
+    fn competing_models_are_scored_and_unsupported_hypothesis_cannot_promote() {
+        let models = score_competing_models(0.2, 0.5);
+        assert_eq!(models.len(), 3);
+        assert!(models.iter().all(|m| m.score.total.is_finite()));
+        assert!(!decide_hypothesis_promotion(0.4, 0.8, 0.0, 0.0).promoted);
+        assert!(decide_hypothesis_promotion(0.8, 0.8, 0.0, 0.0).promoted);
+    }
+
+    #[test]
+    fn deliberative_science_persistence_compatibility_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .deliberative_science
+                .safety
+                .max_deliberation_turns,
+            6
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .deliberative_science
+                .deliberation
+                .actors
+                .len(),
+            9
+        );
     }
 
     #[test]

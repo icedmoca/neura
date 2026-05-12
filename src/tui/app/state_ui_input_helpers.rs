@@ -76,6 +76,42 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect operational epistemology claim/evidence state",
     ),
     RegisteredCommand::public(
+        "/kcode-deliberate",
+        "Inspect bounded internal deliberation, traces, dissent, consensus, and adversarial review.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-deliberate trace",
+        "Show recent deliberation trace frames.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-deliberate dissent",
+        "Show persisted unresolved deliberation dissent.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-science status",
+        "Show scientific cognition status, uncertainty, calibration, and information gain.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-science hypotheses",
+        "Inspect operational hypotheses and lifecycle states.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-science experiments",
+        "Inspect safe experiment and evidence acquisition plans.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-science uncertainty",
+        "Inspect uncertainty priorities and evidence gaps.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-science causal",
+        "Inspect causal candidates, confounder risk, and accepted edges.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-science models",
+        "Inspect competing model scores and selection.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),
