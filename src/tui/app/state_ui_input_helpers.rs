@@ -220,6 +220,26 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect substrate repair debt and repair actions.",
     ),
     RegisteredCommand::public(
+        "/kcode-convergence status",
+        "Inspect substrate convergence, entropy, equilibrium, noise, oscillation, and stability.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-convergence vectors",
+        "Inspect convergence vectors and deltas against stabilization targets.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-stabilization actions",
+        "Inspect autonomous cognitive stabilization actions and bounded intensities.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-stabilization noise",
+        "Inspect noise suppression and retrieval optimization signals.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-stabilization continuity",
+        "Inspect continuity stabilization threads and equilibrium restoration.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),

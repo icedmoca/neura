@@ -828,6 +828,8 @@ pub struct OperationalCognitionState {
     pub emergent_quality_coherence: EmergentCognitionQualityCoherenceState,
     #[serde(default)]
     pub cognitive_substrate_synthesis: CognitiveSubstrateSynthesisState,
+    #[serde(default)]
+    pub substrate_convergence_stabilization: SubstrateConvergenceStabilizationState,
 }
 
 impl Default for OperationalCognitionState {
@@ -856,6 +858,7 @@ impl Default for OperationalCognitionState {
             hierarchical_epistemic_context: HierarchicalActivationEpistemicContextState::default(),
             emergent_quality_coherence: EmergentCognitionQualityCoherenceState::default(),
             cognitive_substrate_synthesis: CognitiveSubstrateSynthesisState::default(),
+            substrate_convergence_stabilization: SubstrateConvergenceStabilizationState::default(),
         }
     }
 }
@@ -8791,6 +8794,367 @@ fn derive_cognitive_attractors(
     ]
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubstrateConvergenceStabilizationState {
+    #[serde(default)]
+    pub convergence: SubstrateConvergenceState,
+    #[serde(default)]
+    pub stabilization: AutonomousCognitiveStabilizer,
+    #[serde(default)]
+    pub entropy: CognitiveEntropyState,
+    #[serde(default)]
+    pub equilibrium: CognitiveEquilibriumState,
+    #[serde(default)]
+    pub limits: ConvergenceStabilizationLimits,
+    #[serde(default)]
+    pub reports: VecDeque<ConvergenceStabilizationReport>,
+}
+impl Default for SubstrateConvergenceStabilizationState {
+    fn default() -> Self {
+        Self {
+            convergence: SubstrateConvergenceState::default(),
+            stabilization: AutonomousCognitiveStabilizer::default(),
+            entropy: CognitiveEntropyState::default(),
+            equilibrium: CognitiveEquilibriumState::default(),
+            limits: ConvergenceStabilizationLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ConvergenceStabilizationLimits {
+    pub max_reports: usize,
+    pub max_actions: usize,
+    pub max_prompt_contribution: usize,
+    pub convergence_target: f64,
+    pub entropy_limit: f64,
+    pub noise_limit: f64,
+    pub oscillation_limit: f64,
+}
+impl Default for ConvergenceStabilizationLimits {
+    fn default() -> Self {
+        Self {
+            max_reports: 32,
+            max_actions: 8,
+            max_prompt_contribution: 240,
+            convergence_target: 0.72,
+            entropy_limit: 0.42,
+            noise_limit: 0.35,
+            oscillation_limit: 0.30,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ConvergenceVector {
+    pub dimension: String,
+    pub value: f64,
+    pub target: f64,
+    pub delta: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubstrateConvergenceState {
+    #[serde(default)]
+    pub vectors: Vec<ConvergenceVector>,
+    pub convergence_score: f64,
+    pub convergence_delta: f64,
+    pub stable: bool,
+}
+impl Default for SubstrateConvergenceState {
+    fn default() -> Self {
+        Self {
+            vectors: Vec::new(),
+            convergence_score: 1.0,
+            convergence_delta: 0.0,
+            stable: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum StabilizationActionKind {
+    DampOscillation,
+    SuppressNoise,
+    RebalanceRetrieval,
+    ReinforceContinuity,
+    ReduceEntropy,
+    RestoreEquilibrium,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StabilizationAction {
+    pub kind: StabilizationActionKind,
+    pub target: String,
+    pub intensity: f64,
+    pub bounded: bool,
+    pub rationale: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct NoiseSuppressionSignal {
+    pub source: String,
+    pub noise: f64,
+    pub suppressed: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RetrievalOptimizationSignal {
+    pub cluster: String,
+    pub precision: f64,
+    pub diversity: f64,
+    pub rebalance: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContinuityStabilizationSignal {
+    pub thread: String,
+    pub continuity: f64,
+    pub reinforced: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AutonomousCognitiveStabilizer {
+    #[serde(default)]
+    pub actions: Vec<StabilizationAction>,
+    #[serde(default)]
+    pub noise: Vec<NoiseSuppressionSignal>,
+    #[serde(default)]
+    pub retrieval: Vec<RetrievalOptimizationSignal>,
+    #[serde(default)]
+    pub continuity: Vec<ContinuityStabilizationSignal>,
+    pub stabilization_pressure: f64,
+}
+impl Default for AutonomousCognitiveStabilizer {
+    fn default() -> Self {
+        Self {
+            actions: Vec::new(),
+            noise: Vec::new(),
+            retrieval: Vec::new(),
+            continuity: Vec::new(),
+            stabilization_pressure: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveEntropyState {
+    pub entropy: f64,
+    pub entropy_delta: f64,
+    pub compression_gain: f64,
+}
+impl Default for CognitiveEntropyState {
+    fn default() -> Self {
+        Self {
+            entropy: 0.0,
+            entropy_delta: 0.0,
+            compression_gain: 0.0,
+        }
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveEquilibriumState {
+    pub equilibrium: f64,
+    pub oscillation: f64,
+    pub attractor_balance: f64,
+    pub restored: bool,
+}
+impl Default for CognitiveEquilibriumState {
+    fn default() -> Self {
+        Self {
+            equilibrium: 1.0,
+            oscillation: 0.0,
+            attractor_balance: 1.0,
+            restored: true,
+        }
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ConvergenceStabilizationReport {
+    pub generated_at: DateTime<Utc>,
+    pub convergence: f64,
+    pub entropy: f64,
+    pub equilibrium: f64,
+    pub noise: f64,
+    pub oscillation: f64,
+    pub actions: usize,
+    pub stable: bool,
+    pub prompt_status: String,
+}
+
+pub fn run_substrate_convergence_stabilization(
+    reason: impl Into<String>,
+) -> io::Result<ConvergenceStabilizationReport> {
+    let mut store = load_store()?;
+    let report = run_substrate_convergence_stabilization_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_substrate_convergence_stabilization_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> ConvergenceStabilizationReport {
+    let now = Utc::now();
+    let substrate_report = run_cognitive_substrate_synthesis_in_store(
+        store,
+        format!("convergence_stabilization:{reason}"),
+    );
+    let state = &mut store.operational_state.substrate_convergence_stabilization;
+    let resonance = substrate_report.resonance.clamp(0.0, 1.0);
+    let instability = substrate_report.instability.clamp(0.0, 1.0);
+    let density = substrate_report.density.clamp(0.0, 1.0);
+    let repair = substrate_report.repair_debt.clamp(0.0, 1.0);
+    let convergence =
+        (resonance * 0.45 + (1.0 - instability) * 0.30 + density * 0.10 + (1.0 - repair) * 0.15)
+            .clamp(0.0, 1.0);
+    let entropy = (instability * 0.45 + repair * 0.35 + (1.0 - resonance) * 0.20).clamp(0.0, 1.0);
+    let noise = (instability * 0.60 + repair * 0.25 + (1.0 - density) * 0.15).clamp(0.0, 1.0);
+    let oscillation = ((state.convergence.convergence_score - convergence).abs() * 0.65
+        + instability * 0.35)
+        .clamp(0.0, 1.0);
+    let attractor_balance = (substrate_report.attractors as f64 / 3.0).clamp(0.0, 1.0);
+    let equilibrium = (convergence * 0.45
+        + (1.0 - entropy) * 0.25
+        + (1.0 - oscillation) * 0.20
+        + attractor_balance * 0.10)
+        .clamp(0.0, 1.0);
+    let prev = state.convergence.convergence_score;
+    let stable = convergence >= state.limits.convergence_target
+        && entropy <= state.limits.entropy_limit
+        && noise <= state.limits.noise_limit
+        && oscillation <= state.limits.oscillation_limit;
+    state.convergence = SubstrateConvergenceState {
+        vectors: vec![
+            ConvergenceVector {
+                dimension: "resonance".into(),
+                value: resonance,
+                target: state.limits.convergence_target,
+                delta: resonance - state.limits.convergence_target,
+            },
+            ConvergenceVector {
+                dimension: "instability".into(),
+                value: instability,
+                target: state.limits.noise_limit,
+                delta: state.limits.noise_limit - instability,
+            },
+            ConvergenceVector {
+                dimension: "repair".into(),
+                value: repair,
+                target: 0.0,
+                delta: -repair,
+            },
+            ConvergenceVector {
+                dimension: "equilibrium".into(),
+                value: equilibrium,
+                target: state.limits.convergence_target,
+                delta: equilibrium - state.limits.convergence_target,
+            },
+        ],
+        convergence_score: convergence,
+        convergence_delta: convergence - prev,
+        stable,
+    };
+    let mut actions = Vec::new();
+    if oscillation > state.limits.oscillation_limit {
+        actions.push(StabilizationAction {
+            kind: StabilizationActionKind::DampOscillation,
+            target: "substrate_field".into(),
+            intensity: oscillation - state.limits.oscillation_limit,
+            bounded: true,
+            rationale: "oscillation exceeds convergence stability policy".into(),
+        });
+    }
+    if noise > state.limits.noise_limit {
+        actions.push(StabilizationAction {
+            kind: StabilizationActionKind::SuppressNoise,
+            target: "noisy_activations".into(),
+            intensity: noise - state.limits.noise_limit,
+            bounded: true,
+            rationale: "noise above autonomous stabilization limit".into(),
+        });
+    }
+    if entropy > state.limits.entropy_limit {
+        actions.push(StabilizationAction {
+            kind: StabilizationActionKind::ReduceEntropy,
+            target: "context_and_memory_field".into(),
+            intensity: entropy - state.limits.entropy_limit,
+            bounded: true,
+            rationale: "entropy reduction through compression and evidence gating".into(),
+        });
+    }
+    if convergence < state.limits.convergence_target {
+        actions.push(StabilizationAction {
+            kind: StabilizationActionKind::ReinforceContinuity,
+            target: "long_horizon_threads".into(),
+            intensity: state.limits.convergence_target - convergence,
+            bounded: true,
+            rationale: "convergence below target".into(),
+        });
+    }
+    if equilibrium < state.limits.convergence_target {
+        actions.push(StabilizationAction {
+            kind: StabilizationActionKind::RestoreEquilibrium,
+            target: "attractor_balance".into(),
+            intensity: state.limits.convergence_target - equilibrium,
+            bounded: true,
+            rationale: "restore stable attractor balance".into(),
+        });
+    }
+    actions.truncate(state.limits.max_actions);
+    state.stabilization = AutonomousCognitiveStabilizer {
+        actions,
+        noise: vec![NoiseSuppressionSignal {
+            source: "substrate_instability".into(),
+            noise,
+            suppressed: noise > state.limits.noise_limit,
+        }],
+        retrieval: vec![RetrievalOptimizationSignal {
+            cluster: "adaptive_memory_context".into(),
+            precision: convergence,
+            diversity: (1.0 - entropy).clamp(0.0, 1.0),
+            rebalance: (state.limits.convergence_target - convergence).max(0.0),
+        }],
+        continuity: vec![ContinuityStabilizationSignal {
+            thread: "verification_commit_install_continuity".into(),
+            continuity: equilibrium,
+            reinforced: convergence < state.limits.convergence_target,
+        }],
+        stabilization_pressure: (1.0 - convergence + entropy + noise + oscillation).min(1.0),
+    };
+    state.entropy = CognitiveEntropyState {
+        entropy,
+        entropy_delta: entropy - state.entropy.entropy,
+        compression_gain: (entropy - state.limits.entropy_limit).max(0.0),
+    };
+    state.equilibrium = CognitiveEquilibriumState {
+        equilibrium,
+        oscillation,
+        attractor_balance,
+        restored: equilibrium >= state.limits.convergence_target,
+    };
+    let report = ConvergenceStabilizationReport {
+        generated_at: now,
+        convergence,
+        entropy,
+        equilibrium,
+        noise,
+        oscillation,
+        actions: state.stabilization.actions.len(),
+        stable,
+        prompt_status: format!(
+            "Substrate convergence: convergence={:.2} entropy={:.2} equilibrium={:.2} noise={:.2} oscillation={:.2} actions={} stable={}",
+            convergence,
+            entropy,
+            equilibrium,
+            noise,
+            oscillation,
+            state.stabilization.actions.len(),
+            stable
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.limits.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -9429,6 +9793,113 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn convergence_stabilization_reports_core_metrics() {
+        let mut store = CognitiveStore::default();
+        let report = run_substrate_convergence_stabilization_in_store(
+            &mut store,
+            "convergence stabilization".into(),
+        );
+        assert!((0.0..=1.0).contains(&report.convergence));
+        assert!((0.0..=1.0).contains(&report.entropy));
+        assert!((0.0..=1.0).contains(&report.equilibrium));
+        assert!(
+            report.prompt_status.len()
+                <= store
+                    .operational_state
+                    .substrate_convergence_stabilization
+                    .limits
+                    .max_prompt_contribution
+        );
+    }
+
+    #[test]
+    fn autonomous_stabilizer_emits_bounded_actions_under_strict_policy() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .substrate_convergence_stabilization
+            .limits
+            .convergence_target = 0.99;
+        store
+            .operational_state
+            .substrate_convergence_stabilization
+            .limits
+            .entropy_limit = 0.01;
+        store
+            .operational_state
+            .substrate_convergence_stabilization
+            .limits
+            .noise_limit = 0.01;
+        store
+            .operational_state
+            .substrate_convergence_stabilization
+            .limits
+            .oscillation_limit = 0.01;
+        run_substrate_convergence_stabilization_in_store(&mut store, "strict stabilization".into());
+        let stab = &store
+            .operational_state
+            .substrate_convergence_stabilization
+            .stabilization;
+        assert!(!stab.actions.is_empty());
+        assert!(stab.actions.iter().all(|a| a.bounded));
+        assert!(
+            stab.actions.len()
+                <= store
+                    .operational_state
+                    .substrate_convergence_stabilization
+                    .limits
+                    .max_actions
+        );
+    }
+
+    #[test]
+    fn stabilization_tracks_noise_retrieval_and_continuity() {
+        let mut store = CognitiveStore::default();
+        run_substrate_convergence_stabilization_in_store(
+            &mut store,
+            "noise retrieval continuity".into(),
+        );
+        let stab = &store
+            .operational_state
+            .substrate_convergence_stabilization
+            .stabilization;
+        assert!(!stab.noise.is_empty());
+        assert!(!stab.retrieval.is_empty());
+        assert!(!stab.continuity.is_empty());
+    }
+
+    #[test]
+    fn entropy_and_equilibrium_states_are_bounded() {
+        let mut store = CognitiveStore::default();
+        run_substrate_convergence_stabilization_in_store(&mut store, "entropy equilibrium".into());
+        let state = &store.operational_state.substrate_convergence_stabilization;
+        assert!((0.0..=1.0).contains(&state.entropy.entropy));
+        assert!((0.0..=1.0).contains(&state.equilibrium.equilibrium));
+        assert!((0.0..=1.0).contains(&state.equilibrium.oscillation));
+    }
+
+    #[test]
+    fn convergence_stabilization_persistence_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .substrate_convergence_stabilization
+                .limits
+                .max_actions,
+            8
+        );
+        assert!(
+            restored
+                .operational_state
+                .substrate_convergence_stabilization
+                .convergence
+                .stable
+        );
     }
 
     #[test]
