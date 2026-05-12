@@ -838,6 +838,8 @@ pub struct OperationalCognitionState {
     pub active_representation_evolution: ActiveRepresentationEvolutionState,
     #[serde(default)]
     pub emergent_strategy_discovery: EmergentStrategyDiscoveryState,
+    #[serde(default)]
+    pub high_level_operational_intelligence: HighLevelOperationalIntelligenceState,
 }
 
 impl Default for OperationalCognitionState {
@@ -871,6 +873,7 @@ impl Default for OperationalCognitionState {
             adaptive_complexity_collapse: AdaptiveComplexityCollapseState::default(),
             active_representation_evolution: ActiveRepresentationEvolutionState::default(),
             emergent_strategy_discovery: EmergentStrategyDiscoveryState::default(),
+            high_level_operational_intelligence: HighLevelOperationalIntelligenceState::default(),
         }
     }
 }
@@ -10814,6 +10817,336 @@ fn strategy_niche(kind: &StrategyKind) -> &'static str {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HighLevelOperationalIntelligenceState {
+    #[serde(default)]
+    pub synthesis: OperationalIntelligenceSynthesis,
+    #[serde(default)]
+    pub judgement: OperationalJudgementState,
+    #[serde(default)]
+    pub doctrine: OperationalDoctrineState,
+    #[serde(default)]
+    pub limits: HighLevelOperationalLimits,
+    #[serde(default)]
+    pub reports: VecDeque<HighLevelOperationalReport>,
+}
+impl Default for HighLevelOperationalIntelligenceState {
+    fn default() -> Self {
+        Self {
+            synthesis: OperationalIntelligenceSynthesis::default(),
+            judgement: OperationalJudgementState::default(),
+            doctrine: OperationalDoctrineState::default(),
+            limits: HighLevelOperationalLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HighLevelOperationalLimits {
+    pub max_insights: usize,
+    pub max_judgements: usize,
+    pub max_doctrine_updates: usize,
+    pub max_reports: usize,
+    pub max_prompt_contribution: usize,
+    pub min_actionability: f64,
+    pub max_operational_risk: f64,
+}
+impl Default for HighLevelOperationalLimits {
+    fn default() -> Self {
+        Self {
+            max_insights: 10,
+            max_judgements: 8,
+            max_doctrine_updates: 6,
+            max_reports: 32,
+            max_prompt_contribution: 240,
+            min_actionability: 0.50,
+            max_operational_risk: 0.35,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum OperationalInsightKind {
+    Strategic,
+    Tactical,
+    Epistemic,
+    Complexity,
+    Representation,
+    Execution,
+    Governance,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalInsight {
+    pub id: String,
+    pub kind: OperationalInsightKind,
+    pub salience: f64,
+    pub confidence: f64,
+    pub actionability: f64,
+    pub summary: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalIntelligenceSynthesis {
+    #[serde(default)]
+    pub insights: Vec<OperationalInsight>,
+    pub synthesis_score: f64,
+    pub actionability: f64,
+    pub strategic_alignment: f64,
+}
+impl Default for OperationalIntelligenceSynthesis {
+    fn default() -> Self {
+        Self {
+            insights: Vec::new(),
+            synthesis_score: 0.0,
+            actionability: 0.0,
+            strategic_alignment: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum OperationalJudgementKind {
+    Proceed,
+    VerifyFirst,
+    Decompose,
+    CollapseRepresentation,
+    Explore,
+    Repair,
+    Hold,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalJudgement {
+    pub id: String,
+    pub kind: OperationalJudgementKind,
+    pub confidence: f64,
+    pub risk: f64,
+    pub rationale: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalJudgementState {
+    #[serde(default)]
+    pub judgements: Vec<OperationalJudgement>,
+    pub dominant_judgement: Option<OperationalJudgementKind>,
+    pub calibrated_confidence: f64,
+    pub residual_risk: f64,
+}
+impl Default for OperationalJudgementState {
+    fn default() -> Self {
+        Self {
+            judgements: Vec::new(),
+            dominant_judgement: None,
+            calibrated_confidence: 0.0,
+            residual_risk: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalDoctrineUpdate {
+    pub doctrine: String,
+    pub update: String,
+    pub support: f64,
+    pub reversible: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalDoctrineState {
+    #[serde(default)]
+    pub updates: Vec<OperationalDoctrineUpdate>,
+    pub maturity: f64,
+    pub stability: f64,
+}
+impl Default for OperationalDoctrineState {
+    fn default() -> Self {
+        Self {
+            updates: Vec::new(),
+            maturity: 0.0,
+            stability: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HighLevelOperationalReport {
+    pub generated_at: DateTime<Utc>,
+    pub insights: usize,
+    pub judgements: usize,
+    pub doctrine_updates: usize,
+    pub synthesis: f64,
+    pub actionability: f64,
+    pub confidence: f64,
+    pub risk: f64,
+    pub prompt_status: String,
+}
+
+pub fn run_high_level_operational_intelligence(
+    reason: impl Into<String>,
+) -> io::Result<HighLevelOperationalReport> {
+    let mut store = load_store()?;
+    let report = run_high_level_operational_intelligence_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_high_level_operational_intelligence_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> HighLevelOperationalReport {
+    let now = Utc::now();
+    let strategy =
+        run_emergent_strategy_discovery_in_store(store, format!("high_level_operational:{reason}"));
+    let state = &mut store.operational_state.high_level_operational_intelligence;
+    let mut insights = vec![
+        OperationalInsight {
+            id: "strategy_portfolio_signal".into(),
+            kind: OperationalInsightKind::Strategic,
+            salience: strategy.best_score,
+            confidence: 0.72,
+            actionability: strategy.best_score,
+            summary: "use best strategy portfolio entry when risk is bounded".into(),
+        },
+        OperationalInsight {
+            id: "governance_pressure_signal".into(),
+            kind: OperationalInsightKind::Governance,
+            salience: strategy.governance_pressure,
+            confidence: 0.70,
+            actionability: 1.0 - strategy.governance_pressure,
+            summary: "governance pressure determines verify-first behavior".into(),
+        },
+        OperationalInsight {
+            id: "portfolio_diversity_signal".into(),
+            kind: OperationalInsightKind::Tactical,
+            salience: strategy.diversity,
+            confidence: 0.68,
+            actionability: strategy.diversity,
+            summary: "diverse portfolio improves operational robustness".into(),
+        },
+        OperationalInsight {
+            id: "task_context_signal".into(),
+            kind: OperationalInsightKind::Execution,
+            salience: 0.75,
+            confidence: 0.66,
+            actionability: 0.70,
+            summary: compact(&reason, 120),
+        },
+    ];
+    insights.retain(|i| i.actionability >= state.limits.min_actionability || i.salience >= 0.45);
+    insights.sort_by(|a, b| {
+        (b.salience * b.actionability)
+            .partial_cmp(&(a.salience * a.actionability))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    insights.truncate(state.limits.max_insights);
+    let synthesis_score = if insights.is_empty() {
+        0.0
+    } else {
+        insights
+            .iter()
+            .map(|i| i.salience * 0.35 + i.confidence * 0.30 + i.actionability * 0.35)
+            .sum::<f64>()
+            / insights.len() as f64
+    };
+    let actionability = insights.iter().map(|i| i.actionability).fold(0.0, f64::max);
+    let strategic_alignment = (strategy.best_score * 0.55
+        + strategy.diversity * 0.25
+        + (1.0 - strategy.governance_pressure) * 0.20)
+        .clamp(0.0, 1.0);
+    let mut judgements = Vec::new();
+    let risk = strategy.governance_pressure.clamp(0.0, 1.0);
+    let primary = if risk > state.limits.max_operational_risk {
+        OperationalJudgementKind::VerifyFirst
+    } else if strategy.best_score > 0.70 {
+        OperationalJudgementKind::Proceed
+    } else if strategy.diversity > 0.50 {
+        OperationalJudgementKind::Explore
+    } else {
+        OperationalJudgementKind::Decompose
+    };
+    judgements.push(OperationalJudgement {
+        id: "primary_operational_judgement".into(),
+        kind: primary.clone(),
+        confidence: synthesis_score,
+        risk,
+        rationale: "selected from strategy score, portfolio diversity, and governance pressure"
+            .into(),
+    });
+    if actionability < state.limits.min_actionability {
+        judgements.push(OperationalJudgement {
+            id: "low_actionability_repair".into(),
+            kind: OperationalJudgementKind::Repair,
+            confidence: 1.0 - actionability,
+            risk: 0.25,
+            rationale: "actionability below operational policy".into(),
+        });
+    }
+    judgements.truncate(state.limits.max_judgements);
+    let calibrated_confidence =
+        (synthesis_score * 0.65 + strategic_alignment * 0.35 - risk * 0.20).clamp(0.0, 1.0);
+    let mut updates = vec![OperationalDoctrineUpdate {
+        doctrine: "strategy_before_execution".into(),
+        update: format!(
+            "prefer {:?} when strategic alignment is {:.2}",
+            primary, strategic_alignment
+        ),
+        support: calibrated_confidence,
+        reversible: true,
+    }];
+    if risk > state.limits.max_operational_risk {
+        updates.push(OperationalDoctrineUpdate {
+            doctrine: "verify_first_under_pressure".into(),
+            update: "require verification when strategic governance pressure is elevated".into(),
+            support: risk,
+            reversible: true,
+        });
+    }
+    updates.truncate(state.limits.max_doctrine_updates);
+    let maturity =
+        (calibrated_confidence * 0.50 + actionability * 0.30 + strategic_alignment * 0.20)
+            .clamp(0.0, 1.0);
+    let stability = (1.0 - risk * 0.55 + strategy.diversity * 0.20).clamp(0.0, 1.0);
+    state.synthesis = OperationalIntelligenceSynthesis {
+        insights,
+        synthesis_score,
+        actionability,
+        strategic_alignment,
+    };
+    state.judgement = OperationalJudgementState {
+        judgements,
+        dominant_judgement: Some(primary),
+        calibrated_confidence,
+        residual_risk: risk,
+    };
+    state.doctrine = OperationalDoctrineState {
+        updates,
+        maturity,
+        stability,
+    };
+    let report = HighLevelOperationalReport {
+        generated_at: now,
+        insights: state.synthesis.insights.len(),
+        judgements: state.judgement.judgements.len(),
+        doctrine_updates: state.doctrine.updates.len(),
+        synthesis: synthesis_score,
+        actionability,
+        confidence: calibrated_confidence,
+        risk,
+        prompt_status: format!(
+            "Operational intelligence: insights={} judgements={} doctrine={} synthesis={:.2} actionability={:.2} confidence={:.2} risk={:.2}",
+            state.synthesis.insights.len(),
+            state.judgement.judgements.len(),
+            state.doctrine.updates.len(),
+            synthesis_score,
+            actionability,
+            calibrated_confidence,
+            risk
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.limits.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -11452,6 +11785,80 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn high_level_operational_intelligence_synthesizes_insights_and_judgement() {
+        let mut store = CognitiveStore::default();
+        let report = run_high_level_operational_intelligence_in_store(
+            &mut store,
+            "high-level operational intelligence".into(),
+        );
+        let state = &store.operational_state.high_level_operational_intelligence;
+        assert!(!state.synthesis.insights.is_empty());
+        assert!(!state.judgement.judgements.is_empty());
+        assert!(state.judgement.dominant_judgement.is_some());
+        assert_eq!(report.insights, state.synthesis.insights.len());
+    }
+
+    #[test]
+    fn operational_intelligence_doctrine_updates_are_bounded_and_reversible() {
+        let mut store = CognitiveStore::default();
+        run_high_level_operational_intelligence_in_store(&mut store, "doctrine updates".into());
+        let state = &store.operational_state.high_level_operational_intelligence;
+        assert!(state.doctrine.updates.len() <= state.limits.max_doctrine_updates);
+        assert!(state.doctrine.updates.iter().all(|u| u.reversible));
+    }
+
+    #[test]
+    fn operational_intelligence_respects_actionability_and_prompt_limits() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .high_level_operational_intelligence
+            .limits
+            .min_actionability = 0.95;
+        let report = run_high_level_operational_intelligence_in_store(
+            &mut store,
+            "strict actionability".into(),
+        );
+        let state = &store.operational_state.high_level_operational_intelligence;
+        assert!(state.synthesis.insights.len() <= state.limits.max_insights);
+        assert!(report.prompt_status.len() <= state.limits.max_prompt_contribution);
+    }
+
+    #[test]
+    fn operational_judgement_calibration_is_bounded() {
+        let mut store = CognitiveStore::default();
+        run_high_level_operational_intelligence_in_store(&mut store, "calibrated judgement".into());
+        let judgement = &store
+            .operational_state
+            .high_level_operational_intelligence
+            .judgement;
+        assert!((0.0..=1.0).contains(&judgement.calibrated_confidence));
+        assert!((0.0..=1.0).contains(&judgement.residual_risk));
+    }
+
+    #[test]
+    fn high_level_operational_intelligence_persistence_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .high_level_operational_intelligence
+                .limits
+                .max_insights,
+            10
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .high_level_operational_intelligence
+                .doctrine
+                .stability,
+            1.0
+        );
     }
 
     #[test]

@@ -332,6 +332,22 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect exploration budget, exploitation bias, and strategy decisions.",
     ),
     RegisteredCommand::public(
+        "/kcode-operational-intelligence status",
+        "Inspect high-level operational synthesis, actionability, confidence, and residual risk.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-operational-intelligence insights",
+        "Inspect synthesized strategic, tactical, epistemic, execution, and governance insights.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-operational-intelligence judgement",
+        "Inspect dominant operational judgement and calibrated confidence.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-operational-intelligence doctrine",
+        "Inspect reversible operational doctrine updates and maturity/stability.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),
