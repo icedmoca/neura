@@ -288,6 +288,26 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect complexity-aware solver routes and selected route confidence.",
     ),
     RegisteredCommand::public(
+        "/kcode-representation-evolution status",
+        "Inspect active representation evolution candidates, trials, promotions, and gain.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-representation-evolution candidates",
+        "Inspect proposed representation variants and mutation kinds.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-representation-evolution trials",
+        "Inspect sandbox trial predicted/observed gains and calibration error.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-representation-evolution promotions",
+        "Inspect bounded representation promotions and rollback governance.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-operational-complexity status",
+        "Inspect operational complexity mode, cost reduction, and policy adjustments.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),

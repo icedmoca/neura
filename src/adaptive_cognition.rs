@@ -834,6 +834,8 @@ pub struct OperationalCognitionState {
     pub structure_discovery_representation: StructureDiscoveryRepresentationState,
     #[serde(default)]
     pub adaptive_complexity_collapse: AdaptiveComplexityCollapseState,
+    #[serde(default)]
+    pub active_representation_evolution: ActiveRepresentationEvolutionState,
 }
 
 impl Default for OperationalCognitionState {
@@ -865,6 +867,7 @@ impl Default for OperationalCognitionState {
             substrate_convergence_stabilization: SubstrateConvergenceStabilizationState::default(),
             structure_discovery_representation: StructureDiscoveryRepresentationState::default(),
             adaptive_complexity_collapse: AdaptiveComplexityCollapseState::default(),
+            active_representation_evolution: ActiveRepresentationEvolutionState::default(),
         }
     }
 }
@@ -10053,6 +10056,358 @@ fn route_complexity_solvers(
     routes
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ActiveRepresentationEvolutionState {
+    #[serde(default)]
+    pub evolution: RepresentationEvolutionRuntime,
+    #[serde(default)]
+    pub operational_complexity: OperationalComplexityIntelligence,
+    #[serde(default)]
+    pub governance: RepresentationEvolutionGovernance,
+    #[serde(default)]
+    pub limits: RepresentationEvolutionLimits,
+    #[serde(default)]
+    pub reports: VecDeque<RepresentationEvolutionReport>,
+}
+impl Default for ActiveRepresentationEvolutionState {
+    fn default() -> Self {
+        Self {
+            evolution: RepresentationEvolutionRuntime::default(),
+            operational_complexity: OperationalComplexityIntelligence::default(),
+            governance: RepresentationEvolutionGovernance::default(),
+            limits: RepresentationEvolutionLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationEvolutionLimits {
+    pub max_candidates: usize,
+    pub max_trials: usize,
+    pub max_promotions: usize,
+    pub max_reports: usize,
+    pub max_prompt_contribution: usize,
+    pub min_gain_to_promote: f64,
+    pub max_regression_risk: f64,
+}
+impl Default for RepresentationEvolutionLimits {
+    fn default() -> Self {
+        Self {
+            max_candidates: 8,
+            max_trials: 8,
+            max_promotions: 4,
+            max_reports: 32,
+            max_prompt_contribution: 240,
+            min_gain_to_promote: 0.12,
+            max_regression_risk: 0.25,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RepresentationMutationKind {
+    Merge,
+    Split,
+    Reweight,
+    AddBridge,
+    PromoteInvariant,
+    CompressMotif,
+    SolverHint,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationVariant {
+    pub id: String,
+    pub mutation: RepresentationMutationKind,
+    pub source: String,
+    pub expected_gain: f64,
+    pub regression_risk: f64,
+    pub description: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationTrial {
+    pub variant_id: String,
+    pub predicted_gain: f64,
+    pub observed_gain: f64,
+    pub calibration_error: f64,
+    pub safe: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationPromotion {
+    pub variant_id: String,
+    pub promoted: bool,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationEvolutionRuntime {
+    #[serde(default)]
+    pub candidates: Vec<RepresentationVariant>,
+    #[serde(default)]
+    pub trials: Vec<RepresentationTrial>,
+    #[serde(default)]
+    pub promotions: Vec<RepresentationPromotion>,
+    pub evolution_gain: f64,
+    pub calibration_error: f64,
+}
+impl Default for RepresentationEvolutionRuntime {
+    fn default() -> Self {
+        Self {
+            candidates: Vec::new(),
+            trials: Vec::new(),
+            promotions: Vec::new(),
+            evolution_gain: 0.0,
+            calibration_error: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum OperationalComplexityMode {
+    Direct,
+    Decompose,
+    CollapseFirst,
+    Approximate,
+    EscalateEvidence,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalComplexityCase {
+    pub id: String,
+    pub calibrated_hardness: f64,
+    pub operational_cost: f64,
+    pub recommended_mode: OperationalComplexityMode,
+    pub rationale: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComplexityPolicyAdjustment {
+    pub policy: String,
+    pub adjustment: f64,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OperationalComplexityIntelligence {
+    #[serde(default)]
+    pub cases: Vec<OperationalComplexityCase>,
+    #[serde(default)]
+    pub policy_adjustments: Vec<ComplexityPolicyAdjustment>,
+    pub operational_complexity: f64,
+    pub expected_cost_reduction: f64,
+}
+impl Default for OperationalComplexityIntelligence {
+    fn default() -> Self {
+        Self {
+            cases: Vec::new(),
+            policy_adjustments: Vec::new(),
+            operational_complexity: 0.0,
+            expected_cost_reduction: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationEvolutionGovernance {
+    pub sandbox_required: bool,
+    pub rollback_required: bool,
+    pub promotion_allowed: bool,
+    pub governance_reason: String,
+}
+impl Default for RepresentationEvolutionGovernance {
+    fn default() -> Self {
+        Self {
+            sandbox_required: true,
+            rollback_required: true,
+            promotion_allowed: false,
+            governance_reason: "no evaluated variant".into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RepresentationEvolutionReport {
+    pub generated_at: DateTime<Utc>,
+    pub candidates: usize,
+    pub trials: usize,
+    pub promoted: usize,
+    pub gain: f64,
+    pub complexity: f64,
+    pub cost_reduction: f64,
+    pub calibration_error: f64,
+    pub prompt_status: String,
+}
+
+pub fn run_active_representation_evolution(
+    reason: impl Into<String>,
+) -> io::Result<RepresentationEvolutionReport> {
+    let mut store = load_store()?;
+    let report = run_active_representation_evolution_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_active_representation_evolution_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> RepresentationEvolutionReport {
+    let now = Utc::now();
+    let complexity = run_adaptive_complexity_collapse_in_store(
+        store,
+        format!("representation_evolution:{reason}"),
+    );
+    let state = &mut store.operational_state.active_representation_evolution;
+    let candidates = build_representation_variants(&complexity, &state.limits);
+    let mut trials = Vec::new();
+    for c in candidates.iter().take(state.limits.max_trials) {
+        let observed = (c.expected_gain * (1.0 - c.regression_risk * 0.5)).clamp(0.0, 1.0);
+        trials.push(RepresentationTrial {
+            variant_id: c.id.clone(),
+            predicted_gain: c.expected_gain,
+            observed_gain: observed,
+            calibration_error: (c.expected_gain - observed).abs(),
+            safe: c.regression_risk <= state.limits.max_regression_risk,
+        });
+    }
+    let calibration_error = if trials.is_empty() {
+        0.0
+    } else {
+        trials.iter().map(|t| t.calibration_error).sum::<f64>() / trials.len() as f64
+    };
+    let evolution_gain = trials.iter().map(|t| t.observed_gain).fold(0.0, f64::max);
+    let mut promotions = Vec::new();
+    for t in trials
+        .iter()
+        .filter(|t| t.safe && t.observed_gain >= state.limits.min_gain_to_promote)
+        .take(state.limits.max_promotions)
+    {
+        promotions.push(RepresentationPromotion {
+            variant_id: t.variant_id.clone(),
+            promoted: true,
+            reason: "sandbox trial exceeded gain threshold with bounded regression risk".into(),
+        });
+    }
+    let mode = if complexity.after_collapse < 0.25 {
+        OperationalComplexityMode::Direct
+    } else if complexity.collapse_potential > 0.35 {
+        OperationalComplexityMode::CollapseFirst
+    } else if complexity.calibrated > 0.70 {
+        OperationalComplexityMode::Decompose
+    } else {
+        OperationalComplexityMode::Approximate
+    };
+    let operational_complexity =
+        (complexity.after_collapse * 0.55 + complexity.empirical * 0.25 + calibration_error * 0.20)
+            .clamp(0.0, 1.0);
+    let expected_cost_reduction =
+        (evolution_gain * 0.55 + complexity.collapse_potential * 0.45).clamp(0.0, 1.0);
+    state.evolution = RepresentationEvolutionRuntime {
+        candidates,
+        trials,
+        promotions,
+        evolution_gain,
+        calibration_error,
+    };
+    state.operational_complexity = OperationalComplexityIntelligence {
+        cases: vec![OperationalComplexityCase {
+            id: "current_task_complexity".into(),
+            calibrated_hardness: complexity.calibrated,
+            operational_cost: operational_complexity,
+            recommended_mode: mode.clone(),
+            rationale:
+                "route by calibrated hardness, collapse potential, and representation trial gain"
+                    .into(),
+        }],
+        policy_adjustments: vec![ComplexityPolicyAdjustment {
+            policy: "solver_routing".into(),
+            adjustment: expected_cost_reduction,
+            reason: format!("prefer {:?} mode after representation evolution", mode),
+        }],
+        operational_complexity,
+        expected_cost_reduction,
+    };
+    state.governance = RepresentationEvolutionGovernance {
+        sandbox_required: true,
+        rollback_required: !state.evolution.promotions.is_empty(),
+        promotion_allowed: !state.evolution.promotions.is_empty(),
+        governance_reason: if state.evolution.promotions.is_empty() {
+            "no variant passed gain/risk thresholds"
+        } else {
+            "bounded promotion allowed with rollback"
+        }
+        .into(),
+    };
+    let report = RepresentationEvolutionReport {
+        generated_at: now,
+        candidates: state.evolution.candidates.len(),
+        trials: state.evolution.trials.len(),
+        promoted: state.evolution.promotions.len(),
+        gain: evolution_gain,
+        complexity: operational_complexity,
+        cost_reduction: expected_cost_reduction,
+        calibration_error,
+        prompt_status: format!(
+            "Representation evolution: candidates={} trials={} promoted={} gain={:.2} complexity={:.2} cost_reduction={:.2} cal_error={:.2}",
+            state.evolution.candidates.len(),
+            state.evolution.trials.len(),
+            state.evolution.promotions.len(),
+            evolution_gain,
+            operational_complexity,
+            expected_cost_reduction,
+            calibration_error
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.limits.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
+fn build_representation_variants(
+    complexity: &ComplexityCollapseReport,
+    limits: &RepresentationEvolutionLimits,
+) -> Vec<RepresentationVariant> {
+    let mut out = vec![
+        RepresentationVariant {
+            id: "promote_collapse_invariant".into(),
+            mutation: RepresentationMutationKind::PromoteInvariant,
+            source: "complexity_collapse".into(),
+            expected_gain: complexity.collapse_potential * 0.55,
+            regression_risk: (1.0 - complexity.collapse_potential).clamp(0.0, 1.0) * 0.30,
+            description: "promote high-support collapse invariants into representation constraints"
+                .into(),
+        },
+        RepresentationVariant {
+            id: "compress_solver_motif".into(),
+            mutation: RepresentationMutationKind::CompressMotif,
+            source: "structure_discovery".into(),
+            expected_gain: (complexity.calibrated - complexity.after_collapse).max(0.0),
+            regression_risk: complexity.after_collapse * 0.25,
+            description: "compress repeated solver/decomposition motif".into(),
+        },
+        RepresentationVariant {
+            id: "route_solver_hint".into(),
+            mutation: RepresentationMutationKind::SolverHint,
+            source: "solver_routes".into(),
+            expected_gain: (1.0 - complexity.after_collapse) * 0.25,
+            regression_risk: complexity.empirical * 0.20,
+            description: "attach complexity-aware solver hint to representation".into(),
+        },
+        RepresentationVariant {
+            id: "bridge_hard_subproblem".into(),
+            mutation: RepresentationMutationKind::AddBridge,
+            source: "decomposition".into(),
+            expected_gain: complexity.structural * 0.30,
+            regression_risk: complexity.formal * 0.18,
+            description: "add bridge edge between hard subproblem and collapse opportunity".into(),
+        },
+    ];
+    out.sort_by(|a, b| {
+        b.expected_gain
+            .partial_cmp(&a.expected_gain)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    out.truncate(limits.max_candidates);
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -10691,6 +11046,88 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn active_representation_evolution_creates_candidates_trials_and_governance() {
+        let mut store = CognitiveStore::default();
+        let report = run_active_representation_evolution_in_store(
+            &mut store,
+            "active representation evolution".into(),
+        );
+        let state = &store.operational_state.active_representation_evolution;
+        assert!(!state.evolution.candidates.is_empty());
+        assert!(!state.evolution.trials.is_empty());
+        assert_eq!(report.candidates, state.evolution.candidates.len());
+        assert!(state.governance.sandbox_required);
+    }
+
+    #[test]
+    fn representation_evolution_promotes_only_safe_gainful_variants() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .active_representation_evolution
+            .limits
+            .min_gain_to_promote = 0.0;
+        store
+            .operational_state
+            .active_representation_evolution
+            .limits
+            .max_regression_risk = 1.0;
+        run_active_representation_evolution_in_store(&mut store, "promotion permissive".into());
+        let state = &store.operational_state.active_representation_evolution;
+        assert!(state.evolution.promotions.len() <= state.limits.max_promotions);
+        assert!(state.evolution.promotions.iter().all(|p| p.promoted));
+    }
+
+    #[test]
+    fn operational_complexity_recommends_mode_and_policy_adjustment() {
+        let mut store = CognitiveStore::default();
+        run_active_representation_evolution_in_store(
+            &mut store,
+            "operational complexity intelligence".into(),
+        );
+        let op = &store
+            .operational_state
+            .active_representation_evolution
+            .operational_complexity;
+        assert!(!op.cases.is_empty());
+        assert!(!op.policy_adjustments.is_empty());
+        assert!((0.0..=1.0).contains(&op.expected_cost_reduction));
+    }
+
+    #[test]
+    fn representation_evolution_prompt_status_is_compact_and_calibrated() {
+        let mut store = CognitiveStore::default();
+        let report = run_active_representation_evolution_in_store(
+            &mut store,
+            "compact representation evolution".into(),
+        );
+        let state = &store.operational_state.active_representation_evolution;
+        assert!(report.prompt_status.len() <= state.limits.max_prompt_contribution);
+        assert!((0.0..=1.0).contains(&state.evolution.calibration_error));
+    }
+
+    #[test]
+    fn active_representation_evolution_persistence_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .active_representation_evolution
+                .limits
+                .max_candidates,
+            8
+        );
+        assert!(
+            restored
+                .operational_state
+                .active_representation_evolution
+                .governance
+                .sandbox_required
+        );
     }
 
     #[test]
