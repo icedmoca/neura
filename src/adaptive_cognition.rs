@@ -822,6 +822,8 @@ pub struct OperationalCognitionState {
     pub synthetic_governance: SyntheticScientificGovernanceState,
     #[serde(default)]
     pub cognitive_context_economy: CognitiveIntegrationContextEconomyState,
+    #[serde(default)]
+    pub hierarchical_epistemic_context: HierarchicalActivationEpistemicContextState,
 }
 
 impl Default for OperationalCognitionState {
@@ -847,6 +849,7 @@ impl Default for OperationalCognitionState {
             deliberative_science: DeliberativeScienceState::default(),
             synthetic_governance: SyntheticScientificGovernanceState::default(),
             cognitive_context_economy: CognitiveIntegrationContextEconomyState::default(),
+            hierarchical_epistemic_context: HierarchicalActivationEpistemicContextState::default(),
         }
     }
 }
@@ -7654,6 +7657,460 @@ fn build_integration_conflicts(
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HierarchicalActivationEpistemicContextState {
+    #[serde(default)]
+    pub activation_tree: CognitionActivationTree,
+    #[serde(default)]
+    pub epistemic_governance: EpistemicContextGovernance,
+    #[serde(default)]
+    pub routing: HierarchicalContextRouting,
+    #[serde(default)]
+    pub limits: HierarchicalContextLimits,
+    #[serde(default)]
+    pub reports: VecDeque<HierarchicalActivationReport>,
+}
+impl Default for HierarchicalActivationEpistemicContextState {
+    fn default() -> Self {
+        Self {
+            activation_tree: CognitionActivationTree::default(),
+            epistemic_governance: EpistemicContextGovernance::default(),
+            routing: HierarchicalContextRouting::default(),
+            limits: HierarchicalContextLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HierarchicalContextLimits {
+    pub max_depth: usize,
+    pub max_active_branches: usize,
+    pub max_prompt_tokens: usize,
+    pub min_activation: f64,
+    pub max_reports: usize,
+}
+impl Default for HierarchicalContextLimits {
+    fn default() -> Self {
+        Self {
+            max_depth: 4,
+            max_active_branches: 8,
+            max_prompt_tokens: 640,
+            min_activation: 0.12,
+            max_reports: 32,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ActivationHierarchyLevel {
+    Operational,
+    Procedural,
+    Semantic,
+    Strategic,
+    Epistemic,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HierarchicalActivationNode {
+    pub id: String,
+    pub parent: Option<String>,
+    pub level: ActivationHierarchyLevel,
+    pub activation: f64,
+    pub epistemic_weight: f64,
+    pub token_cost: usize,
+    pub summary: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HierarchicalActivationEdge {
+    pub parent: String,
+    pub child: String,
+    pub propagation: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ActivationPruningDecision {
+    pub node_id: String,
+    pub retained: bool,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitionActivationTree {
+    #[serde(default)]
+    pub nodes: Vec<HierarchicalActivationNode>,
+    #[serde(default)]
+    pub edges: Vec<HierarchicalActivationEdge>,
+    #[serde(default)]
+    pub pruning: Vec<ActivationPruningDecision>,
+    pub active_depth: usize,
+    pub total_activation: f64,
+}
+impl Default for CognitionActivationTree {
+    fn default() -> Self {
+        Self {
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            pruning: Vec::new(),
+            active_depth: 0,
+            total_activation: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum EpistemicContextDecisionKind {
+    Permit,
+    Compress,
+    RequireEvidence,
+    Quarantine,
+    Defer,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicContextDecision {
+    pub node_id: String,
+    pub kind: EpistemicContextDecisionKind,
+    pub confidence: f64,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContextContaminationSignal {
+    pub node_id: String,
+    pub risk: f64,
+    pub source: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ScopeBoundarySignal {
+    pub boundary: String,
+    pub leakage_risk: f64,
+    pub action: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicContextGovernance {
+    #[serde(default)]
+    pub decisions: Vec<EpistemicContextDecision>,
+    #[serde(default)]
+    pub contamination: Vec<ContextContaminationSignal>,
+    #[serde(default)]
+    pub scope_boundaries: Vec<ScopeBoundarySignal>,
+    pub governance_pressure: f64,
+}
+impl Default for EpistemicContextGovernance {
+    fn default() -> Self {
+        Self {
+            decisions: Vec::new(),
+            contamination: Vec::new(),
+            scope_boundaries: Vec::new(),
+            governance_pressure: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ContextRouteKind {
+    Direct,
+    Compressed,
+    EvidenceFirst,
+    Deferred,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContextRoute {
+    pub node_id: String,
+    pub route: ContextRouteKind,
+    pub allocated_tokens: usize,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HierarchicalContextRouting {
+    #[serde(default)]
+    pub routes: Vec<ContextRoute>,
+    pub routed_tokens: usize,
+    pub saved_tokens: usize,
+}
+impl Default for HierarchicalContextRouting {
+    fn default() -> Self {
+        Self {
+            routes: Vec::new(),
+            routed_tokens: 0,
+            saved_tokens: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HierarchicalActivationReport {
+    pub generated_at: DateTime<Utc>,
+    pub nodes: usize,
+    pub active_depth: usize,
+    pub retained: usize,
+    pub compressed: usize,
+    pub evidence_first: usize,
+    pub quarantined: usize,
+    pub routed_tokens: usize,
+    pub saved_tokens: usize,
+    pub governance_pressure: f64,
+    pub prompt_status: String,
+}
+
+pub fn run_hierarchical_epistemic_context(
+    reason: impl Into<String>,
+) -> io::Result<HierarchicalActivationReport> {
+    let mut store = load_store()?;
+    let report = run_hierarchical_epistemic_context_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_hierarchical_epistemic_context_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> HierarchicalActivationReport {
+    let now = Utc::now();
+    let context_report =
+        run_cognitive_context_economy_in_store(store, format!("hierarchical_context:{reason}"));
+    let state = &mut store.operational_state.hierarchical_epistemic_context;
+    let mut nodes = build_hierarchical_activation_nodes(&reason, &context_report);
+    nodes.sort_by(|a, b| {
+        b.activation
+            .partial_cmp(&a.activation)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    let retained_ids: BTreeSet<String> = nodes
+        .iter()
+        .filter(|n| n.activation >= state.limits.min_activation)
+        .take(state.limits.max_active_branches)
+        .map(|n| n.id.clone())
+        .collect();
+    let pruning: Vec<_> = nodes
+        .iter()
+        .map(|n| ActivationPruningDecision {
+            node_id: n.id.clone(),
+            retained: retained_ids.contains(&n.id),
+            reason: if retained_ids.contains(&n.id) {
+                "activation above salience threshold"
+            } else {
+                "pruned by activation/context budget"
+            }
+            .into(),
+        })
+        .collect();
+    let edges = build_hierarchical_activation_edges(&nodes, &retained_ids);
+    let active_depth = nodes
+        .iter()
+        .filter(|n| retained_ids.contains(&n.id))
+        .map(|n| match n.level {
+            ActivationHierarchyLevel::Operational => 1,
+            ActivationHierarchyLevel::Procedural => 2,
+            ActivationHierarchyLevel::Semantic => 3,
+            ActivationHierarchyLevel::Strategic => 4,
+            ActivationHierarchyLevel::Epistemic => 5,
+        })
+        .max()
+        .unwrap_or(0)
+        .min(state.limits.max_depth);
+    let total_activation = nodes
+        .iter()
+        .filter(|n| retained_ids.contains(&n.id))
+        .map(|n| n.activation)
+        .sum::<f64>()
+        .clamp(0.0, 8.0);
+    let mut decisions = Vec::new();
+    let mut contamination = Vec::new();
+    let mut boundaries = Vec::new();
+    let mut routes = Vec::new();
+    let mut routed_tokens = 0usize;
+    let mut saved_tokens = 0usize;
+    let mut compressed = 0usize;
+    let mut evidence_first = 0usize;
+    let mut quarantined = 0usize;
+    for node in nodes.iter().filter(|n| retained_ids.contains(&n.id)) {
+        let contamination_risk = (1.0 - node.epistemic_weight) * node.activation;
+        let kind = if contamination_risk > 0.55 {
+            quarantined += 1;
+            EpistemicContextDecisionKind::Quarantine
+        } else if node.epistemic_weight < 0.45 {
+            evidence_first += 1;
+            EpistemicContextDecisionKind::RequireEvidence
+        } else if routed_tokens + node.token_cost > state.limits.max_prompt_tokens {
+            compressed += 1;
+            EpistemicContextDecisionKind::Compress
+        } else {
+            EpistemicContextDecisionKind::Permit
+        };
+        if contamination_risk > 0.35 {
+            contamination.push(ContextContaminationSignal {
+                node_id: node.id.clone(),
+                risk: contamination_risk.clamp(0.0, 1.0),
+                source: "low epistemic weight with high activation".into(),
+            });
+        }
+        let route = match kind {
+            EpistemicContextDecisionKind::Permit => {
+                routed_tokens += node.token_cost;
+                ContextRouteKind::Direct
+            }
+            EpistemicContextDecisionKind::Compress => {
+                let ct = (node.token_cost / 3).max(12);
+                routed_tokens += ct;
+                saved_tokens += node.token_cost.saturating_sub(ct);
+                ContextRouteKind::Compressed
+            }
+            EpistemicContextDecisionKind::RequireEvidence => {
+                let ct = (node.token_cost / 4).max(8);
+                routed_tokens += ct;
+                saved_tokens += node.token_cost.saturating_sub(ct);
+                ContextRouteKind::EvidenceFirst
+            }
+            EpistemicContextDecisionKind::Quarantine | EpistemicContextDecisionKind::Defer => {
+                saved_tokens += node.token_cost;
+                ContextRouteKind::Deferred
+            }
+        };
+        decisions.push(EpistemicContextDecision { node_id: node.id.clone(), kind, confidence: node.epistemic_weight, reason: "epistemic context governance routed activation by confidence, contamination risk, and token budget".into() });
+        routes.push(ContextRoute {
+            node_id: node.id.clone(),
+            route,
+            allocated_tokens: node.token_cost,
+        });
+    }
+    boundaries.push(ScopeBoundarySignal {
+        boundary: "task/repo/session".into(),
+        leakage_risk: contamination.iter().map(|c| c.risk).fold(0.0, f64::max),
+        action: "compress or evidence-gate cross-scope activation".into(),
+    });
+    let pressure = (contamination.iter().map(|c| c.risk).sum::<f64>()
+        / decisions.len().max(1) as f64)
+        .clamp(0.0, 1.0);
+    state.activation_tree = CognitionActivationTree {
+        nodes: nodes.clone(),
+        edges,
+        pruning,
+        active_depth,
+        total_activation,
+    };
+    state.epistemic_governance = EpistemicContextGovernance {
+        decisions,
+        contamination,
+        scope_boundaries: boundaries,
+        governance_pressure: pressure,
+    };
+    state.routing = HierarchicalContextRouting {
+        routes,
+        routed_tokens,
+        saved_tokens,
+    };
+    let retained = retained_ids.len();
+    let report = HierarchicalActivationReport {
+        generated_at: now,
+        nodes: nodes.len(),
+        active_depth,
+        retained,
+        compressed,
+        evidence_first,
+        quarantined,
+        routed_tokens,
+        saved_tokens,
+        governance_pressure: pressure,
+        prompt_status: format!(
+            "Hierarchical context: nodes={} depth={} retained={} compressed={} evidence_first={} quarantined={} routed={} saved={} pressure={:.2}",
+            nodes.len(),
+            active_depth,
+            retained,
+            compressed,
+            evidence_first,
+            quarantined,
+            routed_tokens,
+            saved_tokens,
+            pressure
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.limits.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
+fn build_hierarchical_activation_nodes(
+    reason: &str,
+    context: &ContextEconomyReport,
+) -> Vec<HierarchicalActivationNode> {
+    vec![
+        HierarchicalActivationNode {
+            id: "op_current_task".into(),
+            parent: None,
+            level: ActivationHierarchyLevel::Operational,
+            activation: 0.92,
+            epistemic_weight: 0.78,
+            token_cost: estimate_token_count(reason).max(16),
+            summary: compact(reason, 120),
+        },
+        HierarchicalActivationNode {
+            id: "proc_execution_policy".into(),
+            parent: Some("op_current_task".into()),
+            level: ActivationHierarchyLevel::Procedural,
+            activation: 0.78,
+            epistemic_weight: 0.74,
+            token_cost: 48,
+            summary: "test, verify, commit, install workflow".into(),
+        },
+        HierarchicalActivationNode {
+            id: "sem_context_economy".into(),
+            parent: Some("proc_execution_policy".into()),
+            level: ActivationHierarchyLevel::Semantic,
+            activation: context.efficiency.max(0.45),
+            epistemic_weight: context.coherence,
+            token_cost: 72,
+            summary: context.prompt_status.clone(),
+        },
+        HierarchicalActivationNode {
+            id: "strat_token_governance".into(),
+            parent: Some("sem_context_economy".into()),
+            level: ActivationHierarchyLevel::Strategic,
+            activation: 0.66,
+            epistemic_weight: 0.70,
+            token_cost: 64,
+            summary: "allocate cognition by utility per token".into(),
+        },
+        HierarchicalActivationNode {
+            id: "epis_confidence_boundary".into(),
+            parent: Some("strat_token_governance".into()),
+            level: ActivationHierarchyLevel::Epistemic,
+            activation: 0.70,
+            epistemic_weight: context.coherence,
+            token_cost: 64,
+            summary: "evidence gate context before prompt admission".into(),
+        },
+        HierarchicalActivationNode {
+            id: "low_conf_raw_trace".into(),
+            parent: Some("epis_confidence_boundary".into()),
+            level: ActivationHierarchyLevel::Epistemic,
+            activation: 0.42,
+            epistemic_weight: 0.30,
+            token_cost: 96,
+            summary: "raw trace requires compression/evidence".into(),
+        },
+    ]
+}
+
+fn build_hierarchical_activation_edges(
+    nodes: &[HierarchicalActivationNode],
+    retained: &BTreeSet<String>,
+) -> Vec<HierarchicalActivationEdge> {
+    nodes
+        .iter()
+        .filter_map(|n| {
+            n.parent.as_ref().and_then(|p| {
+                if retained.contains(&n.id) && retained.contains(p) {
+                    Some(HierarchicalActivationEdge {
+                        parent: p.clone(),
+                        child: n.id.clone(),
+                        propagation: n.activation,
+                    })
+                } else {
+                    None
+                }
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -8292,6 +8749,90 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn hierarchical_activation_respects_depth_and_branch_limits() {
+        let mut store = CognitiveStore::default();
+        let report = run_hierarchical_epistemic_context_in_store(
+            &mut store,
+            "hierarchical cognition activation".into(),
+        );
+        let state = &store.operational_state.hierarchical_epistemic_context;
+        assert!(report.active_depth <= state.limits.max_depth);
+        assert!(report.retained <= state.limits.max_active_branches);
+        assert!(report.routed_tokens <= state.limits.max_prompt_tokens);
+    }
+
+    #[test]
+    fn epistemic_context_governance_gates_low_confidence_activation() {
+        let mut store = CognitiveStore::default();
+        run_hierarchical_epistemic_context_in_store(&mut store, "epistemic governance".into());
+        let gov = &store
+            .operational_state
+            .hierarchical_epistemic_context
+            .epistemic_governance;
+        assert!(!gov.decisions.is_empty());
+        assert!(gov.decisions.iter().any(|d| matches!(
+            d.kind,
+            EpistemicContextDecisionKind::RequireEvidence
+                | EpistemicContextDecisionKind::Quarantine
+                | EpistemicContextDecisionKind::Compress
+                | EpistemicContextDecisionKind::Permit
+        )));
+        assert!((0.0..=1.0).contains(&gov.governance_pressure));
+    }
+
+    #[test]
+    fn hierarchical_context_records_pruning_and_routes() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .hierarchical_epistemic_context
+            .limits
+            .max_active_branches = 3;
+        run_hierarchical_epistemic_context_in_store(&mut store, "pruning route test".into());
+        let state = &store.operational_state.hierarchical_epistemic_context;
+        assert!(state.activation_tree.pruning.iter().any(|p| !p.retained));
+        assert!(!state.routing.routes.is_empty());
+    }
+
+    #[test]
+    fn hierarchical_context_surfaces_scope_boundaries_and_contamination() {
+        let mut store = CognitiveStore::default();
+        run_hierarchical_epistemic_context_in_store(&mut store, "contamination boundary".into());
+        let gov = &store
+            .operational_state
+            .hierarchical_epistemic_context
+            .epistemic_governance;
+        assert!(!gov.scope_boundaries.is_empty());
+        assert!(
+            gov.contamination
+                .iter()
+                .all(|c| c.risk >= 0.0 && c.risk <= 1.0)
+        );
+    }
+
+    #[test]
+    fn hierarchical_epistemic_context_persistence_compatibility_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .hierarchical_epistemic_context
+                .limits
+                .max_depth,
+            4
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .hierarchical_epistemic_context
+                .activation_tree
+                .total_activation,
+            0.0
+        );
     }
 
     #[test]

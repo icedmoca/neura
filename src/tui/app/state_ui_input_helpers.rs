@@ -160,6 +160,26 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect deferred context debt and recall traces.",
     ),
     RegisteredCommand::public(
+        "/kcode-hierarchical-context status",
+        "Inspect hierarchical cognition activation depth, retained branches, and routed tokens.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-hierarchical-context tree",
+        "Inspect activation tree nodes, edges, and pruning decisions.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-hierarchical-context routing",
+        "Inspect direct, compressed, evidence-first, and deferred context routes.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-epistemic-context-governance status",
+        "Inspect epistemic context decisions, contamination signals, and scope boundaries.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-epistemic-context-governance quarantine",
+        "Inspect quarantined or evidence-gated high-risk context activations.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),
