@@ -112,6 +112,30 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect competing model scores and selection.",
     ),
     RegisteredCommand::public(
+        "/kcode-synthetic-science status",
+        "Inspect synthetic scientific cognition ecosystem status and bounded cycles.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-synthetic-science proposals",
+        "Inspect synthetic research proposals and expected information gain.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-synthetic-science experiments",
+        "Inspect synthetic experiments, observations, and replication records.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-synthetic-science dissent",
+        "Inspect productive dissent ecology and self-challenge cycles.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-epistemic-governance status",
+        "Inspect cybernetic epistemic governor stability and control signals.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-epistemic-governance actions",
+        "Inspect institutional decisions and epistemic governance actions.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),

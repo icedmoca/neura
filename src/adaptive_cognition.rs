@@ -818,6 +818,8 @@ pub struct OperationalCognitionState {
     pub epistemology: EpistemologyState,
     #[serde(default)]
     pub deliberative_science: DeliberativeScienceState,
+    #[serde(default)]
+    pub synthetic_governance: SyntheticScientificGovernanceState,
 }
 
 impl Default for OperationalCognitionState {
@@ -841,6 +843,7 @@ impl Default for OperationalCognitionState {
             reality_coupling: RealityCouplingState::default(),
             epistemology: EpistemologyState::default(),
             deliberative_science: DeliberativeScienceState::default(),
+            synthetic_governance: SyntheticScientificGovernanceState::default(),
         }
     }
 }
@@ -6743,6 +6746,479 @@ pub fn score_competing_models(
     .collect()
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyntheticScientificGovernanceState {
+    #[serde(default)]
+    pub ecosystem: SyntheticScienceEcosystem,
+    #[serde(default)]
+    pub cybernetic_governor: CyberneticEpistemicGovernor,
+    #[serde(default)]
+    pub institutions: EpistemicInstitutions,
+    #[serde(default)]
+    pub safety: SyntheticGovernanceLimits,
+    #[serde(default)]
+    pub reports: VecDeque<SyntheticGovernanceReport>,
+}
+impl Default for SyntheticScientificGovernanceState {
+    fn default() -> Self {
+        Self {
+            ecosystem: SyntheticScienceEcosystem::default(),
+            cybernetic_governor: CyberneticEpistemicGovernor::default(),
+            institutions: EpistemicInstitutions::default(),
+            safety: SyntheticGovernanceLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyntheticGovernanceLimits {
+    pub max_ecosystem_cycles: usize,
+    pub max_agent_proposals: usize,
+    pub max_institutional_decisions: usize,
+    pub max_prompt_contribution: usize,
+    pub max_calibration_pressure: f64,
+}
+impl Default for SyntheticGovernanceLimits {
+    fn default() -> Self {
+        Self {
+            max_ecosystem_cycles: 3,
+            max_agent_proposals: 8,
+            max_institutional_decisions: 8,
+            max_prompt_contribution: 240,
+            max_calibration_pressure: 0.75,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SyntheticScientistRole {
+    HypothesisGenerator,
+    Skeptic,
+    Replicator,
+    CausalAnalyst,
+    CalibrationAuditor,
+    GovernanceReviewer,
+    AnomalyHunter,
+    ModelCompetitor,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyntheticScientist {
+    pub role: SyntheticScientistRole,
+    pub credibility: f64,
+    pub budget: usize,
+    pub calibration_error: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyntheticResearchProposal {
+    pub id: String,
+    pub proposer: SyntheticScientistRole,
+    pub question: String,
+    pub expected_information_gain: f64,
+    pub risk: f64,
+    pub replication_required: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyntheticExperimentRecord {
+    pub id: String,
+    pub proposal_id: String,
+    pub safe: bool,
+    pub predicted: String,
+    pub observed: String,
+    pub prediction_error: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ReplicationAttempt {
+    pub experiment_id: String,
+    pub replicated: bool,
+    pub error_delta: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DissentEcologySignal {
+    pub source: SyntheticScientistRole,
+    pub claim: String,
+    pub productive: bool,
+    pub severity: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SelfChallengeCycle {
+    pub target: String,
+    pub challenge: String,
+    pub outcome: String,
+    pub reduced_overconfidence: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyntheticScienceEcosystem {
+    #[serde(default)]
+    pub scientists: Vec<SyntheticScientist>,
+    #[serde(default)]
+    pub proposals: VecDeque<SyntheticResearchProposal>,
+    #[serde(default)]
+    pub experiments: VecDeque<SyntheticExperimentRecord>,
+    #[serde(default)]
+    pub replications: VecDeque<ReplicationAttempt>,
+    #[serde(default)]
+    pub dissent_ecology: VecDeque<DissentEcologySignal>,
+    #[serde(default)]
+    pub self_challenges: VecDeque<SelfChallengeCycle>,
+    pub cycles_run: usize,
+}
+impl Default for SyntheticScienceEcosystem {
+    fn default() -> Self {
+        Self {
+            scientists: default_synthetic_scientists(),
+            proposals: VecDeque::new(),
+            experiments: VecDeque::new(),
+            replications: VecDeque::new(),
+            dissent_ecology: VecDeque::new(),
+            self_challenges: VecDeque::new(),
+            cycles_run: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicControlSignal {
+    pub name: String,
+    pub value: f64,
+    pub target: f64,
+    pub correction: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CyberneticFeedbackLoop {
+    pub loop_name: String,
+    pub sensor: String,
+    pub actuator: String,
+    pub stable: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicGovernanceAction {
+    pub action: String,
+    pub intensity: f64,
+    pub rationale: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CyberneticEpistemicGovernor {
+    #[serde(default)]
+    pub control_signals: Vec<EpistemicControlSignal>,
+    #[serde(default)]
+    pub feedback_loops: Vec<CyberneticFeedbackLoop>,
+    #[serde(default)]
+    pub actions: VecDeque<EpistemicGovernanceAction>,
+    pub stability: f64,
+    pub overconfidence_pressure: f64,
+}
+impl Default for CyberneticEpistemicGovernor {
+    fn default() -> Self {
+        Self {
+            control_signals: Vec::new(),
+            feedback_loops: Vec::new(),
+            actions: VecDeque::new(),
+            stability: 1.0,
+            overconfidence_pressure: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum InstitutionalDecisionKind {
+    PromoteHypothesis,
+    RequireReplication,
+    QuarantineDoctrine,
+    IncreaseVerification,
+    ArchiveClaim,
+    CalibrateConfidence,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InstitutionalDecision {
+    pub kind: InstitutionalDecisionKind,
+    pub target: String,
+    pub approved: bool,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicInstitution {
+    pub name: String,
+    pub authority: f64,
+    pub decision_budget: usize,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicInstitutions {
+    #[serde(default)]
+    pub institutions: Vec<EpistemicInstitution>,
+    #[serde(default)]
+    pub decisions: VecDeque<InstitutionalDecision>,
+}
+impl Default for EpistemicInstitutions {
+    fn default() -> Self {
+        Self {
+            institutions: vec![
+                EpistemicInstitution {
+                    name: "replication_board".into(),
+                    authority: 0.8,
+                    decision_budget: 2,
+                },
+                EpistemicInstitution {
+                    name: "calibration_court".into(),
+                    authority: 0.85,
+                    decision_budget: 2,
+                },
+                EpistemicInstitution {
+                    name: "doctrine_review".into(),
+                    authority: 0.9,
+                    decision_budget: 2,
+                },
+            ],
+            decisions: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyntheticGovernanceReport {
+    pub generated_at: DateTime<Utc>,
+    pub cycles: usize,
+    pub proposals: usize,
+    pub experiments: usize,
+    pub replications: usize,
+    pub dissent: usize,
+    pub stability: f64,
+    pub actions: usize,
+    pub prompt_status: String,
+}
+
+fn default_synthetic_scientists() -> Vec<SyntheticScientist> {
+    [
+        SyntheticScientistRole::HypothesisGenerator,
+        SyntheticScientistRole::Skeptic,
+        SyntheticScientistRole::Replicator,
+        SyntheticScientistRole::CausalAnalyst,
+        SyntheticScientistRole::CalibrationAuditor,
+        SyntheticScientistRole::GovernanceReviewer,
+        SyntheticScientistRole::AnomalyHunter,
+        SyntheticScientistRole::ModelCompetitor,
+    ]
+    .into_iter()
+    .map(|role| SyntheticScientist {
+        role,
+        credibility: 0.72,
+        budget: 1,
+        calibration_error: 0.08,
+    })
+    .collect()
+}
+
+pub fn run_synthetic_scientific_governance(
+    reason: impl Into<String>,
+) -> io::Result<SyntheticGovernanceReport> {
+    let mut store = load_store()?;
+    let report = run_synthetic_scientific_governance_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_synthetic_scientific_governance_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> SyntheticGovernanceReport {
+    let now = Utc::now();
+    let (_session, science_report) =
+        run_deliberative_science_in_store(store, format!("synthetic_governance:{reason}"));
+    let sg = &mut store.operational_state.synthetic_governance;
+    let uncertainty = match science_report.uncertainty.as_str() {
+        "high" => 0.8,
+        "moderate" => 0.5,
+        _ => 0.2,
+    };
+    let info_gain = match science_report.information_gain.as_str() {
+        "high" => 0.8,
+        "moderate" => 0.5,
+        _ => 0.2,
+    };
+    let overconfidence = (1.0 - uncertainty)
+        * if science_report.calibration == "stable" {
+            0.3
+        } else {
+            0.7
+        };
+    sg.cybernetic_governor.overconfidence_pressure = overconfidence;
+    sg.cybernetic_governor.stability =
+        (1.0 - (uncertainty * 0.35 + overconfidence * 0.35)).clamp(0.0, 1.0);
+    sg.cybernetic_governor.control_signals = vec![
+        EpistemicControlSignal {
+            name: "uncertainty".into(),
+            value: uncertainty,
+            target: 0.35,
+            correction: (uncertainty - 0.35).max(0.0),
+        },
+        EpistemicControlSignal {
+            name: "overconfidence".into(),
+            value: overconfidence,
+            target: 0.20,
+            correction: (overconfidence - 0.20).max(0.0),
+        },
+        EpistemicControlSignal {
+            name: "information_gain".into(),
+            value: info_gain,
+            target: 0.50,
+            correction: (0.50 - info_gain).max(0.0),
+        },
+    ];
+    sg.cybernetic_governor.feedback_loops = vec![
+        CyberneticFeedbackLoop {
+            loop_name: "uncertainty_to_experiment_budget".into(),
+            sensor: "scientific_uncertainty".into(),
+            actuator: "verification_pressure".into(),
+            stable: uncertainty < 0.75,
+        },
+        CyberneticFeedbackLoop {
+            loop_name: "overconfidence_to_calibration".into(),
+            sensor: "confidence_pressure".into(),
+            actuator: "confidence_damping".into(),
+            stable: overconfidence < sg.safety.max_calibration_pressure,
+        },
+    ];
+    let action = if overconfidence > 0.2 {
+        EpistemicGovernanceAction {
+            action: "dampen confidence and require replication".into(),
+            intensity: overconfidence,
+            rationale: "cybernetic overconfidence control".into(),
+        }
+    } else {
+        EpistemicGovernanceAction {
+            action: "continue bounded exploration".into(),
+            intensity: info_gain,
+            rationale: "information gain remains useful".into(),
+        }
+    };
+    sg.cybernetic_governor.actions.push_back(action);
+    while sg.cybernetic_governor.actions.len() > MAX_DECISIONS {
+        sg.cybernetic_governor.actions.pop_front();
+    }
+    let cycle_budget = sg.safety.max_ecosystem_cycles.min(3);
+    for idx in 0..cycle_budget {
+        run_synthetic_ecosystem_cycle(sg, &reason, idx, uncertainty, info_gain, now);
+    }
+    let decision = InstitutionalDecision {
+        kind: if uncertainty > 0.6 {
+            InstitutionalDecisionKind::IncreaseVerification
+        } else if overconfidence > 0.2 {
+            InstitutionalDecisionKind::RequireReplication
+        } else {
+            InstitutionalDecisionKind::CalibrateConfidence
+        },
+        target: compact(&reason, 80),
+        approved: true,
+        reason: "institutional epistemic governance applied bounded corrective control".into(),
+    };
+    sg.institutions.decisions.push_back(decision);
+    while sg.institutions.decisions.len() > sg.safety.max_institutional_decisions {
+        sg.institutions.decisions.pop_front();
+    }
+    let report = SyntheticGovernanceReport {
+        generated_at: now,
+        cycles: sg.ecosystem.cycles_run,
+        proposals: sg.ecosystem.proposals.len(),
+        experiments: sg.ecosystem.experiments.len(),
+        replications: sg.ecosystem.replications.len(),
+        dissent: sg.ecosystem.dissent_ecology.len(),
+        stability: sg.cybernetic_governor.stability,
+        actions: sg.cybernetic_governor.actions.len(),
+        prompt_status: format!(
+            "Synthetic science governance: cycles={} proposals={} experiments={} replications={} dissent={} stability={:.2} actions={}",
+            sg.ecosystem.cycles_run,
+            sg.ecosystem.proposals.len(),
+            sg.ecosystem.experiments.len(),
+            sg.ecosystem.replications.len(),
+            sg.ecosystem.dissent_ecology.len(),
+            sg.cybernetic_governor.stability,
+            sg.cybernetic_governor.actions.len()
+        ),
+    };
+    sg.reports.push_back(report.clone());
+    while sg.reports.len() > MAX_DECISIONS {
+        sg.reports.pop_front();
+    }
+    report
+}
+
+fn run_synthetic_ecosystem_cycle(
+    sg: &mut SyntheticScientificGovernanceState,
+    reason: &str,
+    idx: usize,
+    uncertainty: f64,
+    info_gain: f64,
+    now: DateTime<Utc>,
+) {
+    sg.ecosystem.cycles_run += 1;
+    let role = sg
+        .ecosystem
+        .scientists
+        .get(idx % sg.ecosystem.scientists.len())
+        .map(|s| s.role.clone())
+        .unwrap_or(SyntheticScientistRole::HypothesisGenerator);
+    let proposal = SyntheticResearchProposal {
+        id: format!("syn-prop-{}-{idx}", now.timestamp_millis()),
+        proposer: role.clone(),
+        question: format!(
+            "What evidence would reduce uncertainty about {}?",
+            compact(reason, 80)
+        ),
+        expected_information_gain: info_gain,
+        risk: (uncertainty * 0.25).clamp(0.0, 1.0),
+        replication_required: uncertainty > 0.4,
+    };
+    sg.ecosystem.proposals.push_back(proposal.clone());
+    while sg.ecosystem.proposals.len() > sg.safety.max_agent_proposals {
+        sg.ecosystem.proposals.pop_front();
+    }
+    let experiment = SyntheticExperimentRecord {
+        id: format!("syn-exp-{}-{idx}", now.timestamp_millis()),
+        proposal_id: proposal.id.clone(),
+        safe: proposal.risk < 0.4,
+        predicted: "verification lowers uncertainty".into(),
+        observed: if info_gain >= 0.4 {
+            "evidence gap identified"
+        } else {
+            "uncertainty already bounded"
+        }
+        .into(),
+        prediction_error: (0.5 - info_gain).abs(),
+    };
+    sg.ecosystem.experiments.push_back(experiment.clone());
+    while sg.ecosystem.experiments.len() > MAX_DECISIONS {
+        sg.ecosystem.experiments.pop_front();
+    }
+    sg.ecosystem.replications.push_back(ReplicationAttempt {
+        experiment_id: experiment.id.clone(),
+        replicated: experiment.safe && experiment.prediction_error < 0.45,
+        error_delta: experiment.prediction_error,
+    });
+    while sg.ecosystem.replications.len() > MAX_DECISIONS {
+        sg.ecosystem.replications.pop_front();
+    }
+    sg.ecosystem
+        .dissent_ecology
+        .push_back(DissentEcologySignal {
+            source: SyntheticScientistRole::Skeptic,
+            claim: "do not promote without replication and calibration".into(),
+            productive: true,
+            severity: uncertainty,
+        });
+    while sg.ecosystem.dissent_ecology.len() > MAX_DECISIONS {
+        sg.ecosystem.dissent_ecology.pop_front();
+    }
+    sg.ecosystem.self_challenges.push_back(SelfChallengeCycle {
+        target: compact(reason, 80),
+        challenge: "assume current favored model is wrong and seek discriminating evidence".into(),
+        outcome: "replication and confidence damping required when uncertainty persists".into(),
+        reduced_overconfidence: true,
+    });
+    while sg.ecosystem.self_challenges.len() > MAX_DECISIONS {
+        sg.ecosystem.self_challenges.pop_front();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -7381,6 +7857,85 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn synthetic_governance_runs_bounded_ecosystem_cycles() {
+        let mut store = CognitiveStore::default();
+        let report = run_synthetic_scientific_governance_in_store(
+            &mut store,
+            "synthetic scientific cognition".into(),
+        );
+        let sg = &store.operational_state.synthetic_governance;
+        assert!(report.cycles <= sg.safety.max_ecosystem_cycles);
+        assert!(sg.ecosystem.proposals.len() <= sg.safety.max_agent_proposals);
+        assert!(report.prompt_status.len() <= sg.safety.max_prompt_contribution);
+    }
+
+    #[test]
+    fn cybernetic_epistemic_governor_surfaces_control_actions() {
+        let mut store = CognitiveStore::default();
+        run_synthetic_scientific_governance_in_store(
+            &mut store,
+            "overconfidence calibration".into(),
+        );
+        let gov = &store
+            .operational_state
+            .synthetic_governance
+            .cybernetic_governor;
+        assert!(!gov.control_signals.is_empty());
+        assert!(!gov.feedback_loops.is_empty());
+        assert!(!gov.actions.is_empty());
+        assert!((0.0..=1.0).contains(&gov.stability));
+    }
+
+    #[test]
+    fn synthetic_science_requires_replication_and_productive_dissent() {
+        let mut store = CognitiveStore::default();
+        run_synthetic_scientific_governance_in_store(&mut store, "replication requirement".into());
+        let eco = &store.operational_state.synthetic_governance.ecosystem;
+        assert!(!eco.replications.is_empty());
+        assert!(eco.dissent_ecology.iter().any(|d| d.productive));
+        assert!(eco.self_challenges.iter().any(|c| c.reduced_overconfidence));
+    }
+
+    #[test]
+    fn epistemic_institutions_emit_bounded_decisions() {
+        let mut store = CognitiveStore::default();
+        run_synthetic_scientific_governance_in_store(&mut store, "institutional governance".into());
+        let inst = &store.operational_state.synthetic_governance.institutions;
+        assert!(!inst.decisions.is_empty());
+        assert!(
+            inst.decisions.len()
+                <= store
+                    .operational_state
+                    .synthetic_governance
+                    .safety
+                    .max_institutional_decisions
+        );
+    }
+
+    #[test]
+    fn synthetic_governance_persistence_compatibility_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .synthetic_governance
+                .ecosystem
+                .scientists
+                .len(),
+            8
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .synthetic_governance
+                .safety
+                .max_ecosystem_cycles,
+            3
+        );
     }
 
     #[test]
