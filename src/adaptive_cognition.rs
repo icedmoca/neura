@@ -826,6 +826,8 @@ pub struct OperationalCognitionState {
     pub hierarchical_epistemic_context: HierarchicalActivationEpistemicContextState,
     #[serde(default)]
     pub emergent_quality_coherence: EmergentCognitionQualityCoherenceState,
+    #[serde(default)]
+    pub cognitive_substrate_synthesis: CognitiveSubstrateSynthesisState,
 }
 
 impl Default for OperationalCognitionState {
@@ -853,6 +855,7 @@ impl Default for OperationalCognitionState {
             cognitive_context_economy: CognitiveIntegrationContextEconomyState::default(),
             hierarchical_epistemic_context: HierarchicalActivationEpistemicContextState::default(),
             emergent_quality_coherence: EmergentCognitionQualityCoherenceState::default(),
+            cognitive_substrate_synthesis: CognitiveSubstrateSynthesisState::default(),
         }
     }
 }
@@ -8407,6 +8410,387 @@ pub fn run_emergent_quality_coherence_in_store(
     report
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveSubstrateSynthesisState {
+    #[serde(default)]
+    pub field: CognitiveFieldState,
+    #[serde(default)]
+    pub attractors: Vec<CognitiveAttractor>,
+    #[serde(default)]
+    pub optimizer: SubstrateOptimizationState,
+    #[serde(default)]
+    pub repair: SubstrateRepairState,
+    #[serde(default)]
+    pub limits: SubstrateSynthesisLimits,
+    #[serde(default)]
+    pub reports: VecDeque<SubstrateSynthesisReport>,
+}
+impl Default for CognitiveSubstrateSynthesisState {
+    fn default() -> Self {
+        Self {
+            field: CognitiveFieldState::default(),
+            attractors: Vec::new(),
+            optimizer: SubstrateOptimizationState::default(),
+            repair: SubstrateRepairState::default(),
+            limits: SubstrateSynthesisLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubstrateSynthesisLimits {
+    pub max_field_nodes: usize,
+    pub max_attractors: usize,
+    pub max_repairs: usize,
+    pub max_reports: usize,
+    pub max_prompt_contribution: usize,
+    pub resonance_target: f64,
+    pub instability_limit: f64,
+}
+impl Default for SubstrateSynthesisLimits {
+    fn default() -> Self {
+        Self {
+            max_field_nodes: 16,
+            max_attractors: 8,
+            max_repairs: 8,
+            max_reports: 32,
+            max_prompt_contribution: 240,
+            resonance_target: 0.70,
+            instability_limit: 0.35,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CognitiveFieldLayer {
+    Memory,
+    Epistemic,
+    Deliberative,
+    Scientific,
+    Contextual,
+    Hierarchical,
+    Quality,
+    Operational,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveFieldNode {
+    pub id: String,
+    pub layer: CognitiveFieldLayer,
+    pub activation: f64,
+    pub coherence: f64,
+    pub instability: f64,
+    pub summary: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveFieldCoupling {
+    pub from: String,
+    pub to: String,
+    pub resonance: f64,
+    pub damping: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveFieldState {
+    #[serde(default)]
+    pub nodes: Vec<CognitiveFieldNode>,
+    #[serde(default)]
+    pub couplings: Vec<CognitiveFieldCoupling>,
+    pub global_resonance: f64,
+    pub global_instability: f64,
+    pub integration_density: f64,
+}
+impl Default for CognitiveFieldState {
+    fn default() -> Self {
+        Self {
+            nodes: Vec::new(),
+            couplings: Vec::new(),
+            global_resonance: 1.0,
+            global_instability: 0.0,
+            integration_density: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveAttractor {
+    pub id: String,
+    pub layers: Vec<CognitiveFieldLayer>,
+    pub strength: f64,
+    pub stability: f64,
+    pub behavior: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubstrateOptimizationAction {
+    pub action: String,
+    pub expected_gain: f64,
+    pub bounded: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubstrateOptimizationState {
+    #[serde(default)]
+    pub actions: Vec<SubstrateOptimizationAction>,
+    pub optimization_pressure: f64,
+    pub damping_applied: f64,
+}
+impl Default for SubstrateOptimizationState {
+    fn default() -> Self {
+        Self {
+            actions: Vec::new(),
+            optimization_pressure: 0.0,
+            damping_applied: 0.0,
+        }
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubstrateRepairAction {
+    pub target: String,
+    pub repair: String,
+    pub urgency: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubstrateRepairState {
+    #[serde(default)]
+    pub actions: Vec<SubstrateRepairAction>,
+    pub repair_debt: f64,
+}
+impl Default for SubstrateRepairState {
+    fn default() -> Self {
+        Self {
+            actions: Vec::new(),
+            repair_debt: 0.0,
+        }
+    }
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubstrateSynthesisReport {
+    pub generated_at: DateTime<Utc>,
+    pub nodes: usize,
+    pub attractors: usize,
+    pub resonance: f64,
+    pub instability: f64,
+    pub density: f64,
+    pub optimization_pressure: f64,
+    pub repair_debt: f64,
+    pub prompt_status: String,
+}
+
+pub fn run_cognitive_substrate_synthesis(
+    reason: impl Into<String>,
+) -> io::Result<SubstrateSynthesisReport> {
+    let mut store = load_store()?;
+    let report = run_cognitive_substrate_synthesis_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_cognitive_substrate_synthesis_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> SubstrateSynthesisReport {
+    let now = Utc::now();
+    let quality =
+        run_emergent_quality_coherence_in_store(store, format!("substrate_synthesis:{reason}"));
+    let substrate = &mut store.operational_state.cognitive_substrate_synthesis;
+    let nodes = build_cognitive_field_nodes(&reason, &quality);
+    let couplings = build_cognitive_field_couplings(&nodes);
+    let global_resonance = if couplings.is_empty() {
+        1.0
+    } else {
+        couplings.iter().map(|c| c.resonance).sum::<f64>() / couplings.len() as f64
+    };
+    let global_instability =
+        nodes.iter().map(|n| n.instability).sum::<f64>() / nodes.len().max(1) as f64;
+    let density = couplings.len() as f64 / (nodes.len().max(1) * nodes.len().max(1)) as f64;
+    let mut attractors = derive_cognitive_attractors(&nodes, &quality);
+    attractors.sort_by(|a, b| {
+        b.strength
+            .partial_cmp(&a.strength)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    attractors.truncate(substrate.limits.max_attractors);
+    let optimization_pressure = ((substrate.limits.resonance_target - global_resonance).max(0.0)
+        + (global_instability - substrate.limits.instability_limit).max(0.0))
+    .clamp(0.0, 1.0);
+    let mut opt_actions = Vec::new();
+    if global_resonance < substrate.limits.resonance_target {
+        opt_actions.push(SubstrateOptimizationAction {
+            action: "increase cross-layer summary coupling".into(),
+            expected_gain: substrate.limits.resonance_target - global_resonance,
+            bounded: true,
+        });
+    }
+    if global_instability > substrate.limits.instability_limit {
+        opt_actions.push(SubstrateOptimizationAction {
+            action: "apply instability damping and defer noisy activations".into(),
+            expected_gain: global_instability - substrate.limits.instability_limit,
+            bounded: true,
+        });
+    }
+    let repair_actions: Vec<_> = nodes
+        .iter()
+        .filter(|n| n.instability > substrate.limits.instability_limit)
+        .take(substrate.limits.max_repairs)
+        .map(|n| SubstrateRepairAction {
+            target: n.id.clone(),
+            repair: "compress, evidence-gate, and re-anchor to continuity thread".into(),
+            urgency: n.instability,
+        })
+        .collect();
+    let repair_debt = repair_actions
+        .iter()
+        .map(|r| r.urgency)
+        .sum::<f64>()
+        .clamp(0.0, 1.0);
+    substrate.field = CognitiveFieldState {
+        nodes: nodes.clone(),
+        couplings,
+        global_resonance,
+        global_instability,
+        integration_density: density,
+    };
+    substrate.attractors = attractors;
+    substrate.optimizer = SubstrateOptimizationState {
+        actions: opt_actions,
+        optimization_pressure,
+        damping_applied: global_instability.min(substrate.limits.instability_limit),
+    };
+    substrate.repair = SubstrateRepairState {
+        actions: repair_actions,
+        repair_debt,
+    };
+    let report = SubstrateSynthesisReport {
+        generated_at: now,
+        nodes: substrate.field.nodes.len(),
+        attractors: substrate.attractors.len(),
+        resonance: global_resonance,
+        instability: global_instability,
+        density,
+        optimization_pressure,
+        repair_debt,
+        prompt_status: format!(
+            "Substrate synthesis: nodes={} attractors={} resonance={:.2} instability={:.2} density={:.2} opt={:.2} repair={:.2}",
+            substrate.field.nodes.len(),
+            substrate.attractors.len(),
+            global_resonance,
+            global_instability,
+            density,
+            optimization_pressure,
+            repair_debt
+        ),
+    };
+    substrate.reports.push_back(report.clone());
+    while substrate.reports.len() > substrate.limits.max_reports {
+        substrate.reports.pop_front();
+    }
+    report
+}
+
+fn build_cognitive_field_nodes(
+    reason: &str,
+    quality: &EmergentQualityReport,
+) -> Vec<CognitiveFieldNode> {
+    vec![
+        CognitiveFieldNode {
+            id: "memory_substrate".into(),
+            layer: CognitiveFieldLayer::Memory,
+            activation: 0.70,
+            coherence: 0.72,
+            instability: 0.12,
+            summary: "persistent adaptive memory".into(),
+        },
+        CognitiveFieldNode {
+            id: "epistemic_substrate".into(),
+            layer: CognitiveFieldLayer::Epistemic,
+            activation: 0.74,
+            coherence: quality.horizon_coherence,
+            instability: quality.drift,
+            summary: "truth maintenance and evidence governance".into(),
+        },
+        CognitiveFieldNode {
+            id: "deliberative_substrate".into(),
+            layer: CognitiveFieldLayer::Deliberative,
+            activation: 0.68,
+            coherence: 0.70,
+            instability: quality.debt.min(1.0),
+            summary: "bounded internal debate".into(),
+        },
+        CognitiveFieldNode {
+            id: "scientific_substrate".into(),
+            layer: CognitiveFieldLayer::Scientific,
+            activation: 0.72,
+            coherence: quality.quality,
+            instability: (1.0 - quality.quality).clamp(0.0, 1.0),
+            summary: "hypothesis and experiment loops".into(),
+        },
+        CognitiveFieldNode {
+            id: "context_substrate".into(),
+            layer: CognitiveFieldLayer::Contextual,
+            activation: 0.76,
+            coherence: quality.horizon_coherence,
+            instability: quality.drift,
+            summary: compact(reason, 120),
+        },
+        CognitiveFieldNode {
+            id: "quality_substrate".into(),
+            layer: CognitiveFieldLayer::Quality,
+            activation: 0.80,
+            coherence: quality.quality,
+            instability: quality.debt.min(1.0),
+            summary: quality.prompt_status.clone(),
+        },
+    ]
+}
+
+fn build_cognitive_field_couplings(nodes: &[CognitiveFieldNode]) -> Vec<CognitiveFieldCoupling> {
+    let mut out = Vec::new();
+    for win in nodes.windows(2) {
+        let resonance = ((win[0].coherence + win[1].coherence) / 2.0
+            - (win[0].instability + win[1].instability) * 0.15)
+            .clamp(0.0, 1.0);
+        out.push(CognitiveFieldCoupling {
+            from: win[0].id.clone(),
+            to: win[1].id.clone(),
+            resonance,
+            damping: ((win[0].instability + win[1].instability) / 2.0).clamp(0.0, 1.0),
+        });
+    }
+    out
+}
+fn derive_cognitive_attractors(
+    nodes: &[CognitiveFieldNode],
+    quality: &EmergentQualityReport,
+) -> Vec<CognitiveAttractor> {
+    vec![
+        CognitiveAttractor {
+            id: "verify_before_commit".into(),
+            layers: vec![
+                CognitiveFieldLayer::Operational,
+                CognitiveFieldLayer::Quality,
+            ],
+            strength: 0.82,
+            stability: quality.horizon_coherence,
+            behavior: "validate, commit, push, install".into(),
+        },
+        CognitiveAttractor {
+            id: "evidence_gated_context".into(),
+            layers: vec![
+                CognitiveFieldLayer::Epistemic,
+                CognitiveFieldLayer::Contextual,
+            ],
+            strength: 0.78,
+            stability: quality.quality,
+            behavior: "admit context by evidence and token utility".into(),
+        },
+        CognitiveAttractor {
+            id: "bounded_self_repair".into(),
+            layers: nodes.iter().map(|n| n.layer.clone()).collect(),
+            strength: (1.0 - quality.drift).clamp(0.0, 1.0),
+            stability: (1.0 - quality.debt).clamp(0.0, 1.0),
+            behavior: "damp instability and repair coherence breaks".into(),
+        },
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -9045,6 +9429,91 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn substrate_synthesis_builds_field_and_attractors() {
+        let mut store = CognitiveStore::default();
+        let report =
+            run_cognitive_substrate_synthesis_in_store(&mut store, "substrate synthesis".into());
+        let substrate = &store.operational_state.cognitive_substrate_synthesis;
+        assert!(!substrate.field.nodes.is_empty());
+        assert!(!substrate.field.couplings.is_empty());
+        assert!(!substrate.attractors.is_empty());
+        assert_eq!(report.nodes, substrate.field.nodes.len());
+    }
+
+    #[test]
+    fn substrate_optimizer_applies_bounded_actions_under_strict_targets() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .cognitive_substrate_synthesis
+            .limits
+            .resonance_target = 0.99;
+        store
+            .operational_state
+            .cognitive_substrate_synthesis
+            .limits
+            .instability_limit = 0.01;
+        run_cognitive_substrate_synthesis_in_store(&mut store, "strict substrate optimizer".into());
+        let optimizer = &store
+            .operational_state
+            .cognitive_substrate_synthesis
+            .optimizer;
+        assert!(!optimizer.actions.is_empty());
+        assert!(optimizer.actions.iter().all(|a| a.bounded));
+    }
+
+    #[test]
+    fn substrate_repair_records_debt_for_unstable_nodes() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .cognitive_substrate_synthesis
+            .limits
+            .instability_limit = 0.01;
+        run_cognitive_substrate_synthesis_in_store(&mut store, "repair debt".into());
+        let repair = &store.operational_state.cognitive_substrate_synthesis.repair;
+        assert!(!repair.actions.is_empty());
+        assert!(repair.repair_debt >= 0.0);
+    }
+
+    #[test]
+    fn substrate_prompt_status_is_compact() {
+        let mut store = CognitiveStore::default();
+        let report =
+            run_cognitive_substrate_synthesis_in_store(&mut store, "compact prompt".into());
+        assert!(
+            report.prompt_status.len()
+                <= store
+                    .operational_state
+                    .cognitive_substrate_synthesis
+                    .limits
+                    .max_prompt_contribution
+        );
+    }
+
+    #[test]
+    fn substrate_synthesis_persistence_compatibility_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .cognitive_substrate_synthesis
+                .limits
+                .max_attractors,
+            8
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .cognitive_substrate_synthesis
+                .field
+                .global_instability,
+            0.0
+        );
     }
 
     #[test]

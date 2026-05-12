@@ -200,6 +200,26 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect coherence break candidates and mitigation plans.",
     ),
     RegisteredCommand::public(
+        "/kcode-substrate status",
+        "Inspect cognitive substrate field resonance, instability, density, and repair debt.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-substrate field",
+        "Inspect cross-layer cognitive field nodes and couplings.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-substrate attractors",
+        "Inspect emergent cognitive attractors and stabilized behaviors.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-substrate optimize",
+        "Inspect bounded substrate optimization and damping actions.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-substrate repair",
+        "Inspect substrate repair debt and repair actions.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),
