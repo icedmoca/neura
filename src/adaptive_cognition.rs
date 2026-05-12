@@ -854,6 +854,50 @@ pub struct OperationalCycleReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum EpistemicRelationKind {
+    Supports,
+    Contradicts,
+    Refines,
+    DependsOn,
+    Explains,
+    Supersedes,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicRelation {
+    pub from_claim: String,
+    pub to_claim: String,
+    pub kind: EpistemicRelationKind,
+    pub weight: f64,
+    pub rationale: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicConflictSet {
+    pub id: String,
+    pub claim_ids: Vec<String>,
+    pub severity: f64,
+    pub resolution_hint: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RevisionTransaction {
+    pub id: String,
+    pub revised_at: DateTime<Utc>,
+    pub claim_ids: Vec<String>,
+    pub delta: f64,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpistemicDelta {
+    pub claim_id: String,
+    pub old_confidence: f64,
+    pub new_confidence: f64,
+    pub cause: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum EpistemicStatus {
     Unknown,
     Hypothesis,
@@ -926,6 +970,9 @@ pub struct EpistemologyReport {
     pub reliabilities: Vec<SourceReliability>,
     pub wrongness: Vec<WrongnessSignal>,
     pub revisions: Vec<BeliefRevision>,
+    pub relations: Vec<EpistemicRelation>,
+    pub conflict_sets: Vec<EpistemicConflictSet>,
+    pub deltas: Vec<EpistemicDelta>,
     pub epistemic_health: f64,
     pub summary: String,
 }
@@ -944,6 +991,12 @@ pub struct EpistemologyState {
     pub revisions: VecDeque<BeliefRevision>,
     #[serde(default)]
     pub reports: VecDeque<EpistemologyReport>,
+    #[serde(default)]
+    pub relations: Vec<EpistemicRelation>,
+    #[serde(default)]
+    pub conflict_sets: Vec<EpistemicConflictSet>,
+    #[serde(default)]
+    pub revision_transactions: VecDeque<RevisionTransaction>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -5369,6 +5422,33 @@ pub fn run_epistemology_in_store(store: &mut CognitiveStore, reason: String) -> 
     update_source_reliability(store, &reality);
     let wrongness = detect_wrongness(store);
     revise_beliefs(store, &wrongness);
+    let relations = build_epistemic_relations(store);
+    store.operational_state.epistemology.relations = relations.clone();
+    let conflict_sets = build_conflict_sets(store, &relations);
+    store.operational_state.epistemology.conflict_sets = conflict_sets.clone();
+    let deltas = propagate_epistemic_confidence(store, &relations, &conflict_sets);
+    let transactions = commit_revision_transactions(store, &deltas, &conflict_sets);
+    for tx in transactions {
+        store
+            .operational_state
+            .epistemology
+            .revision_transactions
+            .push_back(tx);
+    }
+    while store
+        .operational_state
+        .epistemology
+        .revision_transactions
+        .len()
+        > MAX_DECISIONS
+    {
+        store
+            .operational_state
+            .epistemology
+            .revision_transactions
+            .pop_front();
+    }
+    couple_epistemology_to_governor(store, &conflict_sets);
     let health = epistemic_health(store);
     let report = EpistemologyReport {
         generated_at: Utc::now(),
@@ -5401,6 +5481,9 @@ pub fn run_epistemology_in_store(store: &mut CognitiveStore, reason: String) -> 
             .iter()
             .cloned()
             .collect(),
+        relations,
+        conflict_sets,
+        deltas,
         epistemic_health: health,
         summary: format!(
             "epistemology health={health:.2} reason={}",
@@ -5604,6 +5687,190 @@ fn epistemic_health(store: &CognitiveStore) -> f64 {
             .len()
             .max(1) as f64;
     (verified * 0.35 + conf * 0.40 + reliability * 0.25).clamp(0.0, 1.0)
+}
+
+fn build_epistemic_relations(store: &CognitiveStore) -> Vec<EpistemicRelation> {
+    let claims: Vec<_> = store
+        .operational_state
+        .epistemology
+        .claims
+        .values()
+        .cloned()
+        .collect();
+    let mut relations = Vec::new();
+    for (i, left) in claims.iter().enumerate() {
+        for right in claims.iter().skip(i + 1) {
+            let left_tokens = salient_tokens(&left.statement);
+            let right_tokens = salient_tokens(&right.statement);
+            let overlap = token_overlap_ratio(&left_tokens, &right_tokens);
+            if overlap < 0.18 {
+                continue;
+            }
+            let contradictory = is_negating(&left.statement) != is_negating(&right.statement)
+                || has_explicit_contradiction_pair(&left.statement, &right.statement)
+                || matches!(left.status, EpistemicStatus::Contradicted)
+                || matches!(right.status, EpistemicStatus::Contradicted);
+            let kind = if contradictory {
+                EpistemicRelationKind::Contradicts
+            } else if left.confidence >= right.confidence {
+                EpistemicRelationKind::Supports
+            } else {
+                EpistemicRelationKind::Refines
+            };
+            let weight = (overlap * ((left.confidence + right.confidence) / 2.0)).clamp(0.05, 1.0);
+            relations.push(EpistemicRelation {
+                from_claim: left.id.clone(),
+                to_claim: right.id.clone(),
+                kind: kind.clone(),
+                weight,
+                rationale: format!(
+                    "overlap={overlap:.2} confidence_avg={:.2}",
+                    (left.confidence + right.confidence) / 2.0
+                ),
+            });
+            relations.push(EpistemicRelation {
+                from_claim: right.id.clone(),
+                to_claim: left.id.clone(),
+                kind,
+                weight,
+                rationale: format!(
+                    "overlap={overlap:.2} confidence_avg={:.2}",
+                    (left.confidence + right.confidence) / 2.0
+                ),
+            });
+        }
+    }
+    relations
+}
+
+fn build_conflict_sets(
+    _store: &CognitiveStore,
+    relations: &[EpistemicRelation],
+) -> Vec<EpistemicConflictSet> {
+    let mut conflicts = Vec::new();
+    let mut seen = BTreeSet::new();
+    for relation in relations
+        .iter()
+        .filter(|r| matches!(r.kind, EpistemicRelationKind::Contradicts))
+    {
+        let mut pair = [relation.from_claim.clone(), relation.to_claim.clone()];
+        pair.sort();
+        let key = pair.join("::");
+        if seen.insert(key.clone()) {
+            conflicts.push(EpistemicConflictSet {
+                id: format!("conflict-{}", conflicts.len()),
+                claim_ids: pair.to_vec(),
+                severity: relation.weight.clamp(0.0, 1.0),
+                resolution_hint:
+                    "Prefer higher-evidence claim; demote unsupported or stale assertion"
+                        .to_string(),
+            });
+        }
+    }
+    conflicts
+}
+
+fn propagate_epistemic_confidence(
+    store: &mut CognitiveStore,
+    relations: &[EpistemicRelation],
+    conflicts: &[EpistemicConflictSet],
+) -> Vec<EpistemicDelta> {
+    let mut adjustments: BTreeMap<String, f64> = BTreeMap::new();
+    for relation in relations {
+        match relation.kind {
+            EpistemicRelationKind::Supports
+            | EpistemicRelationKind::Explains
+            | EpistemicRelationKind::Refines => {
+                *adjustments.entry(relation.to_claim.clone()).or_default() +=
+                    relation.weight * 0.03;
+            }
+            EpistemicRelationKind::Contradicts => {
+                *adjustments.entry(relation.to_claim.clone()).or_default() -=
+                    relation.weight * 0.08;
+            }
+            EpistemicRelationKind::DependsOn | EpistemicRelationKind::Supersedes => {}
+        }
+    }
+    for conflict in conflicts {
+        for claim_id in &conflict.claim_ids {
+            *adjustments.entry(claim_id.clone()).or_default() -= conflict.severity * 0.05;
+        }
+    }
+    let mut deltas = Vec::new();
+    for (claim_id, delta) in adjustments {
+        if let Some(claim) = store
+            .operational_state
+            .epistemology
+            .claims
+            .get_mut(&claim_id)
+        {
+            let old = claim.confidence;
+            claim.confidence = (claim.confidence + delta).clamp(0.0, 1.0);
+            claim.status = if claim.confidence > 0.85 {
+                EpistemicStatus::Verified
+            } else if claim.confidence > 0.55 {
+                EpistemicStatus::Supported
+            } else if claim.confidence < 0.25 {
+                EpistemicStatus::Deprecated
+            } else {
+                claim.status.clone()
+            };
+            if (old - claim.confidence).abs() > 0.001 {
+                deltas.push(EpistemicDelta {
+                    claim_id: claim_id.clone(),
+                    old_confidence: old,
+                    new_confidence: claim.confidence,
+                    cause: "relational propagation".to_string(),
+                });
+            }
+        }
+    }
+    deltas
+}
+
+fn commit_revision_transactions(
+    _store: &CognitiveStore,
+    deltas: &[EpistemicDelta],
+    conflicts: &[EpistemicConflictSet],
+) -> Vec<RevisionTransaction> {
+    if deltas.is_empty() && conflicts.is_empty() {
+        return Vec::new();
+    }
+    vec![RevisionTransaction {
+        id: format!("rtx-{}", Utc::now().timestamp_millis()),
+        revised_at: Utc::now(),
+        claim_ids: deltas.iter().map(|d| d.claim_id.clone()).collect(),
+        delta: deltas
+            .iter()
+            .map(|d| d.new_confidence - d.old_confidence)
+            .sum(),
+        reason: format!("relations={} conflicts={}", deltas.len(), conflicts.len()),
+    }]
+}
+
+fn couple_epistemology_to_governor(store: &mut CognitiveStore, conflicts: &[EpistemicConflictSet]) {
+    if conflicts.is_empty() {
+        return;
+    }
+    let now = Utc::now();
+    store
+        .operational_state
+        .task_queue
+        .push_back(OperationalTask {
+            id: format!("epistemic-conflict-audit-{}", now.timestamp_millis()),
+            kind: OperationalTaskKind::ContradictionAudit,
+            created_at: now,
+            due_at: now,
+            priority: conflicts
+                .iter()
+                .map(|c| c.severity)
+                .fold(0.0, f64::max)
+                .clamp(0.1, 1.0),
+            target_node_ids: Vec::new(),
+            reason: format!("epistemic conflict sets={}", conflicts.len()),
+            completed_at: None,
+            outcome: None,
+        });
 }
 
 #[cfg(test)]
@@ -6244,5 +6511,115 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn relational_truth_maintenance_builds_support_relations() {
+        let mut store = CognitiveStore::default();
+        let now = Utc::now();
+        store.operational_state.epistemology.claims.insert(
+            "a".to_string(),
+            EpistemicClaim {
+                id: "a".to_string(),
+                statement: "runtime store is grounded".to_string(),
+                status: EpistemicStatus::Supported,
+                confidence: 0.8,
+                evidence_ids: vec![],
+                contradiction_ids: vec![],
+                last_revised_at: now,
+            },
+        );
+        store.operational_state.epistemology.claims.insert(
+            "b".to_string(),
+            EpistemicClaim {
+                id: "b".to_string(),
+                statement: "grounded runtime store has evidence".to_string(),
+                status: EpistemicStatus::Supported,
+                confidence: 0.7,
+                evidence_ids: vec![],
+                contradiction_ids: vec![],
+                last_revised_at: now,
+            },
+        );
+        let relations = build_epistemic_relations(&store);
+        assert!(relations.iter().any(|r| matches!(
+            r.kind,
+            EpistemicRelationKind::Supports | EpistemicRelationKind::Refines
+        )));
+    }
+
+    #[test]
+    fn relational_truth_maintenance_detects_conflicts_and_schedules_audit() {
+        let mut store = CognitiveStore::default();
+        let now = Utc::now();
+        store.operational_state.epistemology.claims.insert(
+            "a".to_string(),
+            EpistemicClaim {
+                id: "a".to_string(),
+                statement: "always trust runtime evidence".to_string(),
+                status: EpistemicStatus::Supported,
+                confidence: 0.8,
+                evidence_ids: vec![],
+                contradiction_ids: vec![],
+                last_revised_at: now,
+            },
+        );
+        store.operational_state.epistemology.claims.insert(
+            "b".to_string(),
+            EpistemicClaim {
+                id: "b".to_string(),
+                statement: "never trust runtime evidence".to_string(),
+                status: EpistemicStatus::Supported,
+                confidence: 0.8,
+                evidence_ids: vec![],
+                contradiction_ids: vec![],
+                last_revised_at: now,
+            },
+        );
+        let relations = build_epistemic_relations(&store);
+        let conflicts = build_conflict_sets(&store, &relations);
+        assert!(!conflicts.is_empty());
+        couple_epistemology_to_governor(&mut store, &conflicts);
+        assert!(
+            store
+                .operational_state
+                .task_queue
+                .iter()
+                .any(|task| matches!(task.kind, OperationalTaskKind::ContradictionAudit))
+        );
+    }
+
+    #[test]
+    fn relational_truth_maintenance_propagates_confidence_deltas() {
+        let mut store = CognitiveStore::default();
+        let now = Utc::now();
+        store.operational_state.epistemology.claims.insert(
+            "a".to_string(),
+            EpistemicClaim {
+                id: "a".to_string(),
+                statement: "runtime evidence is supported".to_string(),
+                status: EpistemicStatus::Supported,
+                confidence: 0.7,
+                evidence_ids: vec![],
+                contradiction_ids: vec![],
+                last_revised_at: now,
+            },
+        );
+        store.operational_state.epistemology.claims.insert(
+            "b".to_string(),
+            EpistemicClaim {
+                id: "b".to_string(),
+                statement: "runtime evidence is supported by telemetry".to_string(),
+                status: EpistemicStatus::Supported,
+                confidence: 0.6,
+                evidence_ids: vec![],
+                contradiction_ids: vec![],
+                last_revised_at: now,
+            },
+        );
+        let relations = build_epistemic_relations(&store);
+        let conflicts = build_conflict_sets(&store, &relations);
+        let deltas = propagate_epistemic_confidence(&mut store, &relations, &conflicts);
+        assert!(!deltas.is_empty());
     }
 }
