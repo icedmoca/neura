@@ -38,6 +38,10 @@ path = "src/bin/test_api.rs"
 name = "kcode-harness"
 path = "src/bin/harness.rs"
 
+[[bin]]
+name = "kcode-bench"
+path = "src/bin/kcode_bench.rs"
+
 [dependencies]
 # Memory allocator (reduces fragmentation for long-running server)
 tikv-jemallocator = { version = "0.6", features = ["unprefixed_malloc_on_supported_platforms"], optional = true }
