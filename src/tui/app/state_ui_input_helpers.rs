@@ -136,6 +136,30 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect institutional decisions and epistemic governance actions.",
     ),
     RegisteredCommand::public(
+        "/kcode-context-economy status",
+        "Inspect adaptive context economy budget, utility allocation, and token efficiency.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-context-economy bids",
+        "Inspect context market bids and utility-per-token scores.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-context-economy allocations",
+        "Inspect include, compress, defer, and drop allocation decisions.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-context-economy compression",
+        "Inspect salience-weighted compression plans and saved tokens.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-cognitive-integration mesh",
+        "Inspect cross-layer cognitive integration nodes, edges, and coherence.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-cognitive-integration debt",
+        "Inspect deferred context debt and recall traces.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),

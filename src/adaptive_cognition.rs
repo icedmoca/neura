@@ -820,6 +820,8 @@ pub struct OperationalCognitionState {
     pub deliberative_science: DeliberativeScienceState,
     #[serde(default)]
     pub synthetic_governance: SyntheticScientificGovernanceState,
+    #[serde(default)]
+    pub cognitive_context_economy: CognitiveIntegrationContextEconomyState,
 }
 
 impl Default for OperationalCognitionState {
@@ -844,6 +846,7 @@ impl Default for OperationalCognitionState {
             epistemology: EpistemologyState::default(),
             deliberative_science: DeliberativeScienceState::default(),
             synthetic_governance: SyntheticScientificGovernanceState::default(),
+            cognitive_context_economy: CognitiveIntegrationContextEconomyState::default(),
         }
     }
 }
@@ -7219,6 +7222,438 @@ fn run_synthetic_ecosystem_cycle(
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveIntegrationContextEconomyState {
+    #[serde(default)]
+    pub integration: CognitiveIntegrationMesh,
+    #[serde(default)]
+    pub context_economy: AdaptiveContextEconomy,
+    #[serde(default)]
+    pub budget: ContextEconomyBudget,
+    #[serde(default)]
+    pub reports: VecDeque<ContextEconomyReport>,
+}
+impl Default for CognitiveIntegrationContextEconomyState {
+    fn default() -> Self {
+        Self {
+            integration: CognitiveIntegrationMesh::default(),
+            context_economy: AdaptiveContextEconomy::default(),
+            budget: ContextEconomyBudget::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContextEconomyBudget {
+    pub max_prompt_tokens: usize,
+    pub max_context_items: usize,
+    pub max_reports: usize,
+    pub min_salience: f64,
+    pub max_raw_items: usize,
+}
+impl Default for ContextEconomyBudget {
+    fn default() -> Self {
+        Self {
+            max_prompt_tokens: 512,
+            max_context_items: 12,
+            max_reports: 32,
+            min_salience: 0.15,
+            max_raw_items: 4,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CognitiveLayerKind {
+    Memory,
+    Epistemology,
+    Deliberation,
+    Science,
+    SyntheticScience,
+    Governance,
+    Execution,
+    Context,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveIntegrationNode {
+    pub id: String,
+    pub layer: CognitiveLayerKind,
+    pub salience: f64,
+    pub confidence: f64,
+    pub token_cost: usize,
+    pub summary: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveIntegrationEdge {
+    pub from: String,
+    pub to: String,
+    pub relation: String,
+    pub weight: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct IntegrationConflict {
+    pub node_a: String,
+    pub node_b: String,
+    pub pressure: f64,
+    pub resolution: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CognitiveIntegrationMesh {
+    #[serde(default)]
+    pub nodes: Vec<CognitiveIntegrationNode>,
+    #[serde(default)]
+    pub edges: Vec<CognitiveIntegrationEdge>,
+    #[serde(default)]
+    pub conflicts: Vec<IntegrationConflict>,
+    pub coherence: f64,
+}
+impl Default for CognitiveIntegrationMesh {
+    fn default() -> Self {
+        Self {
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            conflicts: Vec::new(),
+            coherence: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ContextAllocationDecision {
+    Include,
+    Compress,
+    Defer,
+    Drop,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContextMarketBid {
+    pub item_id: String,
+    pub layer: CognitiveLayerKind,
+    pub utility: f64,
+    pub token_cost: usize,
+    pub bid_score: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContextAllocation {
+    pub item_id: String,
+    pub decision: ContextAllocationDecision,
+    pub tokens: usize,
+    pub rationale: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CompressionPlan {
+    pub item_id: String,
+    pub original_tokens: usize,
+    pub compressed_tokens: usize,
+    pub method: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContextDebtSignal {
+    pub source: String,
+    pub debt: f64,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContextRecallTrace {
+    pub item_id: String,
+    pub reason: String,
+    pub salience: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct AdaptiveContextEconomy {
+    #[serde(default)]
+    pub bids: Vec<ContextMarketBid>,
+    #[serde(default)]
+    pub allocations: Vec<ContextAllocation>,
+    #[serde(default)]
+    pub compression_plans: Vec<CompressionPlan>,
+    #[serde(default)]
+    pub debt: Vec<ContextDebtSignal>,
+    #[serde(default)]
+    pub recall_trace: Vec<ContextRecallTrace>,
+    pub spent_tokens: usize,
+    pub saved_tokens: usize,
+    pub efficiency: f64,
+}
+impl Default for AdaptiveContextEconomy {
+    fn default() -> Self {
+        Self {
+            bids: Vec::new(),
+            allocations: Vec::new(),
+            compression_plans: Vec::new(),
+            debt: Vec::new(),
+            recall_trace: Vec::new(),
+            spent_tokens: 0,
+            saved_tokens: 0,
+            efficiency: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContextEconomyReport {
+    pub generated_at: DateTime<Utc>,
+    pub nodes: usize,
+    pub edges: usize,
+    pub coherence: f64,
+    pub included: usize,
+    pub compressed: usize,
+    pub deferred: usize,
+    pub dropped: usize,
+    pub spent_tokens: usize,
+    pub saved_tokens: usize,
+    pub efficiency: f64,
+    pub prompt_status: String,
+}
+
+pub fn run_cognitive_context_economy(
+    reason: impl Into<String>,
+) -> io::Result<ContextEconomyReport> {
+    let mut store = load_store()?;
+    let report = run_cognitive_context_economy_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_cognitive_context_economy_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> ContextEconomyReport {
+    let now = Utc::now();
+    let synthetic =
+        run_synthetic_scientific_governance_in_store(store, format!("context_economy:{reason}"));
+    let epistemology = run_epistemology_in_store(store, format!("context_economy:{reason}"));
+    let state = &mut store.operational_state.cognitive_context_economy;
+    let nodes = build_integration_nodes(&reason, &synthetic, &epistemology);
+    let edges = build_integration_edges(&nodes);
+    let conflicts = build_integration_conflicts(&nodes, &epistemology);
+    let coherence = (1.0
+        - conflicts.iter().map(|c| c.pressure).sum::<f64>() / nodes.len().max(1) as f64)
+        .clamp(0.0, 1.0);
+    state.integration = CognitiveIntegrationMesh {
+        nodes: nodes.clone(),
+        edges,
+        conflicts,
+        coherence,
+    };
+    let mut bids: Vec<_> = nodes
+        .iter()
+        .map(|n| ContextMarketBid {
+            item_id: n.id.clone(),
+            layer: n.layer.clone(),
+            utility: (n.salience * 0.45 + n.confidence * 0.35 + coherence * 0.20).clamp(0.0, 1.0),
+            token_cost: n.token_cost,
+            bid_score: ((n.salience * 0.45 + n.confidence * 0.35 + coherence * 0.20)
+                / n.token_cost.max(1) as f64)
+                .clamp(0.0, 1.0),
+        })
+        .collect();
+    bids.sort_by(|a, b| {
+        b.bid_score
+            .partial_cmp(&a.bid_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    let mut spent = 0usize;
+    let mut included = 0usize;
+    let mut compressed = 0usize;
+    let mut deferred = 0usize;
+    let mut dropped = 0usize;
+    let mut saved = 0usize;
+    let mut allocations = Vec::new();
+    let mut compression_plans = Vec::new();
+    let mut recall_trace = Vec::new();
+    let mut debt = Vec::new();
+    for bid in bids.iter().take(state.budget.max_context_items) {
+        let decision = if bid.utility < state.budget.min_salience {
+            ContextAllocationDecision::Drop
+        } else if spent + bid.token_cost <= state.budget.max_prompt_tokens
+            && included < state.budget.max_raw_items
+        {
+            ContextAllocationDecision::Include
+        } else if spent + (bid.token_cost / 3).max(12) <= state.budget.max_prompt_tokens {
+            ContextAllocationDecision::Compress
+        } else {
+            ContextAllocationDecision::Defer
+        };
+        match decision {
+            ContextAllocationDecision::Include => {
+                spent += bid.token_cost;
+                included += 1;
+            }
+            ContextAllocationDecision::Compress => {
+                let ct = (bid.token_cost / 3).max(12);
+                spent += ct;
+                saved += bid.token_cost.saturating_sub(ct);
+                compressed += 1;
+                compression_plans.push(CompressionPlan {
+                    item_id: bid.item_id.clone(),
+                    original_tokens: bid.token_cost,
+                    compressed_tokens: ct,
+                    method: "salience-weighted semantic compression".into(),
+                });
+            }
+            ContextAllocationDecision::Defer => {
+                deferred += 1;
+                debt.push(ContextDebtSignal {
+                    source: bid.item_id.clone(),
+                    debt: bid.utility,
+                    reason: "useful but over current prompt budget".into(),
+                });
+            }
+            ContextAllocationDecision::Drop => {
+                dropped += 1;
+            }
+        }
+        recall_trace.push(ContextRecallTrace {
+            item_id: bid.item_id.clone(),
+            reason: "context market utility allocation".into(),
+            salience: bid.utility,
+        });
+        allocations.push(ContextAllocation {
+            item_id: bid.item_id.clone(),
+            decision,
+            tokens: bid.token_cost,
+            rationale: "budgeted by utility per token, salience, confidence, and coherence".into(),
+        });
+    }
+    let efficiency = ((included + compressed) as f64 / allocations.len().max(1) as f64 * 0.6
+        + saved as f64 / (spent + saved).max(1) as f64 * 0.4)
+        .clamp(0.0, 1.0);
+    state.context_economy = AdaptiveContextEconomy {
+        bids,
+        allocations,
+        compression_plans,
+        debt,
+        recall_trace,
+        spent_tokens: spent,
+        saved_tokens: saved,
+        efficiency,
+    };
+    let report = ContextEconomyReport {
+        generated_at: now,
+        nodes: state.integration.nodes.len(),
+        edges: state.integration.edges.len(),
+        coherence,
+        included,
+        compressed,
+        deferred,
+        dropped,
+        spent_tokens: spent,
+        saved_tokens: saved,
+        efficiency,
+        prompt_status: format!(
+            "Context economy: nodes={} edges={} coherence={:.2} included={} compressed={} deferred={} spent={} saved={} efficiency={:.2}",
+            state.integration.nodes.len(),
+            state.integration.edges.len(),
+            coherence,
+            included,
+            compressed,
+            deferred,
+            spent,
+            saved,
+            efficiency
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.budget.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
+fn build_integration_nodes(
+    reason: &str,
+    synthetic: &SyntheticGovernanceReport,
+    epistemology: &EpistemologyReport,
+) -> Vec<CognitiveIntegrationNode> {
+    vec![
+        CognitiveIntegrationNode {
+            id: "current_task".into(),
+            layer: CognitiveLayerKind::Context,
+            salience: 0.9,
+            confidence: 0.8,
+            token_cost: estimate_token_count(reason).max(16),
+            summary: compact(reason, 120),
+        },
+        CognitiveIntegrationNode {
+            id: "epistemology".into(),
+            layer: CognitiveLayerKind::Epistemology,
+            salience: 0.75,
+            confidence: epistemology.epistemic_health,
+            token_cost: 64,
+            summary: format!(
+                "claims={} evidence={} conflicts={}",
+                epistemology.claims.len(),
+                epistemology.evidence.len(),
+                epistemology.conflict_sets.len()
+            ),
+        },
+        CognitiveIntegrationNode {
+            id: "synthetic_governance".into(),
+            layer: CognitiveLayerKind::SyntheticScience,
+            salience: 0.72,
+            confidence: synthetic.stability,
+            token_cost: 72,
+            summary: synthetic.prompt_status.clone(),
+        },
+        CognitiveIntegrationNode {
+            id: "deliberation".into(),
+            layer: CognitiveLayerKind::Deliberation,
+            salience: 0.65,
+            confidence: 0.72,
+            token_cost: 56,
+            summary: "bounded actor review and dissent persistence".into(),
+        },
+        CognitiveIntegrationNode {
+            id: "governance".into(),
+            layer: CognitiveLayerKind::Governance,
+            salience: 0.64,
+            confidence: synthetic.stability,
+            token_cost: 48,
+            summary: "cybernetic epistemic control signals".into(),
+        },
+        CognitiveIntegrationNode {
+            id: "memory".into(),
+            layer: CognitiveLayerKind::Memory,
+            salience: 0.58,
+            confidence: 0.70,
+            token_cost: 48,
+            summary: "persistent adaptive cognition substrate".into(),
+        },
+    ]
+}
+
+fn build_integration_edges(nodes: &[CognitiveIntegrationNode]) -> Vec<CognitiveIntegrationEdge> {
+    let mut edges = Vec::new();
+    for win in nodes.windows(2) {
+        edges.push(CognitiveIntegrationEdge {
+            from: win[0].id.clone(),
+            to: win[1].id.clone(),
+            relation: "integrates_with".into(),
+            weight: ((win[0].salience + win[1].salience) / 2.0).clamp(0.0, 1.0),
+        });
+    }
+    edges
+}
+fn build_integration_conflicts(
+    nodes: &[CognitiveIntegrationNode],
+    epistemology: &EpistemologyReport,
+) -> Vec<IntegrationConflict> {
+    if epistemology.conflict_sets.is_empty() {
+        Vec::new()
+    } else {
+        vec![IntegrationConflict {
+            node_a: nodes.first().map(|n| n.id.clone()).unwrap_or_default(),
+            node_b: "epistemology".into(),
+            pressure: (epistemology.conflict_sets.len() as f64
+                / epistemology.claims.len().max(1) as f64)
+                .clamp(0.0, 1.0),
+            resolution: "compress conflict summary and prioritize verification".into(),
+        }]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -7857,6 +8292,91 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn context_economy_allocates_within_budget() {
+        let mut store = CognitiveStore::default();
+        let report = run_cognitive_context_economy_in_store(
+            &mut store,
+            "adaptive context economy budget".into(),
+        );
+        let state = &store.operational_state.cognitive_context_economy;
+        assert!(report.spent_tokens <= state.budget.max_prompt_tokens);
+        assert!(state.context_economy.allocations.len() <= state.budget.max_context_items);
+        assert!(report.prompt_status.len() <= 240);
+    }
+
+    #[test]
+    fn cognitive_integration_builds_mesh_and_coherence() {
+        let mut store = CognitiveStore::default();
+        run_cognitive_context_economy_in_store(&mut store, "integration mesh".into());
+        let mesh = &store
+            .operational_state
+            .cognitive_context_economy
+            .integration;
+        assert!(!mesh.nodes.is_empty());
+        assert!(!mesh.edges.is_empty());
+        assert!((0.0..=1.0).contains(&mesh.coherence));
+    }
+
+    #[test]
+    fn context_market_compresses_or_defers_over_budget_items() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .cognitive_context_economy
+            .budget
+            .max_prompt_tokens = 80;
+        let report = run_cognitive_context_economy_in_store(&mut store, "very long context item that should force compression because the budget is deliberately tiny and must remain bounded".into());
+        assert!(report.compressed + report.deferred > 0);
+        assert!(
+            store
+                .operational_state
+                .cognitive_context_economy
+                .context_economy
+                .efficiency
+                >= 0.0
+        );
+    }
+
+    #[test]
+    fn context_economy_records_recall_trace_and_debt() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .cognitive_context_economy
+            .budget
+            .max_prompt_tokens = 40;
+        run_cognitive_context_economy_in_store(&mut store, "debt trace".into());
+        let economy = &store
+            .operational_state
+            .cognitive_context_economy
+            .context_economy;
+        assert!(!economy.recall_trace.is_empty());
+        assert!(economy.debt.iter().all(|d| d.debt >= 0.0));
+    }
+
+    #[test]
+    fn cognitive_context_economy_persistence_compatibility_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .cognitive_context_economy
+                .budget
+                .max_prompt_tokens,
+            512
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .cognitive_context_economy
+                .integration
+                .coherence,
+            1.0
+        );
     }
 
     #[test]
