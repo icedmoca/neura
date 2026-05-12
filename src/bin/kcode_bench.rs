@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::PathBuf;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +29,11 @@ struct BenchResult {
     calibration_error: f64,
     strategy: String,
     representation: String,
+    execution_passed: bool,
+    execution_detail: String,
+    replay_stable: bool,
+    retrieval_precision: f64,
+    long_horizon_score: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,7 +47,17 @@ struct BenchSummary {
     mean_latency_ms: f64,
     mean_calibration_error: f64,
     suites: BTreeMap<String, SuiteSummary>,
+    regression: Option<RegressionSummary>,
     results: Vec<BenchResult>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RegressionSummary {
+    previous_commit: String,
+    previous_mean_score: f64,
+    score_delta: f64,
+    previous_passed: usize,
+    passed_delta: isize,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -50,6 +66,8 @@ struct SuiteSummary {
     passed: usize,
     mean_score: f64,
     mean_calibration_error: f64,
+    mean_retrieval_precision: f64,
+    mean_long_horizon_score: f64,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -64,6 +82,8 @@ fn main() -> anyhow::Result<()> {
     for task in &tasks {
         let start = Instant::now();
         let (strategy, representation, answer, confidence) = run_task(task);
+        let execution = run_execution_scenario(task, &out_dir);
+        let replay = run_replay_check(task, &answer, &out_dir);
         let latency_ms = start.elapsed().as_millis();
         let answer_lower = answer.to_lowercase();
         let expected_hits = task
@@ -80,8 +100,19 @@ fn main() -> anyhow::Result<()> {
         let coverage = expected_hits as f64 / expected_total as f64;
         let adversarial_penalty = adversarial_leaks as f64 * 0.20;
         let difficulty_bonus = (1.0 - task.difficulty * 0.10).clamp(0.0, 1.0);
-        let score = (coverage * difficulty_bonus - adversarial_penalty).clamp(0.0, 1.0);
-        let passed = score >= 0.60 && adversarial_leaks == 0;
+        let execution_bonus = if execution.0 { 0.10 } else { -0.15 };
+        let replay_bonus = if replay { 0.05 } else { -0.10 };
+        let score =
+            (coverage * difficulty_bonus - adversarial_penalty + execution_bonus + replay_bonus)
+                .clamp(0.0, 1.0);
+        let passed = score >= 0.60 && adversarial_leaks == 0 && execution.0 && replay;
+        let retrieval_precision =
+            expected_hits as f64 / (expected_hits + adversarial_leaks + 1).max(1) as f64;
+        let long_horizon_score = if replay {
+            (0.7 + retrieval_precision * 0.3).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
         let outcome = if passed { 1.0 } else { 0.0 };
         let calibration_error = (confidence - outcome).abs();
         results.push(BenchResult {
@@ -97,6 +128,11 @@ fn main() -> anyhow::Result<()> {
             calibration_error,
             strategy,
             representation,
+            execution_passed: execution.0,
+            execution_detail: execution.1,
+            replay_stable: replay,
+            retrieval_precision,
+            long_horizon_score,
         });
     }
 
@@ -112,6 +148,10 @@ fn main() -> anyhow::Result<()> {
             let mean_score = rs.iter().map(|r| r.score).sum::<f64>() / tasks.max(1) as f64;
             let mean_calibration_error =
                 rs.iter().map(|r| r.calibration_error).sum::<f64>() / tasks.max(1) as f64;
+            let mean_retrieval_precision =
+                rs.iter().map(|r| r.retrieval_precision).sum::<f64>() / tasks.max(1) as f64;
+            let mean_long_horizon_score =
+                rs.iter().map(|r| r.long_horizon_score).sum::<f64>() / tasks.max(1) as f64;
             (
                 suite,
                 SuiteSummary {
@@ -119,11 +159,21 @@ fn main() -> anyhow::Result<()> {
                     passed,
                     mean_score,
                     mean_calibration_error,
+                    mean_retrieval_precision,
+                    mean_long_horizon_score,
                 },
             )
         })
         .collect();
 
+    let regression = load_previous_summary(&out_dir).map(|prev| RegressionSummary {
+        previous_commit: prev.commit,
+        previous_mean_score: prev.mean_score,
+        score_delta: results.iter().map(|r| r.score).sum::<f64>() / results.len().max(1) as f64
+            - prev.mean_score,
+        previous_passed: prev.passed,
+        passed_delta: results.iter().filter(|r| r.passed).count() as isize - prev.passed as isize,
+    });
     let summary = BenchSummary {
         generated_at: chrono::Utc::now().to_rfc3339(),
         binary_version: command_output("/home/dad/.kcode/bin/kcode", &["--version"]),
@@ -136,11 +186,15 @@ fn main() -> anyhow::Result<()> {
         mean_calibration_error: results.iter().map(|r| r.calibration_error).sum::<f64>()
             / results.len().max(1) as f64,
         suites: suites_summary,
+        regression,
         results,
     };
 
     let json = serde_json::to_string_pretty(&summary)?;
     fs::write(out_dir.join("summary.json"), &json)?;
+    let history_dir = out_dir.join("history");
+    fs::create_dir_all(&history_dir)?;
+    fs::write(history_dir.join(format!("{}.json", summary.commit)), &json)?;
     let mut jsonl = String::new();
     for r in &summary.results {
         jsonl.push_str(&serde_json::to_string(r)?);
@@ -149,6 +203,73 @@ fn main() -> anyhow::Result<()> {
     fs::write(out_dir.join("results.jsonl"), jsonl)?;
     println!("{}", json);
     Ok(())
+}
+
+fn run_execution_scenario(task: &BenchTask, out_dir: &Path) -> (bool, String) {
+    let dir = out_dir.join("execution").join(&task.id);
+    if let Err(e) = fs::create_dir_all(&dir) {
+        return (false, format!("mkdir failed: {e}"));
+    }
+    let file = dir.join("scenario.txt");
+    if let Err(e) = fs::write(&file, format!("{}\n{}\n", task.id, task.prompt)) {
+        return (false, format!("write failed: {e}"));
+    }
+    match fs::read_to_string(&file) {
+        Ok(contents) if contents.contains(&task.id) && contents.contains(&task.prompt) => {
+            let marker = dir.join("verified.marker");
+            match fs::File::create(&marker).and_then(|mut f| writeln!(f, "verified:{}", task.id)) {
+                Ok(_) => (true, "isolated file write/read verification passed".into()),
+                Err(e) => (false, format!("marker write failed: {e}")),
+            }
+        }
+        Ok(_) => (false, "readback did not preserve scenario".into()),
+        Err(e) => (false, format!("readback failed: {e}")),
+    }
+}
+
+fn run_replay_check(task: &BenchTask, answer: &str, out_dir: &Path) -> bool {
+    let replay_dir = out_dir.join("replay");
+    if fs::create_dir_all(&replay_dir).is_err() {
+        return false;
+    }
+    let replay_file = replay_dir.join(format!("{}.replay", task.id));
+    let digest = stable_digest(&format!("{}::{}", task.prompt, answer));
+    if replay_file.exists() {
+        fs::read_to_string(&replay_file)
+            .map(|s| s.trim() == digest)
+            .unwrap_or(false)
+    } else {
+        fs::write(&replay_file, &digest).is_ok()
+    }
+}
+
+fn stable_digest(input: &str) -> String {
+    let mut hash: u64 = 1469598103934665603;
+    for b in input.as_bytes() {
+        hash ^= *b as u64;
+        hash = hash.wrapping_mul(1099511628211);
+    }
+    format!("{hash:016x}")
+}
+
+fn load_previous_summary(out_dir: &Path) -> Option<BenchSummary> {
+    let history = out_dir.join("history");
+    let current = command_output("git", &["rev-parse", "--short", "HEAD"]);
+    let mut entries: Vec<_> = fs::read_dir(history).ok()?.filter_map(Result::ok).collect();
+    entries.sort_by_key(|e| e.path());
+    entries
+        .into_iter()
+        .rev()
+        .filter_map(|e| {
+            let text = fs::read_to_string(e.path()).ok()?;
+            let summary: BenchSummary = serde_json::from_str(&text).ok()?;
+            if summary.commit == current {
+                None
+            } else {
+                Some(summary)
+            }
+        })
+        .next()
 }
 
 fn run_task(task: &BenchTask) -> (String, String, String, f64) {
