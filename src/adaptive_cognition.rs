@@ -836,6 +836,8 @@ pub struct OperationalCognitionState {
     pub adaptive_complexity_collapse: AdaptiveComplexityCollapseState,
     #[serde(default)]
     pub active_representation_evolution: ActiveRepresentationEvolutionState,
+    #[serde(default)]
+    pub emergent_strategy_discovery: EmergentStrategyDiscoveryState,
 }
 
 impl Default for OperationalCognitionState {
@@ -868,6 +870,7 @@ impl Default for OperationalCognitionState {
             structure_discovery_representation: StructureDiscoveryRepresentationState::default(),
             adaptive_complexity_collapse: AdaptiveComplexityCollapseState::default(),
             active_representation_evolution: ActiveRepresentationEvolutionState::default(),
+            emergent_strategy_discovery: EmergentStrategyDiscoveryState::default(),
         }
     }
 }
@@ -10408,6 +10411,409 @@ fn build_representation_variants(
     out
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EmergentStrategyDiscoveryState {
+    #[serde(default)]
+    pub discovery: StrategyDiscoveryRuntime,
+    #[serde(default)]
+    pub governance: StrategicSearchGovernance,
+    #[serde(default)]
+    pub portfolio: StrategyPortfolioState,
+    #[serde(default)]
+    pub limits: StrategyDiscoveryLimits,
+    #[serde(default)]
+    pub reports: VecDeque<StrategyDiscoveryReport>,
+}
+impl Default for EmergentStrategyDiscoveryState {
+    fn default() -> Self {
+        Self {
+            discovery: StrategyDiscoveryRuntime::default(),
+            governance: StrategicSearchGovernance::default(),
+            portfolio: StrategyPortfolioState::default(),
+            limits: StrategyDiscoveryLimits::default(),
+            reports: VecDeque::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyDiscoveryLimits {
+    pub max_candidates: usize,
+    pub max_tournaments: usize,
+    pub max_counterexamples: usize,
+    pub max_portfolio: usize,
+    pub max_reports: usize,
+    pub max_prompt_contribution: usize,
+    pub min_promote_score: f64,
+    pub max_strategy_risk: f64,
+}
+impl Default for StrategyDiscoveryLimits {
+    fn default() -> Self {
+        Self {
+            max_candidates: 8,
+            max_tournaments: 8,
+            max_counterexamples: 8,
+            max_portfolio: 6,
+            max_reports: 32,
+            max_prompt_contribution: 240,
+            min_promote_score: 0.58,
+            max_strategy_risk: 0.35,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum StrategyKind {
+    DirectExecution,
+    DecomposeThenSolve,
+    CollapseRepresentation,
+    EvidenceFirst,
+    ExploreThenCommit,
+    RepairAndRetry,
+    ApproximateAndVerify,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyCandidate {
+    pub id: String,
+    pub kind: StrategyKind,
+    pub expected_gain: f64,
+    pub risk: f64,
+    pub transferability: f64,
+    pub rationale: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyTournamentResult {
+    pub candidate_id: String,
+    pub score: f64,
+    pub won: bool,
+    pub evidence: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyCounterexample {
+    pub candidate_id: String,
+    pub failure_mode: String,
+    pub severity: f64,
+    pub mitigated: bool,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyTransferValidation {
+    pub candidate_id: String,
+    pub source_context: String,
+    pub target_context: String,
+    pub transfer_score: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyDiscoveryRuntime {
+    #[serde(default)]
+    pub candidates: Vec<StrategyCandidate>,
+    #[serde(default)]
+    pub tournaments: Vec<StrategyTournamentResult>,
+    #[serde(default)]
+    pub counterexamples: Vec<StrategyCounterexample>,
+    #[serde(default)]
+    pub transfers: Vec<StrategyTransferValidation>,
+    pub best_score: f64,
+}
+impl Default for StrategyDiscoveryRuntime {
+    fn default() -> Self {
+        Self {
+            candidates: Vec::new(),
+            tournaments: Vec::new(),
+            counterexamples: Vec::new(),
+            transfers: Vec::new(),
+            best_score: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum StrategicSearchDecisionKind {
+    Promote,
+    Sandbox,
+    Reject,
+    RequireEvidence,
+    KeepInPortfolio,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategicSearchDecision {
+    pub candidate_id: String,
+    pub decision: StrategicSearchDecisionKind,
+    pub confidence: f64,
+    pub reason: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategicSearchGovernance {
+    #[serde(default)]
+    pub decisions: Vec<StrategicSearchDecision>,
+    pub exploration_budget: f64,
+    pub exploitation_bias: f64,
+    pub governance_pressure: f64,
+}
+impl Default for StrategicSearchGovernance {
+    fn default() -> Self {
+        Self {
+            decisions: Vec::new(),
+            exploration_budget: 0.5,
+            exploitation_bias: 0.5,
+            governance_pressure: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyPortfolioEntry {
+    pub candidate_id: String,
+    pub kind: StrategyKind,
+    pub weight: f64,
+    pub niche: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyPortfolioState {
+    #[serde(default)]
+    pub entries: Vec<StrategyPortfolioEntry>,
+    pub diversity: f64,
+    pub expected_value: f64,
+}
+impl Default for StrategyPortfolioState {
+    fn default() -> Self {
+        Self {
+            entries: Vec::new(),
+            diversity: 0.0,
+            expected_value: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StrategyDiscoveryReport {
+    pub generated_at: DateTime<Utc>,
+    pub candidates: usize,
+    pub tournaments: usize,
+    pub promoted: usize,
+    pub portfolio: usize,
+    pub best_score: f64,
+    pub diversity: f64,
+    pub governance_pressure: f64,
+    pub prompt_status: String,
+}
+
+pub fn run_emergent_strategy_discovery(
+    reason: impl Into<String>,
+) -> io::Result<StrategyDiscoveryReport> {
+    let mut store = load_store()?;
+    let report = run_emergent_strategy_discovery_in_store(&mut store, reason.into());
+    save_store(&store)?;
+    Ok(report)
+}
+
+pub fn run_emergent_strategy_discovery_in_store(
+    store: &mut CognitiveStore,
+    reason: String,
+) -> StrategyDiscoveryReport {
+    let now = Utc::now();
+    let rep =
+        run_active_representation_evolution_in_store(store, format!("strategy_discovery:{reason}"));
+    let state = &mut store.operational_state.emergent_strategy_discovery;
+    let mut candidates = build_strategy_candidates(&rep, &state.limits);
+    candidates.truncate(state.limits.max_candidates);
+    let mut tournaments = Vec::new();
+    let mut counterexamples = Vec::new();
+    let mut transfers = Vec::new();
+    for c in candidates.iter().take(state.limits.max_tournaments) {
+        let counter_severity = (c.risk * (1.0 - c.transferability)).clamp(0.0, 1.0);
+        let score = (c.expected_gain * 0.45
+            + c.transferability * 0.25
+            + (1.0 - c.risk) * 0.20
+            + rep.cost_reduction * 0.10
+            - counter_severity * 0.20)
+            .clamp(0.0, 1.0);
+        tournaments.push(StrategyTournamentResult {
+            candidate_id: c.id.clone(),
+            score,
+            won: score >= state.limits.min_promote_score,
+            evidence: "scored by gain, transfer, risk, cost reduction, and counterexample severity"
+                .into(),
+        });
+        if counter_severity > 0.15 {
+            counterexamples.push(StrategyCounterexample {
+                candidate_id: c.id.clone(),
+                failure_mode: "strategy may overfit representation trial context".into(),
+                severity: counter_severity,
+                mitigated: counter_severity <= state.limits.max_strategy_risk,
+            });
+        }
+        transfers.push(StrategyTransferValidation {
+            candidate_id: c.id.clone(),
+            source_context: "representation_evolution".into(),
+            target_context: "operational_execution".into(),
+            transfer_score: c.transferability,
+        });
+    }
+    counterexamples.truncate(state.limits.max_counterexamples);
+    let mut decisions = Vec::new();
+    for t in &tournaments {
+        let candidate = candidates.iter().find(|c| c.id == t.candidate_id).unwrap();
+        let decision = if t.won && candidate.risk <= state.limits.max_strategy_risk {
+            StrategicSearchDecisionKind::Promote
+        } else if t.score >= 0.45 {
+            StrategicSearchDecisionKind::Sandbox
+        } else if candidate.risk > state.limits.max_strategy_risk {
+            StrategicSearchDecisionKind::RequireEvidence
+        } else {
+            StrategicSearchDecisionKind::Reject
+        };
+        decisions.push(StrategicSearchDecision {
+            candidate_id: t.candidate_id.clone(),
+            decision,
+            confidence: t.score,
+            reason: "bounded strategic search governance".into(),
+        });
+    }
+    let promoted = decisions
+        .iter()
+        .filter(|d| matches!(d.decision, StrategicSearchDecisionKind::Promote))
+        .count();
+    let best_score = tournaments.iter().map(|t| t.score).fold(0.0, f64::max);
+    let exploration_budget = (1.0 - best_score).clamp(0.1, 0.8);
+    let exploitation_bias = best_score.clamp(0.2, 0.9);
+    let governance_pressure = counterexamples.iter().map(|c| c.severity).sum::<f64>()
+        / counterexamples.len().max(1) as f64;
+    let mut portfolio: Vec<_> = tournaments
+        .iter()
+        .filter(|t| t.score >= 0.40)
+        .filter_map(|t| {
+            candidates
+                .iter()
+                .find(|c| c.id == t.candidate_id)
+                .map(|c| StrategyPortfolioEntry {
+                    candidate_id: c.id.clone(),
+                    kind: c.kind.clone(),
+                    weight: t.score,
+                    niche: strategy_niche(&c.kind).into(),
+                })
+        })
+        .collect();
+    portfolio.sort_by(|a, b| {
+        b.weight
+            .partial_cmp(&a.weight)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    portfolio.truncate(state.limits.max_portfolio);
+    let unique_niches: BTreeSet<_> = portfolio.iter().map(|p| p.niche.clone()).collect();
+    let diversity = unique_niches.len() as f64 / portfolio.len().max(1) as f64;
+    let expected_value =
+        portfolio.iter().map(|p| p.weight).sum::<f64>() / portfolio.len().max(1) as f64;
+    state.discovery = StrategyDiscoveryRuntime {
+        candidates,
+        tournaments,
+        counterexamples,
+        transfers,
+        best_score,
+    };
+    state.governance = StrategicSearchGovernance {
+        decisions,
+        exploration_budget,
+        exploitation_bias,
+        governance_pressure,
+    };
+    state.portfolio = StrategyPortfolioState {
+        entries: portfolio,
+        diversity,
+        expected_value,
+    };
+    let report = StrategyDiscoveryReport {
+        generated_at: now,
+        candidates: state.discovery.candidates.len(),
+        tournaments: state.discovery.tournaments.len(),
+        promoted,
+        portfolio: state.portfolio.entries.len(),
+        best_score,
+        diversity,
+        governance_pressure,
+        prompt_status: format!(
+            "Strategy discovery: candidates={} tournaments={} promoted={} portfolio={} best={:.2} diversity={:.2} pressure={:.2}",
+            state.discovery.candidates.len(),
+            state.discovery.tournaments.len(),
+            promoted,
+            state.portfolio.entries.len(),
+            best_score,
+            diversity,
+            governance_pressure
+        ),
+    };
+    state.reports.push_back(report.clone());
+    while state.reports.len() > state.limits.max_reports {
+        state.reports.pop_front();
+    }
+    report
+}
+
+fn build_strategy_candidates(
+    rep: &RepresentationEvolutionReport,
+    limits: &StrategyDiscoveryLimits,
+) -> Vec<StrategyCandidate> {
+    let mut out = vec![
+        StrategyCandidate {
+            id: "collapse_first_strategy".into(),
+            kind: StrategyKind::CollapseRepresentation,
+            expected_gain: rep.gain.max(rep.cost_reduction),
+            risk: rep.calibration_error * 0.8,
+            transferability: 0.74,
+            rationale: "representation collapse produced measurable cost reduction".into(),
+        },
+        StrategyCandidate {
+            id: "decompose_then_solve_strategy".into(),
+            kind: StrategyKind::DecomposeThenSolve,
+            expected_gain: (1.0 - rep.complexity) * 0.55,
+            risk: rep.complexity * 0.25,
+            transferability: 0.68,
+            rationale: "decompose high operational complexity before execution".into(),
+        },
+        StrategyCandidate {
+            id: "evidence_first_strategy".into(),
+            kind: StrategyKind::EvidenceFirst,
+            expected_gain: (1.0 - rep.calibration_error).clamp(0.0, 1.0) * 0.35,
+            risk: rep.calibration_error,
+            transferability: 0.80,
+            rationale: "reduce calibration error before strategy execution".into(),
+        },
+        StrategyCandidate {
+            id: "explore_then_commit_strategy".into(),
+            kind: StrategyKind::ExploreThenCommit,
+            expected_gain: (rep.cost_reduction * 0.45 + rep.gain * 0.25).clamp(0.0, 1.0),
+            risk: 0.30,
+            transferability: 0.62,
+            rationale: "explore variants before committing representation changes".into(),
+        },
+        StrategyCandidate {
+            id: "approximate_and_verify_strategy".into(),
+            kind: StrategyKind::ApproximateAndVerify,
+            expected_gain: (1.0 - rep.complexity) * 0.40,
+            risk: 0.22,
+            transferability: 0.66,
+            rationale: "approximate hard paths then verify outcome".into(),
+        },
+    ];
+    out.sort_by(|a, b| {
+        b.expected_gain
+            .partial_cmp(&a.expected_gain)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    out.truncate(limits.max_candidates);
+    out
+}
+fn strategy_niche(kind: &StrategyKind) -> &'static str {
+    match kind {
+        StrategyKind::DirectExecution => "direct",
+        StrategyKind::DecomposeThenSolve => "decomposition",
+        StrategyKind::CollapseRepresentation => "representation",
+        StrategyKind::EvidenceFirst => "epistemic",
+        StrategyKind::ExploreThenCommit => "exploration",
+        StrategyKind::RepairAndRetry => "repair",
+        StrategyKind::ApproximateAndVerify => "approximation",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -11046,6 +11452,87 @@ mod tests {
         run_epistemology_in_store(&mut store, "first".to_string());
         let report = run_epistemology_in_store(&mut store, "second".to_string());
         assert!(report.reliabilities.iter().any(|r| r.observations > 0));
+    }
+
+    #[test]
+    fn strategy_discovery_generates_candidates_tournaments_and_portfolio() {
+        let mut store = CognitiveStore::default();
+        let report =
+            run_emergent_strategy_discovery_in_store(&mut store, "strategy discovery".into());
+        let state = &store.operational_state.emergent_strategy_discovery;
+        assert!(!state.discovery.candidates.is_empty());
+        assert!(!state.discovery.tournaments.is_empty());
+        assert!(!state.portfolio.entries.is_empty());
+        assert_eq!(report.candidates, state.discovery.candidates.len());
+    }
+
+    #[test]
+    fn strategic_search_governance_records_decisions_and_budgets() {
+        let mut store = CognitiveStore::default();
+        run_emergent_strategy_discovery_in_store(&mut store, "strategic governance".into());
+        let gov = &store
+            .operational_state
+            .emergent_strategy_discovery
+            .governance;
+        assert!(!gov.decisions.is_empty());
+        assert!((0.0..=1.0).contains(&gov.exploration_budget));
+        assert!((0.0..=1.0).contains(&gov.exploitation_bias));
+    }
+
+    #[test]
+    fn strategy_counterexamples_and_transfer_validation_are_bounded() {
+        let mut store = CognitiveStore::default();
+        store
+            .operational_state
+            .emergent_strategy_discovery
+            .limits
+            .max_counterexamples = 2;
+        run_emergent_strategy_discovery_in_store(&mut store, "counterexample transfer".into());
+        let discovery = &store
+            .operational_state
+            .emergent_strategy_discovery
+            .discovery;
+        assert!(discovery.counterexamples.len() <= 2);
+        assert!(!discovery.transfers.is_empty());
+        assert!(
+            discovery
+                .transfers
+                .iter()
+                .all(|t| (0.0..=1.0).contains(&t.transfer_score))
+        );
+    }
+
+    #[test]
+    fn strategy_portfolio_diversity_and_prompt_status_are_bounded() {
+        let mut store = CognitiveStore::default();
+        let report =
+            run_emergent_strategy_discovery_in_store(&mut store, "portfolio compact".into());
+        let state = &store.operational_state.emergent_strategy_discovery;
+        assert!(state.portfolio.entries.len() <= state.limits.max_portfolio);
+        assert!((0.0..=1.0).contains(&state.portfolio.diversity));
+        assert!(report.prompt_status.len() <= state.limits.max_prompt_contribution);
+    }
+
+    #[test]
+    fn emergent_strategy_discovery_persistence_defaults() {
+        let json = serde_json::to_string(&CognitiveStore::default()).unwrap();
+        let restored: CognitiveStore = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            restored
+                .operational_state
+                .emergent_strategy_discovery
+                .limits
+                .max_candidates,
+            8
+        );
+        assert_eq!(
+            restored
+                .operational_state
+                .emergent_strategy_discovery
+                .discovery
+                .best_score,
+            0.0
+        );
     }
 
     #[test]

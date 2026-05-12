@@ -308,6 +308,30 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect operational complexity mode, cost reduction, and policy adjustments.",
     ),
     RegisteredCommand::public(
+        "/kcode-strategy status",
+        "Inspect emergent strategy discovery candidates, tournaments, portfolio, and governance pressure.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-strategy candidates",
+        "Inspect generated strategy candidates and expected gain/risk/transferability.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-strategy tournaments",
+        "Inspect strategy tournament scores, winners, and evidence.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-strategy counterexamples",
+        "Inspect counterexamples and mitigations before strategy promotion.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-strategy portfolio",
+        "Inspect balanced strategy portfolio diversity and expected value.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-strategic-search governance",
+        "Inspect exploration budget, exploitation bias, and strategy decisions.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),
