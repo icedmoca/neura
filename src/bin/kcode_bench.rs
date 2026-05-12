@@ -34,6 +34,10 @@ struct BenchResult {
     replay_stable: bool,
     retrieval_precision: f64,
     long_horizon_score: f64,
+    adversarial_score: f64,
+    ablation_delta: f64,
+    promotion_allowed: bool,
+    evaluator_version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,7 +52,40 @@ struct BenchSummary {
     mean_calibration_error: f64,
     suites: BTreeMap<String, SuiteSummary>,
     regression: Option<RegressionSummary>,
+    calibration: CalibrationSummary,
+    promotion_gate: PromotionGateSummary,
+    artifacts: ArtifactSummary,
     results: Vec<BenchResult>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CalibrationSummary {
+    bins: Vec<CalibrationBin>,
+    ece: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CalibrationBin {
+    low: f64,
+    high: f64,
+    count: usize,
+    accuracy: f64,
+    mean_confidence: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PromotionGateSummary {
+    allowed: usize,
+    blocked: usize,
+    reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ArtifactSummary {
+    tasks_path: String,
+    results_path: String,
+    summary_path: String,
+    history_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,6 +105,8 @@ struct SuiteSummary {
     mean_calibration_error: f64,
     mean_retrieval_precision: f64,
     mean_long_horizon_score: f64,
+    mean_adversarial_score: f64,
+    promotion_rate: f64,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -113,8 +152,14 @@ fn main() -> anyhow::Result<()> {
         } else {
             0.0
         };
+        let adversarial_score = adversarial_score(task, &answer);
+        let ablation_delta = (score - ablated_score(task)).clamp(-1.0, 1.0);
         let outcome = if passed { 1.0 } else { 0.0 };
         let calibration_error = (confidence - outcome).abs();
+        let promotion_allowed = passed
+            && calibration_error <= 0.45
+            && adversarial_score >= 0.75
+            && long_horizon_score >= 0.70;
         results.push(BenchResult {
             id: task.id.clone(),
             suite: task.suite.clone(),
@@ -133,6 +178,10 @@ fn main() -> anyhow::Result<()> {
             replay_stable: replay,
             retrieval_precision,
             long_horizon_score,
+            adversarial_score,
+            ablation_delta,
+            promotion_allowed,
+            evaluator_version: "kcode-bench-v2".into(),
         });
     }
 
@@ -152,6 +201,10 @@ fn main() -> anyhow::Result<()> {
                 rs.iter().map(|r| r.retrieval_precision).sum::<f64>() / tasks.max(1) as f64;
             let mean_long_horizon_score =
                 rs.iter().map(|r| r.long_horizon_score).sum::<f64>() / tasks.max(1) as f64;
+            let mean_adversarial_score =
+                rs.iter().map(|r| r.adversarial_score).sum::<f64>() / tasks.max(1) as f64;
+            let promotion_rate =
+                rs.iter().filter(|r| r.promotion_allowed).count() as f64 / tasks.max(1) as f64;
             (
                 suite,
                 SuiteSummary {
@@ -161,11 +214,22 @@ fn main() -> anyhow::Result<()> {
                     mean_calibration_error,
                     mean_retrieval_precision,
                     mean_long_horizon_score,
+                    mean_adversarial_score,
+                    promotion_rate,
                 },
             )
         })
         .collect();
 
+    persist_task_registry(&out_dir, &tasks)?;
+    let calibration = compute_calibration(&results);
+    let promotion_gate = compute_promotion_gate(&results);
+    let artifacts = ArtifactSummary {
+        tasks_path: out_dir.join("tasks.json").display().to_string(),
+        results_path: out_dir.join("results.jsonl").display().to_string(),
+        summary_path: out_dir.join("summary.json").display().to_string(),
+        history_path: out_dir.join("history").display().to_string(),
+    };
     let regression = load_previous_summary(&out_dir).map(|prev| RegressionSummary {
         previous_commit: prev.commit,
         previous_mean_score: prev.mean_score,
@@ -187,6 +251,9 @@ fn main() -> anyhow::Result<()> {
             / results.len().max(1) as f64,
         suites: suites_summary,
         regression,
+        calibration,
+        promotion_gate,
+        artifacts,
         results,
     };
 
@@ -203,6 +270,91 @@ fn main() -> anyhow::Result<()> {
     fs::write(out_dir.join("results.jsonl"), jsonl)?;
     println!("{}", json);
     Ok(())
+}
+
+fn persist_task_registry(out_dir: &Path, tasks: &[BenchTask]) -> anyhow::Result<()> {
+    fs::write(
+        out_dir.join("tasks.json"),
+        serde_json::to_string_pretty(tasks)?,
+    )?;
+    Ok(())
+}
+
+fn labeled_retrieval_precision(task: &BenchTask, answer: &str) -> f64 {
+    let lower = answer.to_lowercase();
+    let relevant_hits = task
+        .expected_keywords
+        .iter()
+        .filter(|k| lower.contains(&k.to_lowercase()))
+        .count();
+    let irrelevant_hits = task
+        .adversarial_terms
+        .iter()
+        .filter(|k| lower.contains(&k.to_lowercase()))
+        .count();
+    relevant_hits as f64 / (relevant_hits + irrelevant_hits + 1).max(1) as f64
+}
+
+fn adversarial_score(task: &BenchTask, answer: &str) -> f64 {
+    let lower = answer.to_lowercase();
+    let leaks = task
+        .adversarial_terms
+        .iter()
+        .filter(|k| lower.contains(&k.to_lowercase()))
+        .count();
+    (1.0 - leaks as f64 * 0.25).clamp(0.0, 1.0)
+}
+
+fn ablated_score(task: &BenchTask) -> f64 {
+    let baseline_hits = task
+        .expected_keywords
+        .iter()
+        .filter(|k| task.prompt.to_lowercase().contains(&k.to_lowercase()))
+        .count();
+    (baseline_hits as f64 / task.expected_keywords.len().max(1) as f64 * 0.75).clamp(0.0, 1.0)
+}
+
+fn compute_calibration(results: &[BenchResult]) -> CalibrationSummary {
+    let mut bins = Vec::new();
+    let mut ece = 0.0;
+    for idx in 0..10 {
+        let low = idx as f64 / 10.0;
+        let high = (idx + 1) as f64 / 10.0;
+        let rs: Vec<_> = results
+            .iter()
+            .filter(|r| {
+                r.confidence >= low && (r.confidence < high || idx == 9 && r.confidence <= high)
+            })
+            .collect();
+        if rs.is_empty() {
+            bins.push(CalibrationBin {
+                low,
+                high,
+                count: 0,
+                accuracy: 0.0,
+                mean_confidence: 0.0,
+            });
+            continue;
+        }
+        let count = rs.len();
+        let accuracy = rs.iter().filter(|r| r.passed).count() as f64 / count as f64;
+        let mean_confidence = rs.iter().map(|r| r.confidence).sum::<f64>() / count as f64;
+        ece += count as f64 / results.len().max(1) as f64 * (accuracy - mean_confidence).abs();
+        bins.push(CalibrationBin {
+            low,
+            high,
+            count,
+            accuracy,
+            mean_confidence,
+        });
+    }
+    CalibrationSummary { bins, ece }
+}
+
+fn compute_promotion_gate(results: &[BenchResult]) -> PromotionGateSummary {
+    let allowed = results.iter().filter(|r| r.promotion_allowed).count();
+    let blocked = results.len().saturating_sub(allowed);
+    PromotionGateSummary { allowed, blocked, reason: "requires pass, calibration_error<=0.45, adversarial_score>=0.75, long_horizon_score>=0.70".into() }
 }
 
 fn run_execution_scenario(task: &BenchTask, out_dir: &Path) -> (bool, String) {
