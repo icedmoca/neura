@@ -1,18 +1,36 @@
-# Install Kcode
+# Install Kcode: source, environment, and local model setup
 
-This guide covers installing Kcode from source, preparing the runtime environment, and configuring optional local LM Studio/OpenAI-compatible model support.
+This guide covers installing Kcode from source, preparing the development environment, configuring PATH, validating the checkout, and setting up optional LM Studio/local OpenAI-compatible model support.
 
-## Requirements
+## 1. Requirements
 
-- Rust toolchain, preferably current stable.
-- Git.
-- A terminal with Unicode support.
-- Platform build tools:
-  - Linux: `build-essential`, `pkg-config`, SSL development headers as needed by your distro.
-  - macOS: Xcode Command Line Tools.
-  - Windows: WSL2 is recommended for the primary development path. Native Windows may require additional MSVC tooling.
+Kcode is a Rust project. You need:
 
-## Clone and build
+- Git;
+- Rust stable toolchain;
+- a Unicode-capable terminal;
+- platform build tools;
+- network access for crates and provider/local model endpoints.
+
+Recommended developer tools:
+
+- `ripgrep` for fast source search;
+- `python3` for docs validation;
+- `pkg-config` and SSL headers on Linux;
+- WSL2 for Windows development if native Rust tooling is inconvenient.
+
+## 2. Install Rust
+
+Use rustup unless your environment has a managed Rust toolchain:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+rustc --version
+cargo --version
+```
+
+## 3. Clone and build
 
 ```bash
 git clone https://github.com/icedmoca/kcode.git
@@ -20,40 +38,94 @@ cd kcode
 cargo build --release
 ```
 
-The release binary is produced under:
-
-```bash
-target/release/kcode
-```
-
-For development, use the debug build:
+Debug build:
 
 ```bash
 cargo build
 cargo run
 ```
 
-## Add Kcode to PATH
+Release binary path:
 
-Example for bash or zsh:
+```bash
+target/release/kcode
+```
+
+## 4. PATH configuration
+
+For a one-session PATH update:
 
 ```bash
 export PATH="$PWD/target/release:$PATH"
 ```
 
-To persist it, add the export line to `~/.bashrc`, `~/.zshrc`, or your shell profile after replacing `$PWD` with the absolute repository path.
-
-## Development validation
-
-Run these after a checkout and before committing behavior changes:
+For persistent shell use, add the absolute path to your shell profile:
 
 ```bash
-cargo fmt
+export PATH="/absolute/path/to/kcode/target/release:$PATH"
+```
+
+Then reload:
+
+```bash
+exec "$SHELL" -l
+```
+
+## 5. Installer script
+
+From a remote checkout path:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install.sh | bash
+exec "$SHELL" -l
+kcode
+```
+
+From a local clone:
+
+```bash
+./install.sh
+kcode
+```
+
+Inspect `install.sh` before running it if you are operating in a constrained or security-sensitive environment.
+
+## 6. Platform notes
+
+### Linux
+
+Install typical build dependencies. Debian/Ubuntu example:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential pkg-config libssl-dev git curl python3
+```
+
+### macOS
+
+Install Xcode Command Line Tools:
+
+```bash
+xcode-select --install
+```
+
+Then install Rust and build normally.
+
+### Windows and WSL
+
+WSL2 is recommended. Build inside the Linux environment. If interacting with Windows-hosted LM Studio, see the WSL networking notes below.
+
+## 7. Development validation
+
+After installation:
+
+```bash
+cargo fmt --check
 cargo check --lib
 python3 scripts/validate_docs.py
 ```
 
-Run focused tests for changed subsystems. Examples:
+Focused subsystem checks:
 
 ```bash
 cargo test --lib operational_repair_learning
@@ -61,22 +133,21 @@ cargo test --lib adaptive_cognition
 cargo test --lib local_model
 ```
 
-## Optional provider credentials
+## 8. Provider credentials
 
-Provider-specific authentication depends on the adapter and command path. Use the built-in auth/account flows where available. The provider files under `src/provider` are the implementation source of truth for provider-specific behavior.
+Provider-specific credentials are adapter-dependent. General rules:
 
-General guidance:
+- never commit secrets;
+- prefer built-in auth/account flows when available;
+- keep provider smoke tests cheap;
+- record provider/model IDs when diagnosing failures;
+- treat account failover behavior as provider-specific.
 
-- Keep API keys out of shell history when possible.
-- Prefer provider-specific auth commands or config files over ad-hoc exports.
-- Do not commit secrets into the repository.
-- Test provider changes with smoke prompts before relying on long-running tasks.
-
-## LM Studio and local OpenAI-compatible models
+## 9. LM Studio and local OpenAI-compatible models
 
 Kcode includes local model diagnostics for LM Studio and other OpenAI-compatible local servers.
 
-### Start LM Studio
+### 9.1 Start LM Studio
 
 1. Open LM Studio.
 2. Download or select a chat/instruct model.
@@ -88,17 +159,17 @@ Kcode includes local model diagnostics for LM Studio and other OpenAI-compatible
 http://127.0.0.1:1234/v1
 ```
 
-### Check from Kcode
+### 9.2 Check from Kcode
 
-Inside the TUI, run:
+Inside the TUI:
 
 ```text
 /kcode-local-model
 ```
 
-The command checks the local `/v1/models` and `/v1/chat/completions` endpoints and reports endpoint health, model availability, and a small completion smoke test.
+The command checks `/v1/models` and `/v1/chat/completions`, then reports endpoint health, model availability, and a small completion smoke test.
 
-### Benchmark from the CLI
+### 9.3 Benchmark local model behavior
 
 ```bash
 cargo run --bin kcode-bench -- \
@@ -107,37 +178,45 @@ cargo run --bin kcode-bench -- \
   --local-model '<model-id-from-lm-studio>'
 ```
 
-You can benchmark any OpenAI-compatible local server by changing `--local-provider` and `--local-url`.
+### 9.4 Choosing local models
 
-### Local model troubleshooting
+For sidecar support, prioritize:
+
+- fast inference;
+- good summarization;
+- coding/log familiarity;
+- reliable instruction following;
+- context length appropriate for log compression.
+
+A smaller fast model can be better as a sidecar than a huge slow model because the sidecar's job is often compression and support, not primary reasoning.
+
+### 9.5 Troubleshooting
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| Connection refused | LM Studio server is not running or uses another port. | Start the server and verify the URL. |
-| No models listed | No model is loaded or the endpoint is not OpenAI-compatible. | Load a model and check `/v1/models`. |
-| Completion timeout | Model is too large or hardware is saturated. | Try a smaller quantized model or increase timeout in the caller. |
-| Poor tool behavior | Local model lacks tool-use/coding capability. | Use local models for diagnostics/benchmarks, or select a stronger model. |
+| Connection refused | Server stopped or wrong port | Start server and verify URL |
+| No models listed | No model loaded | Load model in LM Studio |
+| Timeout | Model too large or hardware saturated | Try smaller quantization/model |
+| Bad answers | Weak local model | Use sidecar for summaries, not final reasoning |
+| WSL cannot connect | Windows/WSL networking boundary | Use Windows host IP or adjust firewall |
 
-### Environment and repeatability
+## 10. WSL networking for LM Studio
 
-Prefer explicit benchmark flags for repeatability. Environment variables and default local settings are useful for interactive work, but benchmark artifacts should record provider, URL, model ID, and relevant hardware notes.
+If Kcode runs in WSL and LM Studio runs on Windows, `127.0.0.1` may not always point where you expect. Try:
 
-## WSL notes
+```bash
+cat /etc/resolv.conf
+```
 
-If running Kcode in WSL and LM Studio on Windows, `127.0.0.1` may not always refer to the Windows host depending on networking mode. If the local model check fails:
+or inspect the Windows host IP visible from WSL. Then pass the URL explicitly to benchmark commands.
 
-1. Confirm LM Studio is listening on the Windows side.
-2. Try the Windows host IP visible from WSL.
-3. Ensure firewalls allow local connections.
-4. Prefer explicit `--local-url` in benchmark commands.
+## 11. Documentation inventory after install
 
-## Updating source-backed docs
-
-After adding binaries, provider files, public modules, or slash commands:
+Validate docs after changes:
 
 ```bash
 python3 scripts/validate_docs.py --write-inventory
 python3 scripts/validate_docs.py
 ```
 
-Commit generated inventory updates with the code change that caused them.
+Commit generated inventory updates with the code changes that caused them.

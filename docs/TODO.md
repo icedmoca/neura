@@ -222,3 +222,30 @@ A roadmap item should be considered done only when it has:
 - Avoid adding tools that are powerful but hard to sandbox unless the permission model is clear.
 - Every new context/memory feature should include benchmark or regression coverage.
 - Every new integration should document what data leaves the machine.
+
+---
+
+## Research agenda addendum
+
+### Repair learning integration
+
+- Connect repair motifs directly to replay harness selection.
+- Add richer failure signatures for provider-specific errors.
+- Track validation cost and success rate per replay gate.
+- Surface repair memory in the TUI with concise explanations.
+- Add persistence tests for multi-session repair recurrence.
+
+### Local sidecar model evolution
+
+- Make sidecar task routing explicit and configurable.
+- Add sidecar-specific benchmark tasks for compression and critique.
+- Track token savings from sidecar summaries.
+- Add safety boundaries for weak local models.
+- Compare LM Studio models by sidecar role rather than only final-answer quality.
+
+### Documentation maturity
+
+- Expand generated inventory to include CLI subcommands and selected public structs/enums.
+- Add diagrams for provider failover and tool-call loop.
+- Keep README concise while docs remain comprehensive.
+- Make docs validation stricter about stale links.

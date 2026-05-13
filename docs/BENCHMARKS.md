@@ -993,3 +993,36 @@ Useful fields: `original_chars`, `encoded_chars`, `saved_tokens_estimate`, `exac
 Across 3,136 recorded compaction events, Kcode represented about 1,909,792,620 original characters as 197,759,789 encoded characters, a 89.64% character reduction. The conservative estimate is 428,008,180 tokens saved, while local-tokenizer accounting shows 546,612,882 exact tokens saved.
 
 The current implementation is intentionally more conservative about what it sends to the remote model: exact old content stays retrievable without summary drift, while proactive exact restore requires concrete intent and relevance to the latest real user turn.
+
+---
+
+## Analytical addendum: benchmark dimensions for an operational agent
+
+Benchmarking Kcode means evaluating more than raw model output. Kcode is an operational agent: providers, local models, tool latency, prompt memory, repair learning, and TUI responsiveness all affect quality.
+
+| Dimension | What it measures | Why it matters |
+| --- | --- | --- |
+| Provider latency | time to first token, total response time | interactive usability |
+| Provider correctness | task completion quality | coding reliability |
+| Tool loop cost | tool execution plus model continuation | real-world repository work |
+| Context efficiency | amount of useful work per prompt token | long-session economics |
+| Local sidecar utility | summarization/compression quality vs cost | token savings |
+| Repair learning value | fewer repeated investigations | operational maturity |
+| TUI responsiveness | render/input latency | user trust |
+| Failure recovery | ability to diagnose and validate repairs | maintainability |
+
+### Sidecar benchmark questions
+
+A local sidecar should be evaluated on support tasks, not only final coding answers:
+
+- summarize a long log into actionable bullets;
+- identify the first likely root cause from cargo output;
+- compress transcript context into durable memory;
+- classify build/test/provider/network/auth failures;
+- suggest the smallest safe validation after a repair.
+
+Useful metrics include compression ratio, retained root-cause accuracy, latency, token savings in the next primary-provider call, hallucinated claims per summary, and usefulness to repair learning.
+
+### Repair learning evaluation
+
+Operational repair learning can be benchmarked without a provider. Validate whether failure classification matches expected class, recurrence increases replay-gate intensity correctly, successful repairs become preferred repair memory, compact prompt memory remains concise, and adaptive cognition receives mirrored execution signals.

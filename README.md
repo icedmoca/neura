@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="kcode.png" alt="Kcode" width="420" />
+  <img src="kcode.png" alt="Kcode" width="100%" />
 </p>
 
 # Kcode

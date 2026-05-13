@@ -924,3 +924,34 @@ The result is a system that can run long, tool-heavy sessions while reducing bot
 ## Token savings without losing grounding
 
 Kcode's token-saving path is designed to reduce fixed overhead without hiding evidence the model may need. Context refs can be rehydrated exactly with `.ctx_get`, and direct-answer turns now use dynamic tool-schema pruning: they send only core tools plus `tool_expand`, so the model can request more tools rather than carrying every schema on every turn. This lowers cost on simple turns without weakening grounded tool use on complex tasks.
+
+---
+
+## Analytical addendum: Kcode as an operational agent system
+
+Kcode is best understood as a terminal-native operational agent rather than a single prompt wrapper. The system combines provider routing, workspace tools, local cognition, documentation validation, and failure repair learning into one development loop.
+
+### Architectural identity
+
+Kcode emphasizes:
+
+- **operational clarity**: every major behavior should be traceable to source;
+- **local agency**: the agent can inspect and modify the workspace directly;
+- **provider flexibility**: multiple hosted and compatible providers can coexist;
+- **local intelligence**: sidecar/local models can reduce token cost and support memory;
+- **adaptive continuity**: useful prior signals should survive across long work sessions;
+- **repair learning**: repeated failures should make the system smarter, not just noisier.
+
+### Memory as a first-class capability
+
+Kcode's memory is intentionally compact. It is not meant to dump every historical message into context. Instead, adaptive cognition and operational repair learning preserve high-signal information: what failed, what fixed it, what validation mattered, and what operational pattern is recurring.
+
+This creates a practical advantage in long-running repository evolution. Kcode can avoid repeating the same investigations and can spend provider tokens on current reasoning rather than rediscovering old context.
+
+### Local sidecar model role
+
+The optional local sidecar model is a cost and latency optimization. It can help with summaries, log compression, routing hints, critique, and local diagnostics. It is most valuable when it reduces expensive provider context while preserving enough truth for the primary model to reason well.
+
+### Documentation ethos
+
+Kcode documentation should be implementation-backed. The generated inventory is not decorative; it is a guardrail against stale docs. When source structure changes, docs should change with it.

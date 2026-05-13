@@ -1,8 +1,19 @@
-# Kcode operations guide
+# Kcode operations manual
 
-This guide explains how to operate and validate Kcode while developing it.
+This manual describes how to operate Kcode as a living coding-agent system. It is written for maintainers who need to make changes, diagnose failures, validate behavior, and keep documentation truthful.
 
-## Daily development loop
+## 1. Operational model
+
+Kcode operation has four loops:
+
+1. **Interaction loop**: user enters intent through TUI or CLI.
+2. **Execution loop**: agent runtime selects provider, executes tools, streams results, and mutates workspace when appropriate.
+3. **Validation loop**: focused checks confirm that changes are correct.
+4. **Learning loop**: adaptive cognition and operational repair learning retain compact signals.
+
+A healthy Kcode change should preserve all four loops. If a change improves behavior but cannot be validated or documented, it is incomplete.
+
+## 2. Daily maintainer workflow
 
 ```bash
 cargo fmt
@@ -10,9 +21,7 @@ cargo check --lib
 python3 scripts/validate_docs.py
 ```
 
-Then run focused tests for the touched subsystem.
-
-Examples:
+Then run focused tests. Examples:
 
 ```bash
 cargo test --lib operational_repair_learning
@@ -21,54 +30,76 @@ cargo test --lib local_model
 cargo test --lib info_widget_usage
 ```
 
-## Commit discipline
+For provider parser changes, run the provider-specific tests if present. For TUI rendering changes, run the relevant TUI test filter. For docs changes, always run `scripts/validate_docs.py`.
 
-- Keep changes buildable.
-- Commit source, tests, and generated documentation inventory together.
-- Do not commit secrets or local machine-specific credentials.
-- Prefer focused commits that explain the architectural purpose.
+## 3. Validation strategy
 
-## Documentation workflow
+Kcode uses validation tiers:
 
-If you add or rename any of the following, refresh the inventory:
-
-- binary in `src/bin`;
-- provider file in `src/provider`;
-- public module declaration;
-- public slash command using `RegisteredCommand::public`.
-
-Commands:
-
-```bash
-python3 scripts/validate_docs.py --write-inventory
-python3 scripts/validate_docs.py
-```
-
-## Provider operations
-
-Provider issues usually fall into one of these categories:
-
-| Category | Typical signal | Validation |
+| Tier | When to use | Examples |
 | --- | --- | --- |
-| Auth | 401/403, missing key, expired token | Auth/account command or provider smoke prompt. |
-| Catalog | missing model, stale model list | Refresh catalog or choose explicit model. |
-| Streaming | malformed SSE, partial response | Provider parser tests and a smoke stream. |
-| Rate limit | 429 or quota messages | Retry policy, fallback, or provider switch. |
-| Compatibility | request rejected by provider | Inspect adapter request shaping. |
+| Format | Any Rust change | `cargo fmt --check` |
+| Compile | Any code change | `cargo check --lib` |
+| Focused unit | Single subsystem | `cargo test --lib operational_repair_learning` |
+| Integration-ish | Provider/TUI/tool flows | provider parser tests, TUI state tests |
+| Smoke | External endpoint/tool | local model check, provider health prompt |
+| Benchmark | Performance/provider comparison | `kcode-bench`, `tui-bench` |
 
-Provider changes should stay inside `src/provider` unless the runtime contract itself changes.
+The goal is not to run the biggest possible suite every time. The goal is to select the smallest validation that actually proves the change, then broaden when risk increases.
 
-## Local LM Studio operations
+## 4. Provider operations
 
-LM Studio setup lives in `docs/INSTALL.md#lm-studio-and-local-openai-compatible-models`.
+Provider changes are operationally sensitive because failures may come from code, credentials, upstream availability, catalog drift, rate limits, or model behavior.
 
-Operational checks:
+### Provider diagnostic checklist
+
+1. Identify provider adapter file under `src/provider`.
+2. Confirm request shape and headers.
+3. Confirm selected model ID and provider routing prefix.
+4. Check account/auth state.
+5. Check catalog refresh logic if model discovery failed.
+6. Check streaming parser if partial output or event errors occur.
+7. Run a cheap smoke prompt before a long task.
+
+### Provider failure taxonomy
+
+| Failure | Symptoms | Repair direction |
+| --- | --- | --- |
+| Auth | 401, 403, expired token | refresh account/auth path |
+| Catalog | model missing, stale picker | refresh catalog, explicit model selection |
+| Stream parse | output truncation, malformed SSE | provider parser fix/test |
+| Rate limit | 429, quota messages | retry/fallback/account switch |
+| Compatibility | provider rejects request fields | adapter-specific request shaping |
+| Routing | wrong provider/model chosen | model route or picker metadata fix |
+
+## 5. Local sidecar and LM Studio operations
+
+LM Studio setup is documented in `docs/INSTALL.md`. Operationally, the local sidecar model is best treated as a cheap support worker.
+
+Good sidecar tasks:
+
+- summarize long logs;
+- compress noisy tool output;
+- generate routing hints;
+- produce lightweight critique;
+- help with memory compaction;
+- run local OpenAI-compatible smoke checks;
+- benchmark local model behavior.
+
+Risky sidecar tasks:
+
+- high-stakes code architecture decisions on weak local models;
+- security-sensitive reasoning without review;
+- assuming tool-call capability when the local model was not trained for it;
+- replacing validation with plausible summaries.
+
+### Local model smoke check
 
 ```text
 /kcode-local-model
 ```
 
-Benchmark check:
+### Local benchmark example
 
 ```bash
 cargo run --bin kcode-bench -- \
@@ -77,83 +108,125 @@ cargo run --bin kcode-bench -- \
   --local-model '<model-id>'
 ```
 
-Record local model ID, quantization, hardware, and endpoint URL when comparing benchmark runs.
+Record model ID, quantization, hardware, URL, and prompt class when comparing runs.
 
-## Operational repair learning operations
+## 6. Tool operations
 
-The repair learning subsystem is deterministic and safe to test without a model provider.
+Tools can mutate the workspace. Treat tool changes as operational changes, not just API changes.
 
-Core data types:
+Tool operation principles:
 
-- `FailureObservation`
-- `RepairAttempt`
-- `RepairMotif`
-- `FailureClass`
-- `ReplayGate`
+- prefer noninteractive commands;
+- preserve user work;
+- avoid destructive actions without explicit confirmation;
+- capture stderr/stdout for failure learning;
+- validate edits after applying them;
+- keep long-running jobs observable.
 
-Recommended workflow when a recurring failure appears:
+For shell commands, prefer commands that time out or finish predictably. Avoid interactive prompts unless the harness can answer them.
 
-1. Capture the command, stderr, exit code, and touched files.
-2. Classify with `operational_repair_learning`.
-3. Record a repair attempt after applying a fix.
-4. Use the replay gate to decide validation intensity.
-5. Mirror the motif into adaptive cognition for future prompt memory.
+## 7. Adaptive cognition operations
 
-## Replay gate interpretation
+Adaptive cognition should store compact, high-signal data. Do not turn it into an unbounded transcript sink.
 
-| Gate | Meaning | Example validation |
+Good memory records:
+
+- recurring failure signatures;
+- successful repair summaries;
+- validation outcomes;
+- provider/tool operational signals;
+- durable repository facts.
+
+Bad memory records:
+
+- raw long logs without compression;
+- secrets;
+- one-off irrelevant errors;
+- speculative claims with no validation;
+- duplicated transcript chunks.
+
+## 8. Operational repair learning operations
+
+Repair learning is deterministic. Use it when a failure and repair attempt can be represented explicitly.
+
+Workflow:
+
+1. Capture `FailureObservation` with summary, stderr, command, exit code, and touched files.
+2. Classify failure.
+3. Apply repair.
+4. Record `RepairAttempt` with outcome and validation.
+5. Let recurrence/confidence update.
+6. Use replay gate to select future validation intensity.
+
+Replay gates:
+
+| Gate | Meaning | Typical validation |
 | --- | --- | --- |
-| `Skip` | No actionable failure. | None. |
-| `Smoke` | Cheap validation is enough. | Provider health check or single request. |
-| `Focused` | Validate the failing subsystem. | One test filter, parser test, or cargo check. |
-| `Full` | Recurring build/test failure. | Broader test suite or benchmark replay. |
+| `Skip` | Not actionable | None |
+| `Smoke` | Cheap external/tool/provider check | health prompt, endpoint check |
+| `Focused` | Subsystem-specific proof | one test filter, `cargo check` |
+| `Full` | Recurring build/test failure | broad suite or benchmark replay |
 
-## TUI operations
+## 9. TUI operations
 
-TUI changes should be validated with rendering tests or a focused compile/test pass. Sidebars and widgets are often snapshot-like, so avoid changing visible strings casually unless tests and docs are updated.
+TUI changes affect user trust quickly. Validate:
 
-## Failure handling policy
+- command registry descriptions;
+- input behavior;
+- model/account picker rendering;
+- sidebar text;
+- status lines;
+- keyboard handling;
+- tests that assert visible output.
 
-- Reproduce before fixing when feasible.
-- Prefer deterministic tests over model-dependent assertions.
-- For external-provider issues, record the provider, endpoint, model, request class, and exact status/error text.
-- For local-model issues, record LM Studio version, model ID, quantization, URL, and hardware constraints.
+The rainbow context `∞` is an intentional UI choice. Do not reintroduce precise-looking token bars unless the measurement is genuinely precise and provider-correct.
 
+## 10. Documentation operations
 
-## README-trimmed operational notes
+Documentation is part of the system.
 
-The README intentionally stays focused on project identity, architecture, quick start, and high-signal commands. Detailed operational notes live here instead.
-
-### Local models and LM Studio
-
-Kcode can diagnose local OpenAI-compatible servers such as LM Studio. Use this TUI command:
-
-```text
-/kcode-local-model
-```
-
-For benchmark runs:
-
-```bash
-cargo run --bin kcode-bench -- \
-  --local-provider lmstudio \
-  --local-url http://127.0.0.1:1234/v1 \
-  --local-model '<model-id>'
-```
-
-The complete LM Studio instructions are part of `docs/INSTALL.md`.
-
-### Keeping docs truthful
-
-After adding or renaming binaries, provider files, public modules, or slash commands:
+After changing source structure:
 
 ```bash
 python3 scripts/validate_docs.py --write-inventory
 python3 scripts/validate_docs.py
 ```
 
-The validator checks required docs, required implementation anchors, generated inventory freshness, and README truth anchors.
+Docs should distinguish:
 
-### Repository ownership note
+- implemented behavior;
+- recommended operation;
+- limitation/tradeoff;
+- future extension.
 
-Kcode evolves quickly. When changing behavior, prefer implementation-backed docs, focused tests, and commits that keep the repo buildable at each step.
+Do not claim provider capability unless the adapter supports it.
+
+## 11. Release/readiness checklist
+
+Before calling a phase complete:
+
+- code formatted;
+- focused tests passed;
+- compile check passed when relevant;
+- docs updated;
+- generated inventory refreshed if needed;
+- changes committed;
+- push completed;
+- final response names commit and validation.
+
+## 12. Incident response playbook
+
+When Kcode breaks:
+
+1. Stop making broad changes.
+2. Reproduce with the smallest command/test.
+3. Classify failure type.
+4. Inspect recent commits and changed subsystem.
+5. Apply minimal repair.
+6. Validate with focused check.
+7. Record or update repair motif if recurring.
+8. Broaden validation if build/test behavior was affected.
+
+## 13. `/improve` operational posture
+
+`/improve` is for bounded recursive self-improvement. It should be used with validation and review. Good `/improve` tasks are scoped, reversible, and testable. Bad `/improve` tasks are vague rewrites, destructive actions, or large migrations without checkpoints.

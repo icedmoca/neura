@@ -1,143 +1,236 @@
-# Kcode architecture
+# Kcode architecture: implementation-backed technical reference
 
-Kcode is a Rust terminal agent with a TUI, CLI, agent runtime, provider adapters, tool execution layer, adaptive memory, local model diagnostics, and operational repair learning. This document is written to match the implementation in this repository.
+Kcode is a Rust terminal agent whose architecture is organized around explicit control surfaces, provider adapters, tool execution, local memory, and operational repair learning. This document is intentionally descriptive rather than aspirational: paths named here correspond to source files or generated inventory in this repository.
 
-## Architectural principles
+## 1. Architectural thesis
 
-1. **Terminal first**: the TUI and CLI are primary surfaces, not wrappers around a web app.
-2. **Provider modularity**: provider quirks live under `src/provider` instead of being smeared across the agent loop.
-3. **Tool transparency**: shell, editing, search, browser, and MCP-style tool paths are visible in the runtime and tests.
-4. **Local memory is explicit**: adaptive cognition and repair motifs are deterministic data structures, not hidden model state.
-5. **Docs are source-backed**: generated inventory documents binaries, slash commands, provider files, and modules.
+Kcode is not just a chat loop. It is a terminal-native operating environment for repository evolution. The central design question is: how can a coding agent safely operate over a mutable workspace while preserving continuity, minimizing token waste, and keeping provider/tool behavior debuggable?
 
-## High-level shape
+Kcode answers this with five layers:
+
+1. **Entry and interaction**: CLI, TUI, slash commands, model/account selection, sidebars.
+2. **Agent turn runtime**: message assembly, provider routing, streaming, tool-call orchestration, validation hooks.
+3. **External action layer**: tools, shell, search, browser, edit/patch, MCP-style bridges.
+4. **Provider and local model layer**: cloud adapters, OpenAI-compatible endpoints, local LM Studio/server diagnostics, sidecar support.
+5. **Memory and repair intelligence**: adaptive cognition, operational repair motifs, replay gates, compact prompt memory.
+
+The architecture tries to separate policy from mechanism. Provider-specific request shaping belongs in provider adapters. Tool behavior belongs in tools. Failure interpretation belongs in operational repair learning. Persistent memory belongs in adaptive cognition.
+
+## 2. Full system flow
 
 ```mermaid
 flowchart TD
-    CLI[src/cli + src/main.rs] --> TUI[src/tui]
-    CLI --> Runtime[src/agent.rs]
-    TUI --> Runtime
-    Runtime --> Providers[src/provider]
-    Runtime --> Tools[src/tool]
-    Runtime --> Memory[src/adaptive_cognition.rs]
-    Runtime --> Repair[src/operational_repair_learning.rs]
-    Runtime --> Local[src/local_model.rs]
-    Providers --> Cloud[Hosted providers]
-    Providers --> Compatible[OpenAI-compatible providers]
-    Local --> LM[LM Studio / local server]
-    Tools --> Shell[Bash and process tools]
-    Tools --> Edit[Patch/edit tools]
-    Tools --> Search[agentgrep/search]
-    Tools --> Browser[Browser bridge]
-    Tools --> MCP[MCP-style bridges]
+    Human[Developer] --> Surface{Surface}
+    Surface --> CLI[src/cli]
+    Surface --> TUI[src/tui]
+    Surface --> Bin[src/bin utilities]
+
+    CLI --> CliDispatch[Argument parsing, auth flows, remote/headless dispatch]
+    TUI --> TuiState[Chat state, input state, slash command registry]
+    TUI --> TuiRender[Widgets, sidebars, model/account picker, rainbow context ∞]
+    Bin --> Bench[Benchmarks, harness, server/test utilities]
+
+    CliDispatch --> Agent[src/agent.rs]
+    TuiState --> Agent
+    Bench --> Agent
+
+    Agent --> Prompt[Prompt/message assembly]
+    Agent --> Admission[Turn admission and cancellation]
+    Agent --> Streaming[Streaming coordination]
+    Agent --> ProviderRouter[Provider/model routing]
+    Agent --> ToolRuntime[Tool-call loop]
+    Agent --> Diagnostics[Diagnostics and telemetry]
+
+    ProviderRouter --> ProviderLayer[src/provider]
+    ProviderLayer --> Catalog[Catalog refresh and metadata]
+    ProviderLayer --> Failover[Fallback, account failover, provider retry]
+    ProviderLayer --> Hosted[Hosted providers]
+    ProviderLayer --> OpenAICompat[OpenAI-compatible endpoints]
+    OpenAICompat --> LocalServer[LM Studio or local OpenAI-compatible server]
+
+    ToolRuntime --> ToolLayer[src/tool]
+    ToolLayer --> Shell[Shell/process execution]
+    ToolLayer --> Edit[Patch/edit/file changes]
+    ToolLayer --> Search[agentgrep and code search]
+    ToolLayer --> Browser[Browser bridge]
+    ToolLayer --> MemoryTool[Memory tools]
+    ToolLayer --> MCP[MCP-style integration]
+
+    Diagnostics --> Adaptive[src/adaptive_cognition.rs]
+    Diagnostics --> Repair[src/operational_repair_learning.rs]
+    Diagnostics --> LocalModel[src/local_model.rs]
+
+    LocalModel --> Sidecar[Optional local sidecar model]
+    Sidecar --> Summaries[Summaries, log compression, critique, routing hints]
+    Summaries --> TokenSavings[Token savings]
+
+    Repair --> Classification[Failure class]
+    Classification --> Motif[Repair motif]
+    Motif --> ReplayGate[Replay gate]
+    Motif --> Adaptive
+    Adaptive --> PromptMemory[Compact prompt memory]
+    PromptMemory --> Prompt
+    TokenSavings --> Prompt
+
+    Agent --> Validation[Focused tests, cargo check, smoke checks, benchmarks]
+    Validation --> Repair
+    Validation --> Docs[docs + scripts/validate_docs.py]
 ```
 
-## Source layout
+## 3. Source map
 
-| Path | Role |
-| --- | --- |
-| `src/main.rs` | Main binary entry. |
-| `src/cli` | CLI parsing and command dispatch. |
-| `src/tui` | Terminal application, widgets, input handling, slash commands, tests. |
-| `src/agent.rs` | Agent turn orchestration. |
-| `src/provider` | Provider adapters, routing, failover, account failover, catalog refresh, SSE parsing. |
-| `src/tool` | Built-in tool implementations and integrations. |
-| `src/adaptive_cognition.rs` | Persistent local cognition and execution signals. |
-| `src/operational_repair_learning.rs` | Failure classification and repair motif learning. |
-| `src/local_model.rs` | Local OpenAI-compatible diagnostics. |
-| `src/bin` | Benchmark, harness, server, and utility binaries. |
-| `crates` | Supporting crates and simulation/runtime pieces. |
-| `docs/reference` | Generated implementation inventory. |
+| Area | Important paths | Architectural responsibility |
+| --- | --- | --- |
+| Main/CLI | `src/main.rs`, `src/cli` | Process entry, argument parsing, command dispatch, auth and noninteractive modes. |
+| TUI | `src/tui` | Interactive terminal state, rendering, slash commands, sidebars, input handling, TUI tests. |
+| Agent loop | `src/agent.rs`, runtime crates | Turn lifecycle, provider calls, tool calls, stream handling, validation integration. |
+| Providers | `src/provider` | Adapter-specific semantics, request shape, streaming, failover, catalog/account handling. |
+| Tools | `src/tool` | Workspace action primitives: shell, edit, patch, browser/search, memory, scheduling, MCP-like bridges. |
+| Local model | `src/local_model.rs` | OpenAI-compatible local server diagnostics and local provider benchmark support. |
+| Adaptive cognition | `src/adaptive_cognition.rs` | Local execution signals, retrieval decisions, prompt memory, repair motif mirroring. |
+| Repair learning | `src/operational_repair_learning.rs` | Failure classes, recurrence, confidence, repair motifs, replay gates. |
+| Bench/sim | `src/bin`, `crates` | Benchmarks, harness/server utilities, simulation support. |
+| Documentation truth | `docs/reference`, `scripts/validate_docs.py` | Generated implementation inventory and doc consistency checks. |
 
-## CLI and TUI
+## 4. Entry surfaces
 
-The CLI parses top-level execution modes, auth/account commands, remote/headless paths, and utility commands. The TUI owns interactive state: chat history, input composition, slash command registry, model/account picking, sidebars, and rendering.
+### CLI
 
-The slash command inventory is generated into `docs/reference/implementation-inventory.md`. If a command appears there, it was discovered from `RegisteredCommand::public` in source.
+The CLI is the controlled noninteractive surface. It should remain deterministic, scriptable, and conservative. CLI code is responsible for parsing intent and dispatching into runtime paths without duplicating provider/tool semantics.
 
-## Agent runtime
+Typical CLI responsibilities:
 
-The runtime coordinates:
+- select run mode;
+- route auth/account commands;
+- start remote/headless flows;
+- invoke utility binaries and benchmarks;
+- expose behavior suitable for shell automation.
 
-- prompt/message construction;
-- provider selection;
-- streaming responses;
-- tool-call execution;
-- turn admission and cancellation;
-- result rendering;
-- memory and diagnostics hooks.
+### TUI
 
-Runtime code should avoid provider-specific assumptions. Provider differences belong in provider adapters.
+The TUI is the primary human interaction layer. It owns the active conversation, text input, slash command registry, status widgets, model picker, and account picker.
 
-## Provider layer
+The TUI is deliberately not the owner of provider semantics. It asks the runtime/provider layers for behavior. It does own user-visible representation: labels, sidebars, command descriptions, and rendering tests.
 
-Provider implementation files live under `src/provider`. The generated inventory lists each file. Important provider responsibilities include:
+### Binaries and harnesses
 
-- request shaping and headers;
-- model catalog behavior;
-- streaming response parsing;
-- provider-specific error interpretation;
-- fallback and failover;
-- account refresh/failover;
-- provider picker metadata.
+`src/bin` contains supporting binaries such as benchmark and harness utilities. These provide reproducible operational views into performance, provider behavior, local model checks, and TUI behavior.
 
-OpenAI-compatible does not mean identical. A local LM Studio server, an OpenRouter request, and another compatible endpoint may all use similar JSON shapes but still require different defaults, headers, model IDs, latency expectations, and error handling.
+## 5. Runtime lifecycle
 
-## Tool layer
+A Kcode turn can be understood as:
 
-Tools are part of the agent contract. They should be deterministic where possible, clearly report errors, and avoid irreversible actions without explicit user approval. Tool behavior is often easier to test than model behavior, so tool changes should include focused tests or reproducible command validation.
+1. **Admission**: decide whether a turn may begin, whether cancellation is needed, and what state must be captured.
+2. **Context assembly**: combine user input, conversation state, selected compact memory, tool context, and system/developer constraints.
+3. **Provider routing**: choose provider/model based on explicit selection, defaults, failover, and availability.
+4. **Streaming response**: parse provider events and update the UI or noninteractive caller.
+5. **Tool loop**: execute requested tools, return results, and continue the model turn when appropriate.
+6. **Validation**: run focused checks when the task implies code or documentation changes.
+7. **Learning**: record useful execution signals and repair motifs.
 
-## Adaptive cognition
+This separation helps Kcode avoid a monolithic agent function where UI, provider details, tools, and memory all become entangled.
 
-`adaptive_cognition` persists local execution signals and retrieval metadata. It is intended to provide compact, relevant memory rather than unbounded transcript replay.
+## 6. Provider architecture
 
-Responsibilities:
+Provider files under `src/provider` are the source of truth for provider behavior. The generated inventory lists them. The provider layer handles differences that cannot be abstracted away safely:
 
-- store cognition records;
-- rank or select useful prompt memory;
-- track execution signals;
-- expose deterministic tests for memory behavior;
-- receive mirrored operational repair motifs.
+- authentication/account refresh;
+- model catalogs;
+- request JSON shape;
+- provider-specific headers;
+- streaming/SSE event format;
+- retry and failover behavior;
+- model name aliases and routing prefixes;
+- error normalization.
 
-## Operational repair learning
+OpenAI-compatible endpoints are similar, not identical. Kcode therefore treats compatibility as an adapter family rather than assuming all compatible servers are operationally equivalent.
 
-`operational_repair_learning` turns raw operational failures into compact motifs.
+## 7. Local sidecar model architecture
 
-Pipeline:
+The local sidecar model is a token-economy component. It is best used for cheap, local support tasks:
 
-```mermaid
-flowchart LR
-    Failure[FailureObservation] --> Classify[classify_failure]
-    Classify --> Signature[failure signature]
-    Signature --> Motif[RepairMotif]
-    Motif --> Gate[ReplayGate]
-    Repair[RepairAttempt] --> Calibrate[confidence calibration]
-    Calibrate --> Motif
-    Motif --> Prompt[compact prompt memory]
-    Motif --> Adaptive[adaptive cognition execution signal]
-```
+- summarizing long tool output;
+- compressing logs before they enter prompt memory;
+- generating routing hints;
+- critiquing low-risk drafts;
+- checking local OpenAI-compatible server health;
+- supporting benchmark comparisons.
 
-Replay gates are recommendations:
+The sidecar does not replace the primary provider for difficult reasoning unless the loaded local model is capable enough. Its architectural value is that it lets Kcode spend frontier-provider tokens where they matter most.
 
-- `Skip`: no meaningful failure.
-- `Smoke`: cheap validation, usually external/provider/tooling.
-- `Focused`: targeted validation for runtime, context, build, or test failures.
-- `Full`: recurring build/test failures that need broader regression coverage.
+## 8. Tool architecture
 
-## Local model diagnostics
+Tools are executable capabilities. Good tool architecture requires:
 
-`src/local_model.rs` handles local OpenAI-compatible checks. LM Studio setup and operations live in `docs/INSTALL.md` so installation and local model setup are in one place.
+- explicit input and output;
+- safe defaults;
+- noninteractive execution where possible;
+- clear error propagation;
+- reproducible validation;
+- avoidance of irreversible operations without user confirmation.
 
-## UI context marker
+Kcode's tool layer is the bridge between model intent and workspace mutation. Because tools can change files or run commands, tool tests and operational discipline matter more than prose claims.
 
-The context usage rows in `src/tui/info_widget_usage.rs` render a rainbow `∞` marker. This avoids implying exact context safety while retaining a recognizable context row.
+## 9. Memory architecture
 
-## Documentation inventory
+Kcode memory has two complementary forms:
 
-`docs/reference/implementation-inventory.md` and `.json` are generated by:
+1. **Adaptive cognition**: persistent local signals that can be retrieved as compact prompt memory.
+2. **Operational repair learning**: deterministic motifs derived from failures and repair attempts.
+
+The memory system is designed to avoid transcript bloat. It stores distilled signals, not every token. This is important because repository work often spans many turns, and naive transcript replay quickly wastes context.
+
+## 10. Operational repair intelligence
+
+The repair learning subsystem defines:
+
+- `FailureObservation`: what failed;
+- `RepairAttempt`: what was tried;
+- `FailureClass`: build/test/runtime/provider/tooling/auth/network/context/unknown;
+- `RepairMotif`: recurring failure signature and preferred repair;
+- `ReplayGate`: validation intensity recommendation.
+
+The key architectural decision is determinism. Classification and replay-gate assignment are rule-based and testable. This means Kcode can learn operational patterns without outsourcing the truth of failure classification to a model.
+
+## 11. Token economy
+
+Kcode saves tokens through:
+
+- compact prompt memory instead of raw transcript replay;
+- local sidecar summarization and compression;
+- repair motifs that prevent repeated investigation;
+- focused validation gates instead of always running maximal checks;
+- documentation inventory generation instead of manual repeated explanation.
+
+Token economy is an architectural concern because context is a finite operational budget.
+
+## 12. Documentation synchronization
+
+The documentation system has a validator, `scripts/validate_docs.py`, which checks required docs, anchors, and generated inventory freshness. This is intentionally part of architecture: documentation that drifts away from implementation creates operational risk.
+
+Run:
 
 ```bash
 python3 scripts/validate_docs.py --write-inventory
+python3 scripts/validate_docs.py
 ```
 
-The validator also checks required docs and implementation anchors.
+## 13. Design constraints and tradeoffs
+
+- Kcode optimizes for explicitness over hidden magic.
+- Provider adapters are allowed to differ because providers genuinely differ.
+- Local memory is compact and selective, not a complete transcript database.
+- The local sidecar is a support model, not a guaranteed replacement for frontier models.
+- UI simplifications, such as the rainbow context `∞`, are allowed when they reduce misleading precision.
+- Repair learning recommends validation intensity; it does not prove correctness.
+
+## 14. Extension guidelines
+
+When adding a subsystem:
+
+1. Put provider-specific behavior in provider adapters.
+2. Put tool-specific behavior in tools.
+3. Add deterministic tests for non-model logic.
+4. Update source-backed docs and inventory.
+5. Consider whether adaptive cognition or repair learning should record a signal.
+6. Keep user-facing TUI text concise but docs comprehensive.
