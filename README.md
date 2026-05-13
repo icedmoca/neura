@@ -37,6 +37,12 @@ Kcode is built for developers who want a terminal-first coding agent that can:
 
 ## Current capabilities
 
+### Excellent adaptive memory
+
+Kcode has a strong local memory system designed for real coding work. Its adaptive cognition layer records useful execution signals, retrieves compact prompt memory, and keeps prior operational context available without dumping entire transcripts back into every turn. On top of that, operational repair learning turns repeated build, test, provider, runtime, auth, network, tooling, and context failures into reusable repair motifs.
+
+The result is memory that is practical rather than noisy: Kcode can carry forward what mattered, surface prior fixes when similar failures recur, and keep improving its repair instincts while staying deterministic, local, and testable. This makes Kcode especially good at long-running repository evolution where the agent benefits from remembering what worked, what failed, and what validation was needed.
+
 ### TUI and interaction
 
 - Chat-oriented terminal UI under `src/tui`.
