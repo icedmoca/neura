@@ -15,10 +15,11 @@ A healthy Kcode change should preserve all four loops. If a change improves beha
 
 ## 2. Updating Kcode from inside the TUI
 
-Kcode includes a local `/update` slash command. It checks the local git `HEAD` against `origin/main`. If they match, it reports that Kcode is already current. If GitHub has a newer commit, it runs the GitHub installer path and reports that Kcode should be restarted to use the updated binary.
+Kcode includes a local `/update` slash command. `/reload` is also routed through the same GitHub update check before falling back to binary hot-reload behavior. It checks the local git `HEAD` against `origin/main`. If they match, it reports that Kcode is already current. If GitHub has a newer commit, it runs the GitHub installer path and reports that Kcode should be restarted to use the updated binary.
 
 ```text
 /update
+/reload
 ```
 
 Operational notes:

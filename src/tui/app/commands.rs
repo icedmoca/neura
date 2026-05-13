@@ -1040,11 +1040,18 @@ fn handle_git_command(app: &mut App, trimmed: &str) -> bool {
 }
 
 pub(super) fn handle_update_command(app: &mut App, trimmed: &str) -> bool {
-    if trimmed != "/update" {
+    if trimmed != "/update" && trimmed != "/reload" {
         return false;
     }
 
-    app.set_status_notice("Checking GitHub for Kcode updates...");
+    let command_name = if trimmed == "/reload" {
+        "/reload"
+    } else {
+        "/update"
+    };
+    app.set_status_notice(format!(
+        "Checking GitHub for Kcode updates via {command_name}..."
+    ));
     let output = run_update_check();
     if output.success {
         app.push_display_message(DisplayMessage::assistant(output.message));

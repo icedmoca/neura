@@ -415,6 +415,10 @@ impl App {
 }
 
 pub(super) fn handle_dev_command(app: &mut App, trimmed: &str) -> bool {
+    if trimmed == "/reload" && super::commands::handle_update_command(app, trimmed) {
+        return true;
+    }
+
     if trimmed == "/reload" {
         if !app.has_newer_binary() {
             app.push_display_message(DisplayMessage {
