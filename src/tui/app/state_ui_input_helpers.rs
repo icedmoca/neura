@@ -348,6 +348,22 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
         "Inspect reversible operational doctrine updates and maturity/stability.",
     ),
     RegisteredCommand::public(
+        "/kcode-local-model status",
+        "Inspect local model provider routing, LM Studio health, and fallback decision.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-lmstudio status",
+        "Inspect LM Studio OpenAI-compatible endpoint configuration and reachability.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-lmstudio wsl",
+        "Show Windows/WSL LM Studio networking diagnostics and endpoint hints.",
+    ),
+    RegisteredCommand::public(
+        "/kcode-local-model route",
+        "Inspect whether Kcode should use local model, remote fallback, or block execution.",
+    ),
+    RegisteredCommand::public(
         "/kcode-reality",
         "Inspect reality-coupled verification telemetry",
     ),

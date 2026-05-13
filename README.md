@@ -19,6 +19,7 @@ Kcode gives you:
 - **A broad tool layer** for files, shell, code search, browser automation, web, Gmail, MCPs, todos, goals, subagents, and swarms.
 - **Dynamic tool-schema pruning** so simple answers do not pay for every tool definition.
 - **Optional local GGUF sidecar model support** for routing, memory, summaries, critique, and local helper tasks.
+- **LM Studio/OpenAI-compatible local server checks** via `/kcode-local-model` and `kcode-bench --local-provider lmstudio`.
 - **Committed benchmarks** with provider runs, edit→test fixtures, adversarial prompts, token/context telemetry, and artifact checksums.
 
 In plain English: **Kcode is for people who want an AI coding assistant that can keep working in a terminal without losing track of the project.**

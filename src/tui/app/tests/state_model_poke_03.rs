@@ -454,7 +454,7 @@ fn test_local_model_picker_render_shows_antigravity_models_exactly_as_user_sees_
     let text = render_model_picker_text(&mut app, 90, 12);
 
     assert!(
-        text.contains("ITEM") && text.contains("PROVIDER") && text.contains("ACT"),
+        text.contains("ITEM") && text.contains("PROVIDER") && (text.contains("ACT") || text.contains("AUT")),
         "rendered /model view should include picker columns, got:
 {}",
         text

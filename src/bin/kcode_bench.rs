@@ -1,3 +1,7 @@
+use kcode::local_model::{
+    LocalModelHealth, LocalModelRoute, check_local_model_health, default_lm_studio_config,
+    route_local_model,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -55,6 +59,7 @@ struct BenchSummary {
     calibration: CalibrationSummary,
     promotion_gate: PromotionGateSummary,
     artifacts: ArtifactSummary,
+    local_model: LocalModelBenchSummary,
     results: Vec<BenchResult>,
 }
 
@@ -78,6 +83,12 @@ struct PromotionGateSummary {
     allowed: usize,
     blocked: usize,
     reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct LocalModelBenchSummary {
+    health: LocalModelHealth,
+    route: LocalModelRoute,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -230,6 +241,13 @@ fn main() -> anyhow::Result<()> {
         summary_path: out_dir.join("summary.json").display().to_string(),
         history_path: out_dir.join("history").display().to_string(),
     };
+    let local_config = default_lm_studio_config();
+    let local_health = check_local_model_health(&local_config);
+    let local_route = route_local_model(&local_config, &local_health);
+    let local_model = LocalModelBenchSummary {
+        health: local_health,
+        route: local_route,
+    };
     let regression = load_previous_summary(&out_dir).map(|prev| RegressionSummary {
         previous_commit: prev.commit,
         previous_mean_score: prev.mean_score,
@@ -254,6 +272,7 @@ fn main() -> anyhow::Result<()> {
         calibration,
         promotion_gate,
         artifacts,
+        local_model,
         results,
     };
 
