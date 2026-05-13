@@ -89,18 +89,60 @@ In practice this helps long sessions stay efficient: less repeated explanation, 
 ## Architecture at a glance
 
 ```mermaid
-flowchart LR
-    User --> TUI[src/tui]
-    User --> CLI[src/cli]
-    TUI --> Agent[src/agent.rs]
-    CLI --> Agent
-    Agent --> Providers[src/provider]
-    Agent --> Tools[src/tool]
-    Agent --> Memory[adaptive_cognition]
-    Agent --> Repair[operational_repair_learning]
-    Providers --> Cloud[cloud providers]
-    Providers --> Local[LM Studio / local OpenAI-compatible]
+flowchart TD
+    User[Developer in terminal] --> Entry{Entry point}
+
+    Entry --> CLI[src/cli + src/main.rs]
+    Entry --> TUI[src/tui app]
+    Entry --> Bins[src/bin utilities]
+
+    CLI --> Dispatch[CLI dispatch, auth, remote/headless, utility flows]
+    TUI --> UIState[Chat state, input, slash commands, model/account pickers]
+    TUI --> Info[Info widgets, sidebars, rainbow context ∞]
+    Bins --> Bench[kcode-bench, tui-bench, harness/server utilities]
+
+    Dispatch --> Runtime[src/agent.rs turn runtime]
+    UIState --> Runtime
+    Bench --> Runtime
+
+    Runtime --> Prompt[Prompt/message assembly]
+    Runtime --> Admission[Turn admission, cancellation, streaming coordination]
+    Runtime --> Router[Provider/model routing]
+    Runtime --> ToolLoop[Tool-call loop and result rendering]
+    Runtime --> MemoryHooks[Memory + diagnostics hooks]
+
+    Router --> Providers[src/provider adapters]
+    Providers --> Failover[Fallback, account failover, catalog refresh]
+    Providers --> Cloud[Hosted providers: Anthropic, OpenAI-compatible, Gemini, OpenRouter, Copilot, Cursor, Antigravity]
+    Providers --> LocalCompat[Local/OpenAI-compatible endpoint]
+    LocalCompat --> LMStudio[LM Studio / local GGUF server]
+
+    ToolLoop --> Tools[src/tool]
+    Tools --> Shell[Bash/process execution]
+    Tools --> Edit[Patch/edit/file operations]
+    Tools --> Search[agentgrep/code search]
+    Tools --> Browser[Browser bridge]
+    Tools --> MCP[MCP-style integrations]
+    Tools --> Schedule[Scheduling/background checks]
+
+    MemoryHooks --> Adaptive[src/adaptive_cognition.rs]
+    MemoryHooks --> Repair[src/operational_repair_learning.rs]
+    MemoryHooks --> LocalSidecar[Optional local sidecar model]
+
+    LocalSidecar --> Compress[Summaries, critique, routing hints, log compression]
+    LocalSidecar --> TokenSavings[Token savings and compact context]
+    Adaptive --> PromptMemory[Compact prompt memory + execution signals]
+    Repair --> Motifs[Failure classes, repair motifs, confidence, replay gates]
+    Motifs --> Adaptive
+    PromptMemory --> Prompt
+    TokenSavings --> Prompt
+
+    Runtime --> Validation[Focused validation: cargo check/test, smoke tests, benchmarks]
+    Validation --> Repair
+    Validation --> Docs[docs/reference inventory + scripts/validate_docs.py]
+    Docs --> README[README and docs kept source-synchronized]
 ```
+
 
 Read the full architecture guide: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
