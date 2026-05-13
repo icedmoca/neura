@@ -4,6 +4,9 @@
 //! prompt snippets. It is intentionally deterministic and local-first so it can
 //! run on every turn without provider calls.
 
+use crate::operational_repair_learning::{
+    FailureObservation, OperationalRepairMemory, RepairAttempt,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
@@ -11147,6 +11150,53 @@ pub fn run_high_level_operational_intelligence_in_store(
     report
 }
 
+/// Learn a compact repair motif from an operational failure and optional repair.
+///
+/// The motif is mirrored into adaptive cognition as an execution signal so
+/// existing recall/ranking paths can surface operational repairs.
+pub fn learn_operational_repair(
+    root: impl AsRef<Path>,
+    observation: &FailureObservation,
+    repair: Option<&RepairAttempt>,
+) -> io::Result<crate::operational_repair_learning::RepairMotif> {
+    let root = root.as_ref();
+    let mut repair_memory = OperationalRepairMemory::default();
+    let motif = repair_memory.observe_failure(observation);
+    let motif = if let Some(attempt) = repair {
+        repair_memory.record_repair(observation, attempt)
+    } else {
+        motif
+    };
+
+    let path = root.join("adaptive_cognition.jsonl");
+    let mut store = load_store_from_path(&path)?;
+    store.execution_signals.push(ExecutionSignal {
+        node_id: format!("repair:{}", motif.signature),
+        recorded_at: Utc::now(),
+        success: repair
+            .map(|attempt| {
+                matches!(
+                    attempt.outcome,
+                    crate::operational_repair_learning::RepairOutcome::Succeeded
+                )
+            })
+            .unwrap_or(false),
+        delta: motif.confidence as f64,
+        source: "operational-repair".to_string(),
+        summary: format!(
+            "{} recurrence={} confidence={:.2} gate={:?} repair={}",
+            motif.signature,
+            motif.recurrence,
+            motif.confidence,
+            motif.replay_gate,
+            motif.preferred_repair.as_deref().unwrap_or("pending")
+        ),
+    });
+    save_store_to_path(&path, &store)?;
+
+    Ok(motif)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -12950,5 +13000,44 @@ mod tests {
         let conflicts = build_conflict_sets(&store, &relations);
         let deltas = propagate_epistemic_confidence(&mut store, &relations, &conflicts);
         assert!(!deltas.is_empty());
+    }
+
+    #[test]
+    fn operational_repair_bridge_persists_execution_signal() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let observation = crate::operational_repair_learning::FailureObservation {
+            id: "obs-bridge".into(),
+            summary: "build failed".into(),
+            stderr: "error[E0425]: cannot find value".into(),
+            command: Some("cargo check".into()),
+            exit_code: Some(101),
+            touched_files: vec!["src/lib.rs".into()],
+        };
+        let repair = crate::operational_repair_learning::RepairAttempt {
+            observation_id: observation.id.clone(),
+            action: "import the missing symbol and rerun cargo check".into(),
+            outcome: crate::operational_repair_learning::RepairOutcome::Succeeded,
+            validation: Some("cargo check passed".into()),
+        };
+
+        let motif = learn_operational_repair(dir.path(), &observation, Some(&repair))
+            .expect("learn repair");
+        assert!(
+            motif
+                .preferred_repair
+                .as_deref()
+                .unwrap_or_default()
+                .contains("missing symbol")
+        );
+
+        let store =
+            load_store_from_path(&dir.path().join("adaptive_cognition.jsonl")).expect("store");
+        assert!(
+            store
+                .execution_signals
+                .iter()
+                .any(|signal| signal.source == "operational-repair"
+                    && signal.summary.contains("cargo check"))
+        );
     }
 }

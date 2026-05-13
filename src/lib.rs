@@ -42,6 +42,7 @@ pub mod memory_types;
 pub mod message;
 pub mod neura_memory;
 pub mod notifications;
+pub mod operational_repair_learning;
 pub mod perf;
 pub mod plan;
 pub mod platform;
