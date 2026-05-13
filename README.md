@@ -43,24 +43,33 @@ Kcode has a strong local memory system designed for real coding work. Its adapti
 
 The result is memory that is practical rather than noisy: Kcode can carry forward what mattered, surface prior fixes when similar failures recur, and keep improving its repair instincts while staying deterministic, local, and testable. This makes Kcode especially good at long-running repository evolution where the agent benefits from remembering what worked, what failed, and what validation was needed.
 
+### Token savings from memory and local sidecar work
+
+Kcode is designed to save tokens by remembering the right things instead of replaying everything. Adaptive cognition keeps compact, high-signal memory; repair learning stores concise failure→fix motifs; and the optional local sidecar model can handle cheaper support work such as summaries, routing hints, critique, memory compression, and local diagnostics. That means the expensive frontier model can spend more context on the current task while Kcode preserves continuity through compact local state.
+
+In practice this helps long sessions stay efficient: less repeated explanation, less transcript bloat, fewer repeated investigations, and faster recovery when a familiar build or test failure returns. The local sidecar model is especially useful as a low-cost assistant for background understanding while the primary provider focuses on the hard reasoning step.
+
 ### TUI and interaction
 
 - Chat-oriented terminal UI under `src/tui`.
 - Slash command registry with generated inventory in `docs/reference/implementation-inventory.md`.
 - Model picker, account picker, sidebars, status rendering, and rendering tests.
 - Context sidebar rows use a rainbow `∞` marker instead of a misleading dynamic context bar.
+- The local sidecar model can support UI-facing workflows by providing inexpensive summaries, command explanations, and compact context hints without spending premium provider tokens.
 
 ### Agent runtime
 
 - Turn execution in `src/agent.rs` and runtime support crates.
 - Tool-call handling, streaming provider responses, turn admission, and result rendering.
 - Workspace-aware operation intended for iterative development and validation.
+- The local sidecar model can help with low-risk routing, summarization, and preflight analysis so the main agent turn keeps more context for decisions that need the strongest model.
 
 ### Provider layer
 
 - Provider implementations under `src/provider`.
 - Routing, fallback, account failover, catalog refresh, streaming/SSE parsing, and provider-specific request shaping.
 - Local OpenAI-compatible diagnostics via `src/local_model.rs`.
+- The local sidecar model gives Kcode a cheap nearby model path for diagnostics, sanity checks, and fallback-style support when cloud calls are unnecessary or should be preserved.
 
 ### Tools and integrations
 
@@ -68,12 +77,14 @@ The result is memory that is practical rather than noisy: Kcode can carry forwar
 - Patch/edit workflows.
 - Browser/search/MCP-style integrations where configured.
 - Benchmark and simulation binaries under `src/bin` and `crates`.
+- The local sidecar model can summarize tool output, compress noisy logs, and help decide which validation result matters before escalating back to the primary model.
 
 ### Adaptive cognition and repair learning
 
 - `src/adaptive_cognition.rs` stores local execution signals and prompt-memory retrieval data.
 - `src/operational_repair_learning.rs` classifies failures, tracks recurrence, calibrates confidence, recommends replay gates, and emits compact repair memory.
 - Learned repair motifs are mirrored into adaptive cognition so future prompts can surface prior operational fixes.
+- The local sidecar model is a natural fit for memory compression: it can condense long histories, logs, and repeated failures into compact records that save tokens while preserving continuity.
 
 ## Architecture at a glance
 
