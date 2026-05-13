@@ -1,64 +1,143 @@
 # Kcode architecture
 
-Kcode is a Rust terminal agent built around a TUI, an agent runtime, provider adapters, tool execution, persistent local state, and diagnostics. This document describes the current implementation, not a roadmap.
+Kcode is a Rust terminal agent with a TUI, CLI, agent runtime, provider adapters, tool execution layer, adaptive memory, local model diagnostics, and operational repair learning. This document is written to match the implementation in this repository.
+
+## Architectural principles
+
+1. **Terminal first**: the TUI and CLI are primary surfaces, not wrappers around a web app.
+2. **Provider modularity**: provider quirks live under `src/provider` instead of being smeared across the agent loop.
+3. **Tool transparency**: shell, editing, search, browser, and MCP-style tool paths are visible in the runtime and tests.
+4. **Local memory is explicit**: adaptive cognition and repair motifs are deterministic data structures, not hidden model state.
+5. **Docs are source-backed**: generated inventory documents binaries, slash commands, provider files, and modules.
 
 ## High-level shape
 
 ```mermaid
 flowchart TD
     CLI[src/cli + src/main.rs] --> TUI[src/tui]
-    CLI --> Runtime[src/agent.rs + crates/kcode-agent-runtime]
+    CLI --> Runtime[src/agent.rs]
     TUI --> Runtime
     Runtime --> Providers[src/provider]
     Runtime --> Tools[src/tool]
     Runtime --> Memory[src/adaptive_cognition.rs]
-    Runtime --> Ops[src/operational_repair_learning.rs]
-    Providers --> Cloud[Anthropic / OpenAI-compatible / Gemini / OpenRouter / Copilot / Cursor / Antigravity]
-    Providers --> Local[LM Studio and other local OpenAI-compatible servers]
-    Tools --> Shell[Bash]
+    Runtime --> Repair[src/operational_repair_learning.rs]
+    Runtime --> Local[src/local_model.rs]
+    Providers --> Cloud[Hosted providers]
+    Providers --> Compatible[OpenAI-compatible providers]
+    Local --> LM[LM Studio / local server]
+    Tools --> Shell[Bash and process tools]
+    Tools --> Edit[Patch/edit tools]
+    Tools --> Search[agentgrep/search]
     Tools --> Browser[Browser bridge]
-    Tools --> Search[agentgrep and code search]
-    Tools --> MCP[MCP bridge]
+    Tools --> MCP[MCP-style bridges]
 ```
 
-## Major subsystems
+## Source layout
 
-| Subsystem | Primary paths | Current responsibility |
-| --- | --- | --- |
-| CLI and command dispatch | `src/cli`, `src/main.rs` | Parses startup modes, auth commands, remote/headless flows, and utility commands. |
-| TUI application | `src/tui` | Terminal UI, chat state, slash commands, sidebars, model picker, account picker, input handling, and rendering tests. |
-| Agent runtime | `src/agent.rs`, `crates/kcode-agent-runtime` | Drives turns, providers, tool calls, streaming, and turn admission. |
-| Provider layer | `src/provider` | Provider-specific request/stream handling, model routing, failover, account failover, catalog refresh, and provider diagnostics. |
-| Tool layer | `src/tool` | Built-in tools such as shell, patch/edit, browser, grep/search, memory, scheduling, and MCP integration. |
-| Adaptive cognition | `src/adaptive_cognition.rs` | Persistent local learning signals, retrieval decisions, execution signals, and prompt-memory selection. |
-| Operational repair learning | `src/operational_repair_learning.rs` | Classifies failures, learns recurring repair motifs, calibrates confidence, assigns replay gates, and produces compact repair memory. |
-| Local model diagnostics | `src/local_model.rs`, `docs/LMSTUDIO.md` | Checks local OpenAI-compatible servers such as LM Studio and supports benchmark-side local provider runs. |
-| Benchmarks and simulation | `src/bin/kcode_bench.rs`, `src/bin/tui_bench.rs`, `crates/kcode-mobile-sim` | Provider/local benchmarks, TUI benchmarks, and simulation helpers. |
+| Path | Role |
+| --- | --- |
+| `src/main.rs` | Main binary entry. |
+| `src/cli` | CLI parsing and command dispatch. |
+| `src/tui` | Terminal application, widgets, input handling, slash commands, tests. |
+| `src/agent.rs` | Agent turn orchestration. |
+| `src/provider` | Provider adapters, routing, failover, account failover, catalog refresh, SSE parsing. |
+| `src/tool` | Built-in tool implementations and integrations. |
+| `src/adaptive_cognition.rs` | Persistent local cognition and execution signals. |
+| `src/operational_repair_learning.rs` | Failure classification and repair motif learning. |
+| `src/local_model.rs` | Local OpenAI-compatible diagnostics. |
+| `src/bin` | Benchmark, harness, server, and utility binaries. |
+| `crates` | Supporting crates and simulation/runtime pieces. |
+| `docs/reference` | Generated implementation inventory. |
 
-## Provider routing truth
+## CLI and TUI
 
-The provider implementation is file-backed under `src/provider`. The inventory in `docs/reference/implementation-inventory.md` is generated from the current source tree and lists provider files. Provider capabilities vary by adapter. Do not assume a provider supports every feature unless its adapter implements that request path.
+The CLI parses top-level execution modes, auth/account commands, remote/headless paths, and utility commands. The TUI owns interactive state: chat history, input composition, slash command registry, model/account picking, sidebars, and rendering.
 
-Key concepts:
+The slash command inventory is generated into `docs/reference/implementation-inventory.md`. If a command appears there, it was discovered from `RegisteredCommand::public` in source.
 
-- Model selection and provider routing are centralized in the provider module.
-- Provider failover and fallback logic are implemented under `src/provider/*failover*`.
-- OpenAI-compatible flows are used for several providers and local model endpoints, but each adapter may add headers, catalog behavior, or stream parsing.
-- LM Studio is treated as a local OpenAI-compatible server for diagnostics and benchmarking, not as a hosted account provider.
+## Agent runtime
 
-## Memory and learning
+The runtime coordinates:
 
-Kcode has two complementary learning paths:
+- prompt/message construction;
+- provider selection;
+- streaming responses;
+- tool-call execution;
+- turn admission and cancellation;
+- result rendering;
+- memory and diagnostics hooks.
 
-1. `adaptive_cognition` persists local cognitive records and execution signals in `.kcode` state.
-2. `operational_repair_learning` interprets operational failures into repair motifs and mirrors learned motifs back into adaptive cognition so older recall paths can surface them.
+Runtime code should avoid provider-specific assumptions. Provider differences belong in provider adapters.
 
-This is deliberately deterministic and testable. Failure classification and replay-gate selection are implemented without relying on model output.
+## Provider layer
 
-## Sidebars and status UI
+Provider implementation files live under `src/provider`. The generated inventory lists each file. Important provider responsibilities include:
 
-The TUI info widgets live under `src/tui/info_widget*.rs`. The context usage rows now render a rainbow `∞` marker instead of a dynamic usage bar. Actual context accounting remains available to the model/runtime paths, but the sidebar avoids presenting a misleading precision meter.
+- request shaping and headers;
+- model catalog behavior;
+- streaming response parsing;
+- provider-specific error interpretation;
+- fallback and failover;
+- account refresh/failover;
+- provider picker metadata.
 
-## Testing philosophy
+OpenAI-compatible does not mean identical. A local LM Studio server, an OpenRouter request, and another compatible endpoint may all use similar JSON shapes but still require different defaults, headers, model IDs, latency expectations, and error handling.
 
-Kcode uses a mix of unit tests, TUI rendering tests, provider parser tests, and compile checks. When changing architecture-facing behavior, add deterministic tests near the subsystem that owns the behavior and run focused tests before broader checks.
+## Tool layer
+
+Tools are part of the agent contract. They should be deterministic where possible, clearly report errors, and avoid irreversible actions without explicit user approval. Tool behavior is often easier to test than model behavior, so tool changes should include focused tests or reproducible command validation.
+
+## Adaptive cognition
+
+`adaptive_cognition` persists local execution signals and retrieval metadata. It is intended to provide compact, relevant memory rather than unbounded transcript replay.
+
+Responsibilities:
+
+- store cognition records;
+- rank or select useful prompt memory;
+- track execution signals;
+- expose deterministic tests for memory behavior;
+- receive mirrored operational repair motifs.
+
+## Operational repair learning
+
+`operational_repair_learning` turns raw operational failures into compact motifs.
+
+Pipeline:
+
+```mermaid
+flowchart LR
+    Failure[FailureObservation] --> Classify[classify_failure]
+    Classify --> Signature[failure signature]
+    Signature --> Motif[RepairMotif]
+    Motif --> Gate[ReplayGate]
+    Repair[RepairAttempt] --> Calibrate[confidence calibration]
+    Calibrate --> Motif
+    Motif --> Prompt[compact prompt memory]
+    Motif --> Adaptive[adaptive cognition execution signal]
+```
+
+Replay gates are recommendations:
+
+- `Skip`: no meaningful failure.
+- `Smoke`: cheap validation, usually external/provider/tooling.
+- `Focused`: targeted validation for runtime, context, build, or test failures.
+- `Full`: recurring build/test failures that need broader regression coverage.
+
+## Local model diagnostics
+
+`src/local_model.rs` handles local OpenAI-compatible checks. LM Studio setup and operations live in `docs/INSTALL.md` so installation and local model setup are in one place.
+
+## UI context marker
+
+The context usage rows in `src/tui/info_widget_usage.rs` render a rainbow `∞` marker. This avoids implying exact context safety while retaining a recognizable context row.
+
+## Documentation inventory
+
+`docs/reference/implementation-inventory.md` and `.json` are generated by:
+
+```bash
+python3 scripts/validate_docs.py --write-inventory
+```
+
+The validator also checks required docs and implementation anchors.

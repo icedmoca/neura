@@ -14,9 +14,6 @@ REQUIRED_DOCS = [
     "README.md",
     "docs/ARCHITECTURE.md",
     "docs/OPERATIONS.md",
-    "docs/LMSTUDIO.md",
-    "docs/LIMITATIONS.md",
-    "docs/OPERATIONAL_MATURITY.md",
     "docs/reference/implementation-inventory.md",
     "docs/reference/implementation-inventory.json",
 ]
@@ -122,7 +119,7 @@ def validate(inventory: dict) -> list[str]:
         errors.append("implementation inventory markdown is stale; run scripts/validate_docs.py --write-inventory")
 
     readme = read(ROOT / "README.md") if (ROOT / "README.md").exists() else ""
-    for phrase in ["operational_repair_learning", "adaptive_cognition", "docs/ARCHITECTURE.md", "docs/LMSTUDIO.md"]:
+    for phrase in ["operational_repair_learning", "adaptive_cognition", "docs/ARCHITECTURE.md", "docs/INSTALL.md"]:
         if phrase not in readme:
             errors.append(f"README missing required phrase: {phrase}")
 

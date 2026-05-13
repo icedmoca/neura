@@ -1,19 +1,56 @@
+<p align="center">
+  <img src="kcode.png" alt="Kcode" width="180" />
+</p>
+
 # Kcode
 
-Kcode is a Rust terminal agent for coding, debugging, provider experimentation, local model diagnostics, and adaptive operational repair learning.
+Kcode is a Rust terminal agent for coding, debugging, provider experimentation, local model diagnostics, adaptive memory, and operational repair learning. It is designed to be hackable: the implementation is in this repository, the documentation is source-backed, and the validation scripts can detect stale inventory.
 
-This repository is the source of truth. The documentation is intentionally tied to implementation inventory generated from the Rust source tree.
+## Why Kcode exists
 
-## What Kcode currently includes
+Kcode is built for developers who want a terminal-first coding agent that can:
 
-- Terminal UI with chat, slash commands, model/account selection, status sidebars, and rendering tests.
-- CLI entry points for interactive, remote/headless, auth, and utility flows.
-- Provider adapters under `src/provider` with routing, streaming, failover, fallback, catalog refresh, and account failover support.
-- Tool execution layer under `src/tool` for shell, editing/patching, browser/search, memory, scheduling, and MCP-style integrations.
-- Adaptive cognition in `src/adaptive_cognition.rs` for local execution signals and prompt-memory retrieval.
-- Operational repair learning in `src/operational_repair_learning.rs` for failure classification, recurring repair motifs, confidence calibration, and replay-gate recommendations.
-- LM Studio/local OpenAI-compatible diagnostics through `src/local_model.rs` and `docs/LMSTUDIO.md`.
-- Benchmark/simulation binaries including provider/local benchmarking and TUI benchmarking.
+- inspect and edit the same workspace you are using;
+- call local tools and shell commands with visible results;
+- route across multiple model providers;
+- diagnose local LM Studio/OpenAI-compatible model servers;
+- remember useful operational signals locally;
+- learn recurring repair patterns from build, test, runtime, provider, auth, network, tooling, and context failures;
+- keep its documentation synchronized with what is actually implemented.
+
+## Current capabilities
+
+### TUI and interaction
+
+- Chat-oriented terminal UI under `src/tui`.
+- Slash command registry with generated inventory in `docs/reference/implementation-inventory.md`.
+- Model picker, account picker, sidebars, status rendering, and rendering tests.
+- Context sidebar rows use a rainbow `∞` marker instead of a misleading dynamic context bar.
+
+### Agent runtime
+
+- Turn execution in `src/agent.rs` and runtime support crates.
+- Tool-call handling, streaming provider responses, turn admission, and result rendering.
+- Workspace-aware operation intended for iterative development and validation.
+
+### Provider layer
+
+- Provider implementations under `src/provider`.
+- Routing, fallback, account failover, catalog refresh, streaming/SSE parsing, and provider-specific request shaping.
+- Local OpenAI-compatible diagnostics via `src/local_model.rs`.
+
+### Tools and integrations
+
+- Shell execution.
+- Patch/edit workflows.
+- Browser/search/MCP-style integrations where configured.
+- Benchmark and simulation binaries under `src/bin` and `crates`.
+
+### Adaptive cognition and repair learning
+
+- `src/adaptive_cognition.rs` stores local execution signals and prompt-memory retrieval data.
+- `src/operational_repair_learning.rs` classifies failures, tracks recurrence, calibrates confidence, recommends replay gates, and emits compact repair memory.
+- Learned repair motifs are mirrored into adaptive cognition so future prompts can surface prior operational fixes.
 
 ## Architecture at a glance
 
@@ -33,20 +70,28 @@ flowchart LR
 
 Read the full architecture guide: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## Quick start
+
+```bash
+git clone https://github.com/icedmoca/kcode.git
+cd kcode
+cargo build --release
+```
+
+For operating-system-specific setup, PATH changes, WSL notes, Rust installation, native dependencies, and LM Studio setup, read [`docs/INSTALL.md`](docs/INSTALL.md).
+
 ## Documentation map
 
 | Document | Purpose |
 | --- | --- |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Current subsystem architecture and implementation paths. |
-| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Day-to-day operation, validation, local model checks, and repair learning operations. |
-| [`docs/LMSTUDIO.md`](docs/LMSTUDIO.md) | LM Studio/local OpenAI-compatible setup and diagnostics. |
-| [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) | Honest limitations and non-goals. |
-| [`docs/OPERATIONAL_MATURITY.md`](docs/OPERATIONAL_MATURITY.md) | Implemented maturity levels and extension path. |
+| [`docs/INSTALL.md`](docs/INSTALL.md) | Full install guide for Linux, macOS, Windows, and WSL, plus LM Studio setup. |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Comprehensive subsystem architecture and implementation map. |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Development, validation, diagnostics, provider operations, local models, and repair learning. |
 | [`docs/reference/implementation-inventory.md`](docs/reference/implementation-inventory.md) | Generated inventory of binaries, slash commands, provider files, and public modules. |
-| [`docs/INSTALL.md`](docs/INSTALL.md) | Installation notes. |
 | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Benchmark notes and historical benchmark context. |
+| [`docs/ABOUT.md`](docs/ABOUT.md) | Project background and extended notes. |
 
-## Quick development loop
+## Common development loop
 
 ```bash
 cargo fmt
@@ -74,18 +119,7 @@ cargo run --bin kcode-bench -- \
   --local-model '<model-id>'
 ```
 
-See [`docs/LMSTUDIO.md`](docs/LMSTUDIO.md).
-
-## Adaptive failure intelligence
-
-The operational repair learning subsystem classifies failures into operational classes, tracks recurrence, learns repair motifs, calibrates confidence from repair outcomes, and recommends replay gates. Learned repair motifs are mirrored into adaptive cognition so compact prompt memory can surface prior repairs.
-
-Relevant files:
-
-- `src/operational_repair_learning.rs`
-- `src/adaptive_cognition.rs`
-- `docs/OPERATIONS.md`
-- `docs/OPERATIONAL_MATURITY.md`
+The complete LM Studio instructions are now part of [`docs/INSTALL.md`](docs/INSTALL.md#lm-studio-and-local-openai-compatible-models).
 
 ## Keeping docs truthful
 
@@ -96,4 +130,8 @@ python3 scripts/validate_docs.py --write-inventory
 python3 scripts/validate_docs.py
 ```
 
-The validator checks required docs, required implementation anchors, and generated inventory freshness.
+The validator checks required docs, required implementation anchors, generated inventory freshness, and README truth anchors.
+
+## Repository ownership note
+
+Kcode evolves quickly. When changing behavior, prefer implementation-backed docs, focused tests, and commits that keep the repo buildable at each step.
