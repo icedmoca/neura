@@ -1,0 +1,1473 @@
+{
+  "modules": [
+    {
+      "file": "crates/kcode-mobile-core/src/lib.rs",
+      "module": "protocol"
+    },
+    {
+      "file": "crates/kcode-mobile-sim/src/lib.rs",
+      "module": "gpu_preview"
+    },
+    {
+      "file": "crates/kcode-provider-core/src/lib.rs",
+      "module": "openai_schema"
+    },
+    {
+      "file": "crates/kcode-tui-workspace/src/lib.rs",
+      "module": "color_support"
+    },
+    {
+      "file": "crates/kcode-tui-workspace/src/lib.rs",
+      "module": "workspace_map"
+    },
+    {
+      "file": "crates/kcode-tui-workspace/src/lib.rs",
+      "module": "workspace_map_widget"
+    },
+    {
+      "file": "src/ambient.rs",
+      "module": "runner"
+    },
+    {
+      "file": "src/ambient.rs",
+      "module": "scheduler"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "account_store"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "antigravity"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "azure"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "claude"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "codex"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "copilot"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "cursor"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "doctor"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "external"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "gemini"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "google"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "login_diagnostics"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "login_flows"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "oauth"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "refresh_state"
+    },
+    {
+      "file": "src/auth/mod.rs",
+      "module": "validation"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "args"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "auth_test"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "commands"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "debug"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "dispatch"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "hot_exec"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "login"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "output"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "provider_init"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "selfdev"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "startup"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "terminal"
+    },
+    {
+      "file": "src/cli/mod.rs",
+      "module": "tui_launch"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "adaptive_cognition"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "agent"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "ambient"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "ambient_runner"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "ambient_scheduler"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "auth"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "background"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "browser"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "build"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "bus"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "cache_tracker"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "catchup"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "channel"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "cli"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "compaction"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "config"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "copilot_usage"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "dictation"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "embedding"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "embedding_stub"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "env"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "gateway"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "gmail"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "goal"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "id"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "import"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "interlang"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "kcode_memory"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "local_model"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "logging"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "login_qr"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "mcp"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "memory"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "memory_agent"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "memory_graph"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "memory_log"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "memory_types"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "message"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "neura_memory"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "notifications"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "operational_repair_learning"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "perf"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "plan"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "platform"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "process_memory"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "process_title"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "prompt"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "protocol"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "provider"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "provider_catalog"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "registry"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "replay"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "restart_snapshot"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "runtime_memory_log"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "safety"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "server"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "session"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "setup_hints"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "side_panel"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "sidecar"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "skill"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "soft_interrupt_store"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "startup_profile"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "stdin_detect"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "storage"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "subscription_catalog"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "telegram"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "telemetry"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "todo"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "tool"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "transport"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "tui"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "update"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "usage"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "util"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "video_export"
+    },
+    {
+      "file": "src/mcp/mod.rs",
+      "module": "pool"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "anthropic"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "antigravity"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "claude"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "cli_common"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "copilot"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "cursor"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "gemini"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "kcode"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "models"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "openai"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "openrouter"
+    },
+    {
+      "file": "src/provider/mod.rs",
+      "module": "pricing"
+    },
+    {
+      "file": "src/tool/mod.rs",
+      "module": "ambient"
+    },
+    {
+      "file": "src/tool/mod.rs",
+      "module": "mcp"
+    },
+    {
+      "file": "src/tool/mod.rs",
+      "module": "selfdev"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "account_picker"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "backend"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "image"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "info_widget"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "login_picker"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "markdown"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "mermaid"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "permissions"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "screenshot"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "session_picker"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "test_harness"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "usage_overlay"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "visual_debug"
+    },
+    {
+      "file": "src/tui/mod.rs",
+      "module": "workspace_client"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/?",
+      "description": "Alias for /help",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/account",
+      "description": "Open the combined account picker",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/accounts",
+      "description": "Alias for /account",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/agents",
+      "description": "Configure models for agent roles",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/alignment",
+      "description": "Show/change default text alignment",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/auth",
+      "description": "Show authentication status",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/autojudge",
+      "description": "Show/toggle automatic end-of-turn judging",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/autoreview",
+      "description": "Show/toggle automatic end-of-turn review",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/back",
+      "description": "Return to the previous Catch Up session",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/btw",
+      "description": "Ask a side question in the side panel",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/cache",
+      "description": "Toggle cache TTL between 5min and 1h",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/catchup",
+      "description": "Open Catch Up picker",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/changelog",
+      "description": "Show recent changes in this build",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/clear",
+      "description": "Clear conversation history",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/commands",
+      "description": "Alias for /help",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/compact",
+      "description": "Compact context",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/config",
+      "description": "Show or edit configuration",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/context",
+      "description": "Show the full session context snapshot",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/debug-visual",
+      "description": "Toggle visual debug overlay",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/dictate",
+      "description": "Run configured external dictation command",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/dictation",
+      "description": "Alias for /dictate",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/effort",
+      "description": "Show/change reasoning effort (Alt+left/right)",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/exit",
+      "description": "Exit immediately like confirmed Ctrl+C",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/fast",
+      "description": "Toggle OpenAI/Codex fast mode",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/feedback",
+      "description": "Send feedback about kcode",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/fix",
+      "description": "Recover when the model cannot continue",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/git",
+      "description": "Show git status for the session working directory",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/goals",
+      "description": "Open goals overview / resume tracked goals",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/help",
+      "description": "Show help and keyboard shortcuts",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/improve",
+      "description": "Autonomously improve the repository",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/info",
+      "description": "Show session info and tokens",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/judge",
+      "description": "Launch a one-shot headed judge session",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-cognition",
+      "description": "Inspect adaptive .kcode cognition memory substrate",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-cognitive-integration debt",
+      "description": "Inspect deferred context debt and recall traces.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-cognitive-integration mesh",
+      "description": "Inspect cross-layer cognitive integration nodes, edges, and coherence.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-collapse decomposition",
+      "description": "Inspect complexity subproblem decomposition and dependencies.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-collapse opportunities",
+      "description": "Inspect representation-collapse opportunities and decisions.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-complexity entropy",
+      "description": "Inspect complexity entropy and reducibility signals.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-complexity factors",
+      "description": "Inspect formal, empirical, heuristic, and structural complexity factors.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-complexity routes",
+      "description": "Inspect complexity-aware solver routes and selected route confidence.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-complexity status",
+      "description": "Inspect adaptive complexity analysis and calibrated hardness.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-context-economy allocations",
+      "description": "Inspect include, compress, defer, and drop allocation decisions.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-context-economy bids",
+      "description": "Inspect context market bids and utility-per-token scores.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-context-economy compression",
+      "description": "Inspect salience-weighted compression plans and saved tokens.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-context-economy status",
+      "description": "Inspect adaptive context economy budget, utility allocation, and token efficiency.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-convergence status",
+      "description": "Inspect substrate convergence, entropy, equilibrium, noise, oscillation, and stability.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-convergence vectors",
+      "description": "Inspect convergence vectors and deltas against stabilization targets.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-deliberate",
+      "description": "Inspect bounded internal deliberation, traces, dissent, consensus, and adversarial review.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-deliberate dissent",
+      "description": "Show persisted unresolved deliberation dissent.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-deliberate trace",
+      "description": "Show recent deliberation trace frames.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-emergent-quality interventions",
+      "description": "Inspect quality interventions and regulation policy actions.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-emergent-quality signals",
+      "description": "Inspect emergent behavior signals and quality deltas.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-emergent-quality status",
+      "description": "Inspect emergent cognition quality metrics, debt, interventions, and trends.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-epistemic-context-governance quarantine",
+      "description": "Inspect quarantined or evidence-gated high-risk context activations.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-epistemic-context-governance status",
+      "description": "Inspect epistemic context decisions, contamination signals, and scope boundaries.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-epistemic-governance actions",
+      "description": "Inspect institutional decisions and epistemic governance actions.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-epistemic-governance status",
+      "description": "Inspect cybernetic epistemic governor stability and control signals.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-epistemology",
+      "description": "Inspect operational epistemology claim/evidence state",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-hierarchical-context routing",
+      "description": "Inspect direct, compressed, evidence-first, and deferred context routes.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-hierarchical-context status",
+      "description": "Inspect hierarchical cognition activation depth, retained branches, and routed tokens.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-hierarchical-context tree",
+      "description": "Inspect activation tree nodes, edges, and pruning decisions.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-lmstudio status",
+      "description": "Inspect LM Studio OpenAI-compatible endpoint configuration and reachability.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-lmstudio wsl",
+      "description": "Show Windows/WSL LM Studio networking diagnostics and endpoint hints.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-local-model route",
+      "description": "Inspect whether Kcode should use local model, remote fallback, or block execution.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-local-model status",
+      "description": "Inspect local model provider routing, LM Studio health, and fallback decision.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-long-horizon breaks",
+      "description": "Inspect coherence break candidates and mitigation plans.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-long-horizon status",
+      "description": "Inspect long-horizon operational coherence, drift, and continuity threads.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-operational-complexity status",
+      "description": "Inspect operational complexity mode, cost reduction, and policy adjustments.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-operational-intelligence doctrine",
+      "description": "Inspect reversible operational doctrine updates and maturity/stability.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-operational-intelligence insights",
+      "description": "Inspect synthesized strategic, tactical, epistemic, execution, and governance insights.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-operational-intelligence judgement",
+      "description": "Inspect dominant operational judgement and calibrated confidence.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-operational-intelligence status",
+      "description": "Inspect high-level operational synthesis, actionability, confidence, and residual risk.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-reality",
+      "description": "Inspect reality-coupled verification telemetry",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-representation optimize",
+      "description": "Inspect representation quality metrics and optimization gains.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-representation rewrites",
+      "description": "Inspect graph/representation rewrite proposals and expected gain/risk.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-representation-evolution candidates",
+      "description": "Inspect proposed representation variants and mutation kinds.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-representation-evolution promotions",
+      "description": "Inspect bounded representation promotions and rollback governance.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-representation-evolution status",
+      "description": "Inspect active representation evolution candidates, trials, promotions, and gain.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-representation-evolution trials",
+      "description": "Inspect sandbox trial predicted/observed gains and calibration error.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-science causal",
+      "description": "Inspect causal candidates, confounder risk, and accepted edges.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-science experiments",
+      "description": "Inspect safe experiment and evidence acquisition plans.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-science hypotheses",
+      "description": "Inspect operational hypotheses and lifecycle states.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-science models",
+      "description": "Inspect competing model scores and selection.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-science status",
+      "description": "Show scientific cognition status, uncertainty, calibration, and information gain.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-science uncertainty",
+      "description": "Inspect uncertainty priorities and evidence gaps.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-stabilization actions",
+      "description": "Inspect autonomous cognitive stabilization actions and bounded intensities.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-stabilization continuity",
+      "description": "Inspect continuity stabilization threads and equilibrium restoration.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-stabilization noise",
+      "description": "Inspect noise suppression and retrieval optimization signals.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-strategic-search governance",
+      "description": "Inspect exploration budget, exploitation bias, and strategy decisions.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-strategy candidates",
+      "description": "Inspect generated strategy candidates and expected gain/risk/transferability.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-strategy counterexamples",
+      "description": "Inspect counterexamples and mitigations before strategy promotion.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-strategy portfolio",
+      "description": "Inspect balanced strategy portfolio diversity and expected value.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-strategy status",
+      "description": "Inspect emergent strategy discovery candidates, tournaments, portfolio, and governance pressure.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-strategy tournaments",
+      "description": "Inspect strategy tournament scores, winners, and evidence.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-structure invariants",
+      "description": "Inspect representation invariants and support/violation state.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-structure patterns",
+      "description": "Inspect discovered motifs, invariants, bridges, redundancies, and compression opportunities.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-structure status",
+      "description": "Inspect latent structure discovery, invariants, motifs, and representation score.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-substrate attractors",
+      "description": "Inspect emergent cognitive attractors and stabilized behaviors.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-substrate field",
+      "description": "Inspect cross-layer cognitive field nodes and couplings.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-substrate optimize",
+      "description": "Inspect bounded substrate optimization and damping actions.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-substrate repair",
+      "description": "Inspect substrate repair debt and repair actions.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-substrate status",
+      "description": "Inspect cognitive substrate field resonance, instability, density, and repair debt.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-synthetic-science dissent",
+      "description": "Inspect productive dissent ecology and self-challenge cycles.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-synthetic-science experiments",
+      "description": "Inspect synthetic experiments, observations, and replication records.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-synthetic-science proposals",
+      "description": "Inspect synthetic research proposals and expected information gain.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-synthetic-science status",
+      "description": "Inspect synthetic scientific cognition ecosystem status and bounded cycles.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/kcode-topology retrieval",
+      "description": "Inspect topology-aware retrieval centrality, bridge scores, and retrieval weights.",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/login",
+      "description": "Login to a provider",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/memory",
+      "description": "Toggle memory feature",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/model",
+      "description": "List or switch models",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/models",
+      "description": "Alias for /model",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/observe",
+      "description": "Show the latest tool context in the side panel",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/poke",
+      "description": "Poke model to resume with incomplete todos",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/quit",
+      "description": "Exit kcode",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/rebuild",
+      "description": "Background rebuild and auto reload",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/record",
+      "description": "Record a demo capture",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/refactor",
+      "description": "Run a safe refactor loop",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/refresh-model-list",
+      "description": "Refresh provider model catalogs",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/reload",
+      "description": "Reload into newest available binary",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/restart",
+      "description": "Restart with current binary",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/resume",
+      "description": "Open session picker",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/review",
+      "description": "Launch a one-shot headed review session",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/rewind",
+      "description": "Rewind conversation to previous message",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/save",
+      "description": "Bookmark session for easy access",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/screenshot",
+      "description": "Capture a screenshot debug state",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/screenshot-mode",
+      "description": "Toggle screenshot capture mode",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/selfdev",
+      "description": "Open a new self-dev kcode session",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/sessions",
+      "description": "Alias for /resume",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/split",
+      "description": "Split session into a new window",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/split-view",
+      "description": "Alias for /splitview",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/splitview",
+      "description": "Mirror the current chat in the side panel",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/subagent",
+      "description": "Launch a subagent manually",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/subagent-model",
+      "description": "Show/change subagent model policy",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/subscription",
+      "description": "Show kcode subscription status",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/swarm",
+      "description": "Toggle swarm feature",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/todos",
+      "description": "Show the current session todo list in the side panel",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/transfer",
+      "description": "Compact context into a fresh handoff session",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/transport",
+      "description": "Show/change connection transport",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/unsave",
+      "description": "Remove bookmark from session",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/update",
+      "description": "Background update and auto reload",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/usage",
+      "description": "Show connected provider usage limits",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/version",
+      "description": "Show current version",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/workspace",
+      "description": "Niri-style session workspace",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    }
+  ],
+  "binaries": [
+    {
+      "binary": "harness",
+      "file": "src/bin/harness.rs"
+    },
+    {
+      "binary": "kcode-bench",
+      "file": "src/bin/kcode_bench.rs"
+    },
+    {
+      "binary": "mermaid-side-panel-probe",
+      "file": "src/bin/mermaid_side_panel_probe.rs"
+    },
+    {
+      "binary": "session-memory-bench",
+      "file": "src/bin/session_memory_bench.rs"
+    },
+    {
+      "binary": "test-api",
+      "file": "src/bin/test_api.rs"
+    },
+    {
+      "binary": "tui-bench",
+      "file": "src/bin/tui_bench.rs"
+    }
+  ],
+  "provider_files": [
+    {
+      "name": "accessors",
+      "provider_file": "src/provider/accessors.rs"
+    },
+    {
+      "name": "account_failover",
+      "provider_file": "src/provider/account_failover.rs"
+    },
+    {
+      "name": "anthropic",
+      "provider_file": "src/provider/anthropic.rs"
+    },
+    {
+      "name": "anthropic_tests",
+      "provider_file": "src/provider/anthropic_tests.rs"
+    },
+    {
+      "name": "antigravity",
+      "provider_file": "src/provider/antigravity.rs"
+    },
+    {
+      "name": "antigravity_tests",
+      "provider_file": "src/provider/antigravity_tests.rs"
+    },
+    {
+      "name": "catalog_refresh",
+      "provider_file": "src/provider/catalog_refresh.rs"
+    },
+    {
+      "name": "claude",
+      "provider_file": "src/provider/claude.rs"
+    },
+    {
+      "name": "cli_common",
+      "provider_file": "src/provider/cli_common.rs"
+    },
+    {
+      "name": "copilot",
+      "provider_file": "src/provider/copilot.rs"
+    },
+    {
+      "name": "copilot_tests",
+      "provider_file": "src/provider/copilot_tests.rs"
+    },
+    {
+      "name": "cursor",
+      "provider_file": "src/provider/cursor.rs"
+    },
+    {
+      "name": "cursor_tests",
+      "provider_file": "src/provider/cursor_tests.rs"
+    },
+    {
+      "name": "dispatch",
+      "provider_file": "src/provider/dispatch.rs"
+    },
+    {
+      "name": "failover",
+      "provider_file": "src/provider/failover.rs"
+    },
+    {
+      "name": "gemini",
+      "provider_file": "src/provider/gemini.rs"
+    },
+    {
+      "name": "gemini_tests",
+      "provider_file": "src/provider/gemini_tests.rs"
+    },
+    {
+      "name": "kcode",
+      "provider_file": "src/provider/kcode.rs"
+    },
+    {
+      "name": "mod",
+      "provider_file": "src/provider/mod.rs"
+    },
+    {
+      "name": "models",
+      "provider_file": "src/provider/models.rs"
+    },
+    {
+      "name": "models_catalog",
+      "provider_file": "src/provider/models_catalog.rs"
+    },
+    {
+      "name": "multi_provider",
+      "provider_file": "src/provider/multi_provider.rs"
+    },
+    {
+      "name": "openai",
+      "provider_file": "src/provider/openai.rs"
+    },
+    {
+      "name": "openai_provider_impl",
+      "provider_file": "src/provider/openai_provider_impl.rs"
+    },
+    {
+      "name": "openai_request",
+      "provider_file": "src/provider/openai_request.rs"
+    },
+    {
+      "name": "openai_stream_runtime",
+      "provider_file": "src/provider/openai_stream_runtime.rs"
+    },
+    {
+      "name": "openai_tests",
+      "provider_file": "src/provider/openai_tests.rs"
+    },
+    {
+      "name": "openrouter",
+      "provider_file": "src/provider/openrouter.rs"
+    },
+    {
+      "name": "openrouter_provider_impl",
+      "provider_file": "src/provider/openrouter_provider_impl.rs"
+    },
+    {
+      "name": "openrouter_sse_stream",
+      "provider_file": "src/provider/openrouter_sse_stream.rs"
+    },
+    {
+      "name": "openrouter_tests",
+      "provider_file": "src/provider/openrouter_tests.rs"
+    },
+    {
+      "name": "pricing",
+      "provider_file": "src/provider/pricing.rs"
+    },
+    {
+      "name": "remote_telemetry",
+      "provider_file": "src/provider/remote_telemetry.rs"
+    },
+    {
+      "name": "route_builders",
+      "provider_file": "src/provider/route_builders.rs"
+    },
+    {
+      "name": "routing",
+      "provider_file": "src/provider/routing.rs"
+    },
+    {
+      "name": "selection",
+      "provider_file": "src/provider/selection.rs"
+    },
+    {
+      "name": "startup",
+      "provider_file": "src/provider/startup.rs"
+    },
+    {
+      "name": "tests",
+      "provider_file": "src/provider/tests.rs"
+    }
+  ]
+}
