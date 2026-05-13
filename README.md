@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="kcode.png" alt="Kcode" width="180" />
+  <img src="kcode.png" alt="Kcode" width="420" />
 </p>
 
 # Kcode
@@ -102,36 +102,27 @@ python3 scripts/validate_docs.py
 
 Use focused tests for the subsystem you touched, then broaden validation before merging larger changes.
 
-## Local models and LM Studio
+You can also run `/improve` inside the TUI to start safe recursive self-improvement. The command is intended to propose and execute bounded, reviewable improvements with validation instead of uncontrolled rewrites.
 
-Kcode can diagnose local OpenAI-compatible servers such as LM Studio.
+## Supported model/provider matrix
 
-```text
-/kcode-local-model
-```
+<p align="center">
+  <img alt="Anthropic Claude Sonnet 4" src="https://img.shields.io/badge/Anthropic-Claude%20Sonnet%204-6B46C1?style=for-the-badge" />
+  <img alt="Anthropic Claude Opus" src="https://img.shields.io/badge/Anthropic-Claude%20Opus-6B46C1?style=for-the-badge" />
+  <img alt="OpenAI GPT-5" src="https://img.shields.io/badge/OpenAI-GPT--5-00A67E?style=for-the-badge" />
+  <img alt="OpenAI GPT-4.1" src="https://img.shields.io/badge/OpenAI-GPT--4.1-00A67E?style=for-the-badge" />
+  <img alt="OpenAI o-series" src="https://img.shields.io/badge/OpenAI-o--series-00A67E?style=for-the-badge" />
+  <img alt="Google Gemini 2.5 Pro" src="https://img.shields.io/badge/Google-Gemini%202.5%20Pro-4285F4?style=for-the-badge" />
+  <img alt="Google Gemini Flash" src="https://img.shields.io/badge/Google-Gemini%20Flash-4285F4?style=for-the-badge" />
+  <img alt="OpenRouter Kimi K2" src="https://img.shields.io/badge/OpenRouter-Kimi%20K2-FF6B35?style=for-the-badge" />
+  <img alt="OpenRouter DeepSeek" src="https://img.shields.io/badge/OpenRouter-DeepSeek-FF6B35?style=for-the-badge" />
+  <img alt="OpenRouter Qwen" src="https://img.shields.io/badge/OpenRouter-Qwen-FF6B35?style=for-the-badge" />
+  <img alt="OpenRouter Llama" src="https://img.shields.io/badge/OpenRouter-Llama-FF6B35?style=for-the-badge" />
+  <img alt="GitHub Copilot models" src="https://img.shields.io/badge/GitHub%20Copilot-Copilot%20Models-181717?style=for-the-badge" />
+  <img alt="Cursor models" src="https://img.shields.io/badge/Cursor-Cursor%20Models-111111?style=for-the-badge" />
+  <img alt="Antigravity models" src="https://img.shields.io/badge/Antigravity-Provider%20Models-8A2BE2?style=for-the-badge" />
+  <img alt="LM Studio local GGUF" src="https://img.shields.io/badge/LM%20Studio-Local%20GGUF-2EA44F?style=for-the-badge" />
+  <img alt="OpenAI-compatible local" src="https://img.shields.io/badge/OpenAI--compatible-Local%20Server-2EA44F?style=for-the-badge" />
+</p>
 
-For benchmark runs:
-
-```bash
-cargo run --bin kcode-bench -- \
-  --local-provider lmstudio \
-  --local-url http://127.0.0.1:1234/v1 \
-  --local-model '<model-id>'
-```
-
-The complete LM Studio instructions are now part of [`docs/INSTALL.md`](docs/INSTALL.md#lm-studio-and-local-openai-compatible-models).
-
-## Keeping docs truthful
-
-After adding or renaming binaries, provider files, public modules, or slash commands:
-
-```bash
-python3 scripts/validate_docs.py --write-inventory
-python3 scripts/validate_docs.py
-```
-
-The validator checks required docs, required implementation anchors, generated inventory freshness, and README truth anchors.
-
-## Repository ownership note
-
-Kcode evolves quickly. When changing behavior, prefer implementation-backed docs, focused tests, and commits that keep the repo buildable at each step.
+Provider/model availability depends on credentials, endpoint health, catalog refresh, and the specific adapter implementation under `src/provider`. The generated provider inventory is in [`docs/reference/implementation-inventory.md`](docs/reference/implementation-inventory.md).

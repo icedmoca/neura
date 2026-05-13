@@ -118,3 +118,42 @@ TUI changes should be validated with rendering tests or a focused compile/test p
 - Prefer deterministic tests over model-dependent assertions.
 - For external-provider issues, record the provider, endpoint, model, request class, and exact status/error text.
 - For local-model issues, record LM Studio version, model ID, quantization, URL, and hardware constraints.
+
+
+## README-trimmed operational notes
+
+The README intentionally stays focused on project identity, architecture, quick start, and high-signal commands. Detailed operational notes live here instead.
+
+### Local models and LM Studio
+
+Kcode can diagnose local OpenAI-compatible servers such as LM Studio. Use this TUI command:
+
+```text
+/kcode-local-model
+```
+
+For benchmark runs:
+
+```bash
+cargo run --bin kcode-bench -- \
+  --local-provider lmstudio \
+  --local-url http://127.0.0.1:1234/v1 \
+  --local-model '<model-id>'
+```
+
+The complete LM Studio instructions are part of `docs/INSTALL.md`.
+
+### Keeping docs truthful
+
+After adding or renaming binaries, provider files, public modules, or slash commands:
+
+```bash
+python3 scripts/validate_docs.py --write-inventory
+python3 scripts/validate_docs.py
+```
+
+The validator checks required docs, required implementation anchors, generated inventory freshness, and README truth anchors.
+
+### Repository ownership note
+
+Kcode evolves quickly. When changing behavior, prefer implementation-backed docs, focused tests, and commits that keep the repo buildable at each step.
