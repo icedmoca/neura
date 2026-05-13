@@ -13,7 +13,22 @@ Kcode operation has four loops:
 
 A healthy Kcode change should preserve all four loops. If a change improves behavior but cannot be validated or documented, it is incomplete.
 
-## 2. Daily maintainer workflow
+## 2. Updating Kcode from inside the TUI
+
+Kcode includes a local `/update` slash command. It checks the local git `HEAD` against `origin/main`. If they match, it reports that Kcode is already current. If GitHub has a newer commit, it runs the GitHub installer path and reports that Kcode should be restarted to use the updated binary.
+
+```text
+/update
+```
+
+Operational notes:
+
+- `/update` requires the checkout to have an `origin` remote with `main`.
+- It performs a `git fetch origin main --quiet` before comparing commits.
+- It does not hot-swap the running process; restart Kcode after a successful update.
+- If the installer fails, the command reports stdout/stderr in the TUI.
+
+## 4. Daily maintainer workflow
 
 ```bash
 cargo fmt
@@ -32,7 +47,7 @@ cargo test --lib info_widget_usage
 
 For provider parser changes, run the provider-specific tests if present. For TUI rendering changes, run the relevant TUI test filter. For docs changes, always run `scripts/validate_docs.py`.
 
-## 3. Validation strategy
+## 4. Validation strategy
 
 Kcode uses validation tiers:
 
@@ -47,7 +62,7 @@ Kcode uses validation tiers:
 
 The goal is not to run the biggest possible suite every time. The goal is to select the smallest validation that actually proves the change, then broaden when risk increases.
 
-## 4. Provider operations
+## 5. Provider operations
 
 Provider changes are operationally sensitive because failures may come from code, credentials, upstream availability, catalog drift, rate limits, or model behavior.
 
@@ -72,7 +87,7 @@ Provider changes are operationally sensitive because failures may come from code
 | Compatibility | provider rejects request fields | adapter-specific request shaping |
 | Routing | wrong provider/model chosen | model route or picker metadata fix |
 
-## 5. Local sidecar and LM Studio operations
+## 6. Local sidecar and LM Studio operations
 
 LM Studio setup is documented in `docs/INSTALL.md`. Operationally, the local sidecar model is best treated as a cheap support worker.
 
@@ -110,7 +125,7 @@ cargo run --bin kcode-bench -- \
 
 Record model ID, quantization, hardware, URL, and prompt class when comparing runs.
 
-## 6. Tool operations
+## 7. Tool operations
 
 Tools can mutate the workspace. Treat tool changes as operational changes, not just API changes.
 
@@ -125,7 +140,7 @@ Tool operation principles:
 
 For shell commands, prefer commands that time out or finish predictably. Avoid interactive prompts unless the harness can answer them.
 
-## 7. Adaptive cognition operations
+## 8. Adaptive cognition operations
 
 Adaptive cognition should store compact, high-signal data. Do not turn it into an unbounded transcript sink.
 
@@ -145,7 +160,7 @@ Bad memory records:
 - speculative claims with no validation;
 - duplicated transcript chunks.
 
-## 8. Operational repair learning operations
+## 9. Operational repair learning operations
 
 Repair learning is deterministic. Use it when a failure and repair attempt can be represented explicitly.
 
@@ -167,7 +182,7 @@ Replay gates:
 | `Focused` | Subsystem-specific proof | one test filter, `cargo check` |
 | `Full` | Recurring build/test failure | broad suite or benchmark replay |
 
-## 9. TUI operations
+## 10. TUI operations
 
 TUI changes affect user trust quickly. Validate:
 
@@ -181,7 +196,7 @@ TUI changes affect user trust quickly. Validate:
 
 The rainbow context `∞` is an intentional UI choice. Do not reintroduce precise-looking token bars unless the measurement is genuinely precise and provider-correct.
 
-## 10. Documentation operations
+## 11. Documentation operations
 
 Documentation is part of the system.
 
@@ -201,7 +216,7 @@ Docs should distinguish:
 
 Do not claim provider capability unless the adapter supports it.
 
-## 11. Release/readiness checklist
+## 12. Release/readiness checklist
 
 Before calling a phase complete:
 
@@ -214,7 +229,7 @@ Before calling a phase complete:
 - push completed;
 - final response names commit and validation.
 
-## 12. Incident response playbook
+## 13. Incident response playbook
 
 When Kcode breaks:
 
@@ -227,6 +242,6 @@ When Kcode breaks:
 7. Record or update repair motif if recurring.
 8. Broaden validation if build/test behavior was affected.
 
-## 13. `/improve` operational posture
+## 14. `/improve` operational posture
 
 `/improve` is for bounded recursive self-improvement. It should be used with validation and review. Good `/improve` tasks are scoped, reversible, and testable. Bad `/improve` tasks are vague rewrites, destructive actions, or large migrations without checkpoints.

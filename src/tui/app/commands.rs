@@ -1039,6 +1039,116 @@ fn handle_git_command(app: &mut App, trimmed: &str) -> bool {
     true
 }
 
+pub(super) fn handle_update_command(app: &mut App, trimmed: &str) -> bool {
+    if trimmed != "/update" {
+        return false;
+    }
+
+    app.set_status_notice("Checking GitHub for Kcode updates...");
+    let output = run_update_check();
+    if output.success {
+        app.push_display_message(DisplayMessage::assistant(output.message));
+    } else {
+        app.push_display_message(DisplayMessage::system(output.message));
+    }
+    true
+}
+
+struct UpdateCommandOutput {
+    success: bool,
+    message: String,
+}
+
+fn run_update_check() -> UpdateCommandOutput {
+    let local = match run_git(&["rev-parse", "HEAD"]) {
+        Ok(value) => value,
+        Err(error) => {
+            return UpdateCommandOutput {
+                success: false,
+                message: format!("/update failed: could not read local git HEAD: {error}"),
+            };
+        }
+    };
+
+    if let Err(error) = run_git(&["fetch", "origin", "main", "--quiet"]) {
+        return UpdateCommandOutput {
+            success: false,
+            message: format!("/update failed: could not fetch origin/main: {error}"),
+        };
+    }
+
+    let remote = match run_git(&["rev-parse", "origin/main"]) {
+        Ok(value) => value,
+        Err(error) => {
+            return UpdateCommandOutput {
+                success: false,
+                message: format!("/update failed: could not read origin/main: {error}"),
+            };
+        }
+    };
+
+    if local == remote {
+        return UpdateCommandOutput {
+            success: true,
+            message: format!("Kcode is already up to date at {}.", short_commit(&local)),
+        };
+    }
+
+    match Command::new("bash")
+        .arg("-lc")
+        .arg("curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install.sh | bash")
+        .output()
+    {
+        Ok(output) if output.status.success() => UpdateCommandOutput {
+            success: true,
+            message: format!(
+                "Kcode update completed: local {} -> origin/main {}. Restart Kcode to run the updated binary.",
+                short_commit(&local),
+                short_commit(&remote)
+            ),
+        },
+        Ok(output) => UpdateCommandOutput {
+            success: false,
+            message: format!(
+                "/update found origin/main {} but installer failed with status {}:\n{}{}",
+                short_commit(&remote),
+                output.status,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            ),
+        },
+        Err(error) => UpdateCommandOutput {
+            success: false,
+            message: format!(
+                "/update found origin/main {} but could not launch installer: {error}",
+                short_commit(&remote)
+            ),
+        },
+    }
+}
+
+fn run_git(args: &[&str]) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(args)
+        .output()
+        .map_err(|error| error.to_string())?;
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        Err(format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+        .trim()
+        .to_string())
+    }
+}
+
+fn short_commit(commit: &str) -> &str {
+    commit.get(..8).unwrap_or(commit)
+}
+
 pub(super) fn handle_session_command(app: &mut App, trimmed: &str) -> bool {
     if handle_subagent_model_command(app, trimmed)
         || handle_subagent_command(app, trimmed)
