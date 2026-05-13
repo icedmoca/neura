@@ -6,6 +6,23 @@
 
 Kcode is a Rust terminal agent for coding, debugging, provider experimentation, local model diagnostics, adaptive memory, and operational repair learning. It is designed to be hackable: the implementation is in this repository, the documentation is source-backed, and the validation scripts can detect stale inventory.
 
+## Quick install
+
+Run the installer, reload your shell path if needed, then start Kcode:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install.sh | bash
+exec "$SHELL" -l
+kcode
+```
+
+If you already cloned the repo locally, you can run:
+
+```bash
+./install.sh
+kcode
+```
+
 ## Why Kcode exists
 
 Kcode is built for developers who want a terminal-first coding agent that can:
