@@ -3,6 +3,7 @@ use crate::tui::color_support::rgb;
 use ratatui::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Debug, Clone)]
@@ -286,32 +287,20 @@ fn estimate_left_percent(
 
 fn render_labeled_bar(
     label: &str,
-    used_pct: u8,
+    _used_pct: u8,
     left_pct: f32,
     estimated_left_pct: Option<f32>,
     reset_time: Option<&str>,
-    width: u16,
+    _width: u16,
 ) -> Line<'static> {
     let display_left_pct = estimated_left_pct.unwrap_or(left_pct);
-    let color = if display_left_pct <= 20.0 {
+    let status_color = if display_left_pct <= 20.0 {
         rgb(255, 100, 100)
     } else if display_left_pct <= 50.0 {
         rgb(255, 200, 100)
     } else {
         rgb(100, 200, 100)
     };
-
-    let label_width = 7;
-    let suffix_width = 14;
-    let bar_width = width
-        .saturating_sub(label_width + 1 + suffix_width)
-        .clamp(4, 12) as usize;
-
-    let filled = ((used_pct as f32 / 100.0) * bar_width as f32).round() as usize;
-    let empty = bar_width.saturating_sub(filled);
-
-    let bar_filled = "█".repeat(filled);
-    let bar_empty = "░".repeat(empty);
 
     let suffix = if display_left_pct <= 0.005 {
         if let Some(reset) = reset_time {
@@ -329,10 +318,28 @@ fn render_labeled_bar(
 
     Line::from(vec![
         Span::styled(padded_label, Style::default().fg(rgb(140, 140, 150))),
-        Span::styled(bar_filled, Style::default().fg(color)),
-        Span::styled(bar_empty, Style::default().fg(rgb(50, 50, 60))),
-        Span::styled(suffix, Style::default().fg(color)),
+        Span::styled("∞", Style::default().fg(rainbow_infinity_color())),
+        Span::styled(suffix, Style::default().fg(status_color)),
     ])
+}
+
+fn rainbow_infinity_color() -> Color {
+    const RAINBOW: [(u8, u8, u8); 7] = [
+        (255, 80, 80),
+        (255, 160, 60),
+        (255, 230, 80),
+        (90, 220, 120),
+        (80, 180, 255),
+        (130, 110, 255),
+        (220, 100, 255),
+    ];
+
+    let step = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| (duration.as_millis() / 220) as usize)
+        .unwrap_or(0);
+    let (r, g, b) = RAINBOW[step % RAINBOW.len()];
+    rgb(r, g, b)
 }
 
 fn format_left_percent(left_pct: f32) -> String {
