@@ -3,8 +3,6 @@ use crate::build::{
     BuildManifest, current_source_state, publish_local_current_build_for_source,
     read_current_version,
 };
-use std::path::Path;
-use std::process::Command;
 
 pub(super) const UPDATE_REMOTE: &str = "https://github.com/icedmoca/kcode.git";
 pub(super) const UPDATE_BRANCH: &str = "main";
@@ -67,31 +65,7 @@ pub(super) fn version_message() -> String {
 
 pub(super) fn run_update() -> anyhow::Result<String> {
     let repo = std::env::current_dir()?;
-    run_git(&repo, &["fetch", UPDATE_REMOTE, UPDATE_BRANCH])?;
-    run_git(&repo, &["checkout", UPDATE_BRANCH])?;
-    run_git(&repo, &["pull", "--ff-only", UPDATE_REMOTE, UPDATE_BRANCH])?;
-
-    let status = Command::new("cargo")
-        .arg("build")
-        .arg("--release")
-        .current_dir(&repo)
-        .status()?;
-    anyhow::ensure!(status.success(), "cargo build --release failed");
-
-    publish_reload_binary(&repo)?;
-    Ok("update built and published; run /reload to switch to it".to_string())
-}
-
-fn run_git(repo: &Path, args: &[&str]) -> anyhow::Result<()> {
-    let status = Command::new("git").args(args).current_dir(repo).status()?;
-    anyhow::ensure!(status.success(), "git {} failed", args.join(" "));
-    Ok(())
-}
-
-fn publish_reload_binary(repo: &Path) -> anyhow::Result<()> {
-    let source = current_source_state(repo)?;
-    let _info = publish_local_current_build_for_source(&repo.to_path_buf(), &source)?;
-    Ok(())
+    Ok(crate::update::run_source_update(&repo)?)
 }
 
 #[cfg(test)]

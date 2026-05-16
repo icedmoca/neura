@@ -1,9 +1,11 @@
 use crate::build;
+use crate::bus::{Bus, BusEvent, ClientMaintenanceAction, SessionUpdateStatus};
 use crate::storage;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::{Duration, Instant, SystemTime};
 
 const GITHUB_REPO: &str = "1jehuang/kcode";
@@ -576,84 +578,75 @@ pub fn prepare_update_blocking() -> Result<PreparedUpdate> {
     }
 }
 
+pub const SOURCE_UPDATE_REMOTE: &str = "https://github.com/icedmoca/kcode.git";
+pub const SOURCE_UPDATE_BRANCH: &str = "main";
+
+pub fn run_source_update(repo: &Path) -> Result<String> {
+    run_git(repo, &["fetch", SOURCE_UPDATE_REMOTE, SOURCE_UPDATE_BRANCH])?;
+    run_git(repo, &["checkout", SOURCE_UPDATE_BRANCH])?;
+    run_git(
+        repo,
+        &[
+            "pull",
+            "--ff-only",
+            SOURCE_UPDATE_REMOTE,
+            SOURCE_UPDATE_BRANCH,
+        ],
+    )?;
+
+    let status = Command::new("cargo")
+        .arg("build")
+        .arg("--release")
+        .arg("--bin")
+        .arg("kcode")
+        .current_dir(repo)
+        .status()?;
+    anyhow::ensure!(status.success(), "cargo build --release --bin kcode failed");
+
+    let path = build::publish_local_current_build(repo)?;
+    Ok(format!(
+        "source update built and published to {}; run /reload to switch to it",
+        path.display()
+    ))
+}
+
+fn run_git(repo: &Path, args: &[&str]) -> Result<()> {
+    let status = Command::new("git").args(args).current_dir(repo).status()?;
+    anyhow::ensure!(status.success(), "git {} failed", args.join(" "));
+    Ok(())
+}
+
 pub fn spawn_background_session_update(session_id: String) {
     std::thread::spawn(move || {
-        use crate::bus::{Bus, BusEvent, ClientMaintenanceAction, SessionUpdateStatus};
-
         let action = ClientMaintenanceAction::Update;
-
         let publish = |status| Bus::global().publish(BusEvent::SessionUpdateStatus(status));
+        publish(SessionUpdateStatus::Status {
+            session_id: session_id.clone(),
+            action,
+            message: format!(
+                "pulling {} {} and building in the background",
+                SOURCE_UPDATE_REMOTE, SOURCE_UPDATE_BRANCH
+            ),
+        });
 
-        match prepare_update_blocking() {
-            Ok(PreparedUpdate::None { current }) => {
-                publish(SessionUpdateStatus::NoUpdate {
+        let repo = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
+        match run_source_update(&repo) {
+            Ok(message) => {
+                publish(SessionUpdateStatus::Status {
+                    session_id: session_id.clone(),
+                    action,
+                    message,
+                });
+                publish(SessionUpdateStatus::ReadyToReload {
                     session_id,
-                    current,
+                    action,
+                    version: SOURCE_UPDATE_BRANCH.to_string(),
                 });
             }
-            Ok(PreparedUpdate::Stable { release, estimate }) => {
-                publish(SessionUpdateStatus::Status {
-                    session_id: session_id.clone(),
-                    action,
-                    message: estimate.summary,
-                });
-                publish(SessionUpdateStatus::Status {
-                    session_id: session_id.clone(),
-                    action,
-                    message: format!(
-                        "Downloading {} (estimated {})...",
-                        release.tag_name,
-                        format_duration_estimate(estimate.duration)
-                    ),
-                });
-                match download_and_install_blocking(&release) {
-                    Ok(_) => publish(SessionUpdateStatus::ReadyToReload {
-                        session_id,
-                        action,
-                        version: release.tag_name,
-                    }),
-                    Err(error) => publish(SessionUpdateStatus::Error {
-                        session_id,
-                        action,
-                        message: format!("Update failed: {}", error),
-                    }),
-                }
-            }
-            Ok(PreparedUpdate::MainSource {
-                latest_sha,
-                estimate,
-            }) => {
-                publish(SessionUpdateStatus::Status {
-                    session_id: session_id.clone(),
-                    action,
-                    message: estimate.summary,
-                });
-                publish(SessionUpdateStatus::Status {
-                    session_id: session_id.clone(),
-                    action,
-                    message: format!(
-                        "Building main-{} in the background (estimated {})...",
-                        latest_sha,
-                        format_duration_estimate(estimate.duration)
-                    ),
-                });
-                match install_main_source_update_blocking(&latest_sha) {
-                    Ok(_) => publish(SessionUpdateStatus::ReadyToReload {
-                        session_id,
-                        action,
-                        version: format!("main-{}", latest_sha),
-                    }),
-                    Err(error) => publish(SessionUpdateStatus::Error {
-                        session_id,
-                        action,
-                        message: format!("Update failed: {}", error),
-                    }),
-                }
-            }
-            Err(error) => publish(SessionUpdateStatus::Error {
+            Err(err) => publish(SessionUpdateStatus::Error {
                 session_id,
                 action,
-                message: format!("Update check failed: {}", error),
+                message: err.to_string(),
             }),
         }
     });
