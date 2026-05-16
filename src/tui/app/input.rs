@@ -1643,7 +1643,6 @@ impl App {
         let trimmed = input.trim();
         let handled = commands::handle_exit_command(self, trimmed)
             || commands::handle_help_command(self, trimmed)
-            || commands::handle_update_command(self, trimmed)
             || commands::handle_session_command(self, trimmed)
             || commands::handle_dictation_command(self, trimmed)
             || commands::handle_config_command(self, trimmed)
