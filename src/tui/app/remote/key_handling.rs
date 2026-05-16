@@ -683,11 +683,7 @@ async fn handle_remote_key_internal(
                 }
 
                 if trimmed == "/update" {
-                    let session_id = app
-                        .remote_session_id
-                        .clone()
-                        .unwrap_or_else(|| crate::id::new_id("ses"));
-                    app.start_background_client_update(session_id);
+                    super::super::commands_version_update::handle_update_command(app);
                     return Ok(());
                 }
 

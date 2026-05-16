@@ -478,7 +478,7 @@ pub(super) fn handle_dev_command(app: &mut App, trimmed: &str) -> bool {
     }
 
     if trimmed == "/update" {
-        app.start_background_client_update(app.session.id.clone());
+        super::commands_version_update::handle_update_command(app);
         return true;
     }
 
