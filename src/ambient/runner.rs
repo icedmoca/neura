@@ -19,7 +19,7 @@ use crate::notifications::NotificationDispatcher;
 use crate::provider::Provider;
 use crate::safety::SafetySystem;
 use crate::self_improvement::{
-    AutonomousSelfImprovementState, DEFAULT_AUTONOMOUS_COOLDOWN, SelfImprovementRequest,
+    AutonomousTriggerReason, SelfImprovementPolicy, SelfImprovementRequest,
     build_self_improvement_prompt,
 };
 use crate::session::Session;
@@ -731,6 +731,10 @@ impl AmbientRunnerHandle {
                         let _ = mgr.record_cycle_result(result.clone());
                     }
                     let mut s = self.inner.state.write().await;
+                    if result.memories_modified > 0 || result.compactions > 0 {
+                        s.self_improvement.record_memory_maintenance_event();
+                    }
+                    s.self_improvement.mark_finished();
                     s.record_cycle(&result);
                     let _ = s.save();
 
@@ -869,7 +873,24 @@ impl AmbientRunnerHandle {
             active_sessions,
         );
 
-        let initial_message = "Begin your ambient cycle. Check the scheduled queue, assess memory graph health, and plan your work using the todos tool.".to_string();
+        let mut initial_message = "Begin your ambient cycle. Check the scheduled queue, assess memory graph health, and plan your work using the todos tool.".to_string();
+
+        let policy = SelfImprovementPolicy::default();
+        let mut state_guard = self.inner.state.write().await;
+        if active_sessions == 0 {
+            if let Some(reason) = policy.choose_reason(
+                &state_guard.self_improvement,
+                state_guard.self_improvement.signals(),
+                Utc::now(),
+            ) {
+                let request = SelfImprovementRequest::autonomous(reason);
+                let improvement_prompt = build_self_improvement_prompt(&request);
+                initial_message.push_str("\n\nAutonomous self-improvement task:\n");
+                initial_message.push_str(&improvement_prompt);
+                state_guard.self_improvement.mark_started(Utc::now());
+            }
+        }
+        drop(state_guard);
 
         Ok((system_prompt, initial_message))
     }

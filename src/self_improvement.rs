@@ -9,6 +9,15 @@ use serde::{Deserialize, Serialize};
 /// Minimum time between autonomous self-improvement jobs.
 pub const DEFAULT_AUTONOMOUS_COOLDOWN: ChronoDuration = ChronoDuration::hours(12);
 
+/// Session activity threshold that should trigger a background improvement pass.
+pub const DEFAULT_LONG_SESSION_TURNS: u64 = 24;
+
+/// Repair/debugging burst threshold that should trigger a background improvement pass.
+pub const DEFAULT_REPAIR_BURST_COUNT: u64 = 3;
+
+/// Memory pruning/compression activity threshold that should trigger a meta-cognitive pass.
+pub const DEFAULT_MEMORY_MAINTENANCE_EVENTS: u64 = 5;
+
 /// Mode for a self-improvement run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelfImprovementMode {
@@ -25,6 +34,93 @@ impl SelfImprovementMode {
         } else {
             Self::Implement
         }
+    }
+}
+
+/// Reason an autonomous self-improvement run was scheduled.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AutonomousTriggerReason {
+    Cooldown,
+    LongSession { turns: u64 },
+    RepairBurst { repairs: u64 },
+    MemoryMaintenance { events: u64 },
+}
+
+impl AutonomousTriggerReason {
+    pub fn focus(&self) -> String {
+        match self {
+            Self::Cooldown => "autonomous background maintenance: pick one small, safe, high-confidence improvement".to_string(),
+            Self::LongSession { turns } => format!(
+                "post-session learning after a long interaction ({turns} turns): identify friction, missing automation, or reliability issues exposed by the session"
+            ),
+            Self::RepairBurst { repairs } => format!(
+                "repair-pattern learning after {repairs} fixes: look for the smallest systemic improvement that prevents similar failures"
+            ),
+            Self::MemoryMaintenance { events } => format!(
+                "meta-cognitive memory maintenance after {events} pruning/compression events: improve recall, pruning, compression, or context quality heuristics"
+            ),
+        }
+    }
+}
+
+/// Signals that can trigger autonomous self-improvement.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SelfImprovementSignals {
+    pub completed_session_turns: u64,
+    pub repair_events: u64,
+    pub memory_maintenance_events: u64,
+}
+
+/// Tunable thresholds for autonomous triggering.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SelfImprovementPolicy {
+    pub cooldown: ChronoDuration,
+    pub long_session_turns: u64,
+    pub repair_burst_count: u64,
+    pub memory_maintenance_events: u64,
+}
+
+impl Default for SelfImprovementPolicy {
+    fn default() -> Self {
+        Self {
+            cooldown: DEFAULT_AUTONOMOUS_COOLDOWN,
+            long_session_turns: DEFAULT_LONG_SESSION_TURNS,
+            repair_burst_count: DEFAULT_REPAIR_BURST_COUNT,
+            memory_maintenance_events: DEFAULT_MEMORY_MAINTENANCE_EVENTS,
+        }
+    }
+}
+
+impl SelfImprovementPolicy {
+    pub fn choose_reason(
+        &self,
+        state: &AutonomousSelfImprovementState,
+        signals: SelfImprovementSignals,
+        now: DateTime<Utc>,
+    ) -> Option<AutonomousTriggerReason> {
+        if !state.can_start(now, self.cooldown) {
+            return None;
+        }
+        if signals.memory_maintenance_events >= self.memory_maintenance_events {
+            return Some(AutonomousTriggerReason::MemoryMaintenance {
+                events: signals.memory_maintenance_events,
+            });
+        }
+        if signals.repair_events >= self.repair_burst_count {
+            return Some(AutonomousTriggerReason::RepairBurst {
+                repairs: signals.repair_events,
+            });
+        }
+        if signals.completed_session_turns >= self.long_session_turns {
+            return Some(AutonomousTriggerReason::LongSession {
+                turns: signals.completed_session_turns,
+            });
+        }
+        if state.last_started_at().is_none() {
+            return Some(AutonomousTriggerReason::Cooldown);
+        }
+        None
     }
 }
 
@@ -45,14 +141,11 @@ impl SelfImprovementRequest {
         }
     }
 
-    pub fn autonomous() -> Self {
+    pub fn autonomous(reason: AutonomousTriggerReason) -> Self {
         Self {
             mode: SelfImprovementMode::Implement,
-            focus: Some(
-                "autonomous background maintenance: pick one small, safe, high-confidence improvement"
-                    .to_string(),
-            ),
-            trigger: SelfImprovementTrigger::Autonomous,
+            focus: Some(reason.focus()),
+            trigger: SelfImprovementTrigger::Autonomous(reason),
         }
     }
 
@@ -66,10 +159,10 @@ impl SelfImprovementRequest {
 }
 
 /// Source of a self-improvement request.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SelfImprovementTrigger {
     Manual,
-    Autonomous,
+    Autonomous(AutonomousTriggerReason),
 }
 
 /// Runtime state used to keep autonomous improvement conservative.
@@ -77,6 +170,9 @@ pub enum SelfImprovementTrigger {
 pub struct AutonomousSelfImprovementState {
     last_started_at: Option<DateTime<Utc>>,
     in_flight: bool,
+    pending_session_turns: u64,
+    pending_repair_events: u64,
+    pending_memory_maintenance_events: u64,
 }
 
 impl AutonomousSelfImprovementState {
@@ -90,9 +186,33 @@ impl AutonomousSelfImprovementState {
         }
     }
 
+    pub fn record_session_turns(&mut self, turns: u64) {
+        self.pending_session_turns = self.pending_session_turns.saturating_add(turns);
+    }
+
+    pub fn record_repair_event(&mut self) {
+        self.pending_repair_events = self.pending_repair_events.saturating_add(1);
+    }
+
+    pub fn record_memory_maintenance_event(&mut self) {
+        self.pending_memory_maintenance_events =
+            self.pending_memory_maintenance_events.saturating_add(1);
+    }
+
+    pub fn signals(&self) -> SelfImprovementSignals {
+        SelfImprovementSignals {
+            completed_session_turns: self.pending_session_turns,
+            repair_events: self.pending_repair_events,
+            memory_maintenance_events: self.pending_memory_maintenance_events,
+        }
+    }
+
     pub fn mark_started(&mut self, now: DateTime<Utc>) {
         self.last_started_at = Some(now);
         self.in_flight = true;
+        self.pending_session_turns = 0;
+        self.pending_repair_events = 0;
+        self.pending_memory_maintenance_events = 0;
     }
 
     pub fn mark_finished(&mut self) {
@@ -122,10 +242,13 @@ pub fn build_self_improvement_prompt(request: &SelfImprovementRequest) -> String
             "Improve Kcode autonomously with one focused, high-impact code-quality change.\n\n",
         );
     }
-    if matches!(request.trigger, SelfImprovementTrigger::Autonomous) {
+    if let SelfImprovementTrigger::Autonomous(reason) = &request.trigger {
         prompt.push_str(
             "This run was started automatically in the background. Be conservative: avoid user-visible behavior changes unless clearly beneficial, keep the patch small, and stop if the repo is dirty with unrelated work.\n\n",
         );
+        prompt.push_str("Autonomous trigger: ");
+        prompt.push_str(&format!("{reason:?}"));
+        prompt.push_str("\n\n");
     }
     if let Some(focus) = focus {
         prompt.push_str("Focus area: ");
@@ -173,10 +296,46 @@ mod tests {
     }
 
     #[test]
-    fn autonomous_prompt_is_conservative() {
-        let prompt = build_self_improvement_prompt(&SelfImprovementRequest::autonomous());
+    fn policy_prioritizes_memory_then_repairs_then_long_sessions() {
+        let state = AutonomousSelfImprovementState::default();
+        let policy = SelfImprovementPolicy::default();
+        let now = Utc::now();
+
+        let reason = policy.choose_reason(
+            &state,
+            SelfImprovementSignals {
+                completed_session_turns: DEFAULT_LONG_SESSION_TURNS,
+                repair_events: DEFAULT_REPAIR_BURST_COUNT,
+                memory_maintenance_events: DEFAULT_MEMORY_MAINTENANCE_EVENTS,
+            },
+            now,
+        );
+        assert!(matches!(
+            reason,
+            Some(AutonomousTriggerReason::MemoryMaintenance { .. })
+        ));
+    }
+
+    #[test]
+    fn signals_are_cleared_when_autonomous_run_starts() {
+        let mut state = AutonomousSelfImprovementState::default();
+        state.record_session_turns(DEFAULT_LONG_SESSION_TURNS);
+        state.record_repair_event();
+        state.record_memory_maintenance_event();
+        assert!(state.signals().completed_session_turns > 0);
+
+        state.mark_started(Utc::now());
+        assert_eq!(state.signals(), SelfImprovementSignals::default());
+    }
+
+    #[test]
+    fn autonomous_prompt_is_conservative_and_meta_cognitive_for_memory() {
+        let prompt = build_self_improvement_prompt(&SelfImprovementRequest::autonomous(
+            AutonomousTriggerReason::MemoryMaintenance { events: 5 },
+        ));
         assert!(prompt.contains("automatically in the background"));
         assert!(prompt.contains("Be conservative"));
-        assert!(prompt.contains("commit"));
+        assert!(prompt.contains("meta-cognitive memory maintenance"));
+        assert!(prompt.contains("pruning") || prompt.contains("compression"));
     }
 }
