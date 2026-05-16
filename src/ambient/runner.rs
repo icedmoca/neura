@@ -19,8 +19,7 @@ use crate::notifications::NotificationDispatcher;
 use crate::provider::Provider;
 use crate::safety::SafetySystem;
 use crate::self_improvement::{
-    AutonomousTriggerReason, SelfImprovementPolicy, SelfImprovementRequest,
-    build_self_improvement_prompt,
+    SelfImprovementPolicy, SelfImprovementRequest, build_self_improvement_prompt,
 };
 use crate::session::Session;
 use crate::tool;

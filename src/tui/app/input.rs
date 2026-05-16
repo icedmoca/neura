@@ -1618,6 +1618,13 @@ impl App {
         }
 
         let raw_input = std::mem::take(&mut self.input);
+        if crate::tui::app::commands_version_update::handle_version_or_update_command(
+            self,
+            raw_input.trim(),
+        ) {
+            return;
+        }
+
         let input = self.expand_paste_placeholders(&raw_input);
         self.pasted_contents.clear();
         self.cursor_pos = 0;
