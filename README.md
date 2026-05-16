@@ -11,7 +11,7 @@ Kcode is a Rust terminal agent for coding, debugging, provider experimentation, 
 Run the installer, reload your shell path if needed, then start Kcode:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install/install.sh | bash
 exec "$SHELL" -l
 kcode
 ```
