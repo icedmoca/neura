@@ -614,10 +614,6 @@ async fn handle_remote_key_internal(
                     return Ok(());
                 }
 
-                if trimmed == "/reload" && app_mod::commands::handle_update_command(app, trimmed) {
-                    return Ok(());
-                }
-
                 if trimmed == "/reload" {
                     let client_needs_reload = app.has_newer_binary();
                     let server_needs_reload =
