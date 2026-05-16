@@ -1,9 +1,29 @@
 use super::*;
 
+/// When `kcode` spawns `kcode serve`, stderr is piped for log draining, so
+/// `stderr().is_terminal()` is false even from a real interactive session.
+/// `/dev/tty` is the portable way to prompt in that setup (and for other
+/// piped-stdio cases) while still failing in CI with no controlling terminal.
+#[cfg(unix)]
+fn try_open_tty_for_prompt() -> Option<std::fs::File> {
+    use std::fs::OpenOptions;
+    let f = OpenOptions::new().read(true).write(true).open("/dev/tty").ok()?;
+    std::io::IsTerminal::is_terminal(&f).then_some(f)
+}
+
+#[cfg(not(unix))]
+fn try_open_tty_for_prompt() -> Option<std::fs::File> {
+    None
+}
+
 pub(super) fn can_prompt_for_external_auth() -> bool {
-    std::io::stdin().is_terminal()
-        && std::io::stderr().is_terminal()
-        && std::env::var("KCODE_NON_INTERACTIVE").is_err()
+    if std::env::var("KCODE_NON_INTERACTIVE").is_ok() {
+        return false;
+    }
+    if try_open_tty_for_prompt().is_some() {
+        return true;
+    }
+    std::io::stdin().is_terminal() && std::io::stderr().is_terminal()
 }
 
 pub(super) fn external_auth_blocked_message(
@@ -26,20 +46,48 @@ pub(super) fn prompt_to_trust_external_auth(
     source_name: &str,
     path: &std::path::Path,
 ) -> Result<bool> {
-    eprintln!();
-    eprintln!(
-        "Found existing {} credentials from {} at {}.",
-        provider_name,
-        source_name,
-        path.display()
-    );
-    eprintln!("kcode will only read that source in place after you approve it.");
-    eprintln!("It will not move, delete, or rewrite the original auth there.");
-    eprint!("Trust this auth source for future kcode sessions? [y/N]: ");
-    io::stdout().flush()?;
-
     let mut input = String::new();
-    io::stdin().read_line(&mut input)?;
+
+    if let Some(mut tty) = try_open_tty_for_prompt() {
+        use std::io::BufRead;
+        writeln!(tty)?;
+        writeln!(
+            tty,
+            "Found existing {} credentials from {} at {}.",
+            provider_name,
+            source_name,
+            path.display()
+        )?;
+        writeln!(
+            tty,
+            "kcode will only read that source in place after you approve it."
+        )?;
+        writeln!(
+            tty,
+            "It will not move, delete, or rewrite the original auth there."
+        )?;
+        write!(
+            tty,
+            "Trust this auth source for future kcode sessions? [y/N]: "
+        )?;
+        tty.flush()?;
+        io::BufReader::new(&mut tty).read_line(&mut input)?;
+    } else {
+        eprintln!();
+        eprintln!(
+            "Found existing {} credentials from {} at {}.",
+            provider_name,
+            source_name,
+            path.display()
+        );
+        eprintln!("kcode will only read that source in place after you approve it.");
+        eprintln!("It will not move, delete, or rewrite the original auth there.");
+        eprint!("Trust this auth source for future kcode sessions? [y/N]: ");
+        io::stderr().flush()?;
+
+        io::stdin().read_line(&mut input)?;
+    }
+
     Ok(matches!(
         input.trim().to_ascii_lowercase().as_str(),
         "y" | "yes"
@@ -203,30 +251,60 @@ fn prompt_to_review_external_auth_sources(
         return Ok(Vec::new());
     }
 
-    eprintln!();
-    eprintln!("Found existing logins that kcode can reuse.");
-    eprintln!("Nothing has been imported yet.");
-    eprintln!(
-        "Approve the sources you want kcode to read in place; rejected sources stay untouched."
-    );
-    eprintln!();
+    let mut input = String::new();
 
-    for (index, candidate) in candidates.iter().enumerate() {
+    if let Some(mut tty) = try_open_tty_for_prompt() {
+        use std::io::BufRead;
+        writeln!(tty)?;
+        writeln!(tty, "Found existing logins that kcode can reuse.")?;
+        writeln!(tty, "Nothing has been imported yet.")?;
+        writeln!(
+            tty,
+            "Approve the sources you want kcode to read in place; rejected sources stay untouched."
+        )?;
+        writeln!(tty)?;
+
+        for (index, candidate) in candidates.iter().enumerate() {
+            writeln!(
+                tty,
+                "  {}. {:<22} via {}",
+                index + 1,
+                candidate.provider_summary,
+                candidate.source_name
+            )?;
+            writeln!(tty, "     {}", candidate.path.display())?;
+        }
+
+        writeln!(tty)?;
+        write!(tty, "Approve sources [a=all, Enter=skip, example: 1,3]: ")?;
+        tty.flush()?;
+        io::BufReader::new(&mut tty).read_line(&mut input)?;
+    } else {
+        eprintln!();
+        eprintln!("Found existing logins that kcode can reuse.");
+        eprintln!("Nothing has been imported yet.");
         eprintln!(
-            "  {}. {:<22} via {}",
-            index + 1,
-            candidate.provider_summary,
-            candidate.source_name
+            "Approve the sources you want kcode to read in place; rejected sources stay untouched."
         );
-        eprintln!("     {}", candidate.path.display());
+        eprintln!();
+
+        for (index, candidate) in candidates.iter().enumerate() {
+            eprintln!(
+                "  {}. {:<22} via {}",
+                index + 1,
+                candidate.provider_summary,
+                candidate.source_name
+            );
+            eprintln!("     {}", candidate.path.display());
+        }
+
+        eprintln!();
+        eprint!("Approve sources [a=all, Enter=skip, example: 1,3]: ");
+        io::stderr().flush()?;
+
+        io::stdin().read_line(&mut input)?;
     }
 
-    eprintln!();
-    eprint!("Approve sources [a=all, Enter=skip, example: 1,3]: ");
-    io::stdout().flush()?;
-
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)?;
     parse_external_auth_review_selection(&input, candidates.len())
 }
 
