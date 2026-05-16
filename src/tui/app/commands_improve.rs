@@ -2,6 +2,7 @@ use super::commands::active_session_id;
 use super::commands_review::{ImproveCommand, RefactorCommand};
 use super::{App, DisplayMessage, ImproveMode, ProcessingStatus};
 use crate::message::{ContentBlock, Message, Role};
+use crate::self_improvement::{SelfImprovementRequest, build_self_improvement_prompt};
 use std::time::Instant;
 
 pub(super) fn slash_command_rest<'a>(trimmed: &'a str, command: &str) -> Option<&'a str> {
@@ -124,42 +125,10 @@ pub(super) fn parse_refactor_command(trimmed: &str) -> Option<Result<RefactorCom
 }
 
 pub(super) fn build_improve_prompt(plan_only: bool, focus: Option<&str>) -> String {
-    let focus_line = focus
-        .map(|focus| {
-            format!(
-                "\nFocus area: {}. Prefer this area when leverage is comparable, but you may choose a different task if it is clearly higher leverage.",
-                focus.trim()
-            )
-        })
-        .unwrap_or_default();
-
-    if plan_only {
-        format!(
-            "You are entering improvement planning mode for this repository.\n\
-Your job is to inspect the project and identify the highest-leverage improvements worth doing next.\n\
-\n\
-First inspect the codebase and current repo state. Then write a concise ranked todo list using `todo` with the best 3-7 candidate improvements. Prefer work that is high-impact, low-risk, and easy to validate. Consider refactors, reliability issues, missing tests, UX papercuts, docs gaps, startup/runtime performance, and profiling opportunities.\n\
-\n\
-This is plan-only mode: do not edit files, write patches, or otherwise modify source code or git state. Read/search/analyze freely, and you may run builds/tests/profiling commands if that helps you rank the work, but stop after presenting the todo list and brief rationale.\n\
-\n\
-Avoid broad speculative rewrites, cosmetic churn, and busywork. If the repo already has todos, replace them with a tighter ranked improve plan if appropriate.{}",
-            focus_line,
-        )
-    } else {
-        format!(
-            "You are entering improvement mode for this repository.\n\
-Your job is to identify and implement the highest-leverage safe improvements to this project, then reassess and continue only while further work is clearly worthwhile.\n\
-\n\
-First inspect the codebase and current repo state. Then write a concise ranked todo list using `todo` with the best 3-7 improvements to tackle next. Prefer work that is high-impact, low-risk, locally scoped, and easy to validate. Consider refactors, reliability issues, missing tests, UX papercuts, docs gaps, startup/runtime performance, and profiling opportunities.{}\n\
-\n\
-Execute the strongest items, updating the todo list as you go. Validate meaningful changes with builds, tests, or measurements. If you make performance claims, measure before and after when possible.\n\
-\n\
-After completing the batch, reassess. If strong opportunities remain, write a fresh todo list and continue. If remaining work has diminishing returns, stop and explain why the next ideas are not clearly worth the churn.\n\
-\n\
-Avoid broad speculative rewrites, cosmetic churn, and busywork. Do not invent work just to stay busy. If the repo already has todos, refine or replace them with the best current improve batch before continuing.",
-            focus_line,
-        )
-    }
+    build_self_improvement_prompt(&SelfImprovementRequest::manual(
+        plan_only,
+        focus.map(str::to_string),
+    ))
 }
 
 pub(super) fn build_refactor_prompt(plan_only: bool, focus: Option<&str>) -> String {

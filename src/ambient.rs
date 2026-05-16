@@ -124,6 +124,8 @@ pub struct AmbientState {
     pub last_compactions: Option<u32>,
     pub last_memories_modified: Option<u32>,
     pub total_cycles: u64,
+    #[serde(default)]
+    pub self_improvement: crate::self_improvement::AutonomousSelfImprovementState,
 }
 
 /// Result from an ambient cycle

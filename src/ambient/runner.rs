@@ -18,6 +18,10 @@ use crate::memory::MemoryManager;
 use crate::notifications::NotificationDispatcher;
 use crate::provider::Provider;
 use crate::safety::SafetySystem;
+use crate::self_improvement::{
+    AutonomousSelfImprovementState, DEFAULT_AUTONOMOUS_COOLDOWN, SelfImprovementRequest,
+    build_self_improvement_prompt,
+};
 use crate::session::Session;
 use crate::tool;
 use crate::tool::ambient as ambient_tools;
