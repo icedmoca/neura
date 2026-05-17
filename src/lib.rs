@@ -21,6 +21,7 @@ pub mod embedding;
 #[cfg(not(feature = "embeddings"))]
 pub mod embedding_stub;
 pub mod kcode_memory;
+pub mod self_model;
 #[cfg(not(feature = "embeddings"))]
 pub use embedding_stub as embedding;
 pub mod env;
