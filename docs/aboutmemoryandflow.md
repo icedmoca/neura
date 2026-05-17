@@ -624,6 +624,26 @@ flowchart LR
 
 This gives routing, repair, replay, telemetry, benchmarks, and future slash/status commands a shared vocabulary for describing operational state without relying on prompt-only explanations. See [`docs/semantic_operational_layer.md`](semantic_operational_layer.md).
 
+
+## Long-Horizon Operational Pressure + Continuous Cognition Stress Infrastructure
+
+The newest phase adds `src/long_horizon_pressure.rs`, a bounded stress infrastructure layer above `SelfModel` and `SemanticOperationalState`. It lets Kcode simulate finite multi-step operational pressure and produce reports without creating an autonomous daemon.
+
+```mermaid
+flowchart TD
+    A[StressScenario] --> B[StressSample stream]
+    B --> C[LongHorizonStressRunner]
+    C --> D[OperationalCognition]
+    D --> E[SelfModel]
+    E --> F[SemanticOperationalState]
+    F --> G[PressureReading]
+    G --> H[LongHorizonReport]
+```
+
+It introduces built-in scenarios for baseline operation, context saturation, tool failure bursts, provider latency, memory staleness, and mixed long-horizon pressure. Each bounded run records drift, compression, convergence, semantic labels, operational state, repair pressure, and warning conditions.
+
+See [`docs/long_horizon_report.md`](long_horizon_report.md).
+
 ## Summary
 
 Kcode’s flow is best understood as a loop:
