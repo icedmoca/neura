@@ -64,12 +64,21 @@ flowchart TD
     I --> I5[Include relevant file/tool snippets]
     I --> I6[Drop, summarize, or compress low-signal text]
 
-    I1 --> J[Prompt assembly]
-    I2 --> J
-    I3 --> J
-    I4 --> J
-    I5 --> J
-    I6 --> J
+    I1 --> SM[Self-model / operational cognition update]
+    I2 --> SM
+    I3 --> SM
+    I4 --> SM
+    I5 --> SM
+    I6 --> SM
+
+    %% =========================
+    %% SELF-MODEL INTEGRATION
+    %% =========================
+    SM --> SM1[Convert operational observations into CognitiveSignal values]
+    SM1 --> SM2[Update SelfModel domain assessments]
+    SM2 --> SM3[Compute global OperationalState and score]
+    SM3 --> SM4[Produce RoutingBias, repair hints, and pause-for-repair guidance]
+    SM4 --> J[Prompt assembly]
 
     %% =========================
     %% PROMPT STACK
@@ -90,20 +99,25 @@ flowchart TD
     K5 --> L
     K6 --> L
     K7 --> L
+    SM4 --> L
 
     %% =========================
     %% MODEL DECISION
     %% =========================
     L --> M{Model decides next action}
+    M --> M0{Operational guidance says pause or repair first?}
+    M0 -- Yes --> RR[Repair / replay / context rebuild path]
+    RR --> U
+    M0 -- No --> M1[Proceed with normal plan]
 
-    M -- Direct answer --> N[Draft final response]
+    M1 -- Direct answer --> N[Draft final response]
 
-    M -- Needs file inspection --> O[Call read/ls/grep/bash or expanded code tools]
-    M -- Needs web info --> P[Call websearch/webfetch]
-    M -- Needs image generation/edit --> Q[Call image_gen]
-    M -- Needs browser/UI validation --> R[Call browser/open/screenshot tools if available]
-    M -- Needs long-running work --> S[Start background task]
-    M -- Needs code modification --> T[Edit/write/patch files]
+    M1 -- Needs file inspection --> O[Call read/ls/grep/bash or expanded code tools]
+    M1 -- Needs web info --> P[Call websearch/webfetch]
+    M1 -- Needs image generation/edit --> Q[Call image_gen]
+    M1 -- Needs browser/UI validation --> R[Call browser/open/screenshot tools if available]
+    M1 -- Needs long-running work --> S[Start background task]
+    M1 -- Needs code modification --> T[Edit/write/patch files]
 
     %% =========================
     %% TOOL EXECUTION / SIDECAR
@@ -317,17 +331,296 @@ Memory prevents the agent from treating every message as a totally fresh session
 
 But memory is also controlled. Not every detail should become durable memory. Temporary logs, failed exploratory commands, and low-value text are usually better kept only in session history or compressed summaries.
 
+
+## Self-Model Integration Added in the New Phase
+
+Kcode now has an explicit self-model substrate in the Rust crate:
+
+- `src/self_model.rs`
+- exported through `src/lib.rs` as `pub mod self_model;`
+
+This phase added a deterministic operational cognition layer that can be used by routing, repair, replay, benchmarking, slash-command surfaces, and future telemetry. The goal is not to make the agent “sentient.” The goal is to give Kcode a structured way to reason about its own operational condition while it is working.
+
+### New Core Types
+
+| Type | Role |
+|---|---|
+| `SelfModel` | Snapshot of Kcode’s current operational state across cognitive domains |
+| `CognitiveDomain` | Functional area being assessed, such as context assembly, memory retrieval, tool execution, provider routing, repair, replay, benchmarking, and user interaction |
+| `OperationalState` | Health state: `Nominal`, `Watch`, `Degraded`, or `Blocked` |
+| `CognitiveSignal` | One normalized observation about a domain |
+| `DomainAssessment` | Aggregated health score and state for one domain |
+| `RoutingBias` | Router-facing output such as prefer low latency, prefer high context, or avoid tool-heavy plans |
+| `OperationalEvent` | Higher-level event submitted by systems such as context compilation, tool runs, provider decisions, repair attempts, replay checks, or benchmark samples |
+| `OperationalCognition` | Facade that ingests events and keeps the `SelfModel` updated |
+| `OperationalGuidance` | Compact guidance object for routing, repair, replay, benchmark, command, or telemetry consumers |
+
+### Self-Model Domain Map
+
+```mermaid
+flowchart TD
+    A[OperationalEvent] --> B[OperationalCognition::ingest]
+    B --> C[OperationalEvent::into_signal]
+    C --> D[CognitiveSignal]
+    D --> E[SelfModel::observe]
+    E --> F[DomainAssessment]
+    F --> G[OperationalState per domain]
+    F --> H[Score per domain]
+    G --> I[Global OperationalState]
+    H --> J[Global score]
+    I --> K[OperationalGuidance]
+    J --> K
+    K --> L[RoutingBias]
+    K --> M[Repair hints]
+    K --> N[should_pause_for_repair]
+
+    L --> O[Provider / model routing]
+    M --> P[Repair and recovery path]
+    N --> Q[Pause risky chaining when degraded]
+```
+
+### Cognitive Domains
+
+The implemented cognitive domains are:
+
+```mermaid
+mindmap
+  root((Kcode SelfModel))
+    ContextAssembly
+      token pressure
+      context confidence
+      latency
+    MemoryRetrieval
+      stale summaries
+      retrieval confidence
+      lookup latency
+    ToolExecution
+      success/failure
+      error rate
+      tool latency
+    ProviderRouting
+      model/provider confidence
+      provider latency
+    Repair
+      repair attempt success
+      repair failure pressure
+    Replay
+      deterministic replay checks
+      artifact capture pressure
+    Benchmarking
+      pass rate
+      load
+    UserInteraction
+      ambiguity
+      interaction load
+```
+
+### Operational Events to Signals
+
+The new integration facade accepts operational events and turns them into normalized cognitive signals:
+
+```mermaid
+flowchart LR
+    A[ContextCompiled] --> S1[ContextAssembly signal]
+    B[MemoryLookup] --> S2[MemoryRetrieval signal]
+    C[ToolRun] --> S3[ToolExecution signal]
+    D[ProviderDecision] --> S4[ProviderRouting signal]
+    E[RepairAttempt] --> S5[Repair signal]
+    F[ReplayCheck] --> S6[Replay signal]
+    G[BenchmarkSample] --> S7[Benchmarking signal]
+    H[UserTurn] --> S8[UserInteraction signal]
+
+    S1 --> M[SelfModel]
+    S2 --> M
+    S3 --> M
+    S4 --> M
+    S5 --> M
+    S6 --> M
+    S7 --> M
+    S8 --> M
+```
+
+### How Scores Become Operational State
+
+Each domain receives a computed score derived from:
+
+- confidence
+- load
+- error rate
+- optional latency penalty
+
+The score maps to an operational state:
+
+```mermaid
+flowchart TD
+    A[Domain score] --> B{Score range}
+    B -- ">= 0.82" --> C[Nominal]
+    B -- "0.62 to 0.82" --> D[Watch]
+    B -- "0.35 to 0.62" --> E[Degraded]
+    B -- "< 0.35" --> F[Blocked]
+
+    C --> G[Normal execution]
+    D --> H[Continue, but bias routing/repair]
+    E --> I[Pause risky chaining and prefer repair]
+    F --> J[Blocked operational state]
+```
+
+### Routing Bias
+
+The self-model produces `RoutingBias`, which can be consumed by provider/model routing or planning code.
+
+```mermaid
+flowchart TD
+    A[SelfModel] --> B[RoutingBias]
+    B --> C{Provider latency high?}
+    C -- Yes --> C1[prefer_low_latency]
+    B --> D{Context assembly under pressure?}
+    D -- Yes --> D1[prefer_high_context]
+    B --> E{Tool execution degraded?}
+    E -- Yes --> E1[avoid_tool_heavy_plan]
+```
+
+Examples:
+
+- If provider routing has high latency, routing can prefer lower-latency options.
+- If context assembly is under pressure, routing can prefer models or modes with better context capacity.
+- If tool execution is degraded, planning can avoid long chains of dependent tool calls and validate more often.
+
+### Repair Guidance
+
+The self-model also produces repair hints. These are deterministic strings based on degraded domains.
+
+```mermaid
+flowchart LR
+    A[Degraded ContextAssembly] --> B[Rebuild context with stricter relevance filtering]
+    C[Degraded MemoryRetrieval] --> D[Refresh memory retrieval and verify stale summaries]
+    E[Degraded ToolExecution] --> F[Prefer smaller tool calls and validate outputs before chaining]
+    G[ProviderRouting Watch/Degraded] --> H[Re-evaluate provider/model routing]
+    I[Replay Watch/Degraded] --> J[Capture replay artifacts before further mutation]
+```
+
+The `OperationalGuidance` object exposes:
+
+- `state`
+- `score`
+- `routing_bias`
+- `repair_hints`
+- `should_pause_for_repair`
+
+### Updated Turn Loop With Self-Model
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant H as Harness
+    participant C as Context/Memory
+    participant SM as SelfModel / OperationalCognition
+    participant M as Model
+    participant T as Tools
+    participant R as Repair/Replay
+
+    U->>H: Send input
+    H->>C: Load session, memory, files, tool state
+    C-->>H: Context candidates
+    H->>SM: Submit ContextCompiled / MemoryLookup events
+    SM-->>H: OperationalGuidance
+    H->>M: Prompt with context + guidance
+    M->>H: Plan or tool call
+    H->>SM: Submit ProviderDecision / UserTurn events
+    alt Guidance says degraded or blocked
+        H->>R: Repair, replay, or context rebuild
+        R-->>H: Recovery result
+        H->>SM: Submit RepairAttempt / ReplayCheck events
+    else Normal execution
+        H->>T: Execute tool calls
+        T-->>H: Tool result
+        H->>SM: Submit ToolRun events
+    end
+    H->>M: Continue with result and updated context
+    M-->>H: Final answer
+    H-->>U: Output
+    H->>SM: Post-turn operational update
+    H->>C: Persist turn, summaries, memory updates
+```
+
+### What This Phase Tightened
+
+Before this phase, memory, context, routing, repair, replay, and benchmarks could exist as separate concerns. The new self-model gives them a common operational vocabulary:
+
+```mermaid
+flowchart TD
+    A[Context system] --> SM[SelfModel]
+    B[Memory system] --> SM
+    C[Tool runner] --> SM
+    D[Provider router] --> SM
+    E[Repair system] --> SM
+    F[Replay system] --> SM
+    G[Benchmarks] --> SM
+    H[User interaction layer] --> SM
+
+    SM --> I[Unified state]
+    SM --> J[Unified score]
+    SM --> K[Unified routing bias]
+    SM --> L[Unified repair hints]
+    SM --> M[Unified pause signal]
+```
+
+This makes future features easier because each subsystem can submit operational events instead of inventing its own isolated health model.
+
+### Validation Added
+
+The implementation includes focused tests for:
+
+- nominal self-model state
+- degraded tool execution producing repair hints
+- provider latency producing low-latency routing bias
+- repeated observations being averaged
+- operational events updating domains and guidance
+- failed tool events requesting a repair pause
+
+The targeted validation command used was:
+
+```bash
+cargo test self_model --lib --quiet
+```
+
+Expected result:
+
+```text
+6 passed; 0 failed
+```
+
+## Updated Practical Reading of the Flow
+
+With self-model integration, a “fix this bug” request now has an extra operational cognition layer:
+
+1. User sends the request.
+2. Kcode loads session history, repo state, and relevant memory.
+3. Context and memory systems emit operational events.
+4. `OperationalCognition` updates the `SelfModel`.
+5. The model receives normal context plus operational guidance.
+6. If the self-model reports degraded tool execution, context pressure, or provider latency, the agent can adjust its plan.
+7. The harness reads/searches files.
+8. Tool results are returned and tool success/failure updates the self-model.
+9. The model edits code.
+10. Tests run and results update operational state.
+11. If needed, repair/replay guidance triggers recovery before continuing.
+12. The assistant reports what changed.
+13. Kcode stores the final state, tool outputs, summaries, and any useful memory updates.
+
 ## Summary
 
 Kcode’s flow is best understood as a loop:
 
 1. **Input arrives.**
 2. **Context and memory are assembled.**
-3. **The model reasons.**
-4. **Tools execute outside the model.**
-5. **Results return to the model.**
-6. **The assistant outputs an answer or continues work.**
-7. **The turn is stored, summarized, and possibly written to memory.**
-8. **The next user input starts the loop again.**
+3. **Operational events update the self-model.**
+4. **The self-model produces routing bias, repair hints, and pause guidance.**
+5. **The model reasons with both task context and operational guidance.**
+6. **Tools execute outside the model.**
+7. **Results return to the model and update operational state.**
+8. **The assistant outputs an answer or continues work.**
+9. **The turn is stored, summarized, and possibly written to memory.**
+10. **The next user input starts the loop again.**
 
 That loop is what lets the agent remain coherent across multiple tool calls, file edits, screenshots, background jobs, and follow-up requests.
