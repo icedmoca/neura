@@ -22,6 +22,7 @@ pub mod embedding;
 pub mod embedding_stub;
 pub mod kcode_memory;
 pub mod self_model;
+pub mod semantic_operational_layer;
 #[cfg(not(feature = "embeddings"))]
 pub use embedding_stub as embedding;
 pub mod env;

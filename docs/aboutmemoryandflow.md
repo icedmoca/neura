@@ -608,6 +608,22 @@ With self-model integration, a “fix this bug” request now has an extra opera
 12. The assistant reports what changed.
 13. Kcode stores the final state, tool outputs, summaries, and any useful memory updates.
 
+## Operational Cognition Verbalization + Semantic State Abstraction
+
+A later phase adds `src/semantic_operational_layer.rs`, a deterministic layer above `SelfModel` that turns operational cognition into bounded semantic state and safe verbalizations.
+
+```mermaid
+flowchart LR
+    A[SelfModel] --> B[SemanticOperationalState]
+    B --> C[SemanticMetrics: coherence, drift, convergence, compression]
+    B --> D[Semantic labels: stable, monitoring, compressed, recovering, blocked]
+    B --> E[Compact verbalization]
+    B --> F[Diagnostic verbalization]
+    B --> G[Machine verbalization]
+```
+
+This gives routing, repair, replay, telemetry, benchmarks, and future slash/status commands a shared vocabulary for describing operational state without relying on prompt-only explanations. See [`docs/semantic_operational_layer.md`](semantic_operational_layer.md).
+
 ## Summary
 
 Kcode’s flow is best understood as a loop:
