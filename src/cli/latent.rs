@@ -2,6 +2,7 @@ use crate::latent_learning::{
     LatentLearningState, convergence_metrics, counterfactual_probe, learning_state_path,
     remap_plan, render_learning_report,
 };
+use crate::latent_learning_background as background;
 use crate::latent_operational_recurrence::{
     LatentOperationalState, OperationalEvent, default_invariants, encode_event, remap_vector,
     render_report, state_path, translate_invariants,
@@ -64,6 +65,22 @@ pub enum LatentCommand {
     EvolutionReport {
         output: Option<PathBuf>,
     },
+    Ingest {
+        kind: String,
+        outcome: String,
+        tag: Vec<String>,
+        tool: Option<String>,
+        source: String,
+    },
+    LearnNow {
+        limit: usize,
+    },
+    BackgroundStatus,
+    Samples,
+    Outcomes,
+    Doctrines,
+    Pause,
+    Resume,
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -245,6 +262,51 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
             } else {
                 println!("{rendered}");
             }
+        }
+        LatentCommand::Ingest {
+            kind,
+            outcome,
+            tag,
+            tool,
+            source,
+        } => {
+            let event = background::command_event(kind, outcome, tag, tool);
+            let sample = background::ingest_runtime_event(event, source)?;
+            println!("{}", serde_json::to_string_pretty(&sample)?);
+        }
+        LatentCommand::LearnNow { limit } => {
+            let result = background::run_background_cycle(limit)?;
+            println!("{}", serde_json::to_string_pretty(&result)?);
+        }
+        LatentCommand::BackgroundStatus => {
+            println!("{}", serde_json::to_string_pretty(&background::status()?)?);
+        }
+        LatentCommand::Samples => {
+            println!("{}", serde_json::to_string_pretty(&background::samples()?)?);
+        }
+        LatentCommand::Outcomes => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&background::outcome_summary()?)?
+            );
+        }
+        LatentCommand::Doctrines => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&background::doctrine_summary()?)?
+            );
+        }
+        LatentCommand::Pause => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&background::set_paused(true)?)?
+            );
+        }
+        LatentCommand::Resume => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&background::set_paused(false)?)?
+            );
         }
     }
     Ok(())

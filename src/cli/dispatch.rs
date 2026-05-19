@@ -358,6 +358,26 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::EvolutionReport { output } => {
             latent::LatentCommand::EvolutionReport { output }
         }
+        LatentCommand::Ingest {
+            kind,
+            outcome,
+            tag,
+            tool,
+            source,
+        } => latent::LatentCommand::Ingest {
+            kind,
+            outcome,
+            tag,
+            tool,
+            source,
+        },
+        LatentCommand::LearnNow { limit } => latent::LatentCommand::LearnNow { limit },
+        LatentCommand::BackgroundStatus => latent::LatentCommand::BackgroundStatus,
+        LatentCommand::Samples => latent::LatentCommand::Samples,
+        LatentCommand::Outcomes => latent::LatentCommand::Outcomes,
+        LatentCommand::Doctrines => latent::LatentCommand::Doctrines,
+        LatentCommand::Pause => latent::LatentCommand::Pause,
+        LatentCommand::Resume => latent::LatentCommand::Resume,
     }
 }
 

@@ -35,6 +35,14 @@ kcode kcode-latent immune
 kcode kcode-latent topology
 kcode kcode-latent convergence
 kcode kcode-latent evolution-report --output ~/Desktop/latent_evolution_report.md
+kcode kcode-latent ingest build success --tag test --tag validation --tool cargo --source cli
+kcode kcode-latent learn-now --limit 32
+kcode kcode-latent background-status
+kcode kcode-latent samples
+kcode kcode-latent outcomes
+kcode kcode-latent doctrines
+kcode kcode-latent pause
+kcode kcode-latent resume
 ```
 
 ## State

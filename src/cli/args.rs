@@ -583,6 +583,34 @@ pub enum LatentCommand {
         #[arg(long)]
         output: Option<std::path::PathBuf>,
     },
+    /// Ingest a runtime learning sample into the persistent background queue
+    Ingest {
+        kind: String,
+        outcome: String,
+        #[arg(long = "tag")]
+        tag: Vec<String>,
+        #[arg(long)]
+        tool: Option<String>,
+        #[arg(long, default_value = "manual")]
+        source: String,
+    },
+    /// Run one bounded background learning cycle now
+    LearnNow {
+        #[arg(long, default_value_t = 32)]
+        limit: usize,
+    },
+    /// Show background learning status
+    BackgroundStatus,
+    /// Show persisted runtime learning samples
+    Samples,
+    /// Summarize sampled operational outcomes
+    Outcomes,
+    /// Summarize learned doctrine/topology state
+    Doctrines,
+    /// Pause background learning consumption
+    Pause,
+    /// Resume background learning consumption
+    Resume,
 }
 
 #[cfg(test)]
