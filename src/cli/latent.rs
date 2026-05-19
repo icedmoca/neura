@@ -1,3 +1,7 @@
+use crate::latent_learning::{
+    LatentLearningState, convergence_metrics, counterfactual_probe, learning_state_path,
+    remap_plan, render_learning_report,
+};
 use crate::latent_operational_recurrence::{
     LatentOperationalState, OperationalEvent, default_invariants, encode_event, remap_vector,
     render_report, state_path, translate_invariants,
@@ -36,6 +40,28 @@ pub enum LatentCommand {
         tag: Vec<String>,
     },
     Report {
+        output: Option<PathBuf>,
+    },
+    Learn {
+        kind: String,
+        outcome: String,
+        tag: Vec<String>,
+        tool: Option<String>,
+        weight: f32,
+    },
+    LearnedVectors,
+    Attractors,
+    Counterfactual {
+        kind: String,
+        outcome: String,
+        tag: Vec<String>,
+        alternate_tag: Vec<String>,
+    },
+    Doctrine,
+    Immune,
+    Topology,
+    Convergence,
+    EvolutionReport {
         output: Option<PathBuf>,
     },
 }
@@ -89,11 +115,18 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         }
         LatentCommand::Drift => println!("{:.6}", state.drift()),
         LatentCommand::Remap { schema_version } => {
+            let plan = remap_plan(&state.vector, schema_version);
             state.previous_vector = Some(state.vector.clone());
             state.vector = remap_vector(&state.vector, schema_version);
             state.schema_version = schema_version;
             state.save(&path)?;
-            println!("{}", serde_json::to_string_pretty(&state.vector)?);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "plan": plan,
+                    "vector": state.vector,
+                }))?
+            );
         }
         LatentCommand::Invariants => {
             println!("{}", serde_json::to_string_pretty(&state.invariants)?)
@@ -124,6 +157,85 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         }
         LatentCommand::Report { output } => {
             let rendered = render_report(&state);
+            if let Some(output) = output {
+                if let Some(parent) = output.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::write(&output, rendered)?;
+                println!("wrote {}", output.display());
+            } else {
+                println!("{rendered}");
+            }
+        }
+        LatentCommand::Learn {
+            kind,
+            outcome,
+            tag,
+            tool,
+            weight,
+        } => {
+            let learning_path = learning_state_path();
+            let mut learning = LatentLearningState::load_or_default(&learning_path)?;
+            let mut event = OperationalEvent::new(kind, outcome);
+            event.tags = tag;
+            event.tool = tool;
+            event.weight = weight;
+            let step = learning.learn(&state, event);
+            learning.save(&learning_path)?;
+            println!("{}", serde_json::to_string_pretty(&step)?);
+        }
+        LatentCommand::LearnedVectors => {
+            let learning = LatentLearningState::load_or_default(&learning_state_path())?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&learning.learned_vectors)?
+            );
+        }
+        LatentCommand::Attractors => {
+            let learning = LatentLearningState::load_or_default(&learning_state_path())?;
+            println!("{}", serde_json::to_string_pretty(&learning.attractors)?);
+        }
+        LatentCommand::Counterfactual {
+            kind,
+            outcome,
+            tag,
+            alternate_tag,
+        } => {
+            let mut event = OperationalEvent::new(kind, outcome);
+            event.tags = tag;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&counterfactual_probe(&state, &event, alternate_tag))?
+            );
+        }
+        LatentCommand::Doctrine => {
+            let learning = LatentLearningState::load_or_default(&learning_state_path())?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&learning.doctrine_bindings)?
+            );
+        }
+        LatentCommand::Immune => {
+            let learning = LatentLearningState::load_or_default(&learning_state_path())?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&learning.immune_history)?
+            );
+        }
+        LatentCommand::Topology => {
+            let learning = LatentLearningState::load_or_default(&learning_state_path())?;
+            println!("{}", serde_json::to_string_pretty(&learning.topology)?);
+        }
+        LatentCommand::Convergence => {
+            let learning = LatentLearningState::load_or_default(&learning_state_path())?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&convergence_metrics(&learning, &state))?
+            );
+        }
+        LatentCommand::EvolutionReport { output } => {
+            let learning = LatentLearningState::load_or_default(&learning_state_path())?;
+            let rendered = render_learning_report(&learning, &state);
             if let Some(output) = output {
                 if let Some(parent) = output.parent() {
                     std::fs::create_dir_all(parent)?;

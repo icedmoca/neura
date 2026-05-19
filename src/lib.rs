@@ -21,6 +21,7 @@ pub mod embedding;
 #[cfg(not(feature = "embeddings"))]
 pub mod embedding_stub;
 pub mod kcode_memory;
+pub mod latent_learning;
 pub mod latent_operational_recurrence;
 pub mod long_horizon_pressure;
 pub mod self_model;

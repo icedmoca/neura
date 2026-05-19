@@ -26,6 +26,15 @@ kcode kcode-latent provenance
 kcode kcode-latent temporal
 kcode kcode-latent influence build success --tag test
 kcode kcode-latent report --output ~/Desktop/latent_report.md
+kcode kcode-latent learn build success --tag test --tag validation --tool cargo
+kcode kcode-latent learned-vectors
+kcode kcode-latent attractors
+kcode kcode-latent counterfactual build success --tag test --alternate-tag validation --alternate-tag provenance
+kcode kcode-latent doctrine
+kcode kcode-latent immune
+kcode kcode-latent topology
+kcode kcode-latent convergence
+kcode kcode-latent evolution-report --output ~/Desktop/latent_evolution_report.md
 ```
 
 ## State

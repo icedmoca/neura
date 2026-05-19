@@ -546,6 +546,43 @@ pub enum LatentCommand {
         #[arg(long)]
         output: Option<std::path::PathBuf>,
     },
+    /// Learn from an operational event without hiding state in the model
+    Learn {
+        kind: String,
+        outcome: String,
+        #[arg(long = "tag")]
+        tag: Vec<String>,
+        #[arg(long)]
+        tool: Option<String>,
+        #[arg(long, default_value_t = 1.0)]
+        weight: f32,
+    },
+    /// Print learned latent vectors
+    LearnedVectors,
+    /// Print learned latent attractors
+    Attractors,
+    /// Compare baseline event score against alternate tags
+    Counterfactual {
+        kind: String,
+        outcome: String,
+        #[arg(long = "tag")]
+        tag: Vec<String>,
+        #[arg(long = "alternate-tag")]
+        alternate_tag: Vec<String>,
+    },
+    /// Print doctrine bindings learned from invariants
+    Doctrine,
+    /// Print immune responses to rejected samples
+    Immune,
+    /// Print latent topology edges
+    Topology,
+    /// Print convergence metrics
+    Convergence,
+    /// Render adaptive latent evolution report
+    EvolutionReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
 }
 
 #[cfg(test)]

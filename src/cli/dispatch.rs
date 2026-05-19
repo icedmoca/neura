@@ -325,6 +325,39 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
             latent::LatentCommand::Influence { kind, outcome, tag }
         }
         LatentCommand::Report { output } => latent::LatentCommand::Report { output },
+        LatentCommand::Learn {
+            kind,
+            outcome,
+            tag,
+            tool,
+            weight,
+        } => latent::LatentCommand::Learn {
+            kind,
+            outcome,
+            tag,
+            tool,
+            weight,
+        },
+        LatentCommand::LearnedVectors => latent::LatentCommand::LearnedVectors,
+        LatentCommand::Attractors => latent::LatentCommand::Attractors,
+        LatentCommand::Counterfactual {
+            kind,
+            outcome,
+            tag,
+            alternate_tag,
+        } => latent::LatentCommand::Counterfactual {
+            kind,
+            outcome,
+            tag,
+            alternate_tag,
+        },
+        LatentCommand::Doctrine => latent::LatentCommand::Doctrine,
+        LatentCommand::Immune => latent::LatentCommand::Immune,
+        LatentCommand::Topology => latent::LatentCommand::Topology,
+        LatentCommand::Convergence => latent::LatentCommand::Convergence,
+        LatentCommand::EvolutionReport { output } => {
+            latent::LatentCommand::EvolutionReport { output }
+        }
     }
 }
 
