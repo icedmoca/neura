@@ -5,8 +5,8 @@ use std::process::{Command as ProcessCommand, Stdio};
 use std::time::Instant;
 
 use super::args::{
-    AmbientCommand, Args, AuthCommand, Command, MemoryCommand, ModelCommand, ProviderCommand,
-    RestartCommand, TranscriptModeArg,
+    AmbientCommand, Args, AuthCommand, Command, LatentCommand, MemoryCommand, ModelCommand,
+    ProviderCommand, RestartCommand, TranscriptModeArg,
 };
 use crate::{
     agent, auth, build, provider, provider_catalog, server, session, setup_hints, startup_profile,
@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    commands, debug, hot_exec, login, output, provider_init, selfdev, terminal, tui_launch,
+    commands, debug, hot_exec, latent, login, output, provider_init, selfdev, terminal, tui_launch,
 };
 use provider_init::ProviderChoice;
 
@@ -149,6 +149,9 @@ pub(crate) async fn run_main(mut args: Args) -> Result<()> {
         },
         Some(Command::Memory(subcmd)) => {
             commands::run_memory_command(map_memory_subcommand(subcmd))?;
+        }
+        Some(Command::Latent(subcmd)) => {
+            latent::run(map_latent_subcommand(subcmd))?;
         }
         Some(Command::Ambient(subcmd)) => {
             commands::run_ambient_command(map_ambient_subcommand(subcmd)).await?;
@@ -288,6 +291,40 @@ fn resolve_resume_id(resume_id: &str) -> Result<String> {
             Some(imported_id) => Ok(imported_id),
             None => Err(native_err),
         },
+    }
+}
+
+fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
+    match subcmd {
+        LatentCommand::Status => latent::LatentCommand::Status,
+        LatentCommand::Vector => latent::LatentCommand::Vector,
+        LatentCommand::Observe {
+            kind,
+            outcome,
+            tag,
+            tool,
+            provider,
+            weight,
+        } => latent::LatentCommand::Observe {
+            kind,
+            outcome,
+            tag,
+            tool,
+            provider,
+            weight,
+        },
+        LatentCommand::Translate { kind, outcome, tag } => {
+            latent::LatentCommand::Translate { kind, outcome, tag }
+        }
+        LatentCommand::Drift => latent::LatentCommand::Drift,
+        LatentCommand::Remap { schema_version } => latent::LatentCommand::Remap { schema_version },
+        LatentCommand::Invariants => latent::LatentCommand::Invariants,
+        LatentCommand::Provenance => latent::LatentCommand::Provenance,
+        LatentCommand::Temporal => latent::LatentCommand::Temporal,
+        LatentCommand::Influence { kind, outcome, tag } => {
+            latent::LatentCommand::Influence { kind, outcome, tag }
+        }
+        LatentCommand::Report { output } => latent::LatentCommand::Report { output },
     }
 }
 

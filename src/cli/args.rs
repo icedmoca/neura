@@ -202,6 +202,10 @@ pub(crate) enum Command {
     #[command(subcommand)]
     Provider(ProviderCommand),
 
+    /// Inspect dynamic latent operational recurrence state
+    #[command(subcommand, name = "kcode-latent")]
+    Latent(LatentCommand),
+
     /// Memory management commands
     #[command(subcommand)]
     Memory(MemoryCommand),
@@ -492,6 +496,56 @@ pub(crate) enum MemoryCommand {
 
     /// Clear test memory storage (used by debug sessions)
     ClearTest,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum LatentCommand {
+    /// Show latent recurrence status as JSON
+    Status,
+    /// Show the current latent vector
+    Vector,
+    /// Observe an operational event and update recurrence state
+    Observe {
+        kind: String,
+        outcome: String,
+        #[arg(long = "tag")]
+        tag: Vec<String>,
+        #[arg(long)]
+        tool: Option<String>,
+        #[arg(long = "latent-provider", id = "latent_provider")]
+        provider: Option<String>,
+        #[arg(long, default_value_t = 1.0)]
+        weight: f32,
+    },
+    /// Translate an event into invariant matches
+    Translate {
+        kind: String,
+        outcome: String,
+        #[arg(long = "tag")]
+        tag: Vec<String>,
+    },
+    /// Print drift from the previous latent vector
+    Drift,
+    /// Remap the vector metadata to a target schema version
+    Remap { schema_version: u32 },
+    /// Print invariant translation rules
+    Invariants,
+    /// Print temporal provenance records
+    Provenance,
+    /// Print temporal latent memory entries
+    Temporal,
+    /// Preview event influence without mutating state
+    Influence {
+        kind: String,
+        outcome: String,
+        #[arg(long = "tag")]
+        tag: Vec<String>,
+    },
+    /// Render a Markdown latent recurrence report
+    Report {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
 }
 
 #[cfg(test)]
