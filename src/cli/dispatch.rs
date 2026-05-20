@@ -397,6 +397,7 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         }
         LatentCommand::PolicyAudit => latent::LatentCommand::PolicyAudit,
         LatentCommand::PolicyReport { output } => latent::LatentCommand::PolicyReport { output },
+        LatentCommand::PolicyDomains => latent::LatentCommand::PolicyDomains,
     }
 }
 

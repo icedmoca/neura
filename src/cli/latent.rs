@@ -108,6 +108,7 @@ pub enum LatentCommand {
     PolicyReport {
         output: Option<PathBuf>,
     },
+    PolicyDomains,
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -412,6 +413,17 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         LatentCommand::PolicyAudit => {
             let state = operational_policy::load_policy_and_synthesize()?;
             println!("{}", serde_json::to_string_pretty(&state.audits)?);
+        }
+        LatentCommand::PolicyDomains => {
+            let report = operational_policy::report()?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "active_runtime_domains": report.active_runtime_domains,
+                    "policy_api_domains": report.policy_api_domains,
+                    "rules_by_domain": report.rules_by_domain,
+                }))?
+            );
         }
         LatentCommand::PolicyReport { output } => {
             let rendered = operational_policy::render_policy_report()?;

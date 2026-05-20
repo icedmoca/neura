@@ -135,6 +135,7 @@ kcode kcode-latent policy-rules
 kcode kcode-latent policy-decide test-validation final-answer
 kcode kcode-latent policy-audit
 kcode kcode-latent policy-report --output ~/Desktop/policy_influence_report.md
+kcode kcode-latent policy-domains
 ```
 
 Policy influence is gated by latent memory usefulness: low-confidence memories do not become policy, policy decisions are audited, and observe-only mode is available in state for safe rollout.

@@ -650,6 +650,8 @@ pub enum LatentCommand {
         #[arg(long)]
         output: Option<std::path::PathBuf>,
     },
+    /// Show active and API-only policy domains
+    PolicyDomains,
 }
 
 #[cfg(test)]

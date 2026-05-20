@@ -14,6 +14,11 @@ pub enum PolicyDomain {
     TestValidation,
     MemoryRetrieval,
     DriftControl,
+    ToolBudget,
+    RepairStrategy,
+    Replay,
+    Introspection,
+    RiskControl,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -24,6 +29,16 @@ pub enum PolicyAction {
     RequireValidation,
     Suppress,
     ObserveOnly,
+    CapBudget,
+    ForceReplay,
+    RequireAudit,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum PolicyWiringStatus {
+    ActiveRuntimeHook,
+    PolicyApiOnly,
+    ReportOnly,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -36,6 +51,7 @@ pub struct OperationalPolicyRule {
     pub support: u64,
     pub source_memory_id: Option<String>,
     pub enabled: bool,
+    pub wiring_status: PolicyWiringStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -163,6 +179,8 @@ pub struct PolicySynthesisReport {
     pub observe_only: bool,
     pub usefulness: LatentMemoryUsefulnessReport,
     pub rules_by_domain: BTreeMap<PolicyDomain, usize>,
+    pub active_runtime_domains: Vec<PolicyDomain>,
+    pub policy_api_domains: Vec<PolicyDomain>,
 }
 
 pub fn policy_state_path() -> PathBuf {
@@ -186,28 +204,71 @@ pub fn synthesize_rules_from_latent_memory(
         {
             continue;
         }
-        let (domain, action) = if entry.tags.iter().any(|t| t == "test" || t == "validation") {
-            (
-                PolicyDomain::TestValidation,
-                PolicyAction::RequireValidation,
-            )
-        } else if entry
-            .tags
-            .iter()
-            .any(|t| t == "token" || t == "token-stream")
-        {
-            (PolicyDomain::ContextBudget, PolicyAction::Downrank)
-        } else if entry
-            .tags
-            .iter()
-            .any(|t| t == "memory" || t == "provenance")
-        {
-            (PolicyDomain::MemoryRetrieval, PolicyAction::Prefer)
-        } else if entry.summary.to_ascii_lowercase().contains("provider") {
-            (PolicyDomain::ProviderChoice, PolicyAction::Downrank)
-        } else {
-            (PolicyDomain::DriftControl, PolicyAction::Prefer)
-        };
+        let lower_summary = entry.summary.to_ascii_lowercase();
+        let (domain, action, wiring_status) =
+            if entry.tags.iter().any(|t| t == "test" || t == "validation") {
+                (
+                    PolicyDomain::TestValidation,
+                    PolicyAction::RequireValidation,
+                    PolicyWiringStatus::ActiveRuntimeHook,
+                )
+            } else if entry
+                .tags
+                .iter()
+                .any(|t| t == "token" || t == "token-stream")
+            {
+                (
+                    PolicyDomain::ContextBudget,
+                    PolicyAction::CapBudget,
+                    PolicyWiringStatus::PolicyApiOnly,
+                )
+            } else if entry
+                .tags
+                .iter()
+                .any(|t| t == "memory" || t == "provenance")
+            {
+                (
+                    PolicyDomain::MemoryRetrieval,
+                    PolicyAction::Prefer,
+                    PolicyWiringStatus::PolicyApiOnly,
+                )
+            } else if lower_summary.contains("provider") {
+                (
+                    PolicyDomain::ProviderChoice,
+                    PolicyAction::Downrank,
+                    PolicyWiringStatus::ActiveRuntimeHook,
+                )
+            } else if lower_summary.contains("tool") {
+                (
+                    PolicyDomain::ToolSelection,
+                    PolicyAction::Prefer,
+                    PolicyWiringStatus::PolicyApiOnly,
+                )
+            } else if lower_summary.contains("repair") || lower_summary.contains("error") {
+                (
+                    PolicyDomain::RepairStrategy,
+                    PolicyAction::Prefer,
+                    PolicyWiringStatus::PolicyApiOnly,
+                )
+            } else if lower_summary.contains("replay") {
+                (
+                    PolicyDomain::Replay,
+                    PolicyAction::ForceReplay,
+                    PolicyWiringStatus::PolicyApiOnly,
+                )
+            } else if lower_summary.contains("risk") || lower_summary.contains("destructive") {
+                (
+                    PolicyDomain::RiskControl,
+                    PolicyAction::RequireAudit,
+                    PolicyWiringStatus::PolicyApiOnly,
+                )
+            } else {
+                (
+                    PolicyDomain::DriftControl,
+                    PolicyAction::Prefer,
+                    PolicyWiringStatus::PolicyApiOnly,
+                )
+            };
         let id = format!("policy:{}", entry.id);
         let rule = OperationalPolicyRule {
             id: id.clone(),
@@ -218,6 +279,7 @@ pub fn synthesize_rules_from_latent_memory(
             support: entry.influence_count.max(entry.support),
             source_memory_id: Some(entry.id.clone()),
             enabled: true,
+            wiring_status,
         };
         if let Some(existing) = state.rules.iter_mut().find(|r| r.id == id) {
             *existing = rule;
@@ -248,16 +310,30 @@ pub fn report() -> anyhow::Result<PolicySynthesisReport> {
         observe_only: state.observe_only,
         usefulness: bank.usefulness_report(),
         rules_by_domain,
+        active_runtime_domains: vec![PolicyDomain::ProviderChoice, PolicyDomain::TestValidation],
+        policy_api_domains: vec![
+            PolicyDomain::MemoryRetrieval,
+            PolicyDomain::ContextBudget,
+            PolicyDomain::ToolSelection,
+            PolicyDomain::DriftControl,
+            PolicyDomain::ToolBudget,
+            PolicyDomain::RepairStrategy,
+            PolicyDomain::Replay,
+            PolicyDomain::Introspection,
+            PolicyDomain::RiskControl,
+        ],
     })
 }
 
 pub fn render_policy_report() -> anyhow::Result<String> {
     let r = report()?;
     Ok(format!(
-        "# Operational Policy Influence Report\n\nRules: `{}`\nAudits: `{}`\nObserve-only: `{}`\nUseful latent attributions: `{}`\nImproved: `{}`\nDrift reduced: `{}`\n\n## Rules by domain\n\n```json\n{}\n```\n",
+        "# Operational Policy Influence Report\n\nRules: `{}`\nAudits: `{}`\nObserve-only: `{}`\nActive runtime domains: `{:?}`\nPolicy API domains: `{:?}`\nUseful latent attributions: `{}`\nImproved: `{}`\nDrift reduced: `{}`\n\n## Rules by domain\n\n```json\n{}\n```\n",
         r.rule_count,
         r.audit_count,
         r.observe_only,
+        r.active_runtime_domains,
+        r.policy_api_domains,
         r.usefulness.total_attributions,
         r.usefulness.improved_count,
         r.usefulness.drift_reduced,

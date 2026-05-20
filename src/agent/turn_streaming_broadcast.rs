@@ -724,6 +724,7 @@ impl Agent {
             // Injecting before tool_results would break the API requirement that
             // tool_use must be immediately followed by tool_result.
             if tool_calls.is_empty() {
+                let _ = crate::policy_runtime::should_require_validation("final-answer");
                 if let Some(rehydrated) =
                     crate::interlang::maybe_rehydrate_context_search(&text_content)
                 {
