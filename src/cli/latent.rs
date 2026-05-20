@@ -9,6 +9,9 @@ use crate::latent_operational_recurrence::{
     render_report, state_path, translate_invariants,
 };
 use crate::live_operational_fabric as fabric;
+use crate::operational_eval::{
+    enforce_operational_eval_gate, run_operational_eval_suite, write_operational_eval_markdown,
+};
 use crate::operational_policy::{self, PolicyDomain};
 use crate::policy_outcome_credit;
 use crate::policy_shadow_simulation;
@@ -121,6 +124,11 @@ pub enum LatentCommand {
     PolicySimulate {
         limit: usize,
     },
+    EvalRun,
+    EvalReport {
+        output: Option<std::path::PathBuf>,
+    },
+    EvalGate,
     PolicyShadowReport {
         output: Option<PathBuf>,
     },
@@ -456,6 +464,21 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
                 "{}",
                 serde_json::to_string_pretty(&policy_shadow_simulation::simulate(limit)?)?
             );
+        }
+        LatentCommand::EvalRun => {
+            let report = run_operational_eval_suite()?;
+            println!(
+                "operational eval passed={} mean_score={:.3} gate={}",
+                report.passed, report.mean_score, report.gate.reason
+            );
+        }
+        LatentCommand::EvalReport { output } => {
+            let path = write_operational_eval_markdown(output)?;
+            println!("operational eval report written to {}", path.display());
+        }
+        LatentCommand::EvalGate => {
+            let gate = enforce_operational_eval_gate()?;
+            println!("operational eval gate passed: {}", gate.reason);
         }
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;

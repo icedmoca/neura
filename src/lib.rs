@@ -50,6 +50,7 @@ pub mod memory_types;
 pub mod message;
 pub mod neura_memory;
 pub mod notifications;
+pub mod operational_eval;
 pub mod operational_policy;
 pub mod operational_repair_learning;
 pub mod perf;

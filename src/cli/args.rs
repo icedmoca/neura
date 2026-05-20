@@ -664,6 +664,18 @@ pub enum LatentCommand {
         #[arg(long, default_value_t = 200)]
         limit: usize,
     },
+    /// Run full closed-loop operational self-eval suite
+    EvalRun,
+
+    /// Write the operational self-eval markdown report
+    EvalReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+
+    /// Enforce the operational self-eval promotion gate
+    EvalGate,
+
     /// Render policy shadow simulation report
     PolicyShadowReport {
         #[arg(long)]

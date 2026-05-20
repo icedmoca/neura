@@ -159,3 +159,15 @@ kcode kcode-latent policy-demote-bad
 ```
 
 Shadow simulation replays recent live fabric events and latent background samples through current policies, estimates counterfactual delta, then allows safe promotion or demotion before stronger runtime enforcement.
+
+## Operational Self-Eval Harness
+
+Kcode now includes a closed-loop operational self-eval harness that evaluates the live latent/policy stack against itself before trusting autonomous promotion.
+
+Commands:
+
+- `kcode kcode-latent eval-run` runs the full self-eval suite and persists `~/.kcode/operational_eval_report.json`.
+- `kcode kcode-latent eval-report --output ~/Desktop/operational_eval_report.md` renders a human-readable report.
+- `kcode kcode-latent eval-gate` enforces the promotion gate and fails closed if critical invariants do not pass.
+
+The suite checks token abstraction, latent memory rehydration after accepted learning, background recursive adaptation, policy decision availability, policy outcome credit assignment, shadow policy simulation, and destructive-action safety invariants. The eval injects its own learning samples back into the adaptive loop, so it is not just a passive report. It becomes part of the system's own operational memory and gating cycle.
