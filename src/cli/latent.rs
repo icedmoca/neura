@@ -89,6 +89,7 @@ pub enum LatentCommand {
     },
     FabricPause,
     FabricResume,
+    FabricPing,
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -345,6 +346,10 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
                 "{}",
                 serde_json::to_string_pretty(&fabric::set_paused(false)?)?
             );
+        }
+        LatentCommand::FabricPing => {
+            fabric::emit_system_ping("fabric-ping");
+            println!("{}", serde_json::to_string_pretty(&fabric::status()?)?);
         }
     }
     Ok(())

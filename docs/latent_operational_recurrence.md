@@ -109,6 +109,9 @@ kcode kcode-latent fabric-events
 kcode kcode-latent fabric-report --output ~/Desktop/live_operational_fabric_report.md
 kcode kcode-latent fabric-pause
 kcode kcode-latent fabric-resume
+kcode kcode-latent fabric-ping
 ```
 
 The fabric emits live user-message, provider request/response, tool, token, local sidecar token-estimate, memory bridge, and background latent learning events. Events are persisted under `~/.kcode/live_operational_fabric/events.jsonl` and bridged into the latent background sample queue.
+
+Automatic background adaptation is enabled by default: every live fabric event opportunistically runs a bounded latent background cycle. Set `KCODE_LIVE_FABRIC_AUTO_CYCLE=0` to disable it for debugging.

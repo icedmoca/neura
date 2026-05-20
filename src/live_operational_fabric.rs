@@ -194,6 +194,16 @@ pub fn emit_local_token_abstraction(source: &str, text: &str) {
 pub fn estimate_tokens(chars: usize) -> u64 {
     crate::token_abstraction::estimate_tokens(chars)
 }
+pub fn emit_system_ping(source: &str) {
+    let _ = emit(basic(
+        LiveEventKind::System,
+        "success",
+        source,
+        source.len(),
+        vec!["system".into(), "live-fabric".into(), "validation".into()],
+    ));
+}
+
 pub fn emit_memory_bridge(source: &str, chars: usize) {
     let _ = emit(basic(
         LiveEventKind::MemoryBridge,
@@ -298,8 +308,8 @@ fn enabled() -> bool {
 }
 fn should_auto_cycle() -> bool {
     std::env::var("KCODE_LIVE_FABRIC_AUTO_CYCLE")
-        .map(|v| v == "1" || v == "true")
-        .unwrap_or(false)
+        .map(|v| v != "0" && v != "false")
+        .unwrap_or(true)
 }
 fn paused() -> anyhow::Result<bool> {
     Ok(if control_path().exists() {
@@ -369,6 +379,6 @@ mod tests {
         emit_user_message("test", "hello");
         let s = status().unwrap();
         assert_eq!(s.total_events, 1);
-        assert_eq!(s.pending_background_samples, 1);
+        assert_eq!(s.pending_background_samples, 0);
     }
 }

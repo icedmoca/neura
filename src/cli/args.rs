@@ -624,6 +624,8 @@ pub enum LatentCommand {
     FabricPause,
     /// Resume live fabric event ingestion
     FabricResume,
+    /// Emit a live fabric system ping for validation
+    FabricPing,
 }
 
 #[cfg(test)]
