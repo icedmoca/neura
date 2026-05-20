@@ -100,3 +100,15 @@ Core tests cover:
 - recurrence update behavior,
 - invariant translation matching,
 - influence gate rejection for empty signal.
+
+## Live operational fabric commands
+
+```bash
+kcode kcode-latent fabric-status
+kcode kcode-latent fabric-events
+kcode kcode-latent fabric-report --output ~/Desktop/live_operational_fabric_report.md
+kcode kcode-latent fabric-pause
+kcode kcode-latent fabric-resume
+```
+
+The fabric emits live user-message, provider request/response, tool, token, local sidecar token-estimate, memory bridge, and background latent learning events. Events are persisted under `~/.kcode/live_operational_fabric/events.jsonl` and bridged into the latent background sample queue.

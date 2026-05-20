@@ -3,6 +3,8 @@ use super::*;
 impl Agent {
     /// Run a single turn with the given user message
     pub async fn run_once(&mut self, user_message: &str) -> Result<()> {
+        crate::live_operational_fabric::emit_user_message("agent.run_once", user_message);
+        crate::live_operational_fabric::emit_memory_bridge("agent.run_once", user_message.len());
         let _ = crate::kcode_memory::ingest_text("agent.run_once", user_message);
         self.add_message(
             Role::User,
@@ -20,6 +22,11 @@ impl Agent {
     }
 
     pub async fn run_once_capture(&mut self, user_message: &str) -> Result<String> {
+        crate::live_operational_fabric::emit_user_message("agent.run_once_capture", user_message);
+        crate::live_operational_fabric::emit_memory_bridge(
+            "agent.run_once_capture",
+            user_message.len(),
+        );
         let _ = crate::kcode_memory::ingest_text("agent.run_once_capture", user_message);
         self.add_message(
             Role::User,
@@ -41,6 +48,8 @@ impl Agent {
         user_message: &str,
         event_tx: broadcast::Sender<ServerEvent>,
     ) -> Result<()> {
+        crate::live_operational_fabric::emit_user_message("agent.streaming", user_message);
+        crate::live_operational_fabric::emit_memory_bridge("agent.streaming", user_message.len());
         let _ = crate::kcode_memory::ingest_text("agent.streaming", user_message);
         // Inject any pending notifications before the user message
         let alerts = self.take_alerts();
@@ -78,6 +87,11 @@ impl Agent {
         system_reminder: Option<String>,
         event_tx: mpsc::UnboundedSender<ServerEvent>,
     ) -> Result<()> {
+        crate::live_operational_fabric::emit_user_message("agent.streaming_mpsc", user_message);
+        crate::live_operational_fabric::emit_memory_bridge(
+            "agent.streaming_mpsc",
+            user_message.len(),
+        );
         let _ = crate::kcode_memory::ingest_text("agent.streaming", user_message);
         // Inject any pending notifications before the user message
         let alerts = self.take_alerts();

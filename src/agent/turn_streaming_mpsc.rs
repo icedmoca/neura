@@ -174,6 +174,20 @@ impl Agent {
                 .as_deref()
                 .unwrap_or(&split_prompt.dynamic_part);
             crate::local_model::pre_route_async(send_messages);
+            let fabric_text = send_messages
+                .iter()
+                .map(|m| format!("{:?}", m.content))
+                .collect::<Vec<_>>()
+                .join("\n");
+            crate::live_operational_fabric::emit_local_token_abstraction(
+                "local_model.pre_route",
+                &fabric_text,
+            );
+            crate::live_operational_fabric::emit_provider_request(
+                self.provider.name(),
+                send_messages.len(),
+                tools.len(),
+            );
             let provider = Arc::clone(&self.provider);
             let resume_session_id = self.provider_session_id.clone();
             self.last_status_detail = None;
@@ -507,13 +521,29 @@ impl Agent {
                             execution_mode: ToolExecutionMode::AgentTurn,
                         };
                         crate::telemetry::record_tool_call();
+                        crate::live_operational_fabric::emit_tool_start(&tool_name);
                         let tool_result = self.registry.execute(&tool_name, input, ctx).await;
                         if tool_result.is_err() {
                             crate::telemetry::record_tool_failure();
                         }
                         let native_result = match tool_result {
-                            Ok(output) => NativeToolResult::success(request_id, output.output),
-                            Err(e) => NativeToolResult::error(request_id, e.to_string()),
+                            Ok(output) => {
+                                crate::live_operational_fabric::emit_tool_result(
+                                    &tool_name,
+                                    true,
+                                    output.output.len(),
+                                );
+                                NativeToolResult::success(request_id, output.output)
+                            }
+                            Err(e) => {
+                                let err = e.to_string();
+                                crate::live_operational_fabric::emit_tool_result(
+                                    &tool_name,
+                                    false,
+                                    err.len(),
+                                );
+                                NativeToolResult::error(request_id, err)
+                            }
                         };
                         if let Some(sender) = self.provider.native_result_sender() {
                             let _ = sender.send(native_result).await;
@@ -581,6 +611,11 @@ impl Agent {
                     usage_output.unwrap_or(0),
                     usage_cache_read,
                     usage_cache_creation,
+                );
+                crate::live_operational_fabric::emit_token_usage(
+                    self.provider.name(),
+                    usage_input.unwrap_or(0),
+                    usage_output.unwrap_or(0),
                 );
             }
 
@@ -653,6 +688,11 @@ impl Agent {
 
             let assistant_message_id = if !content_blocks.is_empty() {
                 crate::telemetry::record_assistant_response();
+                crate::live_operational_fabric::emit_provider_response(
+                    self.provider.name(),
+                    text_content.len(),
+                    tool_calls.len(),
+                );
                 let token_usage = Some(crate::session::StoredTokenUsage {
                     input_tokens: self.last_usage.input_tokens,
                     output_tokens: self.last_usage.output_tokens,

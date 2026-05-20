@@ -7,6 +7,7 @@ use crate::latent_operational_recurrence::{
     LatentOperationalState, OperationalEvent, default_invariants, encode_event, remap_vector,
     render_report, state_path, translate_invariants,
 };
+use crate::live_operational_fabric as fabric;
 use anyhow::Context;
 use serde_json::json;
 use std::path::PathBuf;
@@ -81,6 +82,13 @@ pub enum LatentCommand {
     Doctrines,
     Pause,
     Resume,
+    FabricStatus,
+    FabricEvents,
+    FabricReport {
+        output: Option<PathBuf>,
+    },
+    FabricPause,
+    FabricResume,
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -306,6 +314,36 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
             println!(
                 "{}",
                 serde_json::to_string_pretty(&background::set_paused(false)?)?
+            );
+        }
+        LatentCommand::FabricStatus => {
+            println!("{}", serde_json::to_string_pretty(&fabric::status()?)?);
+        }
+        LatentCommand::FabricEvents => {
+            println!("{}", serde_json::to_string_pretty(&fabric::events()?)?);
+        }
+        LatentCommand::FabricReport { output } => {
+            let rendered = fabric::render_markdown_report()?;
+            if let Some(output) = output {
+                if let Some(parent) = output.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::write(&output, rendered)?;
+                println!("wrote {}", output.display());
+            } else {
+                println!("{rendered}");
+            }
+        }
+        LatentCommand::FabricPause => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&fabric::set_paused(true)?)?
+            );
+        }
+        LatentCommand::FabricResume => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&fabric::set_paused(false)?)?
             );
         }
     }

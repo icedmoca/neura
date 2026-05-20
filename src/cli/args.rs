@@ -611,6 +611,19 @@ pub enum LatentCommand {
     Pause,
     /// Resume background learning consumption
     Resume,
+    /// Show live operational fabric status
+    FabricStatus,
+    /// Show live operational fabric event log
+    FabricEvents,
+    /// Render live operational fabric markdown report
+    FabricReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+    /// Pause live fabric event ingestion
+    FabricPause,
+    /// Resume live fabric event ingestion
+    FabricResume,
 }
 
 #[cfg(test)]

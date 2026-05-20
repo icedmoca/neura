@@ -378,6 +378,11 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::Doctrines => latent::LatentCommand::Doctrines,
         LatentCommand::Pause => latent::LatentCommand::Pause,
         LatentCommand::Resume => latent::LatentCommand::Resume,
+        LatentCommand::FabricStatus => latent::LatentCommand::FabricStatus,
+        LatentCommand::FabricEvents => latent::LatentCommand::FabricEvents,
+        LatentCommand::FabricReport { output } => latent::LatentCommand::FabricReport { output },
+        LatentCommand::FabricPause => latent::LatentCommand::FabricPause,
+        LatentCommand::FabricResume => latent::LatentCommand::FabricResume,
     }
 }
 
