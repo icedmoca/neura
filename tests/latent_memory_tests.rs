@@ -63,3 +63,25 @@ fn duplicate_noise_is_suppressed_by_latent_memory() {
     assert_eq!(first.consumed, 1);
     assert!(second.consumed + second.skipped >= 1);
 }
+
+#[test]
+fn closed_loop_attribution_records_usefulness() {
+    let dir = TempDir::new().unwrap();
+    isolate(&dir);
+    ingest_runtime_event(
+        command_event(
+            "build",
+            "success",
+            vec!["test".into(), "validation".into()],
+            Some("cargo".into()),
+        ),
+        "latent-memory-attribution-test",
+    )
+    .unwrap();
+    let result = run_background_cycle(16).unwrap();
+    assert_eq!(result.consumed, 1);
+    let bank = LatentMemoryBank::load_or_default(&latent_memory_path()).unwrap();
+    let report = bank.usefulness_report();
+    assert!(report.total_attributions >= 1);
+    assert!(report.mean_outcome_score >= 0.0);
+}

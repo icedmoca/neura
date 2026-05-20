@@ -96,6 +96,7 @@ pub enum LatentCommand {
     LatentMemoryReport {
         output: Option<PathBuf>,
     },
+    LatentMemoryUsefulness,
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -372,6 +373,13 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         LatentCommand::LatentMemoryBlocks => {
             let bank = LatentMemoryBank::load_or_default(&latent_memory_path())?;
             println!("{}", bank.rehydration_blocks(32, 0.05).join("\n"));
+        }
+        LatentCommand::LatentMemoryUsefulness => {
+            let bank = LatentMemoryBank::load_or_default(&latent_memory_path())?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&bank.usefulness_report())?
+            );
         }
         LatentCommand::LatentMemoryReport { output } => {
             let bank = LatentMemoryBank::load_or_default(&latent_memory_path())?;

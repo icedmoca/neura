@@ -27,6 +27,16 @@ pub struct LatentMemoryEntry {
     pub vector: LatentVector,
     pub tags: Vec<String>,
     pub confidence: f32,
+    #[serde(default)]
+    pub usefulness_score: f32,
+    #[serde(default)]
+    pub influence_count: u64,
+    #[serde(default)]
+    pub positive_outcomes: u64,
+    #[serde(default)]
+    pub negative_outcomes: u64,
+    #[serde(default)]
+    pub drift_reduction_total: f32,
     pub support: u64,
     pub last_seen_ms: u64,
 }
@@ -37,6 +47,37 @@ pub struct LatentMemoryBank {
     pub drift_threshold: f32,
     pub entries: Vec<LatentMemoryEntry>,
     pub synthesis_records: Vec<LatentMemoryEntry>,
+    #[serde(default)]
+    pub attributions: Vec<LatentMemoryAttribution>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LatentMemoryAttribution {
+    pub memory_id: Option<String>,
+    pub action: LatentMemoryAction,
+    pub decision_reason: String,
+    pub event_kind: String,
+    pub outcome: String,
+    pub outcome_score: f32,
+    pub drift_before: f32,
+    pub drift_after: f32,
+    pub drift_delta: f32,
+    pub improved: bool,
+    pub timestamp_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LatentMemoryUsefulnessReport {
+    pub total_attributions: usize,
+    pub improved_count: usize,
+    pub worsened_count: usize,
+    pub repeated_failures_reduced: bool,
+    pub retrieval_improved: bool,
+    pub bad_provider_choices_avoided: bool,
+    pub drift_reduced: bool,
+    pub mean_outcome_score: f32,
+    pub mean_drift_delta: f32,
+    pub top_memories: Vec<(String, f32, u64)>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -64,6 +105,7 @@ impl Default for LatentMemoryBank {
             drift_threshold: DEFAULT_DRIFT_THRESHOLD,
             entries: Vec::new(),
             synthesis_records: Vec::new(),
+            attributions: Vec::new(),
         }
     }
 }
@@ -167,6 +209,11 @@ impl LatentMemoryBank {
             vector: step.sample.encoded.clone(),
             tags: step.sample.event.tags.clone(),
             confidence: step.sample.score.scalar().max(0.0),
+            usefulness_score: step.sample.score.scalar().max(0.0),
+            influence_count: 0,
+            positive_outcomes: 0,
+            negative_outcomes: 0,
+            drift_reduction_total: 0.0,
             support: 1,
             last_seen_ms: crate::latent_operational_recurrence::now_ms(),
         };
@@ -191,6 +238,99 @@ impl LatentMemoryBank {
             .take(limit)
             .map(|entry| entry.ctx_block.clone())
             .collect()
+    }
+
+    pub fn record_attribution(
+        &mut self,
+        decision: &LatentMemoryDecision,
+        event: &OperationalEvent,
+        outcome_score: f32,
+        drift_after: f32,
+    ) -> LatentMemoryAttribution {
+        let drift_delta = decision.drift - drift_after;
+        let improved = outcome_score > 0.0 || drift_delta > 0.0;
+        let attribution = LatentMemoryAttribution {
+            memory_id: decision.matched_memory_id.clone(),
+            action: decision.action.clone(),
+            decision_reason: decision.reason.clone(),
+            event_kind: event.kind.clone(),
+            outcome: event.outcome.clone(),
+            outcome_score,
+            drift_before: decision.drift,
+            drift_after,
+            drift_delta,
+            improved,
+            timestamp_ms: crate::latent_operational_recurrence::now_ms(),
+        };
+        if let Some(id) = &decision.matched_memory_id {
+            if let Some(entry) = self.entries.iter_mut().find(|entry| &entry.id == id) {
+                entry.influence_count += 1;
+                if improved {
+                    entry.positive_outcomes += 1;
+                } else {
+                    entry.negative_outcomes += 1;
+                }
+                entry.drift_reduction_total += drift_delta.max(0.0);
+                entry.usefulness_score = (entry.usefulness_score * 0.85
+                    + outcome_score.max(0.0) * 0.10
+                    + drift_delta.max(0.0).min(1.0) * 0.05)
+                    .clamp(0.0, 1.0);
+                entry.ctx_block = render_ctx_block(entry);
+            }
+        }
+        self.attributions.push(attribution.clone());
+        trim(&mut self.attributions, 512);
+        attribution
+    }
+
+    pub fn usefulness_report(&self) -> LatentMemoryUsefulnessReport {
+        let total = self.attributions.len();
+        let improved_count = self.attributions.iter().filter(|a| a.improved).count();
+        let worsened_count = total.saturating_sub(improved_count);
+        let mean_outcome_score = if total == 0 {
+            0.0
+        } else {
+            self.attributions
+                .iter()
+                .map(|a| a.outcome_score)
+                .sum::<f32>()
+                / total as f32
+        };
+        let mean_drift_delta = if total == 0 {
+            0.0
+        } else {
+            self.attributions.iter().map(|a| a.drift_delta).sum::<f32>() / total as f32
+        };
+        let mut top = self
+            .entries
+            .iter()
+            .map(|e| (e.id.clone(), e.usefulness_score, e.influence_count))
+            .collect::<Vec<_>>();
+        top.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(Ordering::Equal));
+        top.truncate(12);
+        LatentMemoryUsefulnessReport {
+            total_attributions: total,
+            improved_count,
+            worsened_count,
+            repeated_failures_reduced: self.attributions.iter().any(|a| {
+                matches!(
+                    a.action,
+                    LatentMemoryAction::SuppressDuplicate | LatentMemoryAction::DownrankNoise
+                ) && a.improved
+            }),
+            retrieval_improved: self
+                .entries
+                .iter()
+                .any(|e| e.influence_count > 0 && e.usefulness_score > 0.5),
+            bad_provider_choices_avoided: self
+                .attributions
+                .iter()
+                .any(|a| a.event_kind.to_ascii_lowercase().contains("provider") && a.improved),
+            drift_reduced: mean_drift_delta > 0.0,
+            mean_outcome_score,
+            mean_drift_delta,
+            top_memories: top,
+        }
     }
 
     pub fn rehydration_blocks(&self, limit: usize, min_confidence: f32) -> Vec<String> {
@@ -226,9 +366,10 @@ pub fn latent_memory_path() -> PathBuf {
 pub fn render_memory_report(bank: &LatentMemoryBank) -> String {
     let ctx = bank.rehydration_blocks(12, 0.05).join("\n");
     format!(
-        "# Latent Memory Bank Report\n\nEntries: `{}`\nSynthesis records: `{}`\nDrift threshold: `{:.3}`\n\n## Top ctx-style blocks\n\n```text\n{}\n```\n",
+        "# Latent Memory Bank Report\n\nEntries: `{}`\nSynthesis records: `{}`\nAttributions: `{}`\nDrift threshold: `{:.3}`\n\n## Top ctx-style blocks\n\n```text\n{}\n```\n",
         bank.entries.len(),
         bank.synthesis_records.len(),
+        bank.attributions.len(),
         bank.drift_threshold,
         ctx
     )
@@ -335,6 +476,11 @@ mod tests {
             vector: vector.clone(),
             tags: vec!["token".into()],
             confidence: 0.9,
+            usefulness_score: 0.9,
+            influence_count: 0,
+            positive_outcomes: 0,
+            negative_outcomes: 0,
+            drift_reduction_total: 0.0,
             support: 9,
             last_seen_ms: 0,
         });

@@ -122,6 +122,7 @@ Automatic background adaptation is enabled by default: every live fabric event o
 kcode kcode-latent latent-memory-status
 kcode kcode-latent latent-memory-blocks
 kcode kcode-latent latent-memory-report --output ~/Desktop/latent_memory_report.md
+kcode kcode-latent latent-memory-usefulness
 ```
 
 Latent memory stores ctx-style blocks for stable attractors, noise patterns, validation doctrine, useful drift synthesis, and operational lessons. Background learning consults this bank before vector updates to suppress duplicates, down-rank noise, anchor excessive drift, and preserve useful drift as synthesis memory.

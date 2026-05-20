@@ -156,6 +156,7 @@ pub fn run_background_cycle(limit: usize) -> anyhow::Result<BackgroundCycleResul
             LatentMemoryAction::ApplyMeaningfulUpdate
             | LatentMemoryAction::SynthesizeUsefulDrift => {}
         }
+        let drift_before = recurrence.drift();
         let gate = recurrence.observe(sample.event.clone());
         if !gate.accepted {
             result.skipped += 1;
@@ -165,8 +166,21 @@ pub fn run_background_cycle(limit: usize) -> anyhow::Result<BackgroundCycleResul
         let step = learning.learn(&recurrence, sample.event.clone());
         if step.immune.triggered {
             result.immune_rejections += 1;
+            let _ = latent_memory.record_attribution(
+                &decision,
+                &sample.event,
+                -step.immune.severity,
+                recurrence.drift(),
+            );
         } else {
             let _ = latent_memory.absorb_learning_step(&step);
+            let outcome_score = step.sample.score.scalar();
+            let _ = latent_memory.record_attribution(
+                &decision,
+                &sample.event,
+                outcome_score,
+                recurrence.drift().min(drift_before),
+            );
         }
         result.learning_steps.push(step);
         sample.consumed = true;

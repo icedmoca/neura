@@ -389,6 +389,7 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::LatentMemoryReport { output } => {
             latent::LatentCommand::LatentMemoryReport { output }
         }
+        LatentCommand::LatentMemoryUsefulness => latent::LatentCommand::LatentMemoryUsefulness,
     }
 }
 
