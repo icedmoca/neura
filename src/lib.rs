@@ -55,6 +55,7 @@ pub mod operational_repair_learning;
 pub mod perf;
 pub mod plan;
 pub mod platform;
+pub mod policy_outcome_credit;
 pub mod policy_runtime;
 pub mod process_memory;
 pub mod process_title;

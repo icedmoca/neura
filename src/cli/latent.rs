@@ -10,6 +10,7 @@ use crate::latent_operational_recurrence::{
 };
 use crate::live_operational_fabric as fabric;
 use crate::operational_policy::{self, PolicyDomain};
+use crate::policy_outcome_credit;
 use anyhow::Context;
 use serde_json::json;
 use std::path::PathBuf;
@@ -109,6 +110,13 @@ pub enum LatentCommand {
         output: Option<PathBuf>,
     },
     PolicyDomains,
+    PolicyCreditReport {
+        output: Option<PathBuf>,
+    },
+    PolicyCreditAssign {
+        audit_id: String,
+        outcome: String,
+    },
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -413,6 +421,26 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         LatentCommand::PolicyAudit => {
             let state = operational_policy::load_policy_and_synthesize()?;
             println!("{}", serde_json::to_string_pretty(&state.audits)?);
+        }
+        LatentCommand::PolicyCreditReport { output } => {
+            let rendered = policy_outcome_credit::render_credit_report()?;
+            if let Some(output) = output {
+                if let Some(parent) = output.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::write(&output, rendered)?;
+                println!("wrote {}", output.display());
+            } else {
+                println!("{rendered}");
+            }
+        }
+        LatentCommand::PolicyCreditAssign { audit_id, outcome } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&policy_outcome_credit::assign_credit(
+                    &audit_id, &outcome
+                )?)?
+            );
         }
         LatentCommand::PolicyDomains => {
             let report = operational_policy::report()?;

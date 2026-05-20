@@ -398,6 +398,12 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::PolicyAudit => latent::LatentCommand::PolicyAudit,
         LatentCommand::PolicyReport { output } => latent::LatentCommand::PolicyReport { output },
         LatentCommand::PolicyDomains => latent::LatentCommand::PolicyDomains,
+        LatentCommand::PolicyCreditReport { output } => {
+            latent::LatentCommand::PolicyCreditReport { output }
+        }
+        LatentCommand::PolicyCreditAssign { audit_id, outcome } => {
+            latent::LatentCommand::PolicyCreditAssign { audit_id, outcome }
+        }
     }
 }
 

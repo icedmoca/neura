@@ -652,6 +652,13 @@ pub enum LatentCommand {
     },
     /// Show active and API-only policy domains
     PolicyDomains,
+    /// Render policy outcome credit report
+    PolicyCreditReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+    /// Assign an explicit outcome to a policy audit id
+    PolicyCreditAssign { audit_id: String, outcome: String },
 }
 
 #[cfg(test)]

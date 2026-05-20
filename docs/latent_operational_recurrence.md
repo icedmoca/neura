@@ -139,3 +139,12 @@ kcode kcode-latent policy-domains
 ```
 
 Policy influence is gated by latent memory usefulness: low-confidence memories do not become policy, policy decisions are audited, and observe-only mode is available in state for safe rollout.
+
+## Policy outcome credit commands
+
+```bash
+kcode kcode-latent policy-credit-report --output ~/Desktop/policy_credit_report.md
+kcode kcode-latent policy-credit-assign <audit-id> success
+```
+
+Policy outcome credit assigns success/failure back to policy audits, updates rule confidence, and propagates usefulness back into the source latent memory when a rule came from memory.
