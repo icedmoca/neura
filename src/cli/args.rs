@@ -626,6 +626,15 @@ pub enum LatentCommand {
     FabricResume,
     /// Emit a live fabric system ping for validation
     FabricPing,
+    /// Show latent memory bank status
+    LatentMemoryStatus,
+    /// Print ctx-style latent memory blocks
+    LatentMemoryBlocks,
+    /// Render latent memory bank report
+    LatentMemoryReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
 }
 
 #[cfg(test)]

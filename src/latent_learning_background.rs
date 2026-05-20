@@ -1,5 +1,8 @@
 use crate::latent_learning::{LatentLearningState, LearningStep, learning_state_path};
-use crate::latent_operational_recurrence::{LatentOperationalState, OperationalEvent, state_path};
+use crate::latent_memory::{LatentMemoryAction, LatentMemoryBank, latent_memory_path};
+use crate::latent_operational_recurrence::{
+    LatentOperationalState, OperationalEvent, encode_event, state_path,
+};
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, OpenOptions};
@@ -127,6 +130,7 @@ pub fn run_background_cycle(limit: usize) -> anyhow::Result<BackgroundCycleResul
     let mut samples = load_samples()?;
     let mut recurrence = LatentOperationalState::load_or_default(&state_path())?;
     let mut learning = LatentLearningState::load_or_default(&learning_state_path())?;
+    let mut latent_memory = LatentMemoryBank::load_or_default(&latent_memory_path())?;
     let mut result = BackgroundCycleResult {
         consumed: 0,
         skipped: 0,
@@ -135,6 +139,23 @@ pub fn run_background_cycle(limit: usize) -> anyhow::Result<BackgroundCycleResul
     };
 
     for sample in samples.iter_mut().filter(|s| !s.consumed).take(limit) {
+        let encoded = encode_event(&sample.event);
+        let decision = latent_memory.rank_event(&sample.event, &encoded, &recurrence.vector);
+        match decision.action {
+            LatentMemoryAction::SuppressDuplicate => {
+                result.skipped += 1;
+                sample.consumed = true;
+                continue;
+            }
+            LatentMemoryAction::DownrankNoise => {
+                sample.event.weight = (sample.event.weight * decision.rank).clamp(0.05, 1.0);
+            }
+            LatentMemoryAction::AnchorToAttractor => {
+                sample.event.weight = (sample.event.weight * decision.rank).clamp(0.1, 1.0);
+            }
+            LatentMemoryAction::ApplyMeaningfulUpdate
+            | LatentMemoryAction::SynthesizeUsefulDrift => {}
+        }
         let gate = recurrence.observe(sample.event.clone());
         if !gate.accepted {
             result.skipped += 1;
@@ -144,6 +165,8 @@ pub fn run_background_cycle(limit: usize) -> anyhow::Result<BackgroundCycleResul
         let step = learning.learn(&recurrence, sample.event.clone());
         if step.immune.triggered {
             result.immune_rejections += 1;
+        } else {
+            let _ = latent_memory.absorb_learning_step(&step);
         }
         result.learning_steps.push(step);
         sample.consumed = true;
@@ -152,6 +175,7 @@ pub fn run_background_cycle(limit: usize) -> anyhow::Result<BackgroundCycleResul
 
     recurrence.save(&state_path())?;
     learning.save(&learning_state_path())?;
+    latent_memory.save(&latent_memory_path())?;
     save_samples(&samples)?;
     control.last_cycle_ms = Some(crate::latent_operational_recurrence::now_ms());
     control.last_cycle_consumed = result.consumed;

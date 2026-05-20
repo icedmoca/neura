@@ -115,3 +115,13 @@ kcode kcode-latent fabric-ping
 The fabric emits live user-message, provider request/response, tool, token, local sidecar token-estimate, memory bridge, and background latent learning events. Events are persisted under `~/.kcode/live_operational_fabric/events.jsonl` and bridged into the latent background sample queue.
 
 Automatic background adaptation is enabled by default: every live fabric event opportunistically runs a bounded latent background cycle. Set `KCODE_LIVE_FABRIC_AUTO_CYCLE=0` to disable it for debugging.
+
+## Latent memory bank commands
+
+```bash
+kcode kcode-latent latent-memory-status
+kcode kcode-latent latent-memory-blocks
+kcode kcode-latent latent-memory-report --output ~/Desktop/latent_memory_report.md
+```
+
+Latent memory stores ctx-style blocks for stable attractors, noise patterns, validation doctrine, useful drift synthesis, and operational lessons. Background learning consults this bank before vector updates to suppress duplicates, down-rank noise, anchor excessive drift, and preserve useful drift as synthesis memory.

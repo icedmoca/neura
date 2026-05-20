@@ -384,6 +384,11 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::FabricPause => latent::LatentCommand::FabricPause,
         LatentCommand::FabricResume => latent::LatentCommand::FabricResume,
         LatentCommand::FabricPing => latent::LatentCommand::FabricPing,
+        LatentCommand::LatentMemoryStatus => latent::LatentCommand::LatentMemoryStatus,
+        LatentCommand::LatentMemoryBlocks => latent::LatentCommand::LatentMemoryBlocks,
+        LatentCommand::LatentMemoryReport { output } => {
+            latent::LatentCommand::LatentMemoryReport { output }
+        }
     }
 }
 

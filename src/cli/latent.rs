@@ -3,6 +3,7 @@ use crate::latent_learning::{
     remap_plan, render_learning_report,
 };
 use crate::latent_learning_background as background;
+use crate::latent_memory::{LatentMemoryBank, latent_memory_path, render_memory_report};
 use crate::latent_operational_recurrence::{
     LatentOperationalState, OperationalEvent, default_invariants, encode_event, remap_vector,
     render_report, state_path, translate_invariants,
@@ -90,6 +91,11 @@ pub enum LatentCommand {
     FabricPause,
     FabricResume,
     FabricPing,
+    LatentMemoryStatus,
+    LatentMemoryBlocks,
+    LatentMemoryReport {
+        output: Option<PathBuf>,
+    },
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -350,6 +356,35 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         LatentCommand::FabricPing => {
             fabric::emit_system_ping("fabric-ping");
             println!("{}", serde_json::to_string_pretty(&fabric::status()?)?);
+        }
+        LatentCommand::LatentMemoryStatus => {
+            let bank = LatentMemoryBank::load_or_default(&latent_memory_path())?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "entries": bank.entries.len(),
+                    "synthesis_records": bank.synthesis_records.len(),
+                    "drift_threshold": bank.drift_threshold,
+                    "path": latent_memory_path(),
+                }))?
+            );
+        }
+        LatentCommand::LatentMemoryBlocks => {
+            let bank = LatentMemoryBank::load_or_default(&latent_memory_path())?;
+            println!("{}", bank.rehydration_blocks(32, 0.05).join("\n"));
+        }
+        LatentCommand::LatentMemoryReport { output } => {
+            let bank = LatentMemoryBank::load_or_default(&latent_memory_path())?;
+            let rendered = render_memory_report(&bank);
+            if let Some(output) = output {
+                if let Some(parent) = output.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::write(&output, rendered)?;
+                println!("wrote {}", output.display());
+            } else {
+                println!("{rendered}");
+            }
         }
     }
     Ok(())
