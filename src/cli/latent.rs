@@ -9,6 +9,7 @@ use crate::latent_operational_recurrence::{
     render_report, state_path, translate_invariants,
 };
 use crate::live_operational_fabric as fabric;
+use crate::operational_policy::{self, PolicyDomain};
 use anyhow::Context;
 use serde_json::json;
 use std::path::PathBuf;
@@ -97,6 +98,16 @@ pub enum LatentCommand {
         output: Option<PathBuf>,
     },
     LatentMemoryUsefulness,
+    PolicyStatus,
+    PolicyRules,
+    PolicyDecide {
+        domain: String,
+        target: String,
+    },
+    PolicyAudit,
+    PolicyReport {
+        output: Option<PathBuf>,
+    },
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -381,6 +392,39 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
                 serde_json::to_string_pretty(&bank.usefulness_report())?
             );
         }
+        LatentCommand::PolicyStatus => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&operational_policy::report()?)?
+            );
+        }
+        LatentCommand::PolicyRules => {
+            let state = operational_policy::load_policy_and_synthesize()?;
+            println!("{}", serde_json::to_string_pretty(&state.rules)?);
+        }
+        LatentCommand::PolicyDecide { domain, target } => {
+            let mut state = operational_policy::load_policy_and_synthesize()?;
+            let domain = parse_policy_domain(&domain);
+            let decision = state.decide(domain, &target);
+            state.save(&operational_policy::policy_state_path())?;
+            println!("{}", serde_json::to_string_pretty(&decision)?);
+        }
+        LatentCommand::PolicyAudit => {
+            let state = operational_policy::load_policy_and_synthesize()?;
+            println!("{}", serde_json::to_string_pretty(&state.audits)?);
+        }
+        LatentCommand::PolicyReport { output } => {
+            let rendered = operational_policy::render_policy_report()?;
+            if let Some(output) = output {
+                if let Some(parent) = output.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::write(&output, rendered)?;
+                println!("wrote {}", output.display());
+            } else {
+                println!("{rendered}");
+            }
+        }
         LatentCommand::LatentMemoryReport { output } => {
             let bank = LatentMemoryBank::load_or_default(&latent_memory_path())?;
             let rendered = render_memory_report(&bank);
@@ -396,4 +440,15 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn parse_policy_domain(value: &str) -> PolicyDomain {
+    match value.to_ascii_lowercase().as_str() {
+        "tool" | "tool-selection" => PolicyDomain::ToolSelection,
+        "provider" | "provider-choice" => PolicyDomain::ProviderChoice,
+        "context" | "context-budget" => PolicyDomain::ContextBudget,
+        "test" | "validation" | "test-validation" => PolicyDomain::TestValidation,
+        "memory" | "memory-retrieval" => PolicyDomain::MemoryRetrieval,
+        _ => PolicyDomain::DriftControl,
+    }
 }

@@ -390,6 +390,13 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
             latent::LatentCommand::LatentMemoryReport { output }
         }
         LatentCommand::LatentMemoryUsefulness => latent::LatentCommand::LatentMemoryUsefulness,
+        LatentCommand::PolicyStatus => latent::LatentCommand::PolicyStatus,
+        LatentCommand::PolicyRules => latent::LatentCommand::PolicyRules,
+        LatentCommand::PolicyDecide { domain, target } => {
+            latent::LatentCommand::PolicyDecide { domain, target }
+        }
+        LatentCommand::PolicyAudit => latent::LatentCommand::PolicyAudit,
+        LatentCommand::PolicyReport { output } => latent::LatentCommand::PolicyReport { output },
     }
 }
 

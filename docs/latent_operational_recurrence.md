@@ -126,3 +126,15 @@ kcode kcode-latent latent-memory-usefulness
 ```
 
 Latent memory stores ctx-style blocks for stable attractors, noise patterns, validation doctrine, useful drift synthesis, and operational lessons. Background learning consults this bank before vector updates to suppress duplicates, down-rank noise, anchor excessive drift, and preserve useful drift as synthesis memory.
+
+## Operational policy influence commands
+
+```bash
+kcode kcode-latent policy-status
+kcode kcode-latent policy-rules
+kcode kcode-latent policy-decide test-validation final-answer
+kcode kcode-latent policy-audit
+kcode kcode-latent policy-report --output ~/Desktop/policy_influence_report.md
+```
+
+Policy influence is gated by latent memory usefulness: low-confidence memories do not become policy, policy decisions are audited, and observe-only mode is available in state for safe rollout.

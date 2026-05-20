@@ -637,6 +637,19 @@ pub enum LatentCommand {
     },
     /// Show closed-loop latent memory usefulness attribution
     LatentMemoryUsefulness,
+    /// Show operational policy synthesis status
+    PolicyStatus,
+    /// Show synthesized policy rules
+    PolicyRules,
+    /// Ask the gated operational policy for a decision
+    PolicyDecide { domain: String, target: String },
+    /// Show policy influence audit log
+    PolicyAudit,
+    /// Render operational policy influence report
+    PolicyReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
 }
 
 #[cfg(test)]
