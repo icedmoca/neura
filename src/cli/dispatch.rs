@@ -408,6 +408,11 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::EvalRun => latent::LatentCommand::EvalRun,
         LatentCommand::EvalReport { output } => latent::LatentCommand::EvalReport { output },
         LatentCommand::EvalGate => latent::LatentCommand::EvalGate,
+        LatentCommand::AdversarialEvalRun => latent::LatentCommand::AdversarialEvalRun,
+        LatentCommand::AdversarialEvalReport { output } => {
+            latent::LatentCommand::AdversarialEvalReport { output }
+        }
+        LatentCommand::AdversarialEvalGate => latent::LatentCommand::AdversarialEvalGate,
         LatentCommand::PolicyShadowReport { output } => {
             latent::LatentCommand::PolicyShadowReport { output }
         }

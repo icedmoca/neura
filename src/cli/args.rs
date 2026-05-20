@@ -676,6 +676,18 @@ pub enum LatentCommand {
     /// Enforce the operational self-eval promotion gate
     EvalGate,
 
+    /// Run adversarial operational eval suite
+    AdversarialEvalRun,
+
+    /// Write adversarial operational eval markdown report
+    AdversarialEvalReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+
+    /// Enforce adversarial promotion hardening gate
+    AdversarialEvalGate,
+
     /// Render policy shadow simulation report
     PolicyShadowReport {
         #[arg(long)]

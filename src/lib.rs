@@ -1,4 +1,5 @@
 pub mod adaptive_cognition;
+pub mod adversarial_eval;
 pub mod agent;
 pub mod ambient;
 pub mod ambient_runner;

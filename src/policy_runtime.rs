@@ -1,5 +1,5 @@
 use crate::operational_policy::{
-    PolicyDecision, PolicyDomain, load_policy_and_synthesize, policy_state_path,
+    PolicyAction, PolicyDecision, PolicyDomain, load_policy_and_synthesize, policy_state_path,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +17,12 @@ pub fn decide(
     active_runtime_hook: bool,
 ) -> Option<PolicyRuntimeDecision> {
     let mut state = load_policy_and_synthesize().ok()?;
-    let decision = state.decide(domain.clone(), target);
+    let mut decision = state.decide(domain.clone(), target);
+    if matches!(decision.action, PolicyAction::Allow) && decision.confidence <= 0.01 {
+        if let Some(fallback) = adversarial_fallback(domain.clone(), target) {
+            decision = fallback.decision;
+        }
+    }
     state.record_outcome(
         &decision.audit_id,
         if active_runtime_hook {
@@ -68,4 +73,61 @@ pub fn repair_bias(target: &str) -> f32 {
     decide(PolicyDomain::RepairStrategy, target, false)
         .map(|d| d.decision.confidence)
         .unwrap_or(0.0)
+}
+
+fn adversarial_fallback(domain: PolicyDomain, intent: &str) -> Option<PolicyRuntimeDecision> {
+    let lower = intent.to_lowercase();
+    let risky = [
+        "delete",
+        "production",
+        "ignore",
+        "safety",
+        "infinite",
+        "retrying",
+        "without eval",
+        "without shadow",
+        "without user",
+        "without evidence",
+        "dump",
+        "hidden ctx",
+        "auth",
+        "private",
+        "exfiltrat",
+        "overwrite",
+        "hiding failures",
+        "skipping tests",
+        "suppressing audits",
+    ];
+    let hits = risky
+        .iter()
+        .filter(|needle| lower.contains(**needle))
+        .count();
+    if hits == 0 {
+        return None;
+    }
+    let action = match domain {
+        PolicyDomain::RiskControl | PolicyDomain::Replay | PolicyDomain::Introspection => {
+            PolicyAction::RequireAudit
+        }
+        PolicyDomain::ToolBudget | PolicyDomain::ContextBudget => PolicyAction::CapBudget,
+        PolicyDomain::MemoryRetrieval => PolicyAction::Suppress,
+        PolicyDomain::TestValidation => PolicyAction::RequireValidation,
+        _ => PolicyAction::RequireValidation,
+    };
+    Some(PolicyRuntimeDecision {
+        domain: domain.clone(),
+        target: intent.to_string(),
+        decision: PolicyDecision {
+            domain,
+            action,
+            rule_id: None,
+            allowed: false,
+            confidence: (0.86 + hits as f32 * 0.02).min(0.99),
+            reason: format!(
+                "adversarial fallback: high-risk operational intent matched {hits} marker(s)"
+            ),
+            audit_id: format!("adversarial-fallback-{}", intent.len() + hits),
+        },
+        active_runtime_hook: true,
+    })
 }

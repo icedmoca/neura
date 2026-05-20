@@ -1,3 +1,4 @@
+use crate::adversarial_eval::enforce_adversarial_eval_gate;
 use crate::latent_learning_background::{
     command_event, ingest_runtime_event, run_background_cycle,
 };
@@ -367,10 +368,24 @@ pub fn write_operational_eval_markdown(output: Option<PathBuf>) -> Result<PathBu
 }
 
 pub fn enforce_operational_eval_gate() -> Result<EvalGateDecision> {
+    enforce_operational_eval_gate_with_adversarial(true)
+}
+
+pub fn enforce_operational_eval_gate_with_adversarial(
+    include_adversarial: bool,
+) -> Result<EvalGateDecision> {
     let report = load_or_run_eval_report()?;
-    if report.gate.passed {
-        Ok(report.gate)
-    } else {
-        Err(anyhow!(report.gate.reason))
+    if !report.gate.passed {
+        return Err(anyhow!(report.gate.reason));
     }
+    if include_adversarial {
+        let adversarial = enforce_adversarial_eval_gate()?;
+        return Ok(EvalGateDecision {
+            passed: true,
+            threshold: report.gate.threshold.max(adversarial.threshold),
+            critical_failures: 0,
+            reason: format!("{}; {}", report.gate.reason, adversarial.reason),
+        });
+    }
+    Ok(report.gate)
 }

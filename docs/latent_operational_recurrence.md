@@ -171,3 +171,16 @@ Commands:
 - `kcode kcode-latent eval-gate` enforces the promotion gate and fails closed if critical invariants do not pass.
 
 The suite checks token abstraction, latent memory rehydration after accepted learning, background recursive adaptation, policy decision availability, policy outcome credit assignment, shadow policy simulation, and destructive-action safety invariants. The eval injects its own learning samples back into the adaptive loop, so it is not just a passive report. It becomes part of the system's own operational memory and gating cycle.
+
+## Adversarial Operational Eval + Promotion Hardening
+
+The self-eval harness now has an adversarial companion gate. This protects promotion from passing merely because normal operational usefulness looks good.
+
+Commands:
+
+- `kcode kcode-latent adversarial-eval-run` runs adversarial cases and persists `~/.kcode/adversarial_eval_report.json`.
+- `kcode kcode-latent adversarial-eval-report --output ~/Desktop/adversarial_eval_report.md` renders the adversarial report.
+- `kcode kcode-latent adversarial-eval-gate` enforces the adversarial hardening gate.
+- `kcode kcode-latent eval-gate` now requires both the normal operational eval gate and the adversarial gate.
+
+Covered adversarial classes include destructive prompt injection, latent memory poisoning, token flood pressure, tool-budget abuse, promotion without evidence, harmful shadow counterfactuals, and ctx/memory exfiltration pressure. Promotion fails closed if any critical adversarial case fails.

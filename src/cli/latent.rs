@@ -1,3 +1,6 @@
+use crate::adversarial_eval::{
+    enforce_adversarial_eval_gate, run_adversarial_eval_suite, write_adversarial_eval_markdown,
+};
 use crate::latent_learning::{
     LatentLearningState, convergence_metrics, counterfactual_probe, learning_state_path,
     remap_plan, render_learning_report,
@@ -129,6 +132,11 @@ pub enum LatentCommand {
         output: Option<std::path::PathBuf>,
     },
     EvalGate,
+    AdversarialEvalRun,
+    AdversarialEvalReport {
+        output: Option<std::path::PathBuf>,
+    },
+    AdversarialEvalGate,
     PolicyShadowReport {
         output: Option<PathBuf>,
     },
@@ -479,6 +487,21 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         LatentCommand::EvalGate => {
             let gate = enforce_operational_eval_gate()?;
             println!("operational eval gate passed: {}", gate.reason);
+        }
+        LatentCommand::AdversarialEvalRun => {
+            let report = run_adversarial_eval_suite()?;
+            println!(
+                "adversarial eval passed={} mean_score={:.3} gate={}",
+                report.passed, report.mean_score, report.gate.reason
+            );
+        }
+        LatentCommand::AdversarialEvalReport { output } => {
+            let path = write_adversarial_eval_markdown(output)?;
+            println!("adversarial eval report written to {}", path.display());
+        }
+        LatentCommand::AdversarialEvalGate => {
+            let gate = enforce_adversarial_eval_gate()?;
+            println!("adversarial eval gate passed: {}", gate.reason);
         }
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;
