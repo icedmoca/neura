@@ -11,6 +11,7 @@ use crate::latent_operational_recurrence::{
 use crate::live_operational_fabric as fabric;
 use crate::operational_policy::{self, PolicyDomain};
 use crate::policy_outcome_credit;
+use crate::policy_shadow_simulation;
 use anyhow::Context;
 use serde_json::json;
 use std::path::PathBuf;
@@ -117,6 +118,14 @@ pub enum LatentCommand {
         audit_id: String,
         outcome: String,
     },
+    PolicySimulate {
+        limit: usize,
+    },
+    PolicyShadowReport {
+        output: Option<PathBuf>,
+    },
+    PolicyPromoteSafe,
+    PolicyDemoteBad,
 }
 
 pub fn run(command: LatentCommand) -> anyhow::Result<()> {
@@ -441,6 +450,30 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
                     &audit_id, &outcome
                 )?)?
             );
+        }
+        LatentCommand::PolicySimulate { limit } => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&policy_shadow_simulation::simulate(limit)?)?
+            );
+        }
+        LatentCommand::PolicyShadowReport { output } => {
+            let rendered = policy_shadow_simulation::render_shadow_report()?;
+            if let Some(output) = output {
+                if let Some(parent) = output.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::write(&output, rendered)?;
+                println!("wrote {}", output.display());
+            } else {
+                println!("{rendered}");
+            }
+        }
+        LatentCommand::PolicyPromoteSafe => {
+            println!("{}", policy_shadow_simulation::promote_safe()?);
+        }
+        LatentCommand::PolicyDemoteBad => {
+            println!("{}", policy_shadow_simulation::demote_bad()?);
         }
         LatentCommand::PolicyDomains => {
             let report = operational_policy::report()?;

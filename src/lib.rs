@@ -57,6 +57,7 @@ pub mod plan;
 pub mod platform;
 pub mod policy_outcome_credit;
 pub mod policy_runtime;
+pub mod policy_shadow_simulation;
 pub mod process_memory;
 pub mod process_title;
 pub mod prompt;

@@ -659,6 +659,20 @@ pub enum LatentCommand {
     },
     /// Assign an explicit outcome to a policy audit id
     PolicyCreditAssign { audit_id: String, outcome: String },
+    /// Run shadow policy simulation over recent events/samples
+    PolicySimulate {
+        #[arg(long, default_value_t = 200)]
+        limit: usize,
+    },
+    /// Render policy shadow simulation report
+    PolicyShadowReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+    /// Promote policies that win in shadow simulation
+    PolicyPromoteSafe,
+    /// Demote policies that lose in shadow simulation
+    PolicyDemoteBad,
 }
 
 #[cfg(test)]

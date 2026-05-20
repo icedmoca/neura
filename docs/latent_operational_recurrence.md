@@ -148,3 +148,14 @@ kcode kcode-latent policy-credit-assign <audit-id> success
 ```
 
 Policy outcome credit assigns success/failure back to policy audits, updates rule confidence, and propagates usefulness back into the source latent memory when a rule came from memory.
+
+## Policy shadow simulation commands
+
+```bash
+kcode kcode-latent policy-simulate --limit 200
+kcode kcode-latent policy-shadow-report --output ~/Desktop/policy_shadow_report.md
+kcode kcode-latent policy-promote-safe
+kcode kcode-latent policy-demote-bad
+```
+
+Shadow simulation replays recent live fabric events and latent background samples through current policies, estimates counterfactual delta, then allows safe promotion or demotion before stronger runtime enforcement.

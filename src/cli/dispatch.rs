@@ -404,6 +404,12 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::PolicyCreditAssign { audit_id, outcome } => {
             latent::LatentCommand::PolicyCreditAssign { audit_id, outcome }
         }
+        LatentCommand::PolicySimulate { limit } => latent::LatentCommand::PolicySimulate { limit },
+        LatentCommand::PolicyShadowReport { output } => {
+            latent::LatentCommand::PolicyShadowReport { output }
+        }
+        LatentCommand::PolicyPromoteSafe => latent::LatentCommand::PolicyPromoteSafe,
+        LatentCommand::PolicyDemoteBad => latent::LatentCommand::PolicyDemoteBad,
     }
 }
 
