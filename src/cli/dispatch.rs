@@ -413,6 +413,18 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
             latent::LatentCommand::AdversarialEvalReport { output }
         }
         LatentCommand::AdversarialEvalGate => latent::LatentCommand::AdversarialEvalGate,
+        LatentCommand::SelfImproveRun {
+            iterations,
+            dry_run,
+            allow_mutation,
+        } => latent::LatentCommand::SelfImproveRun {
+            iterations,
+            dry_run,
+            allow_mutation,
+        },
+        LatentCommand::SelfImproveReport { output } => {
+            latent::LatentCommand::SelfImproveReport { output }
+        }
         LatentCommand::PolicyShadowReport { output } => {
             latent::LatentCommand::PolicyShadowReport { output }
         }

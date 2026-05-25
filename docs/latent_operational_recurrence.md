@@ -184,3 +184,15 @@ Commands:
 - `kcode kcode-latent eval-gate` now requires both the normal operational eval gate and the adversarial gate.
 
 Covered adversarial classes include destructive prompt injection, latent memory poisoning, token flood pressure, tool-budget abuse, promotion without evidence, harmful shadow counterfactuals, and ctx/memory exfiltration pressure. Promotion fails closed if any critical adversarial case fails.
+
+## Autonomous Internal Testing + Bounded Self-Improvement Scheduler
+
+Kcode now has a bounded autonomous internal testing scheduler. It recursively evaluates the current runtime against operational evals, adversarial evals, and focused internal validations, then synthesizes improvement candidates. It is dry-run by default and mutation-disabled by default.
+
+Commands:
+
+- `kcode kcode-latent self-improve-run --iterations 1` runs one bounded dry-run cycle.
+- `kcode kcode-latent self-improve-run --iterations 1 --dry-run false --allow-mutation true` enables the mutation path, but only for safe actions and only after all gates pass.
+- `kcode kcode-latent self-improve-report --output ~/Desktop/self_improvement_report.md` renders the latest report.
+
+The scheduler is intentionally fail-closed: it caps iterations, requires operational and adversarial gates, runs internal validation, records blocked actions, and does not apply code changes in dry-run mode.

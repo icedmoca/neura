@@ -1,6 +1,9 @@
 use crate::adversarial_eval::{
     enforce_adversarial_eval_gate, run_adversarial_eval_suite, write_adversarial_eval_markdown,
 };
+use crate::autonomous_improvement::{
+    ImprovementConfig, run_self_improvement_cycle, write_self_improvement_markdown,
+};
 use crate::latent_learning::{
     LatentLearningState, convergence_metrics, counterfactual_probe, learning_state_path,
     remap_plan, render_learning_report,
@@ -137,6 +140,14 @@ pub enum LatentCommand {
         output: Option<std::path::PathBuf>,
     },
     AdversarialEvalGate,
+    SelfImproveRun {
+        iterations: usize,
+        dry_run: bool,
+        allow_mutation: bool,
+    },
+    SelfImproveReport {
+        output: Option<std::path::PathBuf>,
+    },
     PolicyShadowReport {
         output: Option<PathBuf>,
     },
@@ -502,6 +513,28 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         LatentCommand::AdversarialEvalGate => {
             let gate = enforce_adversarial_eval_gate()?;
             println!("adversarial eval gate passed: {}", gate.reason);
+        }
+        LatentCommand::SelfImproveRun {
+            iterations,
+            dry_run,
+            allow_mutation,
+        } => {
+            let report = run_self_improvement_cycle(ImprovementConfig {
+                max_iterations: iterations,
+                dry_run,
+                allow_mutation,
+                ..ImprovementConfig::default()
+            })?;
+            println!(
+                "self-improvement passed={} iterations={} summary={}",
+                report.passed,
+                report.iterations.len(),
+                report.summary
+            );
+        }
+        LatentCommand::SelfImproveReport { output } => {
+            let path = write_self_improvement_markdown(output)?;
+            println!("self-improvement report written to {}", path.display());
         }
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;

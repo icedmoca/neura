@@ -688,6 +688,22 @@ pub enum LatentCommand {
     /// Enforce adversarial promotion hardening gate
     AdversarialEvalGate,
 
+    /// Run bounded autonomous internal testing and self-improvement scheduler
+    SelfImproveRun {
+        #[arg(long, default_value_t = 1)]
+        iterations: usize,
+        #[arg(long, default_value_t = true)]
+        dry_run: bool,
+        #[arg(long, default_value_t = false)]
+        allow_mutation: bool,
+    },
+
+    /// Write autonomous self-improvement markdown report
+    SelfImproveReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+
     /// Render policy shadow simulation report
     PolicyShadowReport {
         #[arg(long)]
