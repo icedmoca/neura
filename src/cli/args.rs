@@ -761,6 +761,15 @@ pub enum LatentCommand {
         allow_mutation: bool,
     },
 
+    /// Verify cognition evidence ledger hash chain
+    EvidenceLedgerVerify,
+
+    /// Write cognition evidence ledger markdown report
+    EvidenceLedgerReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+
     /// Render policy shadow simulation report
     PolicyShadowReport {
         #[arg(long)]

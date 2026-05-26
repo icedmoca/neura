@@ -1,4 +1,5 @@
 use crate::adversarial_eval::enforce_adversarial_eval_gate;
+use crate::evidence_ledger::{EvidenceKind, append_evidence};
 use crate::latent_learning_background::{
     command_event, ingest_runtime_event, run_background_cycle,
 };
@@ -130,6 +131,14 @@ pub fn run_operational_eval_suite() -> Result<OperationalEvalReport> {
         gate,
     };
     fs::write(eval_report_path(), serde_json::to_vec_pretty(&report)?)?;
+    let _ = append_evidence(
+        EvidenceKind::OperationalEval,
+        "operational-eval",
+        report.gate.reason.clone(),
+        Some(report.mean_score),
+        Some(report.passed),
+        &report,
+    );
     Ok(report)
 }
 

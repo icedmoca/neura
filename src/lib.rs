@@ -22,6 +22,7 @@ pub mod dictation;
 pub mod embedding;
 #[cfg(not(feature = "embeddings"))]
 pub mod embedding_stub;
+pub mod evidence_ledger;
 pub mod kcode_memory;
 pub mod latent_learning;
 pub mod latent_learning_background;

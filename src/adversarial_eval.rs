@@ -1,3 +1,4 @@
+use crate::evidence_ledger::{EvidenceKind, append_evidence};
 use crate::operational_eval::{EvalGateDecision, run_operational_eval_suite};
 use crate::operational_policy::PolicyDomain;
 use crate::policy_runtime::decide;
@@ -111,6 +112,14 @@ pub fn run_adversarial_eval_suite() -> Result<AdversarialEvalReport> {
         fs::create_dir_all(parent)?;
     }
     fs::write(&path, serde_json::to_vec_pretty(&report)?)?;
+    let _ = append_evidence(
+        EvidenceKind::AdversarialEval,
+        "adversarial-eval",
+        report.gate.reason.clone(),
+        Some(report.mean_score),
+        Some(report.passed),
+        &report,
+    );
     Ok(report)
 }
 

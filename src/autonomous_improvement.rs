@@ -1,4 +1,5 @@
 use crate::adversarial_eval::run_adversarial_eval_suite;
+use crate::evidence_ledger::{EvidenceKind, append_evidence};
 use crate::operational_eval::run_operational_eval_suite;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -152,6 +153,17 @@ pub fn run_self_improvement_cycle(config: ImprovementConfig) -> Result<SelfImpro
         fs::create_dir_all(parent)?;
     }
     fs::write(&path, serde_json::to_vec_pretty(&report)?)?;
+    let _ = append_evidence(
+        EvidenceKind::SelfImprovementCycle,
+        "self-improvement-cycle",
+        report.summary.clone(),
+        report
+            .iterations
+            .last()
+            .map(|it| (it.operational_score + it.adversarial_score) / 2.0),
+        Some(report.passed),
+        &report,
+    );
     Ok(report)
 }
 
@@ -463,6 +475,14 @@ pub fn synthesize_evidence_ranked_tasks() -> Result<EvidenceRankedTaskReport> {
         fs::create_dir_all(parent)?;
     }
     fs::write(&path, serde_json::to_vec_pretty(&report)?)?;
+    let _ = append_evidence(
+        EvidenceKind::EvidenceRankedTask,
+        "evidence-ranked-self-improvement-tasks",
+        report.summary.clone(),
+        report.tasks.first().map(|task| task.rank_score),
+        Some(!report.tasks.is_empty()),
+        &report,
+    );
     Ok(report)
 }
 

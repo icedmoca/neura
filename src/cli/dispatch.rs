@@ -439,6 +439,10 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
             dry_run,
             allow_mutation,
         },
+        LatentCommand::EvidenceLedgerVerify => latent::LatentCommand::EvidenceLedgerVerify,
+        LatentCommand::EvidenceLedgerReport { output } => {
+            latent::LatentCommand::EvidenceLedgerReport { output }
+        }
         LatentCommand::PolicyShadowReport { output } => {
             latent::LatentCommand::PolicyShadowReport { output }
         }

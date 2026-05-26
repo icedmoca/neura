@@ -6,6 +6,7 @@ use crate::autonomous_improvement::{
     synthesize_evidence_ranked_tasks, tiny_patch_gate, write_evidence_ranked_tasks_markdown,
     write_self_improvement_markdown,
 };
+use crate::evidence_ledger::{verify_ledger, write_ledger_report};
 use crate::latent_learning::{
     LatentLearningState, convergence_metrics, counterfactual_probe, learning_state_path,
     remap_plan, render_learning_report,
@@ -157,6 +158,10 @@ pub enum LatentCommand {
     SelfImproveTinyPatchGate {
         dry_run: bool,
         allow_mutation: bool,
+    },
+    EvidenceLedgerVerify,
+    EvidenceLedgerReport {
+        output: Option<std::path::PathBuf>,
     },
     PolicyShadowReport {
         output: Option<PathBuf>,
@@ -578,6 +583,22 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
             } else {
                 println!("tiny patch gate no tasks available");
             }
+        }
+        LatentCommand::EvidenceLedgerVerify => {
+            let verification = verify_ledger()?;
+            println!(
+                "evidence ledger valid={} blocks={} last_hash={}",
+                verification.valid,
+                verification.blocks,
+                verification.last_hash.unwrap_or_else(|| "none".into())
+            );
+            if !verification.errors.is_empty() {
+                println!("errors={}", verification.errors.join("; "));
+            }
+        }
+        LatentCommand::EvidenceLedgerReport { output } => {
+            let path = write_ledger_report(output)?;
+            println!("evidence ledger report written to {}", path.display());
         }
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;
