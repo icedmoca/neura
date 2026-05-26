@@ -196,3 +196,16 @@ Commands:
 - `kcode kcode-latent self-improve-report --output ~/Desktop/self_improvement_report.md` renders the latest report.
 
 The scheduler is intentionally fail-closed: it caps iterations, requires operational and adversarial gates, runs internal validation, records blocked actions, and does not apply code changes in dry-run mode.
+
+## Evidence-Ranked Self-Improvement Tasks + Tiny Patch Mutation Gates
+
+The autonomous self-improvement scheduler now synthesizes an evidence-ranked task queue and evaluates a tiny patch mutation gate before any change can be considered. Ranking uses operational score, adversarial score, self-improvement evidence, expected utility, risk, confidence, and a tiny-patch plan.
+
+Commands:
+
+- `kcode kcode-self-improve tasks` synthesizes the ranked task queue.
+- `kcode kcode-self-improve task-report --output ~/Desktop/self_improvement_tasks.md` renders the queue.
+- `kcode kcode-self-improve tiny-patch-gate` evaluates the highest-ranked task in dry-run mode.
+- Compatibility aliases also exist under `kcode kcode-latent self-improve-tasks`, `self-improve-task-report`, and `self-improve-tiny-patch-gate`.
+
+Tiny patch mutation is blocked unless dry-run is disabled, mutation is explicitly allowed, file and line thresholds are tiny, risk is below threshold, no user confirmation is required, and the task is marked mutation-safe.

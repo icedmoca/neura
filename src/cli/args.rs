@@ -206,6 +206,10 @@ pub(crate) enum Command {
     #[command(subcommand, name = "kcode-latent")]
     Latent(LatentCommand),
 
+    /// Run evidence-ranked bounded self-improvement commands
+    #[command(subcommand, name = "kcode-self-improve")]
+    SelfImprove(SelfImproveCommand),
+
     /// Memory management commands
     #[command(subcommand)]
     Memory(MemoryCommand),
@@ -499,6 +503,42 @@ pub(crate) enum MemoryCommand {
 }
 
 #[derive(Debug, Clone, Subcommand)]
+pub enum SelfImproveCommand {
+    /// Run bounded autonomous self-improvement cycle
+    Run {
+        #[arg(long, default_value_t = 1)]
+        iterations: usize,
+        #[arg(long, default_value_t = true)]
+        dry_run: bool,
+        #[arg(long, default_value_t = false)]
+        allow_mutation: bool,
+    },
+
+    /// Synthesize evidence-ranked self-improvement task queue
+    Tasks,
+
+    /// Write evidence-ranked self-improvement task report
+    TaskReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+
+    /// Evaluate tiny patch gate for the highest-ranked task
+    TinyPatchGate {
+        #[arg(long, default_value_t = true)]
+        dry_run: bool,
+        #[arg(long, default_value_t = false)]
+        allow_mutation: bool,
+    },
+
+    /// Write autonomous self-improvement cycle report
+    Report {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+}
+
+#[derive(Debug, Clone, Subcommand)]
 pub enum LatentCommand {
     /// Show latent recurrence status as JSON
     Status,
@@ -702,6 +742,23 @@ pub enum LatentCommand {
     SelfImproveReport {
         #[arg(long)]
         output: Option<std::path::PathBuf>,
+    },
+
+    /// Synthesize evidence-ranked self-improvement task queue
+    SelfImproveTasks,
+
+    /// Write evidence-ranked self-improvement task report
+    SelfImproveTaskReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+
+    /// Evaluate tiny patch gate for highest-ranked self-improvement task
+    SelfImproveTinyPatchGate {
+        #[arg(long, default_value_t = true)]
+        dry_run: bool,
+        #[arg(long, default_value_t = false)]
+        allow_mutation: bool,
     },
 
     /// Render policy shadow simulation report

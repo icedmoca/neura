@@ -310,3 +310,287 @@ pub fn write_self_improvement_markdown(output: Option<PathBuf>) -> Result<PathBu
     fs::write(&path, render_self_improvement_report(&report))?;
     Ok(path)
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvidenceRankedTask {
+    pub id: String,
+    pub title: String,
+    pub evidence: Vec<String>,
+    pub expected_utility: f64,
+    pub risk: f64,
+    pub confidence: f64,
+    pub rank_score: f64,
+    pub tiny_patch: TinyPatchPlan,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TinyPatchPlan {
+    pub summary: String,
+    pub files_touched: usize,
+    pub estimated_changed_lines: usize,
+    pub requires_user_confirmation: bool,
+    pub mutation_safe: bool,
+    pub gate_reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TinyPatchGateDecision {
+    pub task_id: String,
+    pub allowed: bool,
+    pub dry_run: bool,
+    pub reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvidenceRankedTaskReport {
+    pub created_at_ms: u128,
+    pub tasks: Vec<EvidenceRankedTask>,
+    pub gate_decisions: Vec<TinyPatchGateDecision>,
+    pub mutation_enabled: bool,
+    pub summary: String,
+}
+
+pub fn evidence_ranked_tasks_path() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".kcode")
+        .join("evidence_ranked_self_improvement_tasks.json")
+}
+
+pub fn synthesize_evidence_ranked_tasks() -> Result<EvidenceRankedTaskReport> {
+    let op = run_operational_eval_suite()?;
+    let adv = run_adversarial_eval_suite()?;
+    let self_report = load_or_run_self_improvement_report()?;
+    let mut tasks = Vec::new();
+
+    tasks.push(build_task(
+        "task-tighten-validation-preview",
+        "Improve validation output attribution and previews",
+        vec![
+            format!("operational_mean={:.3}", op.mean_score),
+            format!("self_iterations={}", self_report.iterations.len()),
+            "validation previews are already captured but not ranked by failing subsystem"
+                .to_string(),
+        ],
+        0.74,
+        0.18,
+        0.82,
+        TinyPatchPlan {
+            summary: "Add subsystem labels to validation previews".to_string(),
+            files_touched: 1,
+            estimated_changed_lines: 18,
+            requires_user_confirmation: false,
+            mutation_safe: true,
+            gate_reason: "single file, small line count, reporting-only".to_string(),
+        },
+    ));
+
+    tasks.push(build_task(
+        "task-expand-adversarial-fixtures",
+        "Expand adversarial fixtures around promotion and memory poisoning",
+        vec![
+            format!("adversarial_mean={:.3}", adv.mean_score),
+            "adversarial suite is passing, but future regressions need more fixture diversity"
+                .to_string(),
+        ],
+        0.86,
+        0.22,
+        0.88,
+        TinyPatchPlan {
+            summary: "Add one tiny adversarial case or report-only fixture".to_string(),
+            files_touched: 1,
+            estimated_changed_lines: 24,
+            requires_user_confirmation: false,
+            mutation_safe: true,
+            gate_reason: "test/report-only patch under tiny threshold".to_string(),
+        },
+    ));
+
+    tasks.push(build_task(
+        "task-autonomous-mutation-observer",
+        "Add observer telemetry for blocked mutation attempts",
+        vec![
+            "self-improvement currently records blocked actions".to_string(),
+            "blocked-action telemetry can improve future ranking evidence".to_string(),
+        ],
+        0.70,
+        0.30,
+        0.75,
+        TinyPatchPlan {
+            summary: "Record blocked mutation counts in report".to_string(),
+            files_touched: 1,
+            estimated_changed_lines: 20,
+            requires_user_confirmation: false,
+            mutation_safe: true,
+            gate_reason: "bounded report-only mutation".to_string(),
+        },
+    ));
+
+    tasks.push(build_task(
+        "task-risky-runtime-rewrite",
+        "Rewrite runtime policy selection wholesale",
+        vec![
+            "large policy changes can bypass adversarial safeguards".to_string(),
+            "requires human review because blast radius is high".to_string(),
+        ],
+        0.62,
+        0.92,
+        0.50,
+        TinyPatchPlan {
+            summary: "Large runtime policy rewrite".to_string(),
+            files_touched: 5,
+            estimated_changed_lines: 260,
+            requires_user_confirmation: true,
+            mutation_safe: false,
+            gate_reason: "too large, high risk, requires explicit user confirmation".to_string(),
+        },
+    ));
+
+    tasks.sort_by(|a, b| b.rank_score.total_cmp(&a.rank_score));
+    let gate_decisions = tasks
+        .iter()
+        .map(|task| tiny_patch_gate(task, true, false))
+        .collect::<Vec<_>>();
+    let report = EvidenceRankedTaskReport {
+        created_at_ms: now_ms(),
+        tasks,
+        gate_decisions,
+        mutation_enabled: false,
+        summary: "evidence-ranked self-improvement tasks synthesized; tiny patch mutation remains dry-run gated".to_string(),
+    };
+    let path = evidence_ranked_tasks_path();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&path, serde_json::to_vec_pretty(&report)?)?;
+    Ok(report)
+}
+
+fn build_task(
+    id: &str,
+    title: &str,
+    evidence: Vec<String>,
+    expected_utility: f64,
+    risk: f64,
+    confidence: f64,
+    tiny_patch: TinyPatchPlan,
+) -> EvidenceRankedTask {
+    let rank_score = ((expected_utility * confidence) - (risk * 0.55)).clamp(0.0, 1.0);
+    EvidenceRankedTask {
+        id: id.to_string(),
+        title: title.to_string(),
+        evidence,
+        expected_utility,
+        risk,
+        confidence,
+        rank_score,
+        tiny_patch,
+    }
+}
+
+pub fn tiny_patch_gate(
+    task: &EvidenceRankedTask,
+    dry_run: bool,
+    allow_mutation: bool,
+) -> TinyPatchGateDecision {
+    let mut reasons = Vec::new();
+    if dry_run {
+        reasons.push("dry-run mode blocks mutation".to_string());
+    }
+    if !allow_mutation {
+        reasons.push("allow-mutation flag is false".to_string());
+    }
+    if task.tiny_patch.files_touched > 2 {
+        reasons.push("patch touches too many files".to_string());
+    }
+    if task.tiny_patch.estimated_changed_lines > 40 {
+        reasons.push("patch exceeds tiny changed-line threshold".to_string());
+    }
+    if task.tiny_patch.requires_user_confirmation {
+        reasons.push("task requires explicit user confirmation".to_string());
+    }
+    if !task.tiny_patch.mutation_safe {
+        reasons.push("task is not marked mutation safe".to_string());
+    }
+    if task.risk >= 0.45 {
+        reasons.push(format!(
+            "risk {:.2} exceeds autonomous threshold",
+            task.risk
+        ));
+    }
+    if task.rank_score < 0.40 {
+        reasons.push(format!(
+            "rank score {:.3} below mutation threshold",
+            task.rank_score
+        ));
+    }
+    TinyPatchGateDecision {
+        task_id: task.id.clone(),
+        allowed: reasons.is_empty(),
+        dry_run,
+        reasons,
+    }
+}
+
+pub fn load_or_synthesize_evidence_tasks() -> Result<EvidenceRankedTaskReport> {
+    let path = evidence_ranked_tasks_path();
+    if path.exists() {
+        let bytes = fs::read(&path)?;
+        serde_json::from_slice(&bytes).or_else(|_| synthesize_evidence_ranked_tasks())
+    } else {
+        synthesize_evidence_ranked_tasks()
+    }
+}
+
+pub fn render_evidence_ranked_tasks(report: &EvidenceRankedTaskReport) -> String {
+    let mut out = String::new();
+    out.push_str("# Kcode Evidence-Ranked Self-Improvement Tasks\n\n");
+    out.push_str(&format!(
+        "- Mutation enabled: `{}`\n",
+        report.mutation_enabled
+    ));
+    out.push_str(&format!("- Summary: `{}`\n\n", report.summary));
+    out.push_str("## Ranked Tasks\n\n");
+    for task in &report.tasks {
+        out.push_str(&format!(
+            "### `{}` - {}\n\n- rank_score: `{:.3}`\n- utility: `{:.3}`\n- risk: `{:.3}`\n- confidence: `{:.3}`\n- tiny_patch: files=`{}` lines=`{}` safe=`{}`\n- gate: {}\n\nEvidence:\n",
+            task.id,
+            task.title,
+            task.rank_score,
+            task.expected_utility,
+            task.risk,
+            task.confidence,
+            task.tiny_patch.files_touched,
+            task.tiny_patch.estimated_changed_lines,
+            task.tiny_patch.mutation_safe,
+            task.tiny_patch.gate_reason
+        ));
+        for evidence in &task.evidence {
+            out.push_str(&format!("- {evidence}\n"));
+        }
+        if let Some(gate) = report.gate_decisions.iter().find(|g| g.task_id == task.id) {
+            out.push_str("\nTiny patch gate:\n");
+            out.push_str(&format!("- allowed: `{}`\n", gate.allowed));
+            for reason in &gate.reasons {
+                out.push_str(&format!("- blocked: {reason}\n"));
+            }
+        }
+        out.push('\n');
+    }
+    out
+}
+
+pub fn write_evidence_ranked_tasks_markdown(output: Option<PathBuf>) -> Result<PathBuf> {
+    let report = load_or_synthesize_evidence_tasks()?;
+    let path = output.unwrap_or_else(|| {
+        dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("Desktop")
+            .join("self_improvement_tasks.md")
+    });
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&path, render_evidence_ranked_tasks(&report))?;
+    Ok(path)
+}

@@ -2,7 +2,9 @@ use crate::adversarial_eval::{
     enforce_adversarial_eval_gate, run_adversarial_eval_suite, write_adversarial_eval_markdown,
 };
 use crate::autonomous_improvement::{
-    ImprovementConfig, run_self_improvement_cycle, write_self_improvement_markdown,
+    ImprovementConfig, load_or_synthesize_evidence_tasks, run_self_improvement_cycle,
+    synthesize_evidence_ranked_tasks, tiny_patch_gate, write_evidence_ranked_tasks_markdown,
+    write_self_improvement_markdown,
 };
 use crate::latent_learning::{
     LatentLearningState, convergence_metrics, counterfactual_probe, learning_state_path,
@@ -147,6 +149,14 @@ pub enum LatentCommand {
     },
     SelfImproveReport {
         output: Option<std::path::PathBuf>,
+    },
+    SelfImproveTasks,
+    SelfImproveTaskReport {
+        output: Option<std::path::PathBuf>,
+    },
+    SelfImproveTinyPatchGate {
+        dry_run: bool,
+        allow_mutation: bool,
     },
     PolicyShadowReport {
         output: Option<PathBuf>,
@@ -535,6 +545,39 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         LatentCommand::SelfImproveReport { output } => {
             let path = write_self_improvement_markdown(output)?;
             println!("self-improvement report written to {}", path.display());
+        }
+        LatentCommand::SelfImproveTasks => {
+            let report = synthesize_evidence_ranked_tasks()?;
+            println!(
+                "evidence-ranked tasks={} top={}",
+                report.tasks.len(),
+                report
+                    .tasks
+                    .first()
+                    .map(|task| task.id.as_str())
+                    .unwrap_or("none")
+            );
+        }
+        LatentCommand::SelfImproveTaskReport { output } => {
+            let path = write_evidence_ranked_tasks_markdown(output)?;
+            println!("self-improvement task report written to {}", path.display());
+        }
+        LatentCommand::SelfImproveTinyPatchGate {
+            dry_run,
+            allow_mutation,
+        } => {
+            let report = load_or_synthesize_evidence_tasks()?;
+            if let Some(task) = report.tasks.first() {
+                let gate = tiny_patch_gate(task, dry_run, allow_mutation);
+                println!(
+                    "tiny patch gate task={} allowed={} reasons={}",
+                    gate.task_id,
+                    gate.allowed,
+                    gate.reasons.join("; ")
+                );
+            } else {
+                println!("tiny patch gate no tasks available");
+            }
         }
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;

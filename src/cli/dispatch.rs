@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::args::{
     AmbientCommand, Args, AuthCommand, Command, LatentCommand, MemoryCommand, ModelCommand,
-    ProviderCommand, RestartCommand, TranscriptModeArg,
+    ProviderCommand, RestartCommand, SelfImproveCommand, TranscriptModeArg,
 };
 use crate::{
     agent, auth, build, provider, provider_catalog, server, session, setup_hints, startup_profile,
@@ -152,6 +152,9 @@ pub(crate) async fn run_main(mut args: Args) -> Result<()> {
         }
         Some(Command::Latent(subcmd)) => {
             latent::run(map_latent_subcommand(subcmd))?;
+        }
+        Some(Command::SelfImprove(subcmd)) => {
+            latent::run(map_self_improve_command(subcmd))?;
         }
         Some(Command::Ambient(subcmd)) => {
             commands::run_ambient_command(map_ambient_subcommand(subcmd)).await?;
@@ -425,6 +428,17 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::SelfImproveReport { output } => {
             latent::LatentCommand::SelfImproveReport { output }
         }
+        LatentCommand::SelfImproveTasks => latent::LatentCommand::SelfImproveTasks,
+        LatentCommand::SelfImproveTaskReport { output } => {
+            latent::LatentCommand::SelfImproveTaskReport { output }
+        }
+        LatentCommand::SelfImproveTinyPatchGate {
+            dry_run,
+            allow_mutation,
+        } => latent::LatentCommand::SelfImproveTinyPatchGate {
+            dry_run,
+            allow_mutation,
+        },
         LatentCommand::PolicyShadowReport { output } => {
             latent::LatentCommand::PolicyShadowReport { output }
         }
@@ -869,3 +883,31 @@ pub(crate) async fn spawn_server(
 #[cfg(test)]
 #[path = "dispatch_tests.rs"]
 mod dispatch_tests;
+
+fn map_self_improve_command(command: SelfImproveCommand) -> latent::LatentCommand {
+    match command {
+        SelfImproveCommand::Run {
+            iterations,
+            dry_run,
+            allow_mutation,
+        } => latent::LatentCommand::SelfImproveRun {
+            iterations,
+            dry_run,
+            allow_mutation,
+        },
+        SelfImproveCommand::Tasks => latent::LatentCommand::SelfImproveTasks,
+        SelfImproveCommand::TaskReport { output } => {
+            latent::LatentCommand::SelfImproveTaskReport { output }
+        }
+        SelfImproveCommand::TinyPatchGate {
+            dry_run,
+            allow_mutation,
+        } => latent::LatentCommand::SelfImproveTinyPatchGate {
+            dry_run,
+            allow_mutation,
+        },
+        SelfImproveCommand::Report { output } => {
+            latent::LatentCommand::SelfImproveReport { output }
+        }
+    }
+}

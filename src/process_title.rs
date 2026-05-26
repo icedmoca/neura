@@ -87,6 +87,7 @@ pub(crate) fn initial_title(args: &Args) -> String {
         Some(Command::Provider(_)) => "kcode provider".to_string(),
         Some(Command::Memory(_)) => "kcode memory".to_string(),
         Some(Command::Latent(_)) => "kcode latent".to_string(),
+        Some(Command::SelfImprove(_)) => "kcode self-improve".to_string(),
         Some(Command::Ambient(subcommand)) => match subcommand {
             AmbientCommand::RunVisible => "kcode ambient visible".to_string(),
             _ => "kcode ambient".to_string(),
