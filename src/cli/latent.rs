@@ -26,8 +26,8 @@ use crate::operational_eval::{
 };
 use crate::operational_policy::{self, PolicyDomain};
 use crate::patch_proposal::{
-    build_patch_report, dry_run_patch, promotion_gate, propose_patch, validate_patch,
-    write_patch_report,
+    build_patch_report, dry_run_patch, promotion_gate, propose_patch, run_patch_pipeline,
+    validate_patch, write_patch_pipeline_report, write_patch_report,
 };
 use crate::policy_outcome_credit;
 use crate::policy_shadow_simulation;
@@ -209,6 +209,15 @@ pub enum LatentCommand {
     },
     PatchReport {
         output: Option<std::path::PathBuf>,
+        validate: bool,
+    },
+    PatchPipelineRun {
+        task: String,
+        validate: bool,
+    },
+    PatchPipelineReport {
+        output: Option<std::path::PathBuf>,
+        task: String,
         validate: bool,
     },
     PolicyShadowReport {
@@ -773,6 +782,24 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         LatentCommand::PatchReport { output, validate } => {
             let path = write_patch_report(output, validate)?;
             println!("patch proposal report written to {}", path.display());
+        }
+        LatentCommand::PatchPipelineRun { task, validate } => {
+            let run = run_patch_pipeline(Some(&task), validate)?;
+            println!(
+                "patch pipeline id={} blocked={} stages={} replay_delta={:.3}",
+                run.id,
+                run.blocked,
+                run.stages.len(),
+                run.proposal.replay_delta
+            );
+        }
+        LatentCommand::PatchPipelineReport {
+            output,
+            task,
+            validate,
+        } => {
+            let path = write_patch_pipeline_report(output, Some(&task), validate)?;
+            println!("patch pipeline report written to {}", path.display());
         }
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;

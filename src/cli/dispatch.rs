@@ -486,6 +486,18 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::PatchReport { output, validate } => {
             latent::LatentCommand::PatchReport { output, validate }
         }
+        LatentCommand::PatchPipelineRun { task, validate } => {
+            latent::LatentCommand::PatchPipelineRun { task, validate }
+        }
+        LatentCommand::PatchPipelineReport {
+            output,
+            task,
+            validate,
+        } => latent::LatentCommand::PatchPipelineReport {
+            output,
+            task,
+            validate,
+        },
         LatentCommand::PolicyShadowReport { output } => {
             latent::LatentCommand::PolicyShadowReport { output }
         }

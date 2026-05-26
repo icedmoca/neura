@@ -351,3 +351,217 @@ pub fn write_patch_report(output: Option<PathBuf>, validate: bool) -> Result<Pat
     fs::write(&path, render_patch_report(&report))?;
     Ok(path)
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum PatchPipelineStage {
+    Proposed,
+    DryRunGenerated,
+    ReplayScored,
+    Validated,
+    PromotionGated,
+    RollbackPlanned,
+    Blocked,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PatchRollbackPlan {
+    pub proposal_id: String,
+    pub reversible: bool,
+    pub steps: Vec<String>,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PatchPipelineRun {
+    pub id: String,
+    pub task_selector: String,
+    pub created_at_ms: u128,
+    pub stages: Vec<PatchPipelineStage>,
+    pub proposal: PatchProposal,
+    pub validation: PatchValidation,
+    pub promotion_gate: PatchPromotionGate,
+    pub rollback_plan: PatchRollbackPlan,
+    pub replay_regression_detected: bool,
+    pub blocked: bool,
+    pub ledger_receipts: Vec<String>,
+    pub summary: String,
+}
+
+pub fn patch_pipeline_path() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".kcode")
+        .join("self_improve_patch_pipeline.json")
+}
+
+pub fn run_patch_pipeline(task_selector: Option<&str>, validate: bool) -> Result<PatchPipelineRun> {
+    let selector = task_selector.unwrap_or("top").to_string();
+    let mut stages = vec![PatchPipelineStage::Proposed];
+    let proposal = propose_patch(Some(&selector))?;
+    stages.push(PatchPipelineStage::DryRunGenerated);
+    stages.push(PatchPipelineStage::ReplayScored);
+
+    let validation = if validate {
+        let validation = validate_patch(&proposal);
+        stages.push(PatchPipelineStage::Validated);
+        validation
+    } else {
+        PatchValidation {
+            proposal_id: proposal.id.clone(),
+            passed: false,
+            checks: vec![PatchValidationCheck {
+                name: "validation skipped".to_string(),
+                passed: false,
+                exit_code: None,
+                output_preview: "pipeline ran in dry validation mode".to_string(),
+            }],
+        }
+    };
+
+    let promotion_gate = promotion_gate(&proposal, &validation);
+    stages.push(PatchPipelineStage::PromotionGated);
+    let replay_regression_detected = proposal.replay_delta < 0.0;
+    let rollback_plan = rollback_plan_for(&proposal, &promotion_gate);
+    stages.push(PatchPipelineStage::RollbackPlanned);
+    let blocked = !promotion_gate.allowed || replay_regression_detected;
+    if blocked {
+        stages.push(PatchPipelineStage::Blocked);
+    }
+
+    let mut ledger_receipts = proposal
+        .ledger_receipt_hash
+        .clone()
+        .map(|hash| vec![hash])
+        .unwrap_or_default();
+    if let Ok(receipt) = append_evidence_with_links(
+        EvidenceKind::PromotionDecision,
+        format!("patch-pipeline:{}", proposal.id),
+        format!(
+            "pipeline blocked={} replay_delta={:.3} validation_passed={}",
+            blocked, proposal.replay_delta, validation.passed
+        ),
+        Some(proposal.replay_delta),
+        Some(!blocked),
+        &promotion_gate,
+        ledger_receipts.clone(),
+        ledger_receipts.clone(),
+        "patch-pipeline",
+    ) {
+        ledger_receipts.push(receipt.receipt.hash);
+    }
+
+    let summary = if blocked {
+        "replay-scored patch pipeline completed with mutation blocked".to_string()
+    } else {
+        "replay-scored patch pipeline passed all gates".to_string()
+    };
+    let run = PatchPipelineRun {
+        id: format!("pipeline-{}", now_ms()),
+        task_selector: selector,
+        created_at_ms: now_ms(),
+        stages,
+        proposal,
+        validation,
+        promotion_gate,
+        rollback_plan,
+        replay_regression_detected,
+        blocked,
+        ledger_receipts,
+        summary,
+    };
+    let path = patch_pipeline_path();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&path, serde_json::to_vec_pretty(&run)?)?;
+    Ok(run)
+}
+
+fn rollback_plan_for(proposal: &PatchProposal, gate: &PatchPromotionGate) -> PatchRollbackPlan {
+    PatchRollbackPlan {
+        proposal_id: proposal.id.clone(),
+        reversible: true,
+        steps: vec![
+            "do not apply mutation while gate is blocked".to_string(),
+            "keep patch text as report-only artifact".to_string(),
+            "re-run replay and validation before any future promotion".to_string(),
+            "restore previous ledger-verified runtime if a promoted patch regresses".to_string(),
+        ],
+        reason: if gate.allowed {
+            "rollback plan prepared before promotion".to_string()
+        } else {
+            format!(
+                "rollback not needed because promotion is blocked: {}",
+                gate.reasons.join("; ")
+            )
+        },
+    }
+}
+
+pub fn render_patch_pipeline(run: &PatchPipelineRun) -> String {
+    let mut out = String::new();
+    out.push_str("# Kcode Replay-Scored Self-Improvement Patch Pipeline\n\n");
+    out.push_str(&format!("- Summary: `{}`\n", run.summary));
+    out.push_str(&format!("- Pipeline: `{}`\n", run.id));
+    out.push_str(&format!("- Task selector: `{}`\n", run.task_selector));
+    out.push_str(&format!("- Blocked: `{}`\n", run.blocked));
+    out.push_str(&format!(
+        "- Replay regression detected: `{}`\n",
+        run.replay_regression_detected
+    ));
+    out.push_str(&format!(
+        "- Replay delta: `{:.3}`\n",
+        run.proposal.replay_delta
+    ));
+    out.push_str(&format!(
+        "- Validation passed: `{}`\n",
+        run.validation.passed
+    ));
+    out.push_str(&format!(
+        "- Promotion allowed: `{}`\n\n",
+        run.promotion_gate.allowed
+    ));
+    out.push_str("## Stages\n\n");
+    for stage in &run.stages {
+        out.push_str(&format!("- `{:?}`\n", stage));
+    }
+    out.push_str("\n## Proposal Patch\n\n```text\n");
+    out.push_str(&run.proposal.patch_text);
+    out.push_str("\n```\n\n## Promotion Gate Reasons\n\n");
+    for reason in &run.promotion_gate.reasons {
+        out.push_str(&format!("- {reason}\n"));
+    }
+    out.push_str("\n## Rollback Plan\n\n");
+    out.push_str(&format!(
+        "- Reversible: `{}`\n",
+        run.rollback_plan.reversible
+    ));
+    out.push_str(&format!("- Reason: {}\n", run.rollback_plan.reason));
+    for step in &run.rollback_plan.steps {
+        out.push_str(&format!("- {step}\n"));
+    }
+    out.push_str("\n## Ledger Receipts\n\n");
+    for hash in &run.ledger_receipts {
+        out.push_str(&format!("- `{hash}`\n"));
+    }
+    out
+}
+
+pub fn write_patch_pipeline_report(
+    output: Option<PathBuf>,
+    task_selector: Option<&str>,
+    validate: bool,
+) -> Result<PathBuf> {
+    let run = run_patch_pipeline(task_selector, validate)?;
+    let path = output.unwrap_or_else(|| {
+        dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("Desktop")
+            .join("self_improve_patch_pipeline.md")
+    });
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&path, render_patch_pipeline(&run))?;
+    Ok(path)
+}

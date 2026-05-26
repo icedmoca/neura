@@ -846,6 +846,24 @@ pub enum LatentCommand {
         validate: bool,
     },
 
+    /// Run the replay-scored self-improvement patch pipeline
+    PatchPipelineRun {
+        #[arg(long, default_value = "top")]
+        task: String,
+        #[arg(long, default_value_t = false)]
+        validate: bool,
+    },
+
+    /// Write replay-scored self-improvement patch pipeline report
+    PatchPipelineReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+        #[arg(long, default_value = "top")]
+        task: String,
+        #[arg(long, default_value_t = false)]
+        validate: bool,
+    },
+
     /// Render policy shadow simulation report
     PolicyShadowReport {
         #[arg(long)]

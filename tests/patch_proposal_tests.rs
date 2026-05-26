@@ -34,3 +34,36 @@ fn patch_validation_model_runs_checks() {
     let gate = promotion_gate(&proposal, &validation);
     assert!(!gate.allowed);
 }
+
+#[test]
+fn patch_pipeline_runs_all_stages_and_blocks_mutation() {
+    let _ = std::fs::remove_file(ledger_path());
+    let run =
+        kcode::patch_proposal::run_patch_pipeline(Some("top"), false).expect("pipeline should run");
+    assert!(run.blocked);
+    assert!(
+        run.stages
+            .contains(&kcode::patch_proposal::PatchPipelineStage::Proposed)
+    );
+    assert!(
+        run.stages
+            .contains(&kcode::patch_proposal::PatchPipelineStage::ReplayScored)
+    );
+    assert!(
+        run.stages
+            .contains(&kcode::patch_proposal::PatchPipelineStage::RollbackPlanned)
+    );
+    assert!(!run.ledger_receipts.is_empty());
+    assert!(run.rollback_plan.reversible);
+}
+
+#[test]
+fn patch_pipeline_report_renders_rollback_and_receipts() {
+    let _ = std::fs::remove_file(ledger_path());
+    let run =
+        kcode::patch_proposal::run_patch_pipeline(Some("top"), false).expect("pipeline should run");
+    let rendered = kcode::patch_proposal::render_patch_pipeline(&run);
+    assert!(rendered.contains("Replay-Scored Self-Improvement Patch Pipeline"));
+    assert!(rendered.contains("Rollback Plan"));
+    assert!(rendered.contains("Ledger Receipts"));
+}

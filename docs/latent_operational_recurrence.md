@@ -247,3 +247,14 @@ Commands:
 - `kcode kcode-latent patch-replay-score --task top` reports before/after replay scores and delta.
 - `kcode kcode-latent patch-promote-gate --task top` runs the promotion gate, which is blocked by default.
 - `kcode kcode-latent patch-report --output ~/Desktop/patch_proposal_report.md` writes the full report.
+
+## Replay-Scored Self-Improvement Patch Pipeline
+
+The patch proposal loop now has a full replay-scored self-improvement pipeline. It moves a task through proposal, dry-run patch generation, replay scoring, optional validation, promotion gating, rollback planning, and a final blocked/applied state. Mutation remains blocked by default.
+
+Commands:
+
+- `kcode kcode-latent patch-pipeline-run --task top` runs the pipeline and prints state.
+- `kcode kcode-latent patch-pipeline-report --output ~/Desktop/self_improve_patch_pipeline.md --task top` writes the full pipeline report.
+
+Each run records ledger receipts, checks replay delta, prepares rollback steps, and keeps the generated patch report-only unless future gates explicitly allow mutation.
