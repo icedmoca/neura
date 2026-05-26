@@ -234,3 +234,16 @@ Commands:
 - `kcode kcode-latent evidence-replay-explain <index-or-hash-prefix>` explains replay context for one ledger block.
 
 Replay is read-only: it consumes the append-only ledger, validates historical context, and reports counterfactual alternatives without mutating runtime policy.
+
+## Replay-Gated Patch Proposal Loop
+
+Kcode can now turn evidence-ranked tasks into dry-run patch proposals that are scored by ledger replay before any promotion decision. The loop synthesizes a report-only patch, estimates replay delta, records a ledger receipt, runs validation, and applies a promotion gate that remains mutation-disabled by default.
+
+Commands:
+
+- `kcode kcode-latent patch-propose --task top` creates a replay-gated proposal and records a ledger receipt.
+- `kcode kcode-latent patch-dry-run --task top` prints the report-only patch text.
+- `kcode kcode-latent patch-validate --task top` runs validation checks for the proposal.
+- `kcode kcode-latent patch-replay-score --task top` reports before/after replay scores and delta.
+- `kcode kcode-latent patch-promote-gate --task top` runs the promotion gate, which is blocked by default.
+- `kcode kcode-latent patch-report --output ~/Desktop/patch_proposal_report.md` writes the full report.

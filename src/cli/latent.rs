@@ -25,6 +25,10 @@ use crate::operational_eval::{
     enforce_operational_eval_gate, run_operational_eval_suite, write_operational_eval_markdown,
 };
 use crate::operational_policy::{self, PolicyDomain};
+use crate::patch_proposal::{
+    build_patch_report, dry_run_patch, promotion_gate, propose_patch, validate_patch,
+    write_patch_report,
+};
 use crate::policy_outcome_credit;
 use crate::policy_shadow_simulation;
 use anyhow::Context;
@@ -187,6 +191,25 @@ pub enum LatentCommand {
     },
     EvidenceReplayExplain {
         target: String,
+    },
+    PatchPropose {
+        task: String,
+    },
+    PatchDryRun {
+        task: String,
+    },
+    PatchValidate {
+        task: String,
+    },
+    PatchReplayScore {
+        task: String,
+    },
+    PatchPromoteGate {
+        task: String,
+    },
+    PatchReport {
+        output: Option<std::path::PathBuf>,
+        validate: bool,
     },
     PolicyShadowReport {
         output: Option<PathBuf>,
@@ -698,6 +721,58 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
         }
         LatentCommand::EvidenceReplayExplain { target } => {
             println!("{}", replay_explain(&target)?);
+        }
+        LatentCommand::PatchPropose { task } => {
+            let proposal = propose_patch(Some(&task))?;
+            println!(
+                "patch proposal id={} task={} replay_delta={:.3} receipt={}",
+                proposal.id,
+                proposal.task_id,
+                proposal.replay_delta,
+                proposal
+                    .ledger_receipt_hash
+                    .unwrap_or_else(|| "none".into())
+            );
+        }
+        LatentCommand::PatchDryRun { task } => {
+            let proposal = dry_run_patch(Some(&task))?;
+            println!("{}", proposal.patch_text);
+        }
+        LatentCommand::PatchValidate { task } => {
+            let proposal = propose_patch(Some(&task))?;
+            let validation = validate_patch(&proposal);
+            println!(
+                "patch validation proposal={} passed={} checks={}",
+                proposal.id,
+                validation.passed,
+                validation.checks.len()
+            );
+        }
+        LatentCommand::PatchReplayScore { task } => {
+            let proposal = propose_patch(Some(&task))?;
+            println!(
+                "patch replay score proposal={} before={:.3} after={:.3} delta={:.3}",
+                proposal.id,
+                proposal.replay_before,
+                proposal.replay_after_estimate,
+                proposal.replay_delta
+            );
+        }
+        LatentCommand::PatchPromoteGate { task } => {
+            let proposal = propose_patch(Some(&task))?;
+            let validation = validate_patch(&proposal);
+            let gate = promotion_gate(&proposal, &validation);
+            println!(
+                "patch promotion gate proposal={} allowed={} delta={:.3} reasons={}",
+                proposal.id,
+                gate.allowed,
+                gate.replay_delta,
+                gate.reasons.join("; ")
+            );
+        }
+        LatentCommand::PatchReport { output, validate } => {
+            let path = write_patch_report(output, validate)?;
+            println!("patch proposal report written to {}", path.display());
         }
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;

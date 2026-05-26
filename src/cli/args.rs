@@ -808,6 +808,44 @@ pub enum LatentCommand {
     /// Explain replay context for a ledger block
     EvidenceReplayExplain { target: String },
 
+    /// Propose a replay-gated dry-run patch for a ranked task
+    PatchPropose {
+        #[arg(long, default_value = "top")]
+        task: String,
+    },
+
+    /// Produce dry-run patch text for a proposal candidate
+    PatchDryRun {
+        #[arg(long, default_value = "top")]
+        task: String,
+    },
+
+    /// Validate a replay-gated patch proposal
+    PatchValidate {
+        #[arg(long, default_value = "top")]
+        task: String,
+    },
+
+    /// Score a patch proposal with replay delta
+    PatchReplayScore {
+        #[arg(long, default_value = "top")]
+        task: String,
+    },
+
+    /// Run the patch promotion gate
+    PatchPromoteGate {
+        #[arg(long, default_value = "top")]
+        task: String,
+    },
+
+    /// Write replay-gated patch proposal report
+    PatchReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+        #[arg(long, default_value_t = false)]
+        validate: bool,
+    },
+
     /// Render policy shadow simulation report
     PolicyShadowReport {
         #[arg(long)]

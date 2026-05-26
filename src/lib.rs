@@ -30,6 +30,7 @@ pub mod latent_learning_background;
 pub mod latent_memory;
 pub mod latent_operational_recurrence;
 pub mod long_horizon_pressure;
+pub mod patch_proposal;
 pub mod self_model;
 pub mod semantic_operational_layer;
 #[cfg(not(feature = "embeddings"))]

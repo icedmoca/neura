@@ -474,6 +474,18 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::EvidenceReplayExplain { target } => {
             latent::LatentCommand::EvidenceReplayExplain { target }
         }
+        LatentCommand::PatchPropose { task } => latent::LatentCommand::PatchPropose { task },
+        LatentCommand::PatchDryRun { task } => latent::LatentCommand::PatchDryRun { task },
+        LatentCommand::PatchValidate { task } => latent::LatentCommand::PatchValidate { task },
+        LatentCommand::PatchReplayScore { task } => {
+            latent::LatentCommand::PatchReplayScore { task }
+        }
+        LatentCommand::PatchPromoteGate { task } => {
+            latent::LatentCommand::PatchPromoteGate { task }
+        }
+        LatentCommand::PatchReport { output, validate } => {
+            latent::LatentCommand::PatchReport { output, validate }
+        }
         LatentCommand::PolicyShadowReport { output } => {
             latent::LatentCommand::PolicyShadowReport { output }
         }
