@@ -785,6 +785,29 @@ pub enum LatentCommand {
     /// Explain a cognition evidence block by index or hash prefix
     EvidenceLedgerExplain { target: String },
 
+    /// Replay ledger-backed decisions without future leakage
+    EvidenceReplayRun {
+        #[arg(long, default_value_t = 25)]
+        limit: usize,
+        #[arg(long)]
+        max_index: Option<u64>,
+        #[arg(long)]
+        subject: Option<String>,
+        #[arg(long, default_value_t = true)]
+        alternatives: bool,
+    },
+
+    /// Write evidence replay markdown report
+    EvidenceReplayReport {
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+        #[arg(long, default_value_t = 25)]
+        limit: usize,
+    },
+
+    /// Explain replay context for a ledger block
+    EvidenceReplayExplain { target: String },
+
     /// Render policy shadow simulation report
     PolicyShadowReport {
         #[arg(long)]

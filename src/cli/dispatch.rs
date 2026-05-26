@@ -457,6 +457,23 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::EvidenceLedgerExplain { target } => {
             latent::LatentCommand::EvidenceLedgerExplain { target }
         }
+        LatentCommand::EvidenceReplayRun {
+            limit,
+            max_index,
+            subject,
+            alternatives,
+        } => latent::LatentCommand::EvidenceReplayRun {
+            limit,
+            max_index,
+            subject,
+            alternatives,
+        },
+        LatentCommand::EvidenceReplayReport { output, limit } => {
+            latent::LatentCommand::EvidenceReplayReport { output, limit }
+        }
+        LatentCommand::EvidenceReplayExplain { target } => {
+            latent::LatentCommand::EvidenceReplayExplain { target }
+        }
         LatentCommand::PolicyShadowReport { output } => {
             latent::LatentCommand::PolicyShadowReport { output }
         }

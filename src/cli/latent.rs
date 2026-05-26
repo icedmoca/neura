@@ -9,6 +9,7 @@ use crate::autonomous_improvement::{
 use crate::evidence_ledger::{
     EvidenceKind, LedgerQuery, explain_evidence, query_ledger, verify_ledger, write_ledger_report,
 };
+use crate::evidence_replay::{ReplayConfig, replay_explain, run_replay, write_replay_report};
 use crate::latent_learning::{
     LatentLearningState, convergence_metrics, counterfactual_probe, learning_state_path,
     remap_plan, render_learning_report,
@@ -172,6 +173,19 @@ pub enum LatentCommand {
         limit: usize,
     },
     EvidenceLedgerExplain {
+        target: String,
+    },
+    EvidenceReplayRun {
+        limit: usize,
+        max_index: Option<u64>,
+        subject: Option<String>,
+        alternatives: bool,
+    },
+    EvidenceReplayReport {
+        output: Option<std::path::PathBuf>,
+        limit: usize,
+    },
+    EvidenceReplayExplain {
         target: String,
     },
     PolicyShadowReport {
@@ -652,6 +666,39 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
             }
             None => println!("no evidence block found for {target}"),
         },
+        LatentCommand::EvidenceReplayRun {
+            limit,
+            max_index,
+            subject,
+            alternatives,
+        } => {
+            let report = run_replay(ReplayConfig {
+                limit,
+                include_alternatives: alternatives,
+                max_index,
+                subject,
+            })?;
+            println!(
+                "evidence replay replayed={} no_future_leaks={} mean_score={:.3} alternatives={}",
+                report.replayed,
+                report.no_future_leaks,
+                report.mean_replay_score,
+                report.alternatives_considered
+            );
+        }
+        LatentCommand::EvidenceReplayReport { output, limit } => {
+            let path = write_replay_report(
+                output,
+                ReplayConfig {
+                    limit,
+                    ..ReplayConfig::default()
+                },
+            )?;
+            println!("evidence replay report written to {}", path.display());
+        }
+        LatentCommand::EvidenceReplayExplain { target } => {
+            println!("{}", replay_explain(&target)?);
+        }
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;
             if let Some(output) = output {

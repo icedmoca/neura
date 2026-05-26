@@ -222,3 +222,15 @@ Commands:
 - `kcode kcode-latent evidence-ledger-report --output ~/Desktop/evidence_ledger_report.md` renders the chain report.
 
 Operational evals, adversarial evals, self-improvement cycles, evidence-ranked tasks, and tiny patch gates now append receipts into the ledger. Tiny patch gate evidence is causally linked to the ranked task report block that produced it.
+
+## Evidence Ledger Replayable Decision Simulator
+
+The cognition evidence ledger can now be replayed as a deterministic decision simulator. Replay reconstructs each eligible decision using only historical blocks up to that block index, verifies no future evidence leaks into the replay, scores the replayed outcome, and generates conservative/exploratory/audit-first alternatives.
+
+Commands:
+
+- `kcode kcode-latent evidence-replay-run --limit 20` replays recent ledger-backed decisions.
+- `kcode kcode-latent evidence-replay-report --output ~/Desktop/evidence_replay_report.md --limit 20` renders a replay report.
+- `kcode kcode-latent evidence-replay-explain <index-or-hash-prefix>` explains replay context for one ledger block.
+
+Replay is read-only: it consumes the append-only ledger, validates historical context, and reports counterfactual alternatives without mutating runtime policy.
