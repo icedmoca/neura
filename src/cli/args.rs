@@ -770,6 +770,21 @@ pub enum LatentCommand {
         output: Option<std::path::PathBuf>,
     },
 
+    /// Query cognition evidence ledger blocks
+    EvidenceLedgerQuery {
+        #[arg(long)]
+        kind: Option<String>,
+        #[arg(long)]
+        subject: Option<String>,
+        #[arg(long)]
+        subsystem: Option<String>,
+        #[arg(long, default_value_t = 25)]
+        limit: usize,
+    },
+
+    /// Explain a cognition evidence block by index or hash prefix
+    EvidenceLedgerExplain { target: String },
+
     /// Render policy shadow simulation report
     PolicyShadowReport {
         #[arg(long)]

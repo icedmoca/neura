@@ -1,5 +1,5 @@
 use crate::adversarial_eval::run_adversarial_eval_suite;
-use crate::evidence_ledger::{EvidenceKind, append_evidence};
+use crate::evidence_ledger::{EvidenceKind, append_evidence, append_evidence_with_links};
 use crate::operational_eval::run_operational_eval_suite;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -475,14 +475,35 @@ pub fn synthesize_evidence_ranked_tasks() -> Result<EvidenceRankedTaskReport> {
         fs::create_dir_all(parent)?;
     }
     fs::write(&path, serde_json::to_vec_pretty(&report)?)?;
-    let _ = append_evidence(
+    let root_receipt = append_evidence(
         EvidenceKind::EvidenceRankedTask,
         "evidence-ranked-self-improvement-tasks",
         report.summary.clone(),
         report.tasks.first().map(|task| task.rank_score),
         Some(!report.tasks.is_empty()),
         &report,
-    );
+    )
+    .ok()
+    .map(|result| result.receipt);
+    if let Some(receipt) = root_receipt {
+        for gate in &report.gate_decisions {
+            let _ = append_evidence_with_links(
+                EvidenceKind::TinyPatchGate,
+                format!("tiny-patch-gate:{}", gate.task_id),
+                if gate.allowed {
+                    "tiny patch mutation allowed by gate".to_string()
+                } else {
+                    format!("tiny patch mutation blocked: {}", gate.reasons.join("; "))
+                },
+                Some(if gate.allowed { 1.0 } else { 0.0 }),
+                Some(gate.allowed),
+                gate,
+                vec![receipt.hash.clone()],
+                vec![receipt.hash.clone()],
+                "self-improvement",
+            );
+        }
+    }
     Ok(report)
 }
 

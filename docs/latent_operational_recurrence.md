@@ -209,3 +209,16 @@ Commands:
 - Compatibility aliases also exist under `kcode kcode-latent self-improve-tasks`, `self-improve-task-report`, and `self-improve-tiny-patch-gate`.
 
 Tiny patch mutation is blocked unless dry-run is disabled, mutation is explicitly allowed, file and line thresholds are tiny, risk is below threshold, no user confirmation is required, and the task is marked mutation-safe.
+
+## Full Cognition Evidence Ledger Wiring
+
+The cognition evidence ledger is now wired as a broader append-only evidence chain with receipts, parent/cause links, subsystem labels, query, explain, and expanded report output.
+
+Commands:
+
+- `kcode kcode-latent evidence-ledger-verify` verifies the hash chain.
+- `kcode kcode-latent evidence-ledger-query --kind tiny-patch --subsystem self-improvement --limit 10` queries recent evidence blocks.
+- `kcode kcode-latent evidence-ledger-explain <index-or-hash-prefix>` explains one block and shows parent/cause counts.
+- `kcode kcode-latent evidence-ledger-report --output ~/Desktop/evidence_ledger_report.md` renders the chain report.
+
+Operational evals, adversarial evals, self-improvement cycles, evidence-ranked tasks, and tiny patch gates now append receipts into the ledger. Tiny patch gate evidence is causally linked to the ranked task report block that produced it.

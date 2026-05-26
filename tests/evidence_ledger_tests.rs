@@ -1,4 +1,7 @@
-use kcode::evidence_ledger::{EvidenceKind, EvidenceLedger, render_ledger_report};
+use kcode::evidence_ledger::{
+    EvidenceKind, EvidenceLedger, LedgerQuery, append_evidence_with_links, explain_evidence,
+    query_ledger, render_ledger_report,
+};
 use serde_json::json;
 use tempfile::tempdir;
 
@@ -57,4 +60,51 @@ fn ledger_report_renders_blocks() {
     assert!(report.contains("Cognition Evidence Chain"));
     assert!(report.contains("Valid: `true`"));
     assert!(report.contains("OperationalEval"));
+}
+
+#[test]
+fn ledger_supports_receipts_links_query_and_explain() {
+    let _ = std::fs::remove_file(kcode::evidence_ledger::ledger_path());
+    let first = append_evidence_with_links(
+        EvidenceKind::PolicyDecision,
+        "policy-parent",
+        "parent decision",
+        Some(0.8),
+        Some(true),
+        &json!({"policy": true}),
+        vec![],
+        vec![],
+        "policy",
+    )
+    .unwrap();
+    let second = append_evidence_with_links(
+        EvidenceKind::TinyPatchGate,
+        "tiny-child",
+        "child gate",
+        Some(0.9),
+        Some(false),
+        &json!({"gate": false}),
+        vec![first.receipt.hash.clone()],
+        vec![first.receipt.hash.clone()],
+        "self-improvement",
+    )
+    .unwrap();
+    assert!(second.verification.valid);
+    assert_eq!(second.receipt.subsystem, "self-improvement");
+
+    let queried = query_ledger(LedgerQuery {
+        kind: Some(EvidenceKind::TinyPatchGate),
+        subject_contains: Some("tiny".into()),
+        subsystem: Some("self-improvement".into()),
+        limit: 10,
+    })
+    .unwrap();
+    assert_eq!(queried.len(), 1);
+
+    let explained = explain_evidence(&second.receipt.hash[..12])
+        .unwrap()
+        .unwrap();
+    assert!(explained.verifies);
+    assert_eq!(explained.parents.len(), 1);
+    assert_eq!(explained.causes.len(), 1);
 }

@@ -443,6 +443,20 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
         LatentCommand::EvidenceLedgerReport { output } => {
             latent::LatentCommand::EvidenceLedgerReport { output }
         }
+        LatentCommand::EvidenceLedgerQuery {
+            kind,
+            subject,
+            subsystem,
+            limit,
+        } => latent::LatentCommand::EvidenceLedgerQuery {
+            kind,
+            subject,
+            subsystem,
+            limit,
+        },
+        LatentCommand::EvidenceLedgerExplain { target } => {
+            latent::LatentCommand::EvidenceLedgerExplain { target }
+        }
         LatentCommand::PolicyShadowReport { output } => {
             latent::LatentCommand::PolicyShadowReport { output }
         }

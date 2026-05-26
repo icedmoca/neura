@@ -6,7 +6,9 @@ use crate::autonomous_improvement::{
     synthesize_evidence_ranked_tasks, tiny_patch_gate, write_evidence_ranked_tasks_markdown,
     write_self_improvement_markdown,
 };
-use crate::evidence_ledger::{verify_ledger, write_ledger_report};
+use crate::evidence_ledger::{
+    EvidenceKind, LedgerQuery, explain_evidence, query_ledger, verify_ledger, write_ledger_report,
+};
 use crate::latent_learning::{
     LatentLearningState, convergence_metrics, counterfactual_probe, learning_state_path,
     remap_plan, render_learning_report,
@@ -162,6 +164,15 @@ pub enum LatentCommand {
     EvidenceLedgerVerify,
     EvidenceLedgerReport {
         output: Option<std::path::PathBuf>,
+    },
+    EvidenceLedgerQuery {
+        kind: Option<String>,
+        subject: Option<String>,
+        subsystem: Option<String>,
+        limit: usize,
+    },
+    EvidenceLedgerExplain {
+        target: String,
     },
     PolicyShadowReport {
         output: Option<PathBuf>,
@@ -600,6 +611,47 @@ pub fn run(command: LatentCommand) -> anyhow::Result<()> {
             let path = write_ledger_report(output)?;
             println!("evidence ledger report written to {}", path.display());
         }
+        LatentCommand::EvidenceLedgerQuery {
+            kind,
+            subject,
+            subsystem,
+            limit,
+        } => {
+            let blocks = query_ledger(LedgerQuery {
+                kind: kind.as_deref().and_then(parse_evidence_kind),
+                subject_contains: subject,
+                subsystem,
+                limit,
+            })?;
+            for block in blocks {
+                println!(
+                    "#{} {:?} subsystem={} subject={} passed={:?} score={:?} hash={}",
+                    block.index,
+                    block.kind,
+                    block.subsystem,
+                    block.subject,
+                    block.passed,
+                    block.score,
+                    block.hash
+                );
+            }
+        }
+        LatentCommand::EvidenceLedgerExplain { target } => match explain_evidence(&target)? {
+            Some(explanation) => {
+                println!(
+                    "block #{} {:?} subject={} verifies={} hash={}",
+                    explanation.block.index,
+                    explanation.block.kind,
+                    explanation.block.subject,
+                    explanation.verifies,
+                    explanation.block.hash
+                );
+                println!("summary={}", explanation.block.summary);
+                println!("parents={}", explanation.parents.len());
+                println!("causes={}", explanation.causes.len());
+            }
+            None => println!("no evidence block found for {target}"),
+        },
         LatentCommand::PolicyShadowReport { output } => {
             let rendered = policy_shadow_simulation::render_shadow_report()?;
             if let Some(output) = output {
@@ -666,5 +718,29 @@ fn parse_policy_domain(value: &str) -> PolicyDomain {
         "test" | "validation" | "test-validation" => PolicyDomain::TestValidation,
         "memory" | "memory-retrieval" => PolicyDomain::MemoryRetrieval,
         _ => PolicyDomain::DriftControl,
+    }
+}
+
+fn parse_evidence_kind(value: &str) -> Option<EvidenceKind> {
+    match value.to_ascii_lowercase().as_str() {
+        "operationaleval" | "operational" | "operational-eval" => {
+            Some(EvidenceKind::OperationalEval)
+        }
+        "adversarialeval" | "adversarial" | "adversarial-eval" => {
+            Some(EvidenceKind::AdversarialEval)
+        }
+        "selfimprovementcycle" | "self-improvement" | "self" => {
+            Some(EvidenceKind::SelfImprovementCycle)
+        }
+        "evidencerankedtask" | "task" | "tasks" => Some(EvidenceKind::EvidenceRankedTask),
+        "tinypatchgate" | "tiny-patch" | "gate" => Some(EvidenceKind::TinyPatchGate),
+        "validation" => Some(EvidenceKind::Validation),
+        "policydecision" | "policy" => Some(EvidenceKind::PolicyDecision),
+        "toolinvocation" | "tool" => Some(EvidenceKind::ToolInvocation),
+        "memoryupdate" | "memory" => Some(EvidenceKind::MemoryUpdate),
+        "tokenevent" | "token" => Some(EvidenceKind::TokenEvent),
+        "promotiondecision" | "promotion" => Some(EvidenceKind::PromotionDecision),
+        "system" => Some(EvidenceKind::System),
+        _ => None,
     }
 }
