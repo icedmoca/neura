@@ -115,7 +115,9 @@ pub(in crate::tui::app) async fn route_prepared_input_to_new_remote_session(
     app.pending_split_label = Some("Prompt".to_string());
     app.pending_split_started_at = Some(Instant::now());
 
-    if app.is_processing {
+    let is_immediate_btw = prepared.raw_input.trim_start().starts_with("/btw");
+
+    if app.is_processing && !is_immediate_btw {
         app.pending_split_request = true;
         app.set_status_notice("Prompt queued for new session");
         return Ok(());
