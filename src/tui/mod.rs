@@ -36,6 +36,7 @@ pub use generated_image::{
     write_generated_image_side_panel_page,
 };
 
+use crate::latency::{LatencyKind, LatencyTimer};
 use crate::message::ToolCall;
 use ratatui::prelude::Frame;
 use ratatui::text::Line;
@@ -1050,7 +1051,9 @@ pub(crate) fn subscribe_metadata() -> (Option<String>, Option<bool>) {
 
 /// Public wrapper to render a single frame (used by benchmarks/tools).
 pub fn render_frame(frame: &mut Frame<'_>, state: &dyn TuiState) {
+    let timer = LatencyTimer::start(LatencyKind::TuiRender);
     ui::draw(frame, state);
+    timer.finish();
 }
 
 pub use ui::{

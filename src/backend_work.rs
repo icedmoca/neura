@@ -5,6 +5,7 @@
 //! execute model/tool work itself; it coordinates maintenance-style work such as
 //! session persistence, telemetry flushes, cache refreshes, and index updates.
 
+use crate::latency::{LatencyKind, LatencyTimer};
 use crate::work_queue::{QueuePushResult, WorkPriority, WorkQueue};
 use std::path::PathBuf;
 
@@ -78,11 +79,17 @@ impl BackendWorkQueue {
         item: BackendWorkItem,
         priority: WorkPriority,
     ) -> QueuePushResult<BackendWorkItem> {
-        self.inner.push(item.key(), priority, item)
+        let timer = LatencyTimer::start(LatencyKind::BackendQueuePush);
+        let result = self.inner.push(item.key(), priority, item);
+        timer.finish();
+        result
     }
 
     pub fn pop(&mut self) -> Option<BackendWorkItem> {
-        self.inner.pop().map(|(_, item)| item)
+        let timer = LatencyTimer::start(LatencyKind::BackendQueuePop);
+        let item = self.inner.pop().map(|(_, item)| item);
+        timer.finish();
+        item
     }
 }
 

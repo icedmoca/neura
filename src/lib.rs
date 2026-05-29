@@ -118,4 +118,5 @@ pub fn get_current_session() -> Option<String> {
 pub async fn run() -> Result<()> {
     cli::startup::run().await
 }
+pub mod latency;
 pub mod work_queue;

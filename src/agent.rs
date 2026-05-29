@@ -30,6 +30,7 @@ use crate::bus::{Bus, BusEvent, SubagentStatus, ToolEvent, ToolStatus};
 use crate::cache_tracker::CacheTracker;
 use crate::compaction::CompactionEvent;
 use crate::id;
+use crate::latency::{LatencyKind, LatencyTimer};
 use crate::logging;
 use crate::message::{
     ContentBlock, Message, Role, StreamEvent, TOOL_OUTPUT_MISSING_TEXT, ToolCall, ToolDefinition,
@@ -315,6 +316,7 @@ impl Agent {
     }
 
     fn persist_session_best_effort(&mut self, context: &str) {
+        let timer = LatencyTimer::start(LatencyKind::SessionSave);
         let mut session_save_queue = SessionSaveQueue::new();
         match self.session.save_path() {
             Ok(path) => {
@@ -336,6 +338,7 @@ impl Agent {
                 ));
             }
         }
+        timer.finish();
     }
 
     fn reset_runtime_state_for_session_change(&mut self) {
