@@ -6,6 +6,7 @@ pub mod ambient_runner;
 pub mod ambient_scheduler;
 pub mod auth;
 pub mod autonomous_improvement;
+pub mod backend_work;
 pub mod background;
 pub mod browser;
 pub mod build;
@@ -117,3 +118,4 @@ pub fn get_current_session() -> Option<String> {
 pub async fn run() -> Result<()> {
     cli::startup::run().await
 }
+pub mod work_queue;
