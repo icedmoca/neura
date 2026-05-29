@@ -6,6 +6,7 @@
 //! session persistence, telemetry flushes, cache refreshes, and index updates.
 
 use crate::latency::{LatencyKind, LatencyTimer};
+use crate::runtime_governor;
 use crate::work_queue::{QueuePushResult, WorkPriority, WorkQueue};
 use std::path::PathBuf;
 
@@ -81,6 +82,8 @@ impl BackendWorkQueue {
     ) -> QueuePushResult<BackendWorkItem> {
         let timer = LatencyTimer::start(LatencyKind::BackendQueuePush);
         let result = self.inner.push(item.key(), priority, item);
+        runtime_governor::observe_backend_queue(self.inner.len(), self.inner.capacity());
+        runtime_governor::evaluate_global();
         timer.finish();
         result
     }
@@ -88,6 +91,8 @@ impl BackendWorkQueue {
     pub fn pop(&mut self) -> Option<BackendWorkItem> {
         let timer = LatencyTimer::start(LatencyKind::BackendQueuePop);
         let item = self.inner.pop().map(|(_, item)| item);
+        runtime_governor::observe_backend_queue(self.inner.len(), self.inner.capacity());
+        runtime_governor::evaluate_global();
         timer.finish();
         item
     }

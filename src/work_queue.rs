@@ -88,6 +88,10 @@ where
         self.slots.len()
     }
 
+    pub fn capacity(&self) -> usize {
+        self.max_len
+    }
+
     pub fn is_empty(&self) -> bool {
         self.slots.is_empty()
     }
@@ -180,6 +184,12 @@ mod tests {
         assert_eq!(q.pop(), Some(("a", 1)));
         assert_eq!(q.pop(), Some(("d", 4)));
         assert_eq!(q.pop(), None);
+    }
+
+    #[test]
+    fn exposes_capacity() {
+        let q: WorkQueue<&str, i32> = WorkQueue::new(7);
+        assert_eq!(q.capacity(), 7);
     }
 
     #[test]

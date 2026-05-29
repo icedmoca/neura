@@ -119,4 +119,5 @@ pub async fn run() -> Result<()> {
     cli::startup::run().await
 }
 pub mod latency;
+pub mod runtime_governor;
 pub mod work_queue;

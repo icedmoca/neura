@@ -5,6 +5,7 @@ use super::{
     commands, ctrl_bracket_fallback_to_esc, is_context_limit_error, remote,
 };
 use crate::bus::{Bus, BusEvent, InputShellCompleted};
+use crate::runtime_governor;
 use crate::util::truncate_str;
 use anyhow::Result;
 use crossterm::event::{EventStream, KeyCode, KeyEvent, KeyModifiers};
@@ -1241,6 +1242,7 @@ impl App {
             event.kind,
             crossterm::event::KeyEventKind::Press | crossterm::event::KeyEventKind::Repeat
         ) {
+            runtime_governor::observe_key_event();
             let _ = self.handle_key_press_event(event);
         }
     }
