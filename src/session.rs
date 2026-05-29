@@ -701,6 +701,10 @@ pub fn derive_session_provider_key(provider_name: &str) -> Option<String> {
 }
 
 impl Session {
+    pub fn save_path(&self) -> Result<PathBuf> {
+        session_path(&self.id)
+    }
+
     fn session_from_startup_stub(stub: SessionStartupStub) -> Self {
         let mut session = Self::create_with_id(stub.id, stub.parent_id, stub.title);
         session.created_at = stub.created_at;

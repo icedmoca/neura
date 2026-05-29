@@ -126,3 +126,59 @@ mod tests {
         assert_eq!(queue.pop(), Some(BackendWorkItem::TelemetryFlush));
     }
 }
+
+/// Helper for subsystems that want to coalesce repeated session save requests
+/// before flushing them synchronously at a safe boundary.
+#[derive(Debug, Clone, Default)]
+pub struct SessionSaveQueue {
+    queue: BackendWorkQueue,
+}
+
+impl SessionSaveQueue {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn request_save(&mut self, path: PathBuf) -> QueuePushResult<BackendWorkItem> {
+        self.queue.enqueue(BackendWorkItem::SessionSave { path })
+    }
+
+    pub fn drain_paths(&mut self) -> Vec<PathBuf> {
+        let mut paths = Vec::new();
+        while let Some(item) = self.queue.pop() {
+            if let BackendWorkItem::SessionSave { path } = item {
+                paths.push(path);
+            }
+        }
+        paths
+    }
+
+    pub fn len(&self) -> usize {
+        self.queue.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.queue.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod session_save_queue_tests {
+    use super::*;
+
+    #[test]
+    fn session_save_queue_coalesces_paths() {
+        let path = PathBuf::from("same-session.json");
+        let mut queue = SessionSaveQueue::new();
+        assert!(matches!(
+            queue.request_save(path.clone()),
+            QueuePushResult::Inserted
+        ));
+        assert!(matches!(
+            queue.request_save(path.clone()),
+            QueuePushResult::Coalesced { .. }
+        ));
+        assert_eq!(queue.drain_paths(), vec![path]);
+        assert!(queue.is_empty());
+    }
+}

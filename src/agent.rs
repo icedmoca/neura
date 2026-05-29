@@ -24,6 +24,7 @@ use self::streaming::{
 };
 use self::tools::{print_tool_summary, tool_output_to_content_blocks};
 use self::utils::trace_enabled;
+use crate::backend_work::SessionSaveQueue;
 use crate::build;
 use crate::bus::{Bus, BusEvent, SubagentStatus, ToolEvent, ToolStatus};
 use crate::cache_tracker::CacheTracker;
@@ -314,11 +315,26 @@ impl Agent {
     }
 
     fn persist_session_best_effort(&mut self, context: &str) {
-        if let Err(err) = self.session.save() {
-            logging::warn(&format!(
-                "Failed to persist {} for session {}: {}",
-                context, self.session.id, err
-            ));
+        let mut session_save_queue = SessionSaveQueue::new();
+        match self.session.save_path() {
+            Ok(path) => {
+                let _ = session_save_queue.request_save(path);
+            }
+            Err(err) => {
+                logging::warn(&format!(
+                    "Failed to resolve session save path for {} on session {}: {}",
+                    context, self.session.id, err
+                ));
+            }
+        }
+
+        for _path in session_save_queue.drain_paths() {
+            if let Err(err) = self.session.save() {
+                logging::warn(&format!(
+                    "Failed to persist {} for session {}: {}",
+                    context, self.session.id, err
+                ));
+            }
         }
     }
 

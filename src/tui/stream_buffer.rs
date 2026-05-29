@@ -3,7 +3,7 @@
 use serde::Serialize;
 use std::time::{Duration, Instant};
 
-use crate::tui::scheduler::{STREAM_CHUNK_MAX_BYTES, STREAM_CHUNK_TIMEOUT};
+use crate::tui::scheduler::STREAM_CHUNK_TIMEOUT;
 
 /// Buffer that accumulates streaming text and flushes at semantic boundaries
 pub struct StreamBuffer {
