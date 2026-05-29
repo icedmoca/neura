@@ -7,7 +7,11 @@ use super::*;
 #[cfg(unix)]
 fn try_open_tty_for_prompt() -> Option<std::fs::File> {
     use std::fs::OpenOptions;
-    let f = OpenOptions::new().read(true).write(true).open("/dev/tty").ok()?;
+    let f = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open("/dev/tty")
+        .ok()?;
     std::io::IsTerminal::is_terminal(&f).then_some(f)
 }
 
