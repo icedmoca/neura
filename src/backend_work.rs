@@ -7,6 +7,7 @@
 
 use crate::latency::{LatencyKind, LatencyTimer};
 use crate::runtime_governor;
+use crate::runtime_ledger::{self, RuntimeReceiptKind};
 use crate::work_queue::{QueuePushResult, WorkPriority, WorkQueue};
 use std::path::PathBuf;
 
@@ -36,6 +37,16 @@ impl BackendWorkItem {
             Self::CacheRefresh { name } => BackendWorkKey::CacheRefresh(name),
             Self::IndexRefresh { name } => BackendWorkKey::IndexRefresh(name),
             Self::Custom { name } => BackendWorkKey::Custom(name),
+        }
+    }
+
+    pub fn kind_label(&self) -> &'static str {
+        match self {
+            Self::SessionSave { .. } => "session_save",
+            Self::TelemetryFlush => "telemetry_flush",
+            Self::CacheRefresh { .. } => "cache_refresh",
+            Self::IndexRefresh { .. } => "index_refresh",
+            Self::Custom { .. } => "custom",
         }
     }
 
@@ -81,7 +92,21 @@ impl BackendWorkQueue {
         priority: WorkPriority,
     ) -> QueuePushResult<BackendWorkItem> {
         let timer = LatencyTimer::start(LatencyKind::BackendQueuePush);
+        let item_kind = item.kind_label();
         let result = self.inner.push(item.key(), priority, item);
+        if runtime_ledger::enabled() {
+            runtime_ledger::append_receipt_best_effort(
+                RuntimeReceiptKind::BackendWork,
+                "enqueue",
+                serde_json::json!({
+                    "item": item_kind,
+                    "priority": format!("{:?}", priority),
+                    "result": format!("{:?}", result),
+                    "queue_len": self.inner.len(),
+                    "queue_capacity": self.inner.capacity(),
+                }),
+            );
+        }
         runtime_governor::observe_backend_queue(self.inner.len(), self.inner.capacity());
         runtime_governor::evaluate_global();
         timer.finish();
@@ -91,6 +116,17 @@ impl BackendWorkQueue {
     pub fn pop(&mut self) -> Option<BackendWorkItem> {
         let timer = LatencyTimer::start(LatencyKind::BackendQueuePop);
         let item = self.inner.pop().map(|(_, item)| item);
+        if runtime_ledger::enabled() {
+            runtime_ledger::append_receipt_best_effort(
+                RuntimeReceiptKind::BackendWork,
+                "dequeue",
+                serde_json::json!({
+                    "item": item.as_ref().map(|item| item.kind_label()),
+                    "queue_len": self.inner.len(),
+                    "queue_capacity": self.inner.capacity(),
+                }),
+            );
+        }
         runtime_governor::observe_backend_queue(self.inner.len(), self.inner.capacity());
         runtime_governor::evaluate_global();
         timer.finish();

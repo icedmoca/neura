@@ -1,4 +1,5 @@
 use super::*;
+use crate::runtime_ledger::{self, RuntimeReceiptKind};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum TurnAdmission {
@@ -742,7 +743,18 @@ impl Agent {
                 "clamp_history": plan.clamp_history,
                 "confidence": plan.confidence,
             }));
-            let mut stream = match self
+            if runtime_ledger::enabled() {
+                runtime_ledger::append_receipt_best_effort(
+                    RuntimeReceiptKind::ProviderCall,
+                    "start",
+                    serde_json::json!({
+                        "provider": self.provider.name(),
+                        "model": self.provider.model(),
+                        "session_id": self.session.id,
+                    }),
+                );
+            }
+            let provider_result = self
                 .provider
                 .complete_split(
                     provider_messages,
@@ -751,8 +763,20 @@ impl Agent {
                     &dynamic_part,
                     self.provider_session_id.as_deref(),
                 )
-                .await
-            {
+                .await;
+            if runtime_ledger::enabled() {
+                runtime_ledger::append_receipt_best_effort(
+                    RuntimeReceiptKind::ProviderCall,
+                    "finish",
+                    serde_json::json!({
+                        "provider": self.provider.name(),
+                        "model": self.provider.model(),
+                        "session_id": self.session.id,
+                        "ok": provider_result.is_ok(),
+                    }),
+                );
+            }
+            let mut stream = match provider_result {
                 Ok(stream) => stream,
                 Err(e) => {
                     if self.try_auto_compact_after_context_limit(&e.to_string()) {
@@ -1719,6 +1743,7 @@ fn contains_any_for_payload_diet(haystack: &str, needles: &[&str]) -> bool {
 #[cfg(test)]
 mod short_turn_payload_diet_tests {
     use super::*;
+    use crate::runtime_ledger::{self, RuntimeReceiptKind};
 
     #[test]
     fn simple_turn_with_large_history_gets_compacted_provider_payload() {
@@ -1754,6 +1779,7 @@ mod short_turn_payload_diet_tests {
 #[cfg(test)]
 mod admission_controller_tests {
     use super::*;
+    use crate::runtime_ledger::{self, RuntimeReceiptKind};
 
     #[test]
     fn meow_is_direct_and_skips_context_subsystems() {
@@ -1793,6 +1819,7 @@ mod admission_controller_tests {
 #[cfg(test)]
 mod walk_tests {
     use super::*;
+    use crate::runtime_ledger::{self, RuntimeReceiptKind};
 
     #[test]
     fn walk_partitions_chars_by_kind() {

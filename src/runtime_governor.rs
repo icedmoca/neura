@@ -6,6 +6,7 @@
 //! changing core model/tool semantics.
 
 use crate::latency::{self, LatencyKind, LatencySummary};
+use crate::runtime_ledger::{self, RuntimeReceiptKind};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
@@ -73,6 +74,7 @@ impl RuntimeGovernor {
         let typing_during_stream =
             observation.recent_key_events > 0 && observation.recent_stream_events > 0;
 
+        let previous_mode = self.policy.mode;
         self.policy = if queue_pressure || slow_session_save {
             GovernorPolicy {
                 mode: RuntimeMode::Backpressure,
@@ -90,6 +92,23 @@ impl RuntimeGovernor {
         } else {
             GovernorPolicy::default()
         };
+
+        if runtime_ledger::enabled() && self.policy.mode != previous_mode {
+            runtime_ledger::append_receipt_best_effort(
+                RuntimeReceiptKind::Governor,
+                "policy_transition",
+                serde_json::json!({
+                    "mode": format!("{:?}", self.policy.mode),
+                    "force_stream_chunking": self.policy.force_stream_chunking,
+                    "defer_low_priority_work": self.policy.defer_low_priority_work,
+                    "active_turn_tick_ms": self.policy.active_turn_tick_ms,
+                    "queue_len": observation.backend_queue_len,
+                    "queue_capacity": observation.backend_queue_capacity,
+                    "recent_key_events": observation.recent_key_events,
+                    "recent_stream_events": observation.recent_stream_events,
+                }),
+            );
+        }
 
         self.policy
     }

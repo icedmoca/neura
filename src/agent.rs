@@ -37,6 +37,7 @@ use crate::message::{
 };
 use crate::protocol::{HistoryMessage, ServerEvent};
 use crate::provider::{NativeToolResult, Provider};
+use crate::runtime_ledger::{self, RuntimeReceiptKind};
 use crate::session::{GitState, Session, SessionStatus, StoredDisplayRole, StoredMessage};
 use crate::skill::SkillRegistry;
 use crate::tool::{Registry, ToolContext, ToolExecutionMode};
@@ -331,11 +332,25 @@ impl Agent {
         }
 
         for _path in session_save_queue.drain_paths() {
-            if let Err(err) = self.session.save() {
-                logging::warn(&format!(
-                    "Failed to persist {} for session {}: {}",
-                    context, self.session.id, err
-                ));
+            match self.session.save() {
+                Ok(()) => {
+                    if runtime_ledger::enabled() {
+                        runtime_ledger::append_receipt_best_effort(
+                            RuntimeReceiptKind::SessionPersistence,
+                            context.to_string(),
+                            serde_json::json!({
+                                "session_id": self.session.id,
+                                "path": _path,
+                            }),
+                        );
+                    }
+                }
+                Err(err) => {
+                    logging::warn(&format!(
+                        "Failed to persist {} for session {}: {}",
+                        context, self.session.id, err
+                    ));
+                }
             }
         }
         timer.finish();

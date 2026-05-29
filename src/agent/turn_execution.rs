@@ -1,4 +1,5 @@
 use super::*;
+use crate::runtime_ledger::{self, RuntimeReceiptKind};
 
 impl Agent {
     /// Run a single turn with the given user message
@@ -321,7 +322,29 @@ impl Agent {
             graceful_shutdown_signal: Some(self.graceful_shutdown.clone()),
             execution_mode: ToolExecutionMode::Direct,
         };
-        self.registry.execute(name, input, ctx).await
+        if runtime_ledger::enabled() {
+            runtime_ledger::append_receipt_best_effort(
+                RuntimeReceiptKind::ToolCall,
+                "start",
+                serde_json::json!({
+                    "tool": name,
+                    "session_id": self.session.id,
+                }),
+            );
+        }
+        let result = self.registry.execute(name, input, ctx).await;
+        if runtime_ledger::enabled() {
+            runtime_ledger::append_receipt_best_effort(
+                RuntimeReceiptKind::ToolCall,
+                "finish",
+                serde_json::json!({
+                    "tool": name,
+                    "ok": result.is_ok(),
+                    "session_id": self.session.id,
+                }),
+            );
+        }
+        result
     }
 
     pub fn add_manual_tool_use(
@@ -893,6 +916,7 @@ fn fallback_tool_catalog(defs: &[ToolDefinition], wanted: &[String]) -> Option<T
 #[cfg(test)]
 mod dynamic_tool_filter_tests {
     use super::*;
+    use crate::runtime_ledger::{self, RuntimeReceiptKind};
 
     fn def(name: &str) -> ToolDefinition {
         ToolDefinition {
