@@ -27,7 +27,7 @@ impl StreamBuffer {
         Self {
             buffer: String::new(),
             last_flush: Instant::now(),
-            timeout: Duration::from_millis(150),
+            timeout: Duration::from_millis(250),
         }
     }
 
