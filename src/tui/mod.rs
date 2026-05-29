@@ -17,6 +17,7 @@ pub mod mermaid;
 pub(crate) mod panic_util;
 pub mod permissions;
 mod remote_diff;
+pub(crate) mod scheduler;
 pub mod screenshot;
 pub mod session_picker;
 mod stream_buffer;
