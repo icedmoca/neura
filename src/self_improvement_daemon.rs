@@ -17,7 +17,10 @@ use std::time::{Duration, Instant};
 pub struct SelfImprovementDaemonConfig {
     pub enabled: bool,
     pub dry_run: bool,
+    /// Minimum wall-clock time between self-improvement cycles.
     pub interval_secs: u64,
+    /// Startup grace period before the first background tick is allowed.
+    pub startup_delay_secs: u64,
     pub allow_mutation: bool,
 }
 
@@ -29,6 +32,7 @@ impl Default for SelfImprovementDaemonConfig {
             enabled: true,
             dry_run: true,
             interval_secs: 60 * 60,
+            startup_delay_secs: 3 * 60,
             allow_mutation: false,
         }
     }
@@ -183,6 +187,7 @@ mod tests {
         assert!(config.dry_run);
         assert!(!config.allow_mutation);
         assert_eq!(config.interval_secs, 60 * 60);
+        assert_eq!(config.startup_delay_secs, 3 * 60);
     }
 
     #[test]

@@ -19,11 +19,17 @@ use super::{
 use provider_init::ProviderChoice;
 
 fn spawn_safe_self_improvement_tick() {
-    if !self_improvement_daemon::current_config().enabled {
+    let config = self_improvement_daemon::current_config();
+    if !config.enabled {
         return;
     }
-    tokio::task::spawn_blocking(|| {
-        let _ = self_improvement_daemon::tick_global();
+    tokio::spawn(async move {
+        if config.startup_delay_secs > 0 {
+            tokio::time::sleep(std::time::Duration::from_secs(config.startup_delay_secs)).await;
+        }
+        tokio::task::spawn_blocking(|| {
+            let _ = self_improvement_daemon::tick_global();
+        });
     });
 }
 
