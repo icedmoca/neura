@@ -79,6 +79,10 @@ pub fn hot_reload(session_id: &str) -> Result<()> {
     let (exe, _label) = build::preferred_reload_candidate(is_selfdev)
         .ok_or_else(|| anyhow::anyhow!("No reloadable binary found"))?;
 
+    if is_same_executable(&exe, &std::env::current_exe()?) {
+        return Ok(());
+    }
+
     if let Ok(metadata) = std::fs::metadata(&exe) {
         let age = metadata
             .modified()
@@ -188,6 +192,13 @@ pub fn hot_rebuild(session_id: &str) -> Result<()> {
     let err = crate::platform::replace_process(&mut cmd);
 
     Err(anyhow::anyhow!("Failed to exec {:?}: {}", exe, err))
+}
+
+fn is_same_executable(a: &std::path::Path, b: &std::path::Path) -> bool {
+    match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => false,
+    }
 }
 
 fn rebuild_version_label(repo_dir: &Path) -> String {

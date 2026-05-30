@@ -1,4 +1,11 @@
 use crate::agent::Agent;
+
+fn same_executable(a: &std::path::Path, b: &std::path::Path) -> bool {
+    match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => false,
+    }
+}
 use crate::server::reload_recovery::ReloadRecoveryRole;
 use crate::server::{SwarmEvent, SwarmEventType, SwarmMember};
 use crate::tool::selfdev::ReloadContext;
@@ -115,6 +122,20 @@ pub(super) async fn await_reload_signal(
 
         if let Some((binary, label)) = super::server_update_candidate(prefers_selfdev) {
             if binary.exists() {
+                if std::env::current_exe()
+                    .ok()
+                    .as_ref()
+                    .map(|current| same_executable(&binary, current))
+                    .unwrap_or(false)
+                {
+                    let _ = std::fs::remove_file(crate::server::reload_marker_path());
+                    crate::logging::info(&format!(
+                        "Server: reload request {} already running selected {} binary {:?}",
+                        signal.request_id, label, binary
+                    ));
+                    continue;
+                }
+
                 let socket = super::socket_path();
                 crate::logging::info(&format!(
                     "Server: exec'ing into {} binary {:?} (socket: {:?}, prep={}ms, state={})",
