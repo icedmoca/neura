@@ -24,9 +24,11 @@ pub struct SelfImprovementDaemonConfig {
 impl Default for SelfImprovementDaemonConfig {
     fn default() -> Self {
         Self {
-            enabled: false,
+            // Enabled by default so the runtime can continuously audit itself,
+            // but still dry-run and non-mutating unless explicitly opted in.
+            enabled: true,
             dry_run: true,
-            interval_secs: 6 * 60 * 60,
+            interval_secs: 60 * 60,
             allow_mutation: false,
         }
     }
@@ -175,16 +177,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_is_safe_and_disabled() {
+    fn default_is_enabled_but_safe() {
         let config = SelfImprovementDaemonConfig::default();
-        assert!(!config.enabled);
+        assert!(config.enabled);
         assert!(config.dry_run);
         assert!(!config.allow_mutation);
+        assert_eq!(config.interval_secs, 60 * 60);
     }
 
     #[test]
     fn disabled_daemon_does_not_run() {
-        let mut daemon = SelfImprovementDaemon::new(SelfImprovementDaemonConfig::default());
+        let mut config = SelfImprovementDaemonConfig::default();
+        config.enabled = false;
+        let mut daemon = SelfImprovementDaemon::new(config);
         assert_eq!(daemon.tick().unwrap(), SelfImprovementTickResult::Disabled);
     }
 

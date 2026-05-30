@@ -9,8 +9,8 @@ use super::args::{
     ProviderCommand, RestartCommand, SelfImproveCommand, TranscriptModeArg,
 };
 use crate::{
-    agent, auth, build, provider, provider_catalog, server, session, setup_hints, startup_profile,
-    tui,
+    agent, auth, build, provider, provider_catalog, self_improvement_daemon, server, session,
+    setup_hints, startup_profile, tui,
 };
 
 use super::{
@@ -18,7 +18,17 @@ use super::{
 };
 use provider_init::ProviderChoice;
 
+fn spawn_safe_self_improvement_tick() {
+    if !self_improvement_daemon::current_config().enabled {
+        return;
+    }
+    tokio::task::spawn_blocking(|| {
+        let _ = self_improvement_daemon::tick_global();
+    });
+}
+
 pub(crate) async fn run_main(mut args: Args) -> Result<()> {
+    spawn_safe_self_improvement_tick();
     resolve_resume_arg(&mut args)?;
 
     if let Some(profile_name) = args
