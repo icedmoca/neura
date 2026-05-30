@@ -120,13 +120,9 @@ impl App {
             .or_else(|| self.resume_session_id.clone())
     }
 
-    /// Check if the selected reload candidate is newer than startup.
+    /// Check if the selected reload candidate differs from the running client binary.
     /// Candidate selection matches `/reload` so the `cli↑` badge and reload target stay aligned.
     pub(super) fn has_newer_binary(&self) -> bool {
-        let Some(startup_mtime) = self.client_binary_mtime else {
-            return false;
-        };
-
         let is_selfdev_session = if self.is_remote {
             self.remote_is_canary.unwrap_or(self.session.is_canary)
         } else {
@@ -139,10 +135,37 @@ impl App {
             return false;
         };
 
-        std::fs::metadata(&candidate)
-            .ok()
-            .and_then(|m| m.modified().ok())
-            .is_some_and(|mtime| mtime > startup_mtime)
+        if !candidate.exists() {
+            return false;
+        }
+
+        let Ok(current) = std::env::current_exe() else {
+            return self
+                .client_binary_mtime
+                .and_then(|startup_mtime| {
+                    std::fs::metadata(&candidate)
+                        .ok()
+                        .and_then(|metadata| metadata.modified().ok())
+                        .map(|mtime| mtime > startup_mtime)
+                })
+                .unwrap_or(false);
+        };
+
+        match (
+            std::fs::canonicalize(&candidate),
+            std::fs::canonicalize(&current),
+        ) {
+            (Ok(candidate), Ok(current)) => candidate != current,
+            _ => self
+                .client_binary_mtime
+                .and_then(|startup_mtime| {
+                    std::fs::metadata(&candidate)
+                        .ok()
+                        .and_then(|metadata| metadata.modified().ok())
+                        .map(|mtime| mtime > startup_mtime)
+                })
+                .unwrap_or(false),
+        }
     }
 
     /// Initialize MCP servers (call after construction)
