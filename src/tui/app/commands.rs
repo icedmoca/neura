@@ -1967,6 +1967,41 @@ pub(super) fn handle_usage_command(app: &mut App, trimmed: &str) -> bool {
     true
 }
 
+pub(super) fn handle_kcodeui_command(app: &mut App, trimmed: &str) -> bool {
+    if trimmed != "/kcodeui" && trimmed != "kcodeui" {
+        return false;
+    }
+
+    let repo_root = env!("CARGO_MANIFEST_DIR");
+    let script = std::path::Path::new(repo_root).join("scripts/kcodeui");
+    let url = "http://127.0.0.1:8768";
+    let spawn_result = std::process::Command::new(&script)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn();
+
+    let content = match spawn_result {
+        Ok(_) => format!(
+            "Kcode UI is starting. Open {url}\n\nThe UI serves live state from {url}/api/state."
+        ),
+        Err(err) => format!(
+            "Failed to start Kcode UI via {}: {err}\n\nYou can still run `scripts/kcodeui` from the repo root and open {url}.",
+            script.display()
+        ),
+    };
+
+    app.display_messages.push(DisplayMessage {
+        role: "system".to_string(),
+        content,
+        tool_calls: Vec::new(),
+        duration_secs: None,
+        title: Some("Kcode UI".to_string()),
+        tool_data: None,
+    });
+    true
+}
+
 pub(super) fn handle_feedback_command(app: &mut App, trimmed: &str) -> bool {
     let Some(rest) = trimmed.strip_prefix("/feedback") else {
         return false;
