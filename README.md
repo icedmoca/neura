@@ -202,3 +202,33 @@ You can also run `/improve` inside the TUI to start safe recursive self-improvem
 </p>
 
 Provider/model availability depends on credentials, endpoint health, catalog refresh, and the specific adapter implementation under `src/provider`. The generated provider inventory is in [`docs/reference/implementation-inventory.md`](docs/reference/implementation-inventory.md).
+
+## Kcode UI cockpit
+
+Kcode includes a local-first web cockpit under `ui/` for visualizing memory, context pressure, tool lanes, runtime events, git state, and the self-improvement loop.
+
+Run it locally:
+
+```bash
+scripts/kcodeui
+```
+
+Then open the URL printed by the server, usually:
+
+```text
+http://127.0.0.1:8768
+```
+
+The server also exposes live state for the UI:
+
+```text
+http://127.0.0.1:8768/api/state
+```
+
+Intended slash command behavior after harness reload:
+
+```text
+/kcodeui
+```
+
+should launch `scripts/kcodeui` or open `http://127.0.0.1:8768`. If the currently running harness build does not yet expose dynamic slash-command registration, run the script directly while the command registry catches up.
