@@ -26,6 +26,7 @@ pub mod embedding_stub;
 pub mod evidence_ledger;
 pub mod evidence_replay;
 pub mod kcode_memory;
+pub mod kcode_ui;
 pub mod latent_learning;
 pub mod latent_learning_background;
 pub mod latent_memory;

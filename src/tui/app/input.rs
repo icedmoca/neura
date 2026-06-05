@@ -1715,21 +1715,7 @@ impl App {
                     tool_data: None,
                 });
             } else if skill_name == "kcodeui" {
-                let repo_root = env!("CARGO_MANIFEST_DIR");
-                let script = std::path::Path::new(repo_root).join("scripts/kcodeui");
-                let url = "http://127.0.0.1:8768";
-                let content = match std::process::Command::new(&script)
-                    .stdin(std::process::Stdio::null())
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .spawn()
-                {
-                    Ok(_) => format!("Kcode UI is starting: {url}\nLive state API: {url}/api/state"),
-                    Err(err) => format!(
-                        "Failed to start Kcode UI via {}: {err}\nRun `scripts/kcodeui` from the repo root, then open {url}.",
-                        script.display()
-                    ),
-                };
+                let content = crate::kcode_ui::launch();
                 self.push_display_message(DisplayMessage {
                     role: "system".to_string(),
                     content,
