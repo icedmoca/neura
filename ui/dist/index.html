@@ -3,9 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NEURA</title>
-    <script type="module" crossorigin src="/assets/index-CjC4i-sr.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BlUS9Km0.css">
+    <title>Kcode</title>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("kcode-theme");
+          if (t !== "light" && t !== "dark") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-2CZWHb5g.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BRotDXTF.css">
   </head>
   <body>
     <div id="root"></div>
