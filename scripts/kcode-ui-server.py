@@ -2,14 +2,21 @@
 """Local Kcode UI server.
 
 Serves the built React UI from ui/dist and exposes lightweight live Kcode state at
-/api/state. This intentionally uses only the Python standard library so it can be
-called from slash commands, desktop reload hooks, or manually without setup.
+/api/state, plus a chat bridge (/api/chats, /api/chat) that drives the real kcode
+agent via `kcode run --json`. Each chat is a real kcode session; its name is the
+two-word handle kcode uses everywhere else: a server modifier ("harbor") paired
+with the session's animal ("fox") -> "harbor fox".
+
+This intentionally uses only the Python standard library so it can be called from
+slash commands, desktop reload hooks, or manually without setup.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import random
+import shutil
 import socket
 import subprocess
 import sys
@@ -22,6 +29,59 @@ ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "ui"
 DIST_DIR = UI_DIR / "dist"
 KCODE_HOME = Path(os.environ.get("KCODE_HOME", str(Path.home() / ".kcode")))
+SESSIONS_DIR = KCODE_HOME / "sessions"
+SERVER_IDENTITY_FILE = KCODE_HOME / "ui-server.json"
+
+# Mirrors src/id.rs SERVER_MODIFIERS so the UI server's name matches kcode's scheme.
+SERVER_MODIFIERS = [
+    "cove", "grove", "meadow", "marsh", "lake", "river", "creek", "brook", "cliff",
+    "peak", "summit", "forest", "garden", "island", "desert", "beach", "harbor",
+    "camp", "forge", "citadel", "station", "observatory", "workshop", "lighthouse",
+    "temple", "castle", "bridge", "fountain", "stadium", "factory", "pagoda", "hut",
+]
+
+# Single timeout for an agent turn; chat calls hit a real provider.
+KCODE_RUN_TIMEOUT = int(os.environ.get("KCODE_UI_RUN_TIMEOUT", "300"))
+
+
+def kcode_bin() -> str:
+    """Locate the kcode binary the same way a shell would."""
+    found = shutil.which("kcode")
+    if found:
+        return found
+    local = Path.home() / ".local" / "bin" / "kcode"
+    return str(local) if local.exists() else "kcode"
+
+
+def server_identity() -> dict:
+    """Stable per-install server name (the modifier word), persisted under KCODE_HOME."""
+    try:
+        if SERVER_IDENTITY_FILE.exists():
+            data = json.loads(SERVER_IDENTITY_FILE.read_text())
+            if data.get("serverName"):
+                return data
+    except Exception:
+        pass
+    name = random.choice(SERVER_MODIFIERS)
+    data = {"serverName": name, "createdAt": time.time()}
+    try:
+        SERVER_IDENTITY_FILE.write_text(json.dumps(data))
+    except Exception:
+        pass
+    return data
+
+
+SERVER_NAME = server_identity()["serverName"]
+
+
+def session_animal(session_id: str) -> str:
+    """Extract the memorable animal from a `session_<animal>_<ts>_<rand>` id."""
+    if session_id.startswith("session_"):
+        rest = session_id[len("session_"):]
+        if "_" in rest:
+            return rest.split("_", 1)[0]
+        return rest
+    return session_id
 
 
 def git(cmd: list[str]) -> str:
@@ -62,6 +122,7 @@ def build_state() -> dict:
         "generatedAt": time.time(),
         "root": str(ROOT),
         "kcodeHome": str(KCODE_HOME),
+        "serverName": SERVER_NAME,
         "git": {"branch": branch, "status": status.splitlines(), "commits": commits.splitlines(), "remotes": remotes.splitlines()},
         "repo": {
             "rustFiles": count_files(ROOT / "crates", ".rs"),
@@ -87,6 +148,157 @@ def build_state() -> dict:
     }
 
 
+# ----------------------------- chat bridge -----------------------------------
+
+def _message_text(blocks) -> tuple[str, list[str]]:
+    """Flatten a session message's content into (text, tool_names)."""
+    if isinstance(blocks, str):
+        return blocks, []
+    texts: list[str] = []
+    tools: list[str] = []
+    if isinstance(blocks, list):
+        for b in blocks:
+            if not isinstance(b, dict):
+                continue
+            kind = b.get("type")
+            if kind == "text" and b.get("text"):
+                texts.append(b["text"])
+            elif kind == "tool_use":
+                tools.append(b.get("name", "tool"))
+    return "\n".join(texts).strip(), tools
+
+
+def session_messages(session_id: str, data: dict) -> list:
+    """Reconstruct a session's full message list the way kcode does: the snapshot
+    `.json` messages plus every `append_messages` batch from the `.journal.jsonl`
+    (the snapshot lags; the journal holds turns since the last checkpoint)."""
+    msgs = list(data.get("messages", []))
+    journal = SESSIONS_DIR / f"{session_id}.journal.jsonl"
+    if journal.exists():
+        try:
+            for line in journal.read_text(errors="ignore").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                msgs.extend(entry.get("append_messages") or [])
+        except Exception:
+            pass
+    return msgs
+
+
+def load_chat(session_id: str) -> dict | None:
+    path = SESSIONS_DIR / f"{session_id}.json"
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text())
+    except Exception:
+        return None
+    messages = []
+    for m in session_messages(session_id, data):
+        role = m.get("role", "")
+        if role not in ("user", "assistant"):
+            continue
+        text, tools = _message_text(m.get("content"))
+        if not text and not tools:
+            continue
+        messages.append({"role": role, "text": text, "tools": tools})
+    animal = data.get("short_name") or session_animal(session_id)
+    return {
+        "id": session_id,
+        "name": animal,
+        "serverName": SERVER_NAME,
+        "title": data.get("title") or f"{SERVER_NAME} {animal}",
+        "model": data.get("model"),
+        "updatedAt": data.get("updated_at") or data.get("last_active_at"),
+        "messageCount": len(messages),
+        "messages": messages,
+    }
+
+
+def list_chats() -> list[dict]:
+    out = []
+    if not SESSIONS_DIR.exists():
+        return out
+    for path in SESSIONS_DIR.glob("session_*.json"):
+        sid = path.stem
+        try:
+            data = json.loads(path.read_text())
+        except Exception:
+            continue
+        msgs = session_messages(sid, data)
+        if not msgs:
+            continue
+        animal = data.get("short_name") or session_animal(sid)
+        out.append({
+            "id": sid,
+            "name": animal,
+            "serverName": SERVER_NAME,
+            "title": data.get("title") or f"{SERVER_NAME} {animal}",
+            "model": data.get("model"),
+            "updatedAt": data.get("updated_at") or data.get("last_active_at") or path.stat().st_mtime,
+            "messageCount": sum(1 for m in msgs if m.get("role") in ("user", "assistant")),
+        })
+    out.sort(key=lambda c: str(c.get("updatedAt") or ""), reverse=True)
+    return out
+
+
+def run_chat_turn(session_id: str | None, message: str) -> dict:
+    """Drive one agent turn via `kcode run --json`, returning a normalized result."""
+    cmd = [kcode_bin(), "run", "--json", "--no-update", "--no-selfdev"]
+    if session_id:
+        cmd.append(f"--resume={session_id}")
+    cmd += ["--", message]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=KCODE_RUN_TIMEOUT,
+            cwd=str(Path.home()),
+        )
+    except subprocess.TimeoutExpired:
+        return {"error": f"kcode run timed out after {KCODE_RUN_TIMEOUT}s"}
+    except Exception as exc:
+        return {"error": f"failed to launch kcode: {exc}"}
+
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout or "").strip()[-800:]
+        return {"error": f"kcode run exited {proc.returncode}: {detail}"}
+
+    # `--json` prints a single pretty JSON object; tolerate leading log noise.
+    raw = proc.stdout.strip()
+    report = None
+    for start in (raw.find("{"), 0):
+        if start < 0:
+            continue
+        try:
+            report = json.loads(raw[start:])
+            break
+        except Exception:
+            continue
+    if report is None:
+        return {"error": f"could not parse kcode output: {raw[:500]}"}
+
+    sid = report.get("session_id", session_id or "")
+    animal = session_animal(sid)
+    return {
+        "session_id": sid,
+        "name": animal,
+        "serverName": SERVER_NAME,
+        "title": f"{SERVER_NAME} {animal}",
+        "text": report.get("text", ""),
+        "model": report.get("model"),
+        "usage": report.get("usage"),
+    }
+
+
+# ------------------------------ http layer -----------------------------------
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIST_DIR), **kwargs)
@@ -94,25 +306,52 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, fmt: str, *args) -> None:
         sys.stderr.write(f"[kcode-ui] {self.client_address[0]} {fmt % args}\n")
 
+    def _send_json(self, payload, status: int = 200) -> None:
+        body = json.dumps(payload).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
         if path == "/api/state":
-            payload = json.dumps(build_state(), indent=2).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "http://127.0.0.1:8768")
-            self.send_header("Content-Length", str(len(payload)))
-            self.end_headers()
-            self.wfile.write(payload)
-            return
+            return self._send_json(build_state())
+        if path == "/api/chats":
+            return self._send_json({"serverName": SERVER_NAME, "chats": list_chats()})
+        if path.startswith("/api/chats/"):
+            sid = path[len("/api/chats/"):]
+            chat = load_chat(sid)
+            if chat is None:
+                return self.send_error(404, "Unknown chat session")
+            return self._send_json(chat)
         if path.startswith("/api/"):
-            self.send_error(404, "Unknown Kcode API endpoint")
-            return
+            return self.send_error(404, "Unknown Kcode API endpoint")
         if path == "/" or (DIST_DIR / path.lstrip("/")).exists():
             return super().do_GET()
         # SPA fallback.
         self.path = "/index.html"
         return super().do_GET()
+
+    def do_POST(self) -> None:  # noqa: N802
+        path = urlparse(self.path).path
+        if path != "/api/chat":
+            return self.send_error(404, "Unknown Kcode API endpoint")
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except Exception as exc:
+            return self._send_json({"error": f"bad request: {exc}"}, status=400)
+
+        message = (body.get("message") or "").strip()
+        if not message:
+            return self._send_json({"error": "message is required"}, status=400)
+        session_id = body.get("session_id") or None
+
+        result = run_chat_turn(session_id, message)
+        status = 200 if "error" not in result else 502
+        return self._send_json(result, status=status)
 
 
 def ensure_built() -> None:

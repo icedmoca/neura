@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { KeyboardEvent } from "react";
 import "./index.css";
 
 type MemoryNode = {
@@ -47,8 +48,156 @@ const toolEvents: ToolEvent[] = [
   { tool: "browser/mouse", purpose: "interactive validation and screenshots", status: "queued", ms: 0 },
 ];
 
-const panels = ["Mission", "Memory", "Tools", "Runtime", "Self-Evolution"] as const;
+const panels = ["Chat", "Mission", "Memory", "Tools", "Runtime", "Self-Evolution"] as const;
 type Panel = (typeof panels)[number];
+
+type ChatSummary = {
+  id: string;
+  name: string;
+  serverName: string;
+  title: string;
+  model: string | null;
+  updatedAt: string | number | null;
+  messageCount: number;
+};
+
+type ChatMessage = { role: "user" | "assistant"; text: string; tools?: string[] };
+
+type ChatTurnResult = {
+  session_id?: string;
+  name?: string;
+  serverName?: string;
+  title?: string;
+  text?: string;
+  model?: string;
+  error?: string;
+};
+
+function ChatView() {
+  const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [serverName, setServerName] = useState<string>("");
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeTitle, setActiveTitle] = useState<string>("new chat");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadChats = async () => {
+    try {
+      const res = await fetch("/api/chats", { cache: "no-store" });
+      const json = await res.json();
+      setChats(json.chats ?? []);
+      setServerName(json.serverName ?? "");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  useEffect(() => { loadChats(); }, []);
+
+  const newChat = () => {
+    setActiveId(null);
+    setActiveTitle(serverName ? `${serverName} · new chat` : "new chat");
+    setMessages([]);
+    setError(null);
+  };
+
+  const openChat = async (chat: ChatSummary) => {
+    setActiveId(chat.id);
+    setActiveTitle(chat.title);
+    setError(null);
+    try {
+      const res = await fetch(`/api/chats/${chat.id}`, { cache: "no-store" });
+      const json = await res.json();
+      setMessages(json.messages ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || sending) return;
+    setInput("");
+    setError(null);
+    setMessages((m) => [...m, { role: "user", text }]);
+    setSending(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: activeId, message: text }),
+      });
+      const json = (await res.json()) as ChatTurnResult;
+      if (json.error) {
+        setError(json.error);
+      } else {
+        if (json.session_id) setActiveId(json.session_id);
+        if (json.title) setActiveTitle(json.title);
+        setMessages((m) => [...m, { role: "assistant", text: json.text ?? "" }]);
+        loadChats();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  };
+
+  return (
+    <section className="chat-shell">
+      <aside className="chat-list glass">
+        <button className="new-chat" onClick={newChat}>+ New chat</button>
+        <p className="eyebrow">{serverName ? `server: ${serverName}` : "sessions"}</p>
+        <div className="chat-items">
+          {chats.length === 0 && <span className="chat-empty">No chats yet — start one.</span>}
+          {chats.map((c) => (
+            <button key={c.id} className={c.id === activeId ? "chat-item active" : "chat-item"} onClick={() => openChat(c)}>
+              <b>{c.title}</b>
+              <span>{c.messageCount} msg{c.model ? ` · ${c.model}` : ""}</span>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <div className="chat-main glass">
+        <div className="chat-header">
+          <h2>{activeTitle}</h2>
+          <span className="pill">{activeId ? activeId.slice(0, 22) + "…" : "unsaved"}</span>
+        </div>
+        <div className="chat-thread">
+          {messages.length === 0 && <div className="chat-placeholder">Send a message to start chatting with kcode.</div>}
+          {messages.map((m, i) => (
+            <div key={i} className={`chat-msg ${m.role}`}>
+              <div className="chat-role">{m.role === "user" ? "you" : activeTitle}</div>
+              <div className="chat-bubble">
+                {m.tools && m.tools.length > 0 && <div className="chat-tools">🔧 {m.tools.join(", ")}</div>}
+                {m.text || <em>…</em>}
+              </div>
+            </div>
+          ))}
+          {sending && <div className="chat-msg assistant"><div className="chat-role">{activeTitle}</div><div className="chat-bubble thinking">thinking…</div></div>}
+        </div>
+        {error && <div className="chat-error">{error}</div>}
+        <div className="chat-composer">
+          <textarea
+            value={input}
+            placeholder="Message kcode…  (Enter to send, Shift+Enter for newline)"
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKey}
+            rows={2}
+          />
+          <button onClick={send} disabled={sending || !input.trim()}>{sending ? "…" : "Send"}</button>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function pct(value: number) {
   return `${Math.round(value * 100)}%`;
@@ -127,7 +276,7 @@ function polar(i: number, total: number) {
 }
 
 function App() {
-  const [panel, setPanel] = useState<Panel>("Memory");
+  const [panel, setPanel] = useState<Panel>("Chat");
   const { state, error } = useKcodeState();
   const ctxBands = state?.memory.ctxBands ?? [
     { name: "Instruction stack", used: 19, source: "system/developer/user" },
@@ -160,6 +309,7 @@ function App() {
         </div>
       </section>
 
+      {panel === "Chat" ? <ChatView /> : (
       <section className="content-grid">
         <MemoryConstellation state={state} />
 
@@ -187,6 +337,7 @@ function App() {
           <div className="loop">{["Observe repo and user intent", "Serve UI and bridge live state", "Visualize ctx, traces, artifacts, risk", "Run Vite/TypeScript build gates", "Commit and push to icedmoca/kcode"].map((step, i) => <div key={step}><b>{String(i + 1).padStart(2, "0")}</b><span>{step}</span></div>)}</div>
         </section>
       </section>
+      )}
     </main>
   );
 }
