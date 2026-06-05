@@ -583,6 +583,26 @@ impl Agent {
                     println!("{}\n", skill.description);
                     self.active_skill = Some(skill_name.to_string());
                     continue;
+                } else if skill_name == "kcodeui" {
+                    let repo_root = env!("CARGO_MANIFEST_DIR");
+                    let script = std::path::Path::new(repo_root).join("scripts/kcodeui");
+                    let url = "http://127.0.0.1:8768";
+                    match std::process::Command::new(&script)
+                        .stdin(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn()
+                    {
+                        Ok(_) => {
+                            println!("Kcode UI is starting: {url}");
+                            println!("Live state API: {url}/api/state");
+                        }
+                        Err(err) => {
+                            println!("Failed to start Kcode UI via {}: {err}", script.display());
+                            println!("Run `scripts/kcodeui` from the repo root, then open {url}.");
+                        }
+                    }
+                    continue;
                 } else {
                     println!("Unknown skill: /{}", skill_name);
                     println!(
