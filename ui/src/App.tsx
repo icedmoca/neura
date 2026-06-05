@@ -45,6 +45,12 @@ const SendIcon = () => (
   </svg>
 );
 
+const PowerIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.8 0" />
+  </svg>
+);
+
 function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [chats, setChats] = useState<ChatSummary[]>([]);
@@ -57,6 +63,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [state, setState] = useState<KcodeState | null>(null);
+  const [shutState, setShutState] = useState<"idle" | "confirm" | "down">("idle");
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -142,6 +149,14 @@ function App() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   };
 
+  const shutdown = async () => {
+    setShutState("down");
+    try {
+      // The server kills itself right after replying, so the connection may drop.
+      await fetch("/api/shutdown", { method: "POST" });
+    } catch { /* expected — the server is going away */ }
+  };
+
   const empty = messages.length === 0 && !sending;
 
   return (
@@ -183,6 +198,9 @@ function App() {
             <button className="icon-btn" title="Live state" onClick={() => setShowInfo((v) => !v)}>ⓘ</button>
             <button className="icon-btn" title="Toggle theme" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>
               {theme === "dark" ? "☀" : "☾"}
+            </button>
+            <button className="icon-btn icon-btn--power" title="Shut down kcode" onClick={() => setShutState("confirm")}>
+              <PowerIcon />
             </button>
           </div>
         </header>
@@ -229,6 +247,28 @@ function App() {
           </div>
         </div>
       </main>
+
+      {shutState === "confirm" && (
+        <div className="modal-scrim" onClick={() => setShutState("idle")}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__icon"><PowerIcon /></div>
+            <h3>Shut down kcode?</h3>
+            <p>This kills every kcode process — the agent, this web UI, and any running sessions. Run <code>kcode</code> in a terminal to start again.</p>
+            <div className="modal__actions">
+              <button className="btn btn--ghost" onClick={() => setShutState("idle")}>Cancel</button>
+              <button className="btn btn--danger" onClick={shutdown}>Shut down</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {shutState === "down" && (
+        <div className="shutdown-screen">
+          <span className="brand brand--hero">KCODE</span>
+          <p>kcode has shut down.</p>
+          <p className="muted">Run <code>kcode</code> in a terminal to start it again.</p>
+        </div>
+      )}
 
       {showInfo && state && (
         <aside className="info-drawer" onClick={() => setShowInfo(false)}>

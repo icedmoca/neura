@@ -17,9 +17,11 @@ import json
 import os
 import random
 import shutil
+import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
@@ -297,6 +299,81 @@ def run_chat_turn(session_id: str | None, message: str) -> dict:
     }
 
 
+# ------------------------------- shutdown ------------------------------------
+
+def _proc_exe(pid: int) -> str | None:
+    try:
+        return os.path.realpath(f"/proc/{pid}/exe")
+    except Exception:
+        return None
+
+
+def _proc_cmdline(pid: int) -> str:
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as fh:
+            return fh.read().replace(b"\0", b" ").decode(errors="ignore")
+    except Exception:
+        return ""
+
+
+def _all_pids() -> list[int]:
+    return [int(e) for e in os.listdir("/proc") if e.isdigit()]
+
+
+def kcode_processes() -> list[int]:
+    """Every live kcode *binary* process, found by its real executable path so it
+    works regardless of how proctitle renames argv/comm. Resolves the install
+    path too, and falls back to a basename match for dev/self-dev binaries."""
+    target = os.path.realpath(kcode_bin())
+    pids = []
+    for pid in _all_pids():
+        exe = _proc_exe(pid)
+        if not exe:
+            continue
+        if exe == target or os.path.basename(exe) == "kcode":
+            pids.append(pid)
+    return pids
+
+
+def ui_server_processes() -> list[int]:
+    """Other processes belonging to this web UI (python servers + the bash
+    launcher), excluding our own pid which we kill last."""
+    me = os.getpid()
+    pids = []
+    for pid in _all_pids():
+        if pid == me:
+            continue
+        cmd = _proc_cmdline(pid)
+        if "kcode-ui-server.py" in cmd or "scripts/kcodeui" in cmd:
+            pids.append(pid)
+    return pids
+
+
+def _kill(pids: list[int], sig: int) -> None:
+    for pid in pids:
+        try:
+            os.kill(pid, sig)
+        except ProcessLookupError:
+            pass
+        except Exception:
+            pass
+
+
+def shutdown_everything() -> None:
+    """Kill all kcode processes, sibling UI-server processes, then this server.
+    Only sends signals — no files are touched — so `kcode` restarts cleanly."""
+    others = kcode_processes() + ui_server_processes()
+    _kill(others, signal.SIGTERM)
+    time.sleep(0.4)
+    # Anything still alive gets SIGKILL.
+    survivors = [p for p in others if _proc_exe(p) is not None or _proc_cmdline(p)]
+    _kill(survivors, signal.SIGKILL)
+    # Finally take ourselves down.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
+
+
 # ------------------------------ http layer -----------------------------------
 
 class Handler(SimpleHTTPRequestHandler):
@@ -336,6 +413,15 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path == "/api/shutdown":
+            self._send_json({"ok": True, "message": "kcode shutting down"})
+            try:
+                self.wfile.flush()
+            except Exception:
+                pass
+            # Defer slightly so this response reaches the browser before we die.
+            threading.Timer(0.35, shutdown_everything).start()
+            return
         if path != "/api/chat":
             return self.send_error(404, "Unknown Kcode API endpoint")
         try:
