@@ -493,6 +493,7 @@ pub struct App {
     quit_pending: Option<Instant>,
     // Debounce redraw storms while the terminal is being resized.
     last_resize_redraw: Option<Instant>,
+    last_input_edit_at: Option<Instant>,
     // Cached MCP server names and tool counts (updated on connect/disconnect)
     mcp_server_names: Vec<(String, usize)>,
     // Semantic stream buffer for chunked output

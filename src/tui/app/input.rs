@@ -301,7 +301,15 @@ pub(super) fn insert_input_text(app: &mut App, text: &str) {
         return;
     }
 
-    app.remember_input_undo_state();
+    let now = Instant::now();
+    let coalesce_undo = text.len() == 1
+        && app
+            .last_input_edit_at
+            .is_some_and(|last| now.duration_since(last) < Duration::from_millis(350));
+    if !coalesce_undo {
+        app.remember_input_undo_state();
+    }
+    app.last_input_edit_at = Some(now);
     app.input.insert_str(app.cursor_pos, text);
     app.cursor_pos += text.len();
     app.reset_tab_completion();
