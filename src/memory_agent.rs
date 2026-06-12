@@ -956,11 +956,11 @@ impl MemoryAgent {
                                                 )
                                                 .await
                                             {
-                                                Ok(true) => {
+                                                Ok((true, _reason)) => {
                                                     found = Some(candidate.id.clone());
                                                     break;
                                                 }
-                                                Ok(false) => {}
+                                                Ok((false, _reason)) => {}
                                                 Err(e) => {
                                                     crate::logging::info(&format!(
                                                         "Contradiction check failed: {}",
