@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::env;
 use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
@@ -415,4 +416,107 @@ pub async fn complete_local(
     anyhow::bail!(
         "local model inference is not wired yet; LM Studio compatibility layer currently supports config, health, and routing"
     )
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocalModelServerStatus {
+    pub ok: bool,
+    pub base_url: String,
+    pub model: String,
+    pub model_path: Option<PathBuf>,
+    pub message: String,
+}
+
+pub fn discover_gguf_model_path() -> Option<PathBuf> {
+    if let Ok(path) = std::env::var("KCODE_LOCAL_MODEL_PATH") {
+        let path = PathBuf::from(path);
+        if path.exists() { return Some(path); }
+    }
+    let home = std::env::var("HOME").ok()?;
+    let dir = PathBuf::from(home).join(".kcode/models/gguf");
+    for name in [
+        "kcode-oss-20b-mxfp4.gguf",
+        "gpt-oss-20b-mxfp4_moe.gguf",
+        "jcode-gpt-oss-20b.gguf",
+        "deepseek-coder-6.7b-instruct.Q4_K_M.gguf",
+    ] {
+        let path = dir.join(name);
+        if path.exists() { return Some(path); }
+    }
+    std::fs::read_dir(dir).ok()?.flatten().map(|e| e.path()).find(|p| p.extension().is_some_and(|e| e == "gguf"))
+}
+
+pub fn local_model_health(config: &LocalModelConfig) -> LocalModelServerStatus {
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_millis(1500))
+        .build();
+    let model_path = discover_gguf_model_path();
+    let base_url = config.base_url.trim_end_matches('/').to_string();
+    match client.and_then(|c| c.get(format!("{base_url}/models")).send()) {
+        Ok(resp) if resp.status().is_success() => LocalModelServerStatus {
+            ok: true,
+            base_url,
+            model: config.model.clone().unwrap_or_else(|| "gpt-oss-20b-mxfp4_moe".to_string()),
+            model_path,
+            message: "local Kcode model server reachable".into(),
+        },
+        Ok(resp) => LocalModelServerStatus {
+            ok: false,
+            base_url,
+            model: config.model.clone().unwrap_or_else(|| "gpt-oss-20b-mxfp4_moe".to_string()),
+            model_path,
+            message: format!("model server returned {}", resp.status()),
+        },
+        Err(err) => LocalModelServerStatus {
+            ok: false,
+            base_url,
+            model: config.model.clone().unwrap_or_else(|| "gpt-oss-20b-mxfp4_moe".to_string()),
+            model_path,
+            message: err.to_string(),
+        },
+    }
+}
+
+
+fn find_on_path(bin: &str) -> Option<PathBuf> {
+    let paths = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&paths) {
+        let candidate = dir.join(bin);
+        if candidate.is_file() { return Some(candidate); }
+    }
+    None
+}
+
+pub fn ensure_local_model_server(config: &LocalModelConfig) -> anyhow::Result<LocalModelServerStatus> {
+    let status = local_model_health(config);
+    if status.ok { return Ok(status); }
+    let Some(model_path) = discover_gguf_model_path() else {
+        return Ok(LocalModelServerStatus { message: "no GGUF model found under ~/.kcode/models/gguf".into(), ..status });
+    };
+    let server_bin = std::env::var("KCODE_LLAMA_SERVER")
+        .ok()
+        .map(PathBuf::from)
+        .or_else(|| find_on_path("llama-server"))
+        .or_else(|| find_on_path("llama-server-bin"));
+    let Some(server_bin) = server_bin else {
+        return Ok(LocalModelServerStatus { model_path: Some(model_path), message: "llama-server not found; install llama.cpp server or set KCODE_LLAMA_SERVER".into(), ..status });
+    };
+    let without_scheme = config.base_url.trim_start_matches("http://").trim_start_matches("https://");
+    let port = without_scheme.split('/').next().and_then(|host| host.rsplit(':').next()).and_then(|p| p.parse::<u16>().ok()).unwrap_or(8080);
+    let log_path = std::env::var("HOME").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from("/tmp")).join(".kcode/local-model-server.log");
+    if let Some(parent) = log_path.parent() { let _ = std::fs::create_dir_all(parent); }
+    let log = std::fs::OpenOptions::new().create(true).append(true).open(&log_path)?;
+    let err = log.try_clone()?;
+    std::process::Command::new(server_bin)
+        .arg("--model").arg(&model_path)
+        .arg("--port").arg(port.to_string())
+        .arg("--host").arg("127.0.0.1")
+        .stdout(log)
+        .stderr(err)
+        .spawn()?;
+    std::thread::sleep(std::time::Duration::from_millis(750));
+    let mut after = local_model_health(config);
+    after.model_path = Some(model_path);
+    if !after.ok { after.message = format!("started server but health not ready yet: {}; log={}", after.message, log_path.display()); }
+    Ok(after)
 }

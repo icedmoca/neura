@@ -52,6 +52,7 @@ pub mod mcp;
 pub mod memory;
 pub mod memory_agent;
 pub mod memory_graph;
+pub mod memory_eval;
 pub mod memory_log;
 pub mod memory_types;
 pub mod message;
