@@ -82,14 +82,36 @@ function App() {
     }
   };
 
-  const loadState = async () => {
+  const refreshActiveChat = useCallback(async () => {
+    if (!activeId) return;
+    try {
+      const res = await fetch(`/api/chats/${activeId}`, { cache: "no-store" });
+      const json = await res.json();
+      setMessages(json.messages ?? []);
+    } catch { /* non-critical live refresh */ }
+  }, [activeId]);
+
+  const loadState = useCallback(async () => {
     try {
       const res = await fetch("/api/state", { cache: "no-store" });
       setState(await res.json());
     } catch { /* non-critical */ }
-  };
+  }, []);
 
-  useEffect(() => { loadChats(); loadState(); }, []);
+  const refreshFromServer = useCallback(() => {
+    void loadChats();
+    void loadState();
+    void refreshActiveChat();
+  }, [loadState, refreshActiveChat]);
+
+  useEffect(() => { refreshFromServer(); }, [refreshFromServer]);
+
+  useEffect(() => {
+    const events = new EventSource("/api/events");
+    events.onmessage = () => refreshFromServer();
+    events.onerror = () => { /* EventSource reconnects automatically. */ };
+    return () => events.close();
+  }, [refreshFromServer]);
 
   useEffect(() => {
     const el = scrollRef.current;

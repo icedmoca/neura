@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import queue
 import random
 import shutil
 import signal
@@ -33,6 +34,54 @@ DIST_DIR = UI_DIR / "dist"
 KCODE_HOME = Path(os.environ.get("KCODE_HOME", str(Path.home() / ".kcode")))
 SESSIONS_DIR = KCODE_HOME / "sessions"
 SERVER_IDENTITY_FILE = KCODE_HOME / "ui-server.json"
+
+SUBSCRIBERS: set[queue.Queue[dict]] = set()
+SUBSCRIBERS_LOCK = threading.Lock()
+SESSION_MTIME_LOCK = threading.Lock()
+LAST_SESSION_MTIME = 0.0
+
+
+def publish_event(kind: str = "state_changed", **payload) -> None:
+    event = {"type": kind, **payload}
+    with SUBSCRIBERS_LOCK:
+        subscribers = list(SUBSCRIBERS)
+    for subscriber in subscribers:
+        try:
+            subscriber.put_nowait(event)
+        except queue.Full:
+            pass
+
+
+def subscribe_events() -> queue.Queue[dict]:
+    subscriber: queue.Queue[dict] = queue.Queue(maxsize=128)
+    with SUBSCRIBERS_LOCK:
+        SUBSCRIBERS.add(subscriber)
+    subscriber.put({"type": "connected"})
+    return subscriber
+
+
+def unsubscribe_events(subscriber: queue.Queue[dict]) -> None:
+    with SUBSCRIBERS_LOCK:
+        SUBSCRIBERS.discard(subscriber)
+
+
+def latest_session_mtime() -> float:
+    try:
+        return max((p.stat().st_mtime for p in SESSIONS_DIR.rglob("*.jsonl")), default=0.0)
+    except Exception:
+        return 0.0
+
+
+def watch_session_changes(stop: threading.Event) -> None:
+    global LAST_SESSION_MTIME
+    LAST_SESSION_MTIME = latest_session_mtime()
+    while not stop.wait(0.5):
+        mtime = latest_session_mtime()
+        with SESSION_MTIME_LOCK:
+            if mtime <= LAST_SESSION_MTIME:
+                continue
+            LAST_SESSION_MTIME = mtime
+        publish_event("state_changed", reason="session_file_changed")
 
 # Mirrors src/id.rs SERVER_MODIFIERS so the UI server's name matches kcode's scheme.
 SERVER_MODIFIERS = [
@@ -391,8 +440,34 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def stream_events(self):
+        subscriber = subscribe_events()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        try:
+            while True:
+                try:
+                    event = subscriber.get(timeout=20)
+                    payload = json.dumps(event).encode()
+                    self.wfile.write(b"event: message\n")
+                    self.wfile.write(b"data: " + payload + b"\n\n")
+                except queue.Empty:
+                    self.wfile.write(b": keepalive\n\n")
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, TimeoutError):
+            pass
+        finally:
+            unsubscribe_events(subscriber)
+
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path == "/api/events":
+            self.stream_events()
+            return
         if path == "/api/state":
             return self._send_json(build_state())
         if path == "/api/chats":
