@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::Duration;
 
-const DEFAULT_KCODE_SIDECAR_URL: &str = "http://127.0.0.1:8769";
-const DEFAULT_KCODE_SIDECAR_MODEL: &str = "kcode-local-sidecar";
+const DEFAULT_KCODE_SIDECAR_URL: &str = "http://127.0.0.1:8080/v1";
+const DEFAULT_KCODE_SIDECAR_MODEL: &str = "gpt-oss-20b-mxfp4_moe";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SidecarKind {
@@ -37,10 +37,34 @@ pub struct SidecarHealth {
     pub message: String,
 }
 
+
+fn discover_kcode_model_name() -> Option<String> {
+    let home = env::var("HOME").ok()?;
+    let dir = std::path::Path::new(&home).join(".kcode/models/gguf");
+    let preferred = [
+        "kcode-oss-20b-mxfp4.gguf",
+        "gpt-oss-20b-mxfp4_moe.gguf",
+        "jcode-gpt-oss-20b.gguf",
+        "deepseek-coder-6.7b-instruct.Q4_K_M.gguf",
+    ];
+    for file in preferred {
+        if dir.join(file).exists() {
+            return Some(file.trim_end_matches(".gguf").to_string());
+        }
+    }
+    std::fs::read_dir(dir).ok()?.flatten()
+        .filter_map(|entry| entry.path().file_stem().map(|s| s.to_string_lossy().to_string()))
+        .next()
+}
+
 impl SidecarConfig {
     pub fn from_env() -> Self {
-        let url = env::var("KCODE_SIDECAR_URL").unwrap_or_else(|_| DEFAULT_KCODE_SIDECAR_URL.to_string());
-        let model = env::var("KCODE_SIDECAR_MODEL").unwrap_or_else(|_| DEFAULT_KCODE_SIDECAR_MODEL.to_string());
+        let url = env::var("KCODE_SIDECAR_URL")
+            .or_else(|_| env::var("KCODE_LOCAL_MODEL_BASE_URL"))
+            .unwrap_or_else(|_| DEFAULT_KCODE_SIDECAR_URL.to_string());
+        let model = env::var("KCODE_SIDECAR_MODEL")
+            .or_else(|_| env::var("KCODE_LOCAL_MODEL"))
+            .unwrap_or_else(|_| discover_kcode_model_name().unwrap_or_else(|| DEFAULT_KCODE_SIDECAR_MODEL.to_string()));
         let kind = match env::var("KCODE_SIDECAR_KIND")
             .unwrap_or_else(|_| "openai-compatible".to_string())
             .to_lowercase()
@@ -90,7 +114,7 @@ impl SidecarClient {
         }
         let result = match self.cfg.kind {
             SidecarKind::Ollama => self.http.get(format!("{}/api/tags", self.cfg.url)).send(),
-            SidecarKind::OpenAiCompatible => self.http.get(format!("{}/v1/models", self.cfg.url)).send(),
+            SidecarKind::OpenAiCompatible => self.http.get(format!("{}/models", self.cfg.url.trim_end_matches('/'))).send(),
         };
         match result {
             Ok(resp) if resp.status().is_success() => SidecarHealth {
@@ -161,7 +185,7 @@ impl SidecarClient {
         #[derive(Deserialize)]
         struct Message { content: String }
         let resp: Resp = self.http
-            .post(format!("{}/v1/chat/completions", self.cfg.url))
+            .post(format!("{}/chat/completions", self.cfg.url.trim_end_matches('/')))
             .json(&Req { model: &self.cfg.model, messages: vec![Msg { role: "user", content: prompt }], temperature: 0.0, stream: false })
             .send()
             .context("call openai-compatible sidecar")?
