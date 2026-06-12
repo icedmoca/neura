@@ -36,7 +36,7 @@ pub use activity::{
     activity_snapshot, add_event, apply_remote_activity_snapshot, check_staleness, clear_activity,
     get_activity, pipeline_start, pipeline_update, record_injected_prompt, set_state,
 };
-use cache::{cache_graph, cached_graph};
+use cache::{cache_graph, cached_graph, cache_search, cached_search, clear_search_cache};
 pub use model::{MemoryCategory, MemoryEntry, Reinforcement, TrustLevel};
 #[cfg(test)]
 use pending::insert_pending_memory_for_test;
@@ -262,6 +262,7 @@ impl MemoryStore {
     }
 
     pub fn add(&mut self, entry: MemoryEntry) -> String {
+        clear_search_cache();
         let id = entry.id.clone();
         self.entries.push(entry);
         id
@@ -286,11 +287,35 @@ impl MemoryStore {
             .collect()
     }
 
+
+    pub fn search_explained(&self, query: &str, limit: usize) -> Vec<MemorySearchExplanation> {
+        let query_lower = normalize_search_text(query);
+        if query_lower.is_empty() { return Vec::new(); }
+        if let Some(cached) = cached_search(&PathBuf::from("memory-store"), &query_lower, limit) { return cached; }
+        let mut scored: Vec<_> = self.entries
+            .iter()
+            .filter(|e| e.active && memory_matches_search(e, &query_lower))
+            .map(|entry| explain_memory_match(entry, &query_lower))
+            .collect();
+        scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        scored.truncate(limit);
+        cache_search(PathBuf::from("memory-store"), query_lower, limit, &scored);
+        scored
+    }
+
+    pub fn search_ranked(&self, query: &str, limit: usize) -> Vec<&MemoryEntry> {
+        self.search_explained(query, limit)
+            .into_iter()
+            .filter_map(|explanation| self.get(&explanation.id))
+            .collect()
+    }
+
     pub fn get(&self, id: &str) -> Option<&MemoryEntry> {
         self.entries.iter().find(|e| e.id == id)
     }
 
     pub fn remove(&mut self, id: &str) -> Option<MemoryEntry> {
+        clear_search_cache();
         if let Some(pos) = self.entries.iter().position(|e| e.id == id) {
             Some(self.entries.remove(pos))
         } else {
@@ -315,6 +340,52 @@ impl MemoryStore {
         let relevant: Vec<MemoryEntry> = self.get_relevant(limit).into_iter().cloned().collect();
         format_entries_for_prompt(&relevant, limit)
     }
+}
+
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MemorySearchExplanation {
+    pub id: String,
+    pub score: f64,
+    pub lexical_score: f64,
+    pub recency_score: f64,
+    pub trust_score: f64,
+    pub category_score: f64,
+    pub reasons: Vec<String>,
+}
+
+fn explain_memory_match(entry: &MemoryEntry, normalized_query: &str) -> MemorySearchExplanation {
+    let mut reasons = Vec::new();
+    let haystack = normalize_search_text(&format!("{} {} {:?}", entry.content, "", entry.tags));
+    let query_terms: Vec<&str> = normalized_query.split_whitespace().filter(|t| t.len() > 1).collect();
+    let hits = query_terms.iter().filter(|term| haystack.contains(**term)).count();
+    let lexical_score = if query_terms.is_empty() { 0.0 } else { hits as f64 / query_terms.len() as f64 };
+    if hits > 0 { reasons.push(format!("{hits}/{} query terms matched", query_terms.len())); }
+
+    let age_hours = (Utc::now() - entry.updated_at).num_hours().max(0) as f64;
+    let recency_score = 1.0 / (1.0 + age_hours / (24.0 * 14.0));
+    if recency_score > 0.7 { reasons.push("recently updated".into()); }
+
+    let trust_score = match entry.trust {
+        TrustLevel::High => 1.0,
+        TrustLevel::Medium => 0.72,
+        TrustLevel::Low => 0.42,
+    };
+    if matches!(entry.trust, TrustLevel::High) { reasons.push("high trust".into()); }
+
+    let category_score = match entry.category {
+        MemoryCategory::Correction => 1.15,
+        MemoryCategory::Preference => 1.05,
+        MemoryCategory::Entity => 1.0,
+        MemoryCategory::Fact => 0.92,
+        MemoryCategory::Custom(_) => 0.96,
+    };
+    if matches!(entry.category, MemoryCategory::Correction) { reasons.push("correction precedence".into()); }
+
+    let active_score = if entry.active { 1.0 } else { 0.0 };
+    let correction_bonus = if matches!(entry.category, MemoryCategory::Correction) { 1.25 } else { 0.0 };
+    let score = active_score * (((lexical_score * 3.0) + (recency_score * 0.45) + (trust_score * 0.8)) * category_score + correction_bonus);
+    MemorySearchExplanation { id: entry.id.clone(), score, lexical_score, recency_score, trust_score, category_score, reasons }
 }
 
 const MEMORY_RELEVANCE_MAX_CANDIDATES: usize = 30;
