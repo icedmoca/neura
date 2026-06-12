@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import "./index.css";
 
@@ -58,7 +58,7 @@ function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTitle, setActiveTitle] = useState("new chat");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -116,10 +116,11 @@ function App() {
     }
   };
 
-  const send = async () => {
-    const text = input.trim();
+  const send = useCallback(async () => {
+    const textarea = inputRef.current;
+    const text = textarea?.value.trim() ?? "";
     if (!text || sending) return;
-    setInput("");
+    if (textarea) textarea.value = "";
     setError(null);
     setMessages((m) => [...m, { role: "user", text }]);
     setSending(true);
@@ -143,11 +144,14 @@ function App() {
     } finally {
       setSending(false);
     }
-  };
+  }, [activeId, sending]);
 
-  const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-  };
+  const onKey = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void send();
+    }
+  }, [send]);
 
   const shutdown = async () => {
     setShutState("down");
@@ -235,13 +239,12 @@ function App() {
         <div className="chat-input">
           <div className={`chat-input__inner ${sending ? "chat-input__inner--busy" : ""}`}>
             <textarea
-              value={input}
+              ref={inputRef}
               placeholder="Message kcode…"
-              onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKey}
               rows={1}
             />
-            <button className="send-btn" onClick={send} disabled={sending || !input.trim()} title="Send">
+            <button className="send-btn" onClick={send} disabled={sending} title="Send">
               <SendIcon />
             </button>
           </div>
