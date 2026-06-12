@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::Duration;
 
-const DEFAULT_OLLAMA_URL: &str = "http://127.0.0.1:11434";
-const DEFAULT_OLLAMA_MODEL: &str = "phi3:mini";
+const DEFAULT_KCODE_SIDECAR_URL: &str = "http://127.0.0.1:8769";
+const DEFAULT_KCODE_SIDECAR_MODEL: &str = "kcode-local-sidecar";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SidecarKind {
@@ -39,15 +39,16 @@ pub struct SidecarHealth {
 
 impl SidecarConfig {
     pub fn from_env() -> Self {
-        let url = env::var("KCODE_SIDECAR_URL").unwrap_or_else(|_| DEFAULT_OLLAMA_URL.to_string());
-        let model = env::var("KCODE_SIDECAR_MODEL").unwrap_or_else(|_| DEFAULT_OLLAMA_MODEL.to_string());
+        let url = env::var("KCODE_SIDECAR_URL").unwrap_or_else(|_| DEFAULT_KCODE_SIDECAR_URL.to_string());
+        let model = env::var("KCODE_SIDECAR_MODEL").unwrap_or_else(|_| DEFAULT_KCODE_SIDECAR_MODEL.to_string());
         let kind = match env::var("KCODE_SIDECAR_KIND")
-            .unwrap_or_else(|_| "ollama".to_string())
+            .unwrap_or_else(|_| "openai-compatible".to_string())
             .to_lowercase()
             .as_str()
         {
             "openai" | "openai-compatible" | "v1" => SidecarKind::OpenAiCompatible,
-            _ => SidecarKind::Ollama,
+            "ollama" => SidecarKind::Ollama,
+            _ => SidecarKind::OpenAiCompatible,
         };
         let enabled = env::var("KCODE_SIDECAR_ENABLED")
             .map(|v| !matches!(v.as_str(), "0" | "false" | "FALSE" | "off" | "OFF"))
