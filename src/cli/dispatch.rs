@@ -542,6 +542,8 @@ fn map_memory_subcommand(subcmd: MemoryCommand) -> commands::MemorySubcommand {
         },
         MemoryCommand::Stats => commands::MemorySubcommand::Stats,
         MemoryCommand::ClearTest => commands::MemorySubcommand::ClearTest,
+        MemoryCommand::SidecarEnsure { json } => commands::MemorySubcommand::SidecarEnsure { json },
+        MemoryCommand::Eval { json } => commands::MemorySubcommand::Eval { json },
     }
 }
 

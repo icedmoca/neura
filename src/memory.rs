@@ -294,8 +294,9 @@ impl MemoryStore {
         if let Some(cached) = cached_search(&PathBuf::from("memory-store"), &query_lower, limit) { return cached; }
         let mut scored: Vec<_> = self.entries
             .iter()
-            .filter(|e| e.active && memory_matches_search(e, &query_lower))
+            .filter(|e| e.active)
             .map(|entry| explain_memory_match(entry, &query_lower))
+            .filter(|explanation| explanation.lexical_score > 0.0)
             .collect();
         scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
         scored.truncate(limit);

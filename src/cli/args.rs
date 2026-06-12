@@ -500,6 +500,20 @@ pub(crate) enum MemoryCommand {
 
     /// Clear test memory storage (used by debug sessions)
     ClearTest,
+
+    /// Ensure the Kcode GGUF local model server is running
+    SidecarEnsure {
+        /// Emit JSON instead of plain text
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Run deterministic memory retrieval evaluation
+    Eval {
+        /// Emit JSON instead of plain text
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Debug, Clone, Subcommand)]

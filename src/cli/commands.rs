@@ -156,6 +156,8 @@ pub enum MemorySubcommand {
     },
     Stats,
     ClearTest,
+    SidecarEnsure { json: bool },
+    Eval { json: bool },
 }
 
 pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
@@ -380,6 +382,23 @@ pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
                 println!("Cleared test memory storage ({} files)", count);
             } else {
                 println!("Test memory storage is already empty");
+            }
+        }
+        MemorySubcommand::SidecarEnsure { json } => {
+            let cfg = crate::local_model::LocalModelConfig::default();
+            let status = crate::local_model::ensure_local_model_server(&cfg)?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&status)?);
+            } else {
+                println!("ok={} url={} model={} model_path={} message={}", status.ok, status.base_url, status.model, status.model_path.as_ref().map(|p| p.display().to_string()).unwrap_or_default(), status.message);
+            }
+        }
+        MemorySubcommand::Eval { json } => {
+            let report = crate::memory_eval::run_memory_eval();
+            if json {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            } else {
+                println!("memory eval: {}/{} accuracy={:.2}", report.passed, report.total, report.accuracy);
             }
         }
     }

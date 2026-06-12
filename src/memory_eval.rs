@@ -25,24 +25,29 @@ pub struct MemoryEvalReport {
     pub results: Vec<MemoryEvalResult>,
 }
 
+fn active(mut entry: MemoryEntry) -> MemoryEntry {
+    entry.active = true;
+    entry
+}
+
 pub fn run_memory_eval() -> MemoryEvalReport {
     let mut store = MemoryStore::default();
-    store.add(MemoryEntry::new(
+    store.add(active(MemoryEntry::new(
         MemoryCategory::Correction,
         "Correction: build target/release/kcode after source edits so /reload sees a newer binary".to_string()
-    ).with_trust(TrustLevel::High));
-    store.add(MemoryEntry::new(
+    ).with_trust(TrustLevel::High)));
+    store.add(active(MemoryEntry::new(
         MemoryCategory::Preference,
         "User prefers concise final answers but detailed autonomous implementation while working".to_string()
-    ).with_trust(TrustLevel::High));
-    store.add(MemoryEntry::new(
+    ).with_trust(TrustLevel::High)));
+    store.add(active(MemoryEntry::new(
         MemoryCategory::Fact,
         "Kcode local sidecar model lives under ~/.kcode/models/gguf and should use gpt-oss/kcode GGUF, not phi3".to_string()
-    ).with_trust(TrustLevel::High));
-    store.add(MemoryEntry::new(
+    ).with_trust(TrustLevel::High)));
+    store.add(active(MemoryEntry::new(
         MemoryCategory::Fact,
         "Old unrelated fact about deploying with a stale binary".to_string()
-    ).with_trust(TrustLevel::Low));
+    ).with_trust(TrustLevel::Low)));
 
     let cases = [
         MemoryEvalCase { name: "reload_binary", query: "reload no newer binary", expected_contains: "target/release/kcode" },
