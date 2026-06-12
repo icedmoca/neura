@@ -38,6 +38,9 @@ SERVER_IDENTITY_FILE = KCODE_HOME / "ui-server.json"
 SUBSCRIBERS: set[queue.Queue[dict]] = set()
 SUBSCRIBERS_LOCK = threading.Lock()
 SESSION_MTIME_LOCK = threading.Lock()
+LIVE_UPDATES_LOCK = threading.Lock()
+LIVE_UPDATES_STOP: threading.Event | None = None
+LIVE_UPDATES_THREAD: threading.Thread | None = None
 LAST_SESSION_MTIME = 0.0
 
 
@@ -82,6 +85,33 @@ def watch_session_changes(stop: threading.Event) -> None:
                 continue
             LAST_SESSION_MTIME = mtime
         publish_event("state_changed", reason="session_file_changed")
+
+
+def initialize_live_updates() -> None:
+    """Start live update infrastructure. Safe to call again from reload hooks."""
+    global LIVE_UPDATES_STOP, LIVE_UPDATES_THREAD
+    with LIVE_UPDATES_LOCK:
+        if LIVE_UPDATES_THREAD and LIVE_UPDATES_THREAD.is_alive():
+            publish_event("state_changed", reason="live_updates_reinitialized")
+            return
+        LIVE_UPDATES_STOP = threading.Event()
+        LIVE_UPDATES_THREAD = threading.Thread(
+            target=watch_session_changes,
+            args=(LIVE_UPDATES_STOP,),
+            name="kcode-live-updates",
+            daemon=True,
+        )
+        LIVE_UPDATES_THREAD.start()
+    publish_event("state_changed", reason="live_updates_initialized")
+
+
+def shutdown_live_updates() -> None:
+    global LIVE_UPDATES_STOP, LIVE_UPDATES_THREAD
+    with LIVE_UPDATES_LOCK:
+        if LIVE_UPDATES_STOP:
+            LIVE_UPDATES_STOP.set()
+        LIVE_UPDATES_STOP = None
+        LIVE_UPDATES_THREAD = None
 
 # Mirrors src/id.rs SERVER_MODIFIERS so the UI server's name matches kcode's scheme.
 SERVER_MODIFIERS = [
