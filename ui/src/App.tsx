@@ -59,6 +59,9 @@ function App() {
   const [activeTitle, setActiveTitle] = useState("new chat");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const typingUntilRef = useRef(0);
+  const pendingRefreshRef = useRef(false);
+  const idleRefreshTimerRef = useRef<number | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -71,7 +74,7 @@ function App() {
     localStorage.setItem("kcode-theme", theme);
   }, [theme]);
 
-  const loadChats = async () => {
+  const loadChats = useCallback(async () => {
     try {
       const res = await fetch("/api/chats", { cache: "no-store" });
       const json = await res.json();
@@ -80,7 +83,7 @@ function App() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  };
+  }, []);
 
   const refreshActiveChat = useCallback(async () => {
     if (!activeId) return;
@@ -99,21 +102,42 @@ function App() {
   }, []);
 
   const refreshFromServer = useCallback(() => {
+    pendingRefreshRef.current = false;
     void loadChats();
     void loadState();
     void refreshActiveChat();
-  }, [loadState, refreshActiveChat]);
+  }, [loadChats, loadState, refreshActiveChat]);
+
+  const scheduleRefreshFromServer = useCallback(() => {
+    const delay = Math.max(0, typingUntilRef.current - Date.now());
+    pendingRefreshRef.current = true;
+    if (idleRefreshTimerRef.current !== null) {
+      window.clearTimeout(idleRefreshTimerRef.current);
+    }
+    idleRefreshTimerRef.current = window.setTimeout(() => {
+      idleRefreshTimerRef.current = null;
+      if (pendingRefreshRef.current) refreshFromServer();
+    }, delay || 75);
+  }, [refreshFromServer]);
+
+  const markTyping = useCallback(() => {
+    typingUntilRef.current = Date.now() + 550;
+  }, []);
 
   useEffect(() => { refreshFromServer(); }, [refreshFromServer]);
 
   useEffect(() => {
     const events = new EventSource("/api/events");
-    events.onmessage = () => refreshFromServer();
+    events.onmessage = () => scheduleRefreshFromServer();
     events.onerror = () => { /* EventSource reconnects automatically. */ };
-    return () => events.close();
-  }, [refreshFromServer]);
+    return () => {
+      events.close();
+      if (idleRefreshTimerRef.current !== null) window.clearTimeout(idleRefreshTimerRef.current);
+    };
+  }, [scheduleRefreshFromServer]);
 
   useEffect(() => {
+    if (Date.now() < typingUntilRef.current) return;
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
@@ -169,11 +193,12 @@ function App() {
   }, [activeId, sending]);
 
   const onKey = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+    markTyping();
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void send();
     }
-  }, [send]);
+  }, [markTyping, send]);
 
   const shutdown = async () => {
     setShutState("down");
@@ -263,6 +288,8 @@ function App() {
             <textarea
               ref={inputRef}
               placeholder="Message kcode…"
+              onFocus={markTyping}
+              onInput={markTyping}
               onKeyDown={onKey}
               rows={1}
             />
