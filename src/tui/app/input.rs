@@ -1223,7 +1223,17 @@ fn paste_placeholder(content: &str) -> String {
 }
 
 impl App {
+    pub(super) fn record_terminal_input_activity(&mut self) {
+        self.last_input_edit_at = Some(Instant::now());
+    }
+
+    pub(super) fn terminal_input_active(&self) -> bool {
+        self.last_input_edit_at
+            .is_some_and(|last| last.elapsed() < Duration::from_millis(650))
+    }
+
     pub(super) fn handle_key_event(&mut self, event: crossterm::event::KeyEvent) {
+        self.record_terminal_input_activity();
         // Record the event if recording is active
         use crate::tui::test_harness::{TestEvent, record_event};
         let modifiers: Vec<String> = {
