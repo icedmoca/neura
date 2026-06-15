@@ -33,7 +33,7 @@ impl App {
         // each redraw competes with keyboard handling. Cap stream-driven
         // refreshes so typing remains responsive while the assistant is
         // producing output; keypresses still redraw immediately.
-        let stream_redraw_floor = Duration::from_millis(50);
+        let stream_redraw_floor = Duration::from_millis(100);
         let mut redraw_period = crate::tui::redraw_interval(self).max(stream_redraw_floor);
         let mut redraw_interval = interval(redraw_period);
 
@@ -166,6 +166,9 @@ impl App {
                     }
                     // Redraw periodically
                     _ = redraw_interval.tick() => {
+                        if crossterm::event::poll(Duration::ZERO).unwrap_or(false) {
+                            continue;
+                        }
                         terminal.draw(|frame| crate::tui::ui::draw(frame, self))?;
                     }
                     // Poll API call
@@ -1038,10 +1041,13 @@ impl App {
                                 _ => {}
                             }
                         }
-                        // Redraw periodically
-                        _ = redraw_interval.tick() => {
-                            terminal.draw(|frame| crate::tui::ui::draw(frame, self))?;
+                    // Redraw periodically
+                    _ = redraw_interval.tick() => {
+                        if crossterm::event::poll(Duration::ZERO).unwrap_or(false) {
+                            continue;
                         }
+                        terminal.draw(|frame| crate::tui::ui::draw(frame, self))?;
+                    }
                         // Poll tool execution
                         result = &mut tool_future => {
                             break result;
