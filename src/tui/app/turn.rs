@@ -1,5 +1,18 @@
 use super::*;
 use crate::message::ToolDefinition;
+use std::io::Write as _;
+
+fn tui_perf_log(label: &str, elapsed: Duration) {
+    if elapsed < Duration::from_millis(25) {
+        return;
+    }
+    let Ok(path) = std::env::var("KCODE_TUI_PERF_LOG") else {
+        return;
+    };
+    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(file, "{} {}ms", label, elapsed.as_millis());
+    }
+}
 
 impl App {
     pub(super) fn append_current_turn_system_reminder(
@@ -169,7 +182,11 @@ impl App {
                         if crossterm::event::poll(Duration::ZERO).unwrap_or(false) {
                             continue;
                         }
+                        let draw_start = Instant::now();
+                        let draw_start = Instant::now();
                         terminal.draw(|frame| crate::tui::ui::draw(frame, self))?;
+                        tui_perf_log("turn.stream_draw", draw_start.elapsed());
+                        tui_perf_log("turn.initial_draw", draw_start.elapsed());
                     }
                     // Poll API call
                     result = &mut api_future => {
