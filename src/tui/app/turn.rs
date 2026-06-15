@@ -29,11 +29,16 @@ impl App {
         event_stream: &mut EventStream,
     ) -> Result<()> {
         let eager_stream_redraw = !crate::perf::tui_policy().enable_decorative_animations;
-        let mut redraw_period = crate::tui::redraw_interval(self);
+        // Streaming text can arrive much faster than humans can perceive and
+        // each redraw competes with keyboard handling. Cap stream-driven
+        // refreshes so typing remains responsive while the assistant is
+        // producing output; keypresses still redraw immediately.
+        let stream_redraw_floor = Duration::from_millis(50);
+        let mut redraw_period = crate::tui::redraw_interval(self).max(stream_redraw_floor);
         let mut redraw_interval = interval(redraw_period);
 
         loop {
-            let desired_redraw = crate::tui::redraw_interval(self);
+            let desired_redraw = crate::tui::redraw_interval(self).max(stream_redraw_floor);
             if desired_redraw != redraw_period {
                 redraw_period = desired_redraw;
                 redraw_interval = interval(redraw_period);
