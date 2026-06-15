@@ -818,6 +818,26 @@ pub struct App {
     usage_overlay: Option<RefCell<super::usage_overlay::UsageOverlay>>,
     /// Whether a usage refresh request is currently in flight.
     usage_report_refreshing: bool,
+    /// Cache for the wrapped composer line count. Typing previously caused the
+    /// full input to be re-wrapped during every draw, which is noticeable after
+    /// pasting a large prompt or when other context/accounting work is active.
+    pub(crate) input_line_count_cache: RefCell<Option<InputLineCountCache>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct InputLineCountCache {
+    pub(crate) key: InputLineCountCacheKey,
+    pub(crate) line_count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct InputLineCountCacheKey {
+    pub(crate) input_len: usize,
+    pub(crate) input_hash: u64,
+    pub(crate) width: u16,
+    pub(crate) is_remote_mode: bool,
+    pub(crate) active_login: bool,
+    pub(crate) session_new: bool,
 }
 
 /// A placeholder provider for remote mode (never actually called)

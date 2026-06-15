@@ -427,6 +427,7 @@ impl App {
             account_picker_overlay: None,
             usage_overlay: None,
             usage_report_refreshing: false,
+            input_line_count_cache: RefCell::new(None),
         };
 
         for notice in app.provider.drain_startup_notices() {
@@ -760,6 +761,7 @@ impl App {
             account_picker_overlay: None,
             usage_overlay: None,
             usage_report_refreshing: false,
+            input_line_count_cache: RefCell::new(None),
         };
 
         for notice in app.provider.drain_startup_notices() {

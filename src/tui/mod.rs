@@ -145,6 +145,18 @@ pub trait TuiState {
     fn streaming_text(&self) -> &str;
     fn input(&self) -> &str;
     fn cursor_pos(&self) -> usize;
+    fn cached_input_line_count(
+        &self,
+        _key: &crate::tui::app::InputLineCountCacheKey,
+    ) -> Option<usize> {
+        None
+    }
+    fn store_input_line_count(
+        &self,
+        _key: crate::tui::app::InputLineCountCacheKey,
+        _line_count: usize,
+    ) {
+    }
     fn is_processing(&self) -> bool;
     fn queued_messages(&self) -> &[String];
     fn interleave_message(&self) -> Option<&str>;

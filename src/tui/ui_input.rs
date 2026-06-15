@@ -7,10 +7,13 @@ use super::{
 };
 use crate::message::ConnectionPhase;
 use crate::tui::app;
+use crate::tui::app::InputLineCountCacheKey;
 use crate::tui::color_support::rgb;
 use crate::tui::info_widget::occasional_status_tip;
 use crate::tui::layout_utils;
 use ratatui::{prelude::*, widgets::Paragraph};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 fn shell_mode_color() -> Color {
     rgb(110, 214, 151)
@@ -113,10 +116,25 @@ pub(super) fn wrapped_input_line_count(
         return 1;
     }
 
+    let input = app.input();
+    let mut hasher = DefaultHasher::new();
+    input.hash(&mut hasher);
+    let key = InputLineCountCacheKey {
+        input_len: input.len(),
+        input_hash: hasher.finish(),
+        width: line_width.min(u16::MAX as usize) as u16,
+        is_remote_mode: app.is_remote_mode(),
+        active_login: false,
+        session_new: next_prompt == 1,
+    };
+    if let Some(line_count) = app.cached_input_line_count(&key) {
+        return line_count;
+    }
+
     let num_str = next_prompt.to_string();
     let (prompt_char, caret_color) = input_prompt(app);
     let (lines, _, _) = wrap_input_text(
-        app.input(),
+        input,
         app.cursor_pos(),
         line_width,
         &num_str,
@@ -124,7 +142,9 @@ pub(super) fn wrapped_input_line_count(
         caret_color,
         prompt_len,
     );
-    lines.len().max(1)
+    let line_count = lines.len().max(1);
+    app.store_input_line_count(key, line_count);
+    line_count
 }
 
 pub(super) fn pending_prompt_count(app: &dyn TuiState) -> usize {

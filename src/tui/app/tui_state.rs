@@ -315,6 +315,28 @@ impl crate::tui::TuiState for App {
         self.cursor_pos
     }
 
+    fn cached_input_line_count(
+        &self,
+        key: &crate::tui::app::InputLineCountCacheKey,
+    ) -> Option<usize> {
+        self.input_line_count_cache
+            .borrow()
+            .as_ref()
+            .filter(|cached| &cached.key == key)
+            .map(|cached| cached.line_count)
+    }
+
+    fn store_input_line_count(
+        &self,
+        key: crate::tui::app::InputLineCountCacheKey,
+        line_count: usize,
+    ) {
+        *self.input_line_count_cache.borrow_mut() = Some(crate::tui::app::InputLineCountCache {
+            key,
+            line_count,
+        });
+    }
+
     fn is_processing(&self) -> bool {
         self.is_processing || self.pending_queued_dispatch || self.split_launch_in_flight()
     }
