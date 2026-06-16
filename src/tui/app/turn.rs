@@ -6,9 +6,8 @@ fn tui_perf_log(label: &str, elapsed: Duration) {
     if elapsed < Duration::from_millis(25) {
         return;
     }
-    let Ok(path) = std::env::var("KCODE_TUI_PERF_LOG") else {
-        return;
-    };
+    let path = std::env::var("KCODE_TUI_PERF_LOG")
+        .unwrap_or_else(|_| "/tmp/kcode-tui-perf.log".to_string());
     if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
         let _ = writeln!(file, "{} {}ms", label, elapsed.as_millis());
     }
