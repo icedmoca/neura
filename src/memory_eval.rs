@@ -44,21 +44,38 @@ pub fn run_memory_eval() -> MemoryEvalReport {
         MemoryCategory::Fact,
         "Kcode local sidecar model lives under ~/.kcode/models/gguf and should use gpt-oss/kcode GGUF, not phi3".to_string()
     ).with_trust(TrustLevel::High)));
-    store.add(active(MemoryEntry::new(
-        MemoryCategory::Fact,
-        "Old unrelated fact about deploying with a stale binary".to_string()
-    ).with_trust(TrustLevel::Low)));
+    store.add(active(
+        MemoryEntry::new(
+            MemoryCategory::Fact,
+            "Old unrelated fact about deploying with a stale binary".to_string(),
+        )
+        .with_trust(TrustLevel::Low),
+    ));
 
     let cases = [
-        MemoryEvalCase { name: "reload_binary", query: "reload no newer binary", expected_contains: "target/release/kcode" },
-        MemoryEvalCase { name: "sidecar_model", query: "which model should memory sidecar use", expected_contains: "gguf" },
-        MemoryEvalCase { name: "answer_style", query: "how should final answers be", expected_contains: "concise" },
+        MemoryEvalCase {
+            name: "reload_binary",
+            query: "reload no newer binary",
+            expected_contains: "target/release/kcode",
+        },
+        MemoryEvalCase {
+            name: "sidecar_model",
+            query: "which model should memory sidecar use",
+            expected_contains: "gguf",
+        },
+        MemoryEvalCase {
+            name: "answer_style",
+            query: "how should final answers be",
+            expected_contains: "concise",
+        },
     ];
 
     let mut results = Vec::new();
     for case in cases {
         let top = store.search_ranked(case.query, 1).into_iter().next();
-        let passed = top.map(|m| m.content.to_lowercase().contains(case.expected_contains)).unwrap_or(false);
+        let passed = top
+            .map(|m| m.content.to_lowercase().contains(case.expected_contains))
+            .unwrap_or(false);
         let explanation = store.search_explained(case.query, 1).into_iter().next();
         results.push(MemoryEvalResult {
             case: case.name.to_string(),
@@ -70,5 +87,14 @@ pub fn run_memory_eval() -> MemoryEvalReport {
     }
     let passed = results.iter().filter(|r| r.passed).count();
     let total = results.len();
-    MemoryEvalReport { passed, total, accuracy: if total == 0 { 0.0 } else { passed as f64 / total as f64 }, results }
+    MemoryEvalReport {
+        passed,
+        total,
+        accuracy: if total == 0 {
+            0.0
+        } else {
+            passed as f64 / total as f64
+        },
+        results,
+    }
 }

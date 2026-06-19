@@ -57,7 +57,6 @@ pub(super) fn cache_graph(path: PathBuf, graph: &MemoryGraph) {
     }
 }
 
-
 // === Search Explanation Cache ===
 
 #[derive(Clone)]
@@ -66,9 +65,15 @@ pub(super) struct SearchCacheEntry<T: Clone> {
     pub results: Vec<T>,
 }
 
-static SEARCH_CACHE: OnceLock<Mutex<HashMap<(PathBuf, String, usize), SearchCacheEntry<crate::memory::MemorySearchExplanation>>>> = OnceLock::new();
+static SEARCH_CACHE: OnceLock<
+    Mutex<
+        HashMap<(PathBuf, String, usize), SearchCacheEntry<crate::memory::MemorySearchExplanation>>,
+    >,
+> = OnceLock::new();
 
-fn search_cache() -> &'static Mutex<HashMap<(PathBuf, String, usize), SearchCacheEntry<crate::memory::MemorySearchExplanation>>> {
+fn search_cache() -> &'static Mutex<
+    HashMap<(PathBuf, String, usize), SearchCacheEntry<crate::memory::MemorySearchExplanation>>,
+> {
     SEARCH_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -80,7 +85,11 @@ pub(super) fn cached_search(
     let modified = graph_mtime(path);
     let cache = search_cache().lock().ok()?;
     let entry = cache.get(&(path.clone(), query.to_string(), limit))?;
-    if entry.modified == modified { Some(entry.results.clone()) } else { None }
+    if entry.modified == modified {
+        Some(entry.results.clone())
+    } else {
+        None
+    }
 }
 
 pub(super) fn cache_search(
@@ -91,12 +100,20 @@ pub(super) fn cache_search(
 ) {
     let modified = graph_mtime(&path);
     if let Ok(mut cache) = search_cache().lock() {
-        cache.insert((path, query, limit), SearchCacheEntry { modified, results: results.to_vec() });
+        cache.insert(
+            (path, query, limit),
+            SearchCacheEntry {
+                modified,
+                results: results.to_vec(),
+            },
+        );
     }
 }
 
 pub(super) fn clear_search_cache() {
     if let Some(cache) = SEARCH_CACHE.get() {
-        if let Ok(mut cache) = cache.lock() { cache.clear(); }
+        if let Ok(mut cache) = cache.lock() {
+            cache.clear();
+        }
     }
 }
