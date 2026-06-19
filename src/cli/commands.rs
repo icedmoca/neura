@@ -156,8 +156,12 @@ pub enum MemorySubcommand {
     },
     Stats,
     ClearTest,
-    SidecarEnsure { json: bool },
-    Eval { json: bool },
+    SidecarEnsure {
+        json: bool,
+    },
+    Eval {
+        json: bool,
+    },
 }
 
 pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
@@ -390,7 +394,18 @@ pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
             if json {
                 println!("{}", serde_json::to_string_pretty(&status)?);
             } else {
-                println!("ok={} url={} model={} model_path={} message={}", status.ok, status.base_url, status.model, status.model_path.as_ref().map(|p| p.display().to_string()).unwrap_or_default(), status.message);
+                println!(
+                    "ok={} url={} model={} model_path={} message={}",
+                    status.ok,
+                    status.base_url,
+                    status.model,
+                    status
+                        .model_path
+                        .as_ref()
+                        .map(|p| p.display().to_string())
+                        .unwrap_or_default(),
+                    status.message
+                );
             }
         }
         MemorySubcommand::Eval { json } => {
@@ -398,7 +413,10 @@ pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
             if json {
                 println!("{}", serde_json::to_string_pretty(&report)?);
             } else {
-                println!("memory eval: {}/{} accuracy={:.2}", report.passed, report.total, report.accuracy);
+                println!(
+                    "memory eval: {}/{} accuracy={:.2}",
+                    report.passed, report.total, report.accuracy
+                );
             }
         }
     }
