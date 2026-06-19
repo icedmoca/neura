@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -53,7 +53,9 @@ pub fn write_snapshot(snapshot: &RestartSnapshot) -> Result<()> {
 }
 
 pub fn load_snapshot() -> Result<RestartSnapshot> {
-    crate::storage::read_json(&snapshot_path()?)
+    let path = snapshot_path()?;
+    crate::storage::read_json(&path)
+        .with_context(|| format!("failed to load restart snapshot from {}", path.display()))
 }
 
 pub fn clear_snapshot() -> Result<bool> {

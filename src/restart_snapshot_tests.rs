@@ -1,6 +1,6 @@
 use super::{
     AUTO_RESTORE_CRASH_MAX_AGE_HOURS, arm_auto_restore_from_recent_crashes,
-    capture_current_snapshot, clear_snapshot, load_snapshot, save_current_snapshot,
+    capture_current_snapshot, clear_snapshot, load_snapshot, save_current_snapshot, snapshot_path,
 };
 use crate::session::Session;
 use chrono::Utc;
@@ -71,6 +71,26 @@ fn save_and_load_snapshot_round_trip() {
     assert_eq!(loaded.sessions.len(), 1);
     assert!(!loaded.auto_restore_on_next_start);
     assert_eq!(loaded.sessions[0].session_id, active.id);
+}
+
+#[test]
+fn load_snapshot_reports_path_for_malformed_json() {
+    let _guard = TestEnvGuard::new().expect("setup test env");
+    let path = snapshot_path().expect("snapshot path");
+    std::fs::create_dir_all(path.parent().expect("snapshot parent")).expect("create kcode dir");
+    std::fs::write(&path, "not valid json").expect("write malformed snapshot");
+
+    let err = load_snapshot().expect_err("malformed snapshot should fail");
+    let message = format!("{err:#}");
+
+    assert!(
+        message.contains("failed to load restart snapshot from"),
+        "error should include operation context: {message}"
+    );
+    assert!(
+        message.contains("restart-snapshot.json"),
+        "error should include snapshot path: {message}"
+    );
 }
 
 #[test]
