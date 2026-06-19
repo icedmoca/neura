@@ -3,6 +3,8 @@ use crate::message::ToolDefinition;
 use std::io::Write as _;
 
 const STREAM_RENDER_FRAME_BUDGET: Duration = Duration::from_millis(33);
+// Keep terminal input polling below a frame so typing stays responsive while the model streams.
+const INPUT_POLL_INTERVAL: Duration = Duration::from_millis(2);
 
 fn tui_perf_log(label: &str, elapsed: Duration) {
     if elapsed < Duration::from_millis(5) {
