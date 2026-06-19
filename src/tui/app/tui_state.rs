@@ -331,10 +331,8 @@ impl crate::tui::TuiState for App {
         key: crate::tui::app::InputLineCountCacheKey,
         line_count: usize,
     ) {
-        *self.input_line_count_cache.borrow_mut() = Some(crate::tui::app::InputLineCountCache {
-            key,
-            line_count,
-        });
+        *self.input_line_count_cache.borrow_mut() =
+            Some(crate::tui::app::InputLineCountCache { key, line_count });
     }
 
     fn is_processing(&self) -> bool {

@@ -2,14 +2,30 @@ use super::*;
 use crate::message::ToolDefinition;
 use std::io::Write as _;
 
+const STREAM_RENDER_FRAME_BUDGET: Duration = Duration::from_millis(33);
+
 fn tui_perf_log(label: &str, elapsed: Duration) {
-    if elapsed < Duration::from_millis(25) {
+    if elapsed < Duration::from_millis(5) {
         return;
     }
     let path = std::env::var("KCODE_TUI_PERF_LOG")
         .unwrap_or_else(|_| "/tmp/kcode-tui-perf.log".to_string());
-    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
         let _ = writeln!(file, "{} {}ms", label, elapsed.as_millis());
+    }
+}
+
+fn should_render_stream_frame(last_render: &mut Instant) -> bool {
+    let now = Instant::now();
+    if now.duration_since(*last_render) >= STREAM_RENDER_FRAME_BUDGET {
+        *last_render = now;
+        true
+    } else {
+        false
     }
 }
 
@@ -181,7 +197,7 @@ impl App {
                         if crossterm::event::poll(Duration::ZERO).unwrap_or(false) {
                             continue;
                         }
-                        let draw_start = Instant::now();
+                        #[allow(unused_variables)]
                         let draw_start = Instant::now();
                         terminal.draw(|frame| crate::tui::ui::draw(frame, self))?;
                         tui_perf_log("turn.stream_draw", draw_start.elapsed());
@@ -215,6 +231,8 @@ impl App {
             let mut openai_native_compaction: Option<(String, usize)> = None;
 
             // Stream with input handling
+            #[allow(unused_variables)]
+            let last_stream_render = Instant::now() - STREAM_RENDER_FRAME_BUDGET;
             loop {
                 tokio::select! {
                     // Redraw periodically

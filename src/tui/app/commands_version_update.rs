@@ -1,8 +1,5 @@
 use super::{App, DisplayMessage};
-use crate::build::{
-    BuildManifest, current_source_state, publish_local_current_build_for_source,
-    read_current_version,
-};
+use crate::build::{BuildManifest, read_current_version};
 
 pub(super) const UPDATE_REMOTE: &str = "https://github.com/icedmoca/kcode.git";
 pub(super) const UPDATE_BRANCH: &str = "main";
