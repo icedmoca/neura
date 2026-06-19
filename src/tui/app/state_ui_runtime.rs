@@ -1,6 +1,4 @@
 use super::*;
-use crate::latency::{LatencyKind, LatencyTimer};
-use crate::runtime_governor;
 use crate::tui::{is_unexpected_cache_miss, ui};
 
 impl App {

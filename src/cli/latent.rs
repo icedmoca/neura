@@ -26,8 +26,8 @@ use crate::operational_eval::{
 };
 use crate::operational_policy::{self, PolicyDomain};
 use crate::patch_proposal::{
-    build_patch_report, dry_run_patch, promotion_gate, propose_patch, run_patch_pipeline,
-    validate_patch, write_patch_pipeline_report, write_patch_report,
+    dry_run_patch, promotion_gate, propose_patch, run_patch_pipeline, validate_patch,
+    write_patch_pipeline_report, write_patch_report,
 };
 use crate::policy_outcome_credit;
 use crate::policy_shadow_simulation;
