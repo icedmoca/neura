@@ -624,40 +624,52 @@ fn search_explained_prioritizes_corrections_and_trust() {
     let low = MemoryEntry::new(
         MemoryCategory::Fact,
         "Use the old deployment command for kcode release".to_string(),
-        "test".to_string(),
     )
+    .with_source("test")
     .with_trust(TrustLevel::Low);
     let correction = MemoryEntry::new(
         MemoryCategory::Correction,
         "Correction: use cargo build --release --bin kcode before /reload".to_string(),
-        "test".to_string(),
     )
+    .with_source("test")
     .with_trust(TrustLevel::High);
     let low_id = store.add(low);
     let correction_id = store.add(correction);
 
     let explained = store.search_explained("kcode release reload command", 10);
-    assert_eq!(explained.first().map(|e| e.id.as_str()), Some(correction_id.as_str()));
+    assert_eq!(
+        explained.first().map(|e| e.id.as_str()),
+        Some(correction_id.as_str())
+    );
     assert!(explained.iter().any(|e| e.id == low_id));
-    assert!(explained[0].reasons.iter().any(|reason| reason.contains("correction")));
+    assert!(
+        explained[0]
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("correction"))
+    );
 }
 
 #[test]
 fn search_ranked_cache_invalidates_on_add() {
     let mut store = MemoryStore::default();
-    store.add(MemoryEntry::new(
-        MemoryCategory::Fact,
-        "alpha memory before cache fill".to_string(),
-        "test".to_string(),
-    ));
+    store.add(
+        MemoryEntry::new(
+            MemoryCategory::Fact,
+            "alpha memory before cache fill".to_string(),
+        )
+        .with_source("test"),
+    );
     let first = store.search_explained("alpha beta", 10);
     assert_eq!(first.len(), 1);
 
-    let beta_id = store.add(MemoryEntry::new(
-        MemoryCategory::Preference,
-        "beta memory added after cache fill".to_string(),
-        "test".to_string(),
-    ));
+    let beta_id = store.add(
+        MemoryEntry::new(
+            MemoryCategory::Preference,
+            "beta memory added after cache fill".to_string(),
+        )
+        .with_source("test"),
+    );
     let second = store.search_explained("alpha beta", 10);
     assert!(second.iter().any(|entry| entry.id == beta_id));
 }
