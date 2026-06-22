@@ -5,6 +5,7 @@ use std::io::Write as _;
 const STREAM_RENDER_FRAME_BUDGET: Duration = Duration::from_millis(33);
 // Keep terminal input polling below a frame so typing stays responsive while the model streams.
 const INPUT_POLL_INTERVAL: Duration = Duration::from_millis(2);
+const TYPING_STREAM_REDRAW_QUIET_PERIOD: Duration = Duration::from_millis(50);
 
 fn tui_perf_log(label: &str, elapsed: Duration) {
     if elapsed < Duration::from_millis(5) {
@@ -66,6 +67,7 @@ impl App {
         let stream_redraw_floor = Duration::from_millis(100);
         let mut redraw_period = crate::tui::redraw_interval(self).max(stream_redraw_floor);
         let mut redraw_interval = interval(redraw_period);
+        let mut last_input_redraw: Option<Instant> = None;
 
         loop {
             let desired_redraw = crate::tui::redraw_interval(self).max(stream_redraw_floor);
@@ -198,6 +200,7 @@ impl App {
                         }
 
                         if needs_redraw {
+                            last_input_redraw = Some(Instant::now());
                             self.redraw_now(terminal)?;
                         }
                     }
