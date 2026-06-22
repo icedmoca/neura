@@ -174,6 +174,35 @@ PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 LOG_DIR="$HOME/.kcode/launcher"
 LOG_FILE="$LOG_DIR/macos-launcher.log"
 mkdir -p "$LOG_DIR" >/dev/null 2>&1 || true
+LOCK_DIR="${{TMPDIR:-/tmp}}/kcode-macos-launcher.lock"
+PID_FILE="$LOCK_DIR/pid"
+
+if mkdir "$LOCK_DIR" 2>/dev/null; then
+  printf '%s\n' "$$" > "$PID_FILE"
+else
+  if [ -r "$PID_FILE" ]; then
+    OLD_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
+    case "$OLD_PID" in
+      ''|*[!0-9]*) OLD_PID= ;;
+    esac
+    if [ -n "${{OLD_PID:-}}" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+      printf '%s\n' "kcode launcher already running as pid $OLD_PID" >> "$LOG_FILE"
+      exit 0
+    fi
+  fi
+  rm -rf "$LOCK_DIR"
+  if mkdir "$LOCK_DIR" 2>/dev/null; then
+    printf '%s\n' "$$" > "$PID_FILE"
+  else
+    printf '%s\n' "kcode launcher lock busy" >> "$LOG_FILE"
+    exit 0
+  fi
+fi
+trap 'rm -rf "$LOCK_DIR"' EXIT HUP INT TERM
+
+# Avoid terminal app session restoration recursively replaying this launcher.
+export KITTY_DISABLE_SESSION_RESTORE=1
+export KCODE_MACOS_LAUNCHER=1
 
 show_missing_executable() {{
   /usr/bin/osascript <<'APPLESCRIPT' >/dev/null 2>&1 || true
