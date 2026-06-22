@@ -153,45 +153,52 @@ impl App {
                     biased;
                     // Handle keyboard input while waiting for API
                     event = event_stream.next() => {
-                        match event {
-                            Some(Ok(Event::Key(key))) => {
-                                self.update_copy_badge_key_event(key);
-                                if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
-                                    let scroll_only = super::input::is_scroll_only_key(self, key.code, key.modifiers);
-                                    let _ = self.handle_key_press_event(key);
-                                    if self.cancel_requested {
-                                        self.cancel_requested = false;
-                                        self.interleave_message = None;
-                                        self.pending_soft_interrupts.clear();
-                                        self.pending_soft_interrupt_requests.clear();
-                                        self.clear_streaming_render_state();
-                                        self.stream_buffer.clear();
-                                        self.streaming_tool_calls.clear();
-                                        self.schedule_queued_dispatch_after_interrupt();
-                                        self.push_display_message(DisplayMessage::system("Interrupted"));
-                                        return Ok(());
+                        let mut needs_redraw = false;
+                        let mut next_event = event;
+                        loop {
+                            match next_event {
+                                Some(Ok(Event::Key(key))) => {
+                                    self.update_copy_badge_key_event(key);
+                                    if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
+                                        let scroll_only = super::input::is_scroll_only_key(self, key.code, key.modifiers);
+                                        let _ = self.handle_key_press_event(key);
+                                        if self.cancel_requested {
+                                            self.cancel_requested = false;
+                                            self.interleave_message = None;
+                                            self.pending_soft_interrupts.clear();
+                                            self.pending_soft_interrupt_requests.clear();
+                                            self.clear_streaming_render_state();
+                                            self.stream_buffer.clear();
+                                            self.streaming_tool_calls.clear();
+                                            self.schedule_queued_dispatch_after_interrupt();
+                                            self.push_display_message(DisplayMessage::system("Interrupted"));
+                                            return Ok(());
+                                        }
+                                        needs_redraw |= !scroll_only;
                                     }
-                                    if !scroll_only {
-                                        self.redraw_now(terminal)?;
-                                    }
                                 }
-                            }
-                            Some(Ok(Event::Paste(text))) => {
-                                self.handle_paste(text);
-                                self.redraw_now(terminal)?;
-                            }
-                            Some(Ok(Event::Mouse(mouse))) => {
-                                let scroll_only = self.handle_mouse_event(mouse);
-                                if !scroll_only {
-                                    self.redraw_now(terminal)?;
+                                Some(Ok(Event::Paste(text))) => {
+                                    self.handle_paste(text);
+                                    needs_redraw = true;
                                 }
-                            }
-                            Some(Ok(Event::Resize(_, _))) => {
-                                if self.should_redraw_after_resize() {
-                                    self.redraw_now(terminal)?;
+                                Some(Ok(Event::Mouse(mouse))) => {
+                                    let scroll_only = self.handle_mouse_event(mouse);
+                                    needs_redraw |= !scroll_only;
                                 }
+                                Some(Ok(Event::Resize(_, _))) => {
+                                    needs_redraw |= self.should_redraw_after_resize();
+                                }
+                                _ => {}
                             }
-                            _ => {}
+
+                            if !crossterm::event::poll(Duration::ZERO)? {
+                                break;
+                            }
+                            next_event = Some(crossterm::event::read());
+                        }
+
+                        if needs_redraw {
+                            self.redraw_now(terminal)?;
                         }
                     }
                     // Redraw periodically
