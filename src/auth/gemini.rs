@@ -92,12 +92,12 @@ struct GeminiCliOAuthCredentials {
 /// Resolve the Gemini CLI command from the environment or a sensible default.
 ///
 /// Preference order:
-/// 1. `KCODE_GEMINI_CLI_PATH` (supports a full command like `npx @google/gemini-cli`)
+/// 1. `NEURA_GEMINI_CLI_PATH` (supports a full command like `npx @google/gemini-cli`)
 /// 2. `gemini` on PATH
 /// 3. `npx @google/gemini-cli`
 pub fn gemini_cli_command() -> GeminiCliCommand {
     resolve_gemini_cli_command_with(
-        std::env::var("KCODE_GEMINI_CLI_PATH").ok().as_deref(),
+        std::env::var("NEURA_GEMINI_CLI_PATH").ok().as_deref(),
         super::command_exists,
     )
 }
@@ -119,7 +119,7 @@ pub fn has_cached_auth() -> bool {
 }
 
 pub fn tokens_path() -> Result<std::path::PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("gemini_oauth.json"))
+    Ok(crate::storage::neura_dir()?.join("gemini_oauth.json"))
 }
 
 pub fn gemini_cli_oauth_path() -> Result<std::path::PathBuf> {
@@ -208,7 +208,7 @@ pub fn load_tokens() -> Result<GeminiTokens> {
         });
     }
 
-    anyhow::bail!("No Gemini OAuth tokens found. Run `kcode login --provider gemini`.")
+    anyhow::bail!("No Gemini OAuth tokens found. Run `neura login --provider gemini`.")
 }
 
 pub fn save_tokens(tokens: &GeminiTokens) -> Result<()> {
@@ -313,7 +313,7 @@ pub async fn login(no_browser: bool) -> Result<GeminiTokens> {
                 redirect_uri
             );
             eprintln!(
-                "If the page says sign-in succeeded but kcode does not continue within a few seconds, press Ctrl+C and retry with `--no-browser` to use the manual code flow."
+                "If the page says sign-in succeeded but neura does not continue within a few seconds, press Ctrl+C and retry with `--no-browser` to use the manual code flow."
             );
             match tokio::time::timeout(
                 std::time::Duration::from_secs(300),

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use kcode_agent_runtime::{SoftInterruptMessage, SoftInterruptSource};
+use neura_agent_runtime::{SoftInterruptMessage, SoftInterruptSource};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -59,7 +59,7 @@ impl From<PersistedSoftInterrupt> for SoftInterruptMessage {
 }
 
 fn dir_path() -> Result<PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("pending-soft-interrupts"))
+    Ok(crate::storage::neura_dir()?.join("pending-soft-interrupts"))
 }
 
 fn path_for_session(session_id: &str) -> Result<PathBuf> {

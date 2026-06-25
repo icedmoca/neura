@@ -24,7 +24,7 @@ use super::{ResumeTarget, SessionSource};
 const TRANSCRIPT_SEARCH_CHUNK_BYTES: usize = 64 * 1024;
 
 fn session_scan_limit() -> usize {
-    std::env::var("KCODE_SESSION_PICKER_MAX_SESSIONS")
+    std::env::var("NEURA_SESSION_PICKER_MAX_SESSIONS")
         .ok()
         .and_then(|raw| raw.trim().parse::<usize>().ok())
         .map(|n| n.clamp(MIN_SESSION_SCAN_LIMIT, MAX_SESSION_SCAN_LIMIT))
@@ -145,8 +145,8 @@ fn session_transcript_contains_query(session: &SessionInfo, query_lower: &str) -
 #[cfg(test)]
 fn transcript_paths_for_session(session: &SessionInfo) -> Vec<PathBuf> {
     match &session.resume_target {
-        ResumeTarget::KcodeSession { session_id } => {
-            let Ok(sessions_dir) = storage::kcode_dir().map(|dir| dir.join("sessions")) else {
+        ResumeTarget::NeuraSession { session_id } => {
+            let Ok(sessions_dir) = storage::neura_dir().map(|dir| dir.join("sessions")) else {
                 return Vec::new();
             };
             vec![
@@ -298,7 +298,7 @@ fn classify_session_source(
         return SessionSource::Codex;
     }
 
-    SessionSource::Kcode
+    SessionSource::Neura
 }
 
 fn collect_files_recursive(root: &Path, extension: &str) -> Vec<PathBuf> {
@@ -799,7 +799,7 @@ pub(super) fn crashed_sessions_from_all_sessions(
 }
 
 pub fn load_sessions() -> Result<Vec<SessionInfo>> {
-    let sessions_dir = storage::kcode_dir()?.join("sessions");
+    let sessions_dir = storage::neura_dir()?.join("sessions");
     let scan_limit = session_scan_limit();
 
     if let Ok(cache) = session_list_cache().lock()
@@ -900,7 +900,7 @@ pub fn load_sessions() -> Result<Vec<SessionInfo>> {
                 server_name: None,
                 server_icon: None,
                 source,
-                resume_target: ResumeTarget::KcodeSession {
+                resume_target: ResumeTarget::NeuraSession {
                     session_id: stem.to_string(),
                 },
                 external_path: None,

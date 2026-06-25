@@ -14,7 +14,7 @@ use crate::server::{
 use crate::tool::Registry;
 use anyhow::Result;
 use async_trait::async_trait;
-use kcode_agent_runtime::InterruptSignal;
+use neura_agent_runtime::InterruptSignal;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 use std::sync::Arc;

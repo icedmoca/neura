@@ -88,8 +88,8 @@ impl ExternalCopilotAuthSource {
 }
 
 /// Required headers for Copilot API requests
-pub const EDITOR_VERSION: &str = "kcode/1.0";
-pub const EDITOR_PLUGIN_VERSION: &str = "kcode/1.0";
+pub const EDITOR_VERSION: &str = "neura/1.0";
+pub const EDITOR_PLUGIN_VERSION: &str = "neura/1.0";
 pub const COPILOT_INTEGRATION_ID: &str = "vscode-chat";
 
 /// Response from GitHub device code endpoint
@@ -361,7 +361,7 @@ pub fn trust_external_auth_source(source: ExternalCopilotAuthSource) -> Result<(
 }
 
 fn copilot_cli_dir() -> PathBuf {
-    if let Ok(path) = std::env::var("KCODE_HOME") {
+    if let Ok(path) = std::env::var("NEURA_HOME") {
         return PathBuf::from(path).join("external").join(".copilot");
     }
 
@@ -370,7 +370,7 @@ fn copilot_cli_dir() -> PathBuf {
 }
 
 fn legacy_copilot_config_dir() -> PathBuf {
-    if let Ok(path) = std::env::var("KCODE_HOME") {
+    if let Ok(path) = std::env::var("NEURA_HOME") {
         return PathBuf::from(path)
             .join("external")
             .join(".config")
@@ -667,7 +667,7 @@ pub fn save_github_token(token: &str, username: &str) -> Result<()> {
     crate::storage::write_text_secret(&hosts_path, &json)
         .with_context(|| format!("Failed to write {}", hosts_path.display()))?;
 
-    // A token written by kcode's own device-login flow should be immediately
+    // A token written by neura's own device-login flow should be immediately
     // usable in future sessions. Without this, later reads treat the saved
     // hosts.json as an untrusted external auth source and appear to "lose"
     // the Copilot login after restart/new session.

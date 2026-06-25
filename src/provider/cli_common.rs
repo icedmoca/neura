@@ -8,14 +8,14 @@ const MAX_PROMPT_CHARS: usize = 120_000;
 
 fn provider_login_hint(provider_name: &str) -> Option<&'static str> {
     match provider_name.to_ascii_lowercase().as_str() {
-        "cursor" => Some("Run `kcode login --provider cursor` to re-authenticate."),
+        "cursor" => Some("Run `neura login --provider cursor` to re-authenticate."),
         "copilot" => {
-            Some("Run `kcode login --provider copilot` to authenticate via GitHub device flow.")
+            Some("Run `neura login --provider copilot` to authenticate via GitHub device flow.")
         }
         "gemini" => Some(
-            "Run `kcode login --provider gemini` to authenticate via the native Gemini Google OAuth flow.",
+            "Run `neura login --provider gemini` to authenticate via the native Gemini Google OAuth flow.",
         ),
-        "antigravity" => Some("Run `kcode login --provider antigravity` to re-authenticate."),
+        "antigravity" => Some("Run `neura login --provider antigravity` to re-authenticate."),
         _ => None,
     }
 }

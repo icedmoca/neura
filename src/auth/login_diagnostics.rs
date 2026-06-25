@@ -93,17 +93,17 @@ pub fn auth_failure_recovery_hint(provider_id: &str, reason: AuthFailureReason) 
         | AuthFailureReason::CallbackTimeout
         | AuthFailureReason::CallbackPortUnavailable
         | AuthFailureReason::NonInteractiveTerminal => format!(
-            "Try a manual-safe fallback: `kcode login --provider {} --print-auth-url`, then complete with `--callback-url` or `--auth-code`.",
+            "Try a manual-safe fallback: `neura login --provider {} --print-auth-url`, then complete with `--callback-url` or `--auth-code`.",
             provider
         ),
         AuthFailureReason::ManualInputMissing => {
             "Retry the same flow and paste the full callback URL, authorization code, or required API key when prompted.".to_string()
         }
         AuthFailureReason::SaveFailed => {
-            "Check whether kcode can write its config directory, or retry inside an isolated sandbox with `bash scripts/onboarding_sandbox.sh fresh`.".to_string()
+            "Check whether neura can write its config directory, or retry inside an isolated sandbox with `bash scripts/onboarding_sandbox.sh fresh`.".to_string()
         }
         AuthFailureReason::PostLoginValidationFailed => format!(
-            "Credentials were saved, but runtime verification failed. Run `kcode auth-test --provider {}` and `kcode auth doctor {}` for guided diagnosis.",
+            "Credentials were saved, but runtime verification failed. Run `neura auth-test --provider {}` and `neura auth doctor {}` for guided diagnosis.",
             provider, provider
         ),
         AuthFailureReason::ImportUnavailable => {
@@ -116,11 +116,11 @@ pub fn auth_failure_recovery_hint(provider_id: &str, reason: AuthFailureReason) 
             "Retry the device-code flow, or switch to another supported auth method if available.".to_string()
         }
         AuthFailureReason::OAuthExchangeFailed => format!(
-            "Retry the OAuth flow, and if it keeps failing use `kcode login --provider {} --print-auth-url` so the callback can be completed manually.",
+            "Retry the OAuth flow, and if it keeps failing use `neura login --provider {} --print-auth-url` so the callback can be completed manually.",
             provider
         ),
         AuthFailureReason::Unknown => {
-            "Run `kcode auth status`, then `kcode auth doctor` for a structured diagnosis.".to_string()
+            "Run `neura auth status`, then `neura auth doctor` for a structured diagnosis.".to_string()
         }
     };
 

@@ -4,8 +4,8 @@ use super::*;
 async fn side_panel_tool_writes_page() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let tool = SidePanelTool::new();
     let output = tool
@@ -32,9 +32,9 @@ async fn side_panel_tool_writes_page() {
     assert!(output.output.contains("notes"));
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -42,8 +42,8 @@ async fn side_panel_tool_writes_page() {
 async fn side_panel_tool_loads_file_with_derived_page_id() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
     let doc_path = temp.path().join("Project Plan.md");
     std::fs::write(&doc_path, "# Plan\n\nInitial").expect("write source file");
 
@@ -80,8 +80,8 @@ async fn side_panel_tool_loads_file_with_derived_page_id() {
     assert_eq!(page.content, "# Plan\n\nInitial");
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }

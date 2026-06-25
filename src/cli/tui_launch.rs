@@ -58,7 +58,7 @@ pub async fn run_tui(
     let icon = id::session_icon(&session_name);
     let _ = crossterm::execute!(
         std::io::stdout(),
-        crossterm::terminal::SetTitle(format!("{} kcode {}", icon, session_name))
+        crossterm::terminal::SetTitle(format!("{} neura {}", icon, session_name))
     );
 
     app.init_mcp().await;
@@ -87,9 +87,9 @@ pub(crate) fn resumed_window_title(session_id: &str) -> String {
         .unwrap_or_else(|| session_id.to_string());
     let icon = id::session_icon(&session_name);
     if let Some(server_info) = crate::registry::find_server_by_socket_sync(&server::socket_path()) {
-        format!("{} kcode/{} {}", icon, server_info.name, session_name)
+        format!("{} neura/{} {}", icon, server_info.name, session_name)
     } else {
-        format!("{} kcode {}", icon, session_name)
+        format!("{} neura {}", icon, session_name)
     }
 }
 
@@ -125,11 +125,11 @@ fn focus_title_best_effort(title: &str) {
     cmd.arg("-c")
         .arg(
             "sleep 0.4; \
-             if command -v wmctrl >/dev/null 2>&1; then wmctrl -a \"$KCODE_WINDOW_TITLE\" >/dev/null 2>&1 && exit 0; fi; \
-             if command -v xdotool >/dev/null 2>&1; then xdotool search --name \"$KCODE_WINDOW_TITLE\" windowactivate >/dev/null 2>&1 && exit 0; fi; \
+             if command -v wmctrl >/dev/null 2>&1; then wmctrl -a \"$NEURA_WINDOW_TITLE\" >/dev/null 2>&1 && exit 0; fi; \
+             if command -v xdotool >/dev/null 2>&1; then xdotool search --name \"$NEURA_WINDOW_TITLE\" windowactivate >/dev/null 2>&1 && exit 0; fi; \
              exit 0",
         )
-        .env("KCODE_WINDOW_TITLE", title)
+        .env("NEURA_WINDOW_TITLE", title)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
@@ -196,7 +196,7 @@ fn detected_resume_terminal() -> Option<&'static str> {
 #[cfg(unix)]
 fn resume_terminal_candidates_unix() -> Vec<String> {
     let mut candidates = Vec::new();
-    if let Ok(term) = std::env::var("KCODE_TERMINAL") {
+    if let Ok(term) = std::env::var("NEURA_TERMINAL") {
         push_unique_terminal(&mut candidates, term);
     }
     if let Some(term) = detected_resume_terminal() {
@@ -246,7 +246,7 @@ fn detected_resume_terminal() -> Option<&'static str> {
 #[cfg(not(unix))]
 fn resume_terminal_candidates_windows() -> Vec<String> {
     let mut candidates = Vec::new();
-    if let Ok(term) = std::env::var("KCODE_TERMINAL") {
+    if let Ok(term) = std::env::var("NEURA_TERMINAL") {
         push_unique_terminal(&mut candidates, term);
     }
     if let Some(term) = detected_resume_terminal() {
@@ -362,7 +362,7 @@ pub async fn run_tui_client(
         );
     } else {
         crate::process_title::set_client_generic_title(super::selfdev::client_selfdev_requested());
-        let _ = crossterm::execute!(std::io::stdout(), crossterm::terminal::SetTitle("kcode"));
+        let _ = crossterm::execute!(std::io::stdout(), crossterm::terminal::SetTitle("neura"));
     }
     startup_profile::mark("terminal_title");
 
@@ -477,7 +477,7 @@ pub async fn run_replay_command(
                         }
                     })
                     .collect::<String>();
-                std::path::PathBuf::from(format!("kcode_swarm_replay_{}_{}.mp4", safe_name, date))
+                std::path::PathBuf::from(format!("neura_swarm_replay_{}_{}.mp4", safe_name, date))
             } else {
                 std::path::PathBuf::from(output)
             };
@@ -593,7 +593,7 @@ pub async fn run_replay_command(
                     }
                 })
                 .collect::<String>();
-            std::path::PathBuf::from(format!("kcode_replay_{}_{}.mp4", safe_name, date))
+            std::path::PathBuf::from(format!("neura_replay_{}_{}.mp4", safe_name, date))
         } else {
             std::path::PathBuf::from(output)
         };
@@ -656,7 +656,7 @@ pub fn spawn_resume_in_new_terminal(
     for term in resume_terminal_candidates_unix() {
         let mut cmd = Command::new(&term);
         cmd.current_dir(cwd)
-            .env("KCODE_FRESH_SPAWN", "1")
+            .env("NEURA_FRESH_SPAWN", "1")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
@@ -745,7 +745,7 @@ pub fn spawn_resume_in_new_terminal(
                 cmd.args([
                     "-a",
                     "Terminal",
-                    exe.to_str().unwrap_or("kcode"),
+                    exe.to_str().unwrap_or("neura"),
                     "--args",
                     "--resume",
                     session_id,
@@ -775,7 +775,7 @@ pub fn spawn_selfdev_in_new_terminal(
     for term in resume_terminal_candidates_unix() {
         let mut cmd = Command::new(&term);
         cmd.current_dir(cwd)
-            .env("KCODE_FRESH_SPAWN", "1")
+            .env("NEURA_FRESH_SPAWN", "1")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
@@ -1149,7 +1149,7 @@ pub fn list_sessions() -> Result<()> {
         target: &crate::tui::session_picker::ResumeTarget,
     ) -> (std::path::PathBuf, Vec<String>) {
         match target {
-            crate::tui::session_picker::ResumeTarget::KcodeSession { session_id } => (
+            crate::tui::session_picker::ResumeTarget::NeuraSession { session_id } => (
                 exe.to_path_buf(),
                 vec!["--resume".to_string(), session_id.clone()],
             ),
@@ -1200,7 +1200,7 @@ pub fn list_sessions() -> Result<()> {
 
         let (program, args) = build_resume_target_command(exe, target);
         let title = match target {
-            crate::tui::session_picker::ResumeTarget::KcodeSession { session_id } => {
+            crate::tui::session_picker::ResumeTarget::NeuraSession { session_id } => {
                 resumed_window_title(session_id)
             }
             crate::tui::session_picker::ResumeTarget::ClaudeCodeSession { session_id, .. } => {
@@ -1292,7 +1292,7 @@ pub fn list_sessions() -> Result<()> {
                     cmd.args([
                         "-a",
                         "Terminal",
-                        program.to_str().unwrap_or("kcode"),
+                        program.to_str().unwrap_or("neura"),
                         "--args",
                     ]);
                     cmd.args(&args);
@@ -1315,9 +1315,9 @@ pub fn list_sessions() -> Result<()> {
 
             if targets.len() == 1 {
                 let target = &targets[0];
-                let resolved_target = crate::import::resolve_resume_target_to_kcode(target)?;
+                let resolved_target = crate::import::resolve_resume_target_to_neura(target)?;
                 let mut session_cwd = cwd.clone();
-                if let crate::tui::session_picker::ResumeTarget::KcodeSession { session_id } =
+                if let crate::tui::session_picker::ResumeTarget::NeuraSession { session_id } =
                     &resolved_target
                     && let Ok(sess) = session::Session::load(session_id)
                     && let Some(dir) = sess.working_dir.as_deref()
@@ -1339,7 +1339,7 @@ pub fn list_sessions() -> Result<()> {
 
                 for target in targets {
                     let resolved_target =
-                        match crate::import::resolve_resume_target_to_kcode(&target) {
+                        match crate::import::resolve_resume_target_to_neura(&target) {
                             Ok(target) => target,
                             Err(e) => {
                                 eprintln!("Failed to import selected session: {}", e);
@@ -1347,7 +1347,7 @@ pub fn list_sessions() -> Result<()> {
                             }
                         };
                     let mut session_cwd = cwd.clone();
-                    if let crate::tui::session_picker::ResumeTarget::KcodeSession { session_id } =
+                    if let crate::tui::session_picker::ResumeTarget::NeuraSession { session_id } =
                         &resolved_target
                         && let Ok(sess) = session::Session::load(session_id)
                         && let Some(dir) = sess.working_dir.as_deref()
@@ -1423,7 +1423,7 @@ pub fn list_sessions() -> Result<()> {
                             );
                             warned_no_terminal = true;
                         }
-                        eprintln!("  kcode --resume {}", session_id);
+                        eprintln!("  neura --resume {}", session_id);
                     }
                     Err(e) => {
                         eprintln!("Failed to spawn session {}: {}", session_id, e);

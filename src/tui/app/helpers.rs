@@ -35,7 +35,7 @@ pub(super) fn launch_client_executable() -> PathBuf {
     crate::build::client_update_candidate(crate::cli::selfdev::client_selfdev_requested())
         .map(|(path, _label)| path)
         .or_else(|| std::env::current_exe().ok())
-        .unwrap_or_else(|| PathBuf::from("kcode"))
+        .unwrap_or_else(|| PathBuf::from("neura"))
 }
 
 pub(super) fn partition_queued_messages(
@@ -86,18 +86,18 @@ pub(super) fn ctrl_bracket_fallback_to_esc(_code: &mut KeyCode, _modifiers: &mut
 
 /// Debug command file path
 pub(super) fn debug_cmd_path() -> PathBuf {
-    if let Ok(path) = std::env::var("KCODE_DEBUG_CMD_PATH") {
+    if let Ok(path) = std::env::var("NEURA_DEBUG_CMD_PATH") {
         return PathBuf::from(path);
     }
-    std::env::temp_dir().join("kcode_debug_cmd")
+    std::env::temp_dir().join("neura_debug_cmd")
 }
 
 /// Debug response file path
 pub(super) fn debug_response_path() -> PathBuf {
-    if let Ok(path) = std::env::var("KCODE_DEBUG_RESPONSE_PATH") {
+    if let Ok(path) = std::env::var("NEURA_DEBUG_RESPONSE_PATH") {
         return PathBuf::from(path);
     }
-    std::env::temp_dir().join("kcode_debug_response")
+    std::env::temp_dir().join("neura_debug_response")
 }
 
 /// Parse rate limit reset time from error message
@@ -363,7 +363,7 @@ pub(super) fn mask_email(email: &str) -> String {
     format!("{}@{}", masked_local, domain)
 }
 
-/// Spawn a new terminal window that resumes a kcode session.
+/// Spawn a new terminal window that resumes a neura session.
 /// Returns Ok(true) if a terminal was successfully launched, Ok(false) if no terminal found.
 fn resume_invocation_args(session_id: &str, socket: Option<&str>) -> Vec<String> {
     let mut args = vec![
@@ -390,7 +390,7 @@ pub(super) fn build_resume_command(
     socket: Option<&str>,
 ) -> (PathBuf, Vec<String>, String) {
     match target {
-        ResumeTarget::KcodeSession { session_id } => {
+        ResumeTarget::NeuraSession { session_id } => {
             let exe = launch_client_executable();
             let args = resume_invocation_args(session_id, socket);
             let title = resumed_window_title(session_id);
@@ -516,7 +516,7 @@ fn spawn_command_in_new_terminal(
                 cmd.args([
                     "-a",
                     "Terminal",
-                    program.to_str().unwrap_or("kcode"),
+                    program.to_str().unwrap_or("neura"),
                     "--args",
                 ]);
                 cmd.args(args);
@@ -555,9 +555,9 @@ fn resumed_window_title(session_id: &str) -> String {
     if let Some(server_info) =
         crate::registry::find_server_by_socket_sync(&crate::server::socket_path())
     {
-        format!("{} kcode/{} {}", icon, server_info.name, session_name)
+        format!("{} neura/{} {}", icon, server_info.name, session_name)
     } else {
-        format!("{} kcode {}", icon, session_name)
+        format!("{} neura {}", icon, session_name)
     }
 }
 
@@ -652,7 +652,7 @@ fn detected_resume_terminal() -> Option<&'static str> {
 
 fn resume_terminal_candidates_unix() -> Vec<String> {
     let mut candidates = Vec::new();
-    if let Ok(term) = std::env::var("KCODE_TERMINAL") {
+    if let Ok(term) = std::env::var("NEURA_TERMINAL") {
         push_unique_terminal(&mut candidates, term);
     }
     if let Some(term) = detected_resume_terminal() {
@@ -688,7 +688,7 @@ fn resume_terminal_candidates_unix() -> Vec<String> {
 #[cfg(not(unix))]
 fn resume_terminal_candidates_windows() -> Vec<String> {
     let mut candidates = Vec::new();
-    if let Ok(term) = std::env::var("KCODE_TERMINAL") {
+    if let Ok(term) = std::env::var("NEURA_TERMINAL") {
         push_unique_terminal(&mut candidates, term);
     }
     if let Some(term) = detected_resume_terminal() {
@@ -795,7 +795,7 @@ pub(super) fn clipboard_image() -> Option<(String, String)> {
     // macOS: use osascript to check clipboard for images and save as PNG via temp file
     #[cfg(target_os = "macos")]
     {
-        let temp_path = std::env::temp_dir().join("kcode_clipboard.png");
+        let temp_path = std::env::temp_dir().join("neura_clipboard.png");
         let script = format!(
             r#"use framework \"AppKit\"
             set pb to current application's NSPasteboard's generalPasteboard()

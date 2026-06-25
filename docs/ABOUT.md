@@ -1,11 +1,11 @@
-# About Kcode
+# About Neura
 
-Kcode is a local-first coding agent harness. It combines a remote frontier model, local tools, context compression, persistent memory, and a local GGUF sidecar model into one terminal workflow.
+Neura is a local-first coding agent harness. It combines a remote frontier model, local tools, context compression, persistent memory, and a local GGUF sidecar model into one terminal workflow.
 
 The short version:
 
 - **Remote model:** does the main reasoning and response generation, for example GPT-5.5.
-- **Kcode harness:** owns tools, files, terminal commands, browser/mouse automation, memory, token-saving context transforms, and runtime orchestration.
+- **Neura harness:** owns tools, files, terminal commands, browser/mouse automation, memory, token-saving context transforms, and runtime orchestration.
 - **Local model sidecar:** helps with routing, memory extraction, summaries, critique, and bridge telemetry.
 - **Context diet / interlang:** saves tokens by replacing old low-value exact context with compact summaries and rehydratable references.
 - **Memory system:** keeps useful facts, preferences, and project state outside the main context window, then injects relevant memory when needed.
@@ -17,8 +17,8 @@ The short version:
 
 ```mermaid
 flowchart TD
-    U[User] --> T[Kcode Terminal UI]
-    T --> A[Kcode Agent Runtime]
+    U[User] --> T[Neura Terminal UI]
+    T --> A[Neura Agent Runtime]
 
     A --> P[Prompt Builder]
     A --> M[Memory System]
@@ -29,7 +29,7 @@ flowchart TD
     P --> C
     M --> P
     C --> R[Remote Model Provider\nGPT-5.5 / OpenAI / compatible APIs]
-    L --> LM[Local GGUF Sidecar\nkcode-oss-20b-mxfp4]
+    L --> LM[Local GGUF Sidecar\nneura-oss-20b-mxfp4]
     Tools --> FS[Files / Shell / Browser / Git / Gmail / etc.]
 
     R --> A
@@ -39,15 +39,15 @@ flowchart TD
     T --> U
 ```
 
-Kcode is not just a wrapper around an LLM API. It is the orchestration layer that decides what context to send, which tools are available, when to compact old data, when to recall memory, when to call the local sidecar, and how to persist useful information.
+Neura is not just a wrapper around an LLM API. It is the orchestration layer that decides what context to send, which tools are available, when to compact old data, when to recall memory, when to call the local sidecar, and how to persist useful information.
 
 ---
 
 ## 2. How token savings work
 
-Kcode saves tokens, but the deeper point is context reliability. Without a retrieval layer, long sessions eventually face a bad choice: either resend an enormous transcript forever, or silently drop older tool output and hope the model guesses correctly from partial memory. That is where many long coding sessions drift.
+Neura saves tokens, but the deeper point is context reliability. Without a retrieval layer, long sessions eventually face a bad choice: either resend an enormous transcript forever, or silently drop older tool output and hope the model guesses correctly from partial memory. That is where many long coding sessions drift.
 
-Kcode's answer is not ordinary compression. It is **lossless externalized context with explicit epistemics**:
+Neura's answer is not ordinary compression. It is **lossless externalized context with explicit epistemics**:
 
 - exact old evidence is stored outside the provider prompt,
 - summaries are useful breadcrumbs but are **not authoritative**,
@@ -64,7 +64,7 @@ flowchart LR
     T4 --> Big[Large expensive prompt]
 ```
 
-Kcode instead uses a **context diet** that externalizes old evidence without destroying it. Old tool output, logs, repeated text, and already-seen content become compact references backed by exact local vault entries. Without this, long sessions silently drop critical tool output and the model guesses.
+Neura instead uses a **context diet** that externalizes old evidence without destroying it. Old tool output, logs, repeated text, and already-seen content become compact references backed by exact local vault entries. Without this, long sessions silently drop critical tool output and the model guesses.
 
 ```mermaid
 flowchart TD
@@ -90,30 +90,30 @@ the recovery path when exact old content matters.
 
 ### Token-saving modes
 
-Kcode has an interlang/context compression path with modes such as safe, verified, aggressive, and ultra. The main active behavior is:
+Neura has an interlang/context compression path with modes such as safe, verified, aggressive, and ultra. The main active behavior is:
 
 1. **Recent context stays exact.** The newest messages and current task details remain readable.
 2. **Old bulky context is externalized losslessly.** Long tool results, repeated logs, and old low-value content become compact `<ctx>` references backed by exact local vault entries. Without this, long sessions silently drop critical tool output and the model guesses.
 3. **Summaries are non-authoritative.** Ref summaries help routing and reasoning, but exact vaulted text is the source of truth.
 4. **Seen content can become a reference.** If exact content was already provided earlier, later turns can use `<il:seen>` rather than resending it.
 5. **The model can page fault exact text.** If a summary is insufficient, it can request `.ctx_get id=...`. This is the core active retrieval loop, similar to a virtual-memory page fault.
-6. **Auto-restore is relevance-gated.** Kcode only proactively restores exact excerpts when the old block's topics match the latest real user turn.
-7. **Stats are local-first.** Kcode logs original chars, encoded chars, saved chars, estimated saved tokens, and exact local-tokenizer estimates when available. Stats reminders are only injected for token/context-related turns.
+6. **Auto-restore is relevance-gated.** Neura only proactively restores exact excerpts when the old block's topics match the latest real user turn.
+7. **Stats are local-first.** Neura logs original chars, encoded chars, saved chars, estimated saved tokens, and exact local-tokenizer estimates when available. Stats reminders are only injected for token/context-related turns.
 
 Current ultra-mode defaults are tuned for long GPT-5.5 style coding sessions:
 
 | Setting | Default | Purpose |
 |---|---:|---|
-| `KCODE_CONTEXT_DIET_TRIGGER_TOKENS` | `24000` | Start replacing old bulky blocks once the prompt is roughly this large. |
-| `KCODE_CONTEXT_DIET_RECENT_MESSAGES` | `8` | Keep the newest messages exact so current task details remain visible. |
-| `KCODE_CONTEXT_DIET_MIN_BLOCK_CHARS` | `420` | Old text/tool/reasoning blocks at or above this size can become `<ctx>` refs. |
+| `NEURA_CONTEXT_DIET_TRIGGER_TOKENS` | `24000` | Start replacing old bulky blocks once the prompt is roughly this large. |
+| `NEURA_CONTEXT_DIET_RECENT_MESSAGES` | `8` | Keep the newest messages exact so current task details remain visible. |
+| `NEURA_CONTEXT_DIET_MIN_BLOCK_CHARS` | `420` | Old text/tool/reasoning blocks at or above this size can become `<ctx>` refs. |
 
 These can be overridden per session. Lower values save more tokens but may cause
 more `.ctx_get` rehydration requests when exact old content becomes important.
 
 ```mermaid
 sequenceDiagram
-    participant A as Kcode Agent
+    participant A as Neura Agent
     participant D as Context Diet
     participant R as Remote Model
     participant V as Local Context Vault
@@ -138,13 +138,13 @@ sequenceDiagram
 
 ### How retrieval selection works
 
-Kcode's retrieval system is the main behavior shift. Normal systems have passive context: whatever is currently in the prompt is all the model gets. Kcode has an active retrieval protocol: the prompt can contain compact handles, and the model can fault exact evidence back in when needed.
+Neura's retrieval system is the main behavior shift. Normal systems have passive context: whatever is currently in the prompt is all the model gets. Neura has an active retrieval protocol: the prompt can contain compact handles, and the model can fault exact evidence back in when needed.
 
 The key idea is that context diet is **lossless at the vault layer** and **selective at the active-prompt layer**. This is not just compression. It is externalized exact context with explicit epistemics: summaries are hints, refs are pointers, and vaulted text is the authority.
 
 There are three different states for old context:
 
-| State | What the remote model sees | What Kcode keeps locally | When it is used |
+| State | What the remote model sees | What Neura keeps locally | When it is used |
 |---|---|---|---|
 | Recent exact context | Full text | Full text | Current task, newest turns, important active details. |
 | Compact reference | `<ctx ... />` metadata, topics, summary, hash, ID | Full original text in the local vault | Old bulky logs, tool output, repeated text, stale details. |
@@ -184,22 +184,22 @@ flowchart TD
 
 Retrieval selection is intentionally conservative:
 
-1. **Keep the active work exact.** Kcode keeps the newest and most task-relevant messages readable without retrieval.
-2. **Vault old bulky blocks.** When old content becomes expensive, Kcode stores the exact original text by stable ID/hash and sends a compact `<ctx>` ref.
+1. **Keep the active work exact.** Neura keeps the newest and most task-relevant messages readable without retrieval.
+2. **Vault old bulky blocks.** When old content becomes expensive, Neura stores the exact original text by stable ID/hash and sends a compact `<ctx>` ref.
 3. **Expose useful breadcrumbs.** The ref includes type, size, priority, confidence, topics, files, and a deterministic summary so the model knows what exists.
 4. **Avoid generic false positives.** Words like `test`, `build`, `token`, or `memory` do not by themselves cause exact old code/logs to be injected.
 5. **Require concrete retrieval intent.** Proactive exact restore now requires an intent such as exact inspection, showing context, debugging, fixing, or investigating a failure.
-6. **Require topic overlap.** The latest user turn must match the old block's semantic topics before Kcode spends prompt budget on exact rehydration.
-7. **Cap proactive restore.** Kcode restores at most a small bounded excerpt automatically so one old block cannot flood the prompt.
+6. **Require topic overlap.** The latest user turn must match the old block's semantic topics before Neura spends prompt budget on exact rehydration.
+7. **Cap proactive restore.** Neura restores at most a small bounded excerpt automatically so one old block cannot flood the prompt.
 8. **Preserve explicit perfect recall.** If exact lines matter, `.ctx_get id=...` retrieves the original vaulted text, not a regenerated summary. This is the page-fault path that turns compact context into exact evidence on demand.
 
-This makes Kcode different from ordinary summarization. Summaries can drift over time; Kcode's compact refs are pointers to exact stored evidence. The model does not always have every old token in the active prompt, but it has stable handles and a protocol for retrieving exact old evidence when needed. In practice, this gives Kcode a large retrieval-backed effective context window with much lower token cost and less distraction.
+This makes Neura different from ordinary summarization. Summaries can drift over time; Neura's compact refs are pointers to exact stored evidence. The model does not always have every old token in the active prompt, but it has stable handles and a protocol for retrieving exact old evidence when needed. In practice, this gives Neura a large retrieval-backed effective context window with much lower token cost and less distraction.
 
 The analogy is virtual memory for context:
 
 ```text
 normal long chat: prompt-only context, older details are compressed away or forgotten
-Kcode: active prompt + exact external context store + explicit page-fault retrieval
+Neura: active prompt + exact external context store + explicit page-fault retrieval
 ```
 
 That is the novelty: exact context is never treated as destroyed, summaries are explicitly non-authoritative, and retrieval is first-class.
@@ -222,16 +222,16 @@ The important part is that old raw context may be hundreds of thousands of chara
 
 ## 3. Interlang and context vault references
 
-Kcode uses a lightweight inter-language protocol inspired by context references and deterministic compression.
+Neura uses a lightweight inter-language protocol inspired by context references and deterministic compression.
 
 Main reference types:
 
 | Type | Purpose |
 |---|---|
-| `<ctx ... />` | A local context-vault reference for old content stored by Kcode. |
+| `<ctx ... />` | A local context-vault reference for old content stored by Neura. |
 | `<il:seen ... />` | A reference to exact content already seen earlier in the session. |
 | `<il:v1>...</il>` | A compact encoding for repetitive lines or path prefixes. |
-| `.ctx_get id=...` | A request for Kcode to rehydrate exact hidden content. |
+| `.ctx_get id=...` | A request for Neura to rehydrate exact hidden content. |
 
 ```mermaid
 flowchart TD
@@ -250,7 +250,7 @@ This is designed to be conservative: summaries are useful for normal reasoning, 
 
 ## 4. How memory works
 
-Kcode memory is separate from raw chat history. Instead of depending only on the current prompt, Kcode can store durable facts and retrieve them later.
+Neura memory is separate from raw chat history. Instead of depending only on the current prompt, Neura can store durable facts and retrieve them later.
 
 Memory can include:
 
@@ -277,7 +277,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant A as Kcode Agent
+    participant A as Neura Agent
     participant M as Memory Store
     participant L as Local Sidecar
     participant R as Remote Model
@@ -295,12 +295,12 @@ sequenceDiagram
 
 ### Why memory saves tokens
 
-Without memory, important facts must stay in the chat transcript forever. With memory, Kcode can store compact durable facts and only inject relevant ones.
+Without memory, important facts must stay in the chat transcript forever. With memory, Neura can store compact durable facts and only inject relevant ones.
 
 For example, instead of resending a long conversation about a project rename, memory can store:
 
 ```text
-User renamed Jcode to Kcode. Active Kcode home is ~/.kcode. Legacy ~/.jcode compatibility matters.
+User renamed Jcode to Neura. Active Neura home is ~/.neura. Legacy ~/.jcode compatibility matters.
 ```
 
 That is much cheaper than carrying the entire rename conversation forever.
@@ -309,24 +309,24 @@ That is much cheaper than carrying the entire rename conversation forever.
 
 ## 5. Local model bridge
 
-The local model bridge is the layer between Kcode and the local GGUF sidecar model.
+The local model bridge is the layer between Neura and the local GGUF sidecar model.
 
 Default local sidecar model identity:
 
 ```text
-kcode-oss-20b-mxfp4
+neura-oss-20b-mxfp4
 ```
 
 Default local file:
 
 ```text
-~/.kcode/models/gguf/kcode-oss-20b-mxfp4.gguf
+~/.neura/models/gguf/neura-oss-20b-mxfp4.gguf
 ```
 
 Installer source:
 
 ```text
-https://huggingface.co/icedmoca/kcode-oss-20b-mxfp4
+https://huggingface.co/icedmoca/neura-oss-20b-mxfp4
 ```
 
 The bridge can help with:
@@ -340,9 +340,9 @@ The bridge can help with:
 
 ```mermaid
 flowchart LR
-    A[Kcode Agent] --> Bridge[Local Model Bridge]
+    A[Neura Agent] --> Bridge[Local Model Bridge]
     Bridge --> Runner[llama.cpp runner]
-    Runner --> GGUF[kcode-oss-20b-mxfp4.gguf]
+    Runner --> GGUF[neura-oss-20b-mxfp4.gguf]
     GGUF --> Runner
     Runner --> Bridge
     Bridge --> A
@@ -350,7 +350,7 @@ flowchart LR
 
 ### Bridge logs
 
-Kcode can record local bridge telemetry such as:
+Neura can record local bridge telemetry such as:
 
 - upstream provider,
 - upstream model,
@@ -376,7 +376,7 @@ flowchart TD
 
 ## 6. Tool layer
 
-Kcode gives the agent controlled access to local tools. Depending on configuration, this can include:
+Neura gives the agent controlled access to local tools. Depending on configuration, this can include:
 
 - shell commands,
 - file reads/writes/patches,
@@ -391,7 +391,7 @@ Kcode gives the agent controlled access to local tools. Depending on configurati
 
 ```mermaid
 flowchart TD
-    Agent[Kcode Agent] --> Policy[Tool policy / harness]
+    Agent[Neura Agent] --> Policy[Tool policy / harness]
     Policy --> Shell[Shell]
     Policy --> Files[Files / patches]
     Policy --> Browser[Browser]
@@ -416,12 +416,12 @@ Tool output can be large, so tool results are one of the biggest targets for con
 After running the installer, the normal layout is:
 
 ```text
-~/.kcode/
-  build-src/kcode/              # cloned source repo
+~/.neura/
+  build-src/neura/              # cloned source repo
   builds/current/               # active installed build
   builds/stable/                # stable installed build
   models/gguf/
-    kcode-oss-20b-mxfp4.gguf    # local sidecar model
+    neura-oss-20b-mxfp4.gguf    # local sidecar model
   local-model-bridge/           # local bridge logs/state
   memory-store/                 # persistent memory
 ```
@@ -429,17 +429,17 @@ After running the installer, the normal layout is:
 Command wrappers are installed to:
 
 ```text
-~/.local/bin/kcode
+~/.local/bin/neura
 ~/.local/bin/jcode   # compatibility alias
 ```
 
 ```mermaid
 flowchart TD
-    Repo[GitHub repo\nicedmoca/kcode] --> Clone[~/.kcode/build-src/kcode]
-    HF[Hugging Face model] --> Model[~/.kcode/models/gguf/kcode-oss-20b-mxfp4.gguf]
+    Repo[GitHub repo\nicedmoca/neura] --> Clone[~/.neura/build-src/neura]
+    HF[Hugging Face model] --> Model[~/.neura/models/gguf/neura-oss-20b-mxfp4.gguf]
     Clone --> Build[cargo build --release]
-    Build --> Current[~/.kcode/builds/current/kcode]
-    Current --> Bin[~/.local/bin/kcode]
+    Build --> Current[~/.neura/builds/current/neura]
+    Current --> Bin[~/.local/bin/neura]
     Model --> Bridge[Local model bridge]
 ```
 
@@ -448,23 +448,23 @@ flowchart TD
 ## 8. One-command install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/icedmoca/neura/main/install/install.sh | bash
 ```
 
 The installer:
 
-1. clones `https://github.com/icedmoca/kcode`,
-2. downloads `kcode-oss-20b-mxfp4.gguf` from Hugging Face,
-3. builds Kcode,
-4. installs `kcode` into `~/.local/bin`,
+1. clones `https://github.com/icedmoca/neura`,
+2. downloads `neura-oss-20b-mxfp4.gguf` from Hugging Face,
+3. builds Neura,
+4. installs `neura` into `~/.local/bin`,
 5. creates compatibility aliases,
-6. and stores everything under `~/.kcode`.
+6. and stores everything under `~/.neura`.
 
 ---
 
 ## 9. Design goals
 
-Kcode is designed around a few practical goals:
+Neura is designed around a few practical goals:
 
 - **Spend remote tokens on useful current context, not old logs.**
 - **Keep exact old context available locally when needed.**
@@ -475,7 +475,7 @@ Kcode is designed around a few practical goals:
 
 ```mermaid
 mindmap
-  root((Kcode))
+  root((Neura))
     Token savings
       Context diet
       Interlang refs
@@ -499,7 +499,7 @@ mindmap
     Install
       GitHub source
       Hugging Face GGUF
-      ~/.kcode runtime
+      ~/.neura runtime
 ```
 
 ---
@@ -512,7 +512,7 @@ A user asks a tiny follow-up like:
 ok did it work?
 ```
 
-A normal transcript-based system might resend a large amount of previous tool output. Kcode can instead send:
+A normal transcript-based system might resend a large amount of previous tool output. Neura can instead send:
 
 - the recent exact messages,
 - compact summaries of old tool output,
@@ -531,17 +531,17 @@ flowchart LR
     Smaller --> Remote[Remote model]
 ```
 
-That is the core idea: Kcode keeps the useful state, but avoids paying to resend every byte of old context every turn.
+That is the core idea: Neura keeps the useful state, but avoids paying to resend every byte of old context every turn.
 
 ---
 
 ## Hallucination mitigation and exact-evidence design
 
-Kcode does not claim to make hallucinations impossible. Instead, it attacks the main causes of hallucination in long coding sessions: missing context, stale context, unverifiable tool output, lossy summaries with no escape hatch, and memory drift.
+Neura does not claim to make hallucinations impossible. Instead, it attacks the main causes of hallucination in long coding sessions: missing context, stale context, unverifiable tool output, lossy summaries with no escape hatch, and memory drift.
 
 The core idea is simple:
 
-> Kcode reduces the need to guess by keeping exact evidence locally, sending compact but accountable summaries to the model, and allowing exact rehydration whenever summary-level context is not enough.
+> Neura reduces the need to guess by keeping exact evidence locally, sending compact but accountable summaries to the model, and allowing exact rehydration whenever summary-level context is not enough.
 
 ---
 
@@ -549,10 +549,10 @@ The core idea is simple:
 
 In coding agents, hallucinations usually come from one of these failure modes:
 
-| Failure mode | What happens | Kcode countermeasure |
+| Failure mode | What happens | Neura countermeasure |
 |---|---|---|
 | Context overload | The prompt gets too large, so important details are dropped or buried. | Context diet compresses old low-value blocks while preserving recent/high-value exact context. |
-| Lost evidence | Tool results or file contents are summarized and exact text is gone. | Kcode stores exact old blocks locally by stable hash and can rehydrate them. |
+| Lost evidence | Tool results or file contents are summarized and exact text is gone. | Neura stores exact old blocks locally by stable hash and can rehydrate them. |
 | Summary overtrust | A model treats a summary as if it were exact source text. | `<ctx>` references explicitly say summary is not exact and include `.ctx_get` recovery instructions. |
 | Stale memory | Old remembered facts override current repo state. | Memory is used as hints, while tools and exact file reads remain authoritative. |
 | Unsupported claims | The model invents file names, code behavior, or test results. | Tool-first workflows, patch verification, tests, and local accounting logs create evidence. |
@@ -564,7 +564,7 @@ In coding agents, hallucinations usually come from one of these failure modes:
 
 ```mermaid
 flowchart TD
-    User[User request] --> Runtime[Kcode runtime]
+    User[User request] --> Runtime[Neura runtime]
     Runtime --> Memory[Relevant memory recall]
     Runtime --> Tools[Tool evidence\nfiles, shell, git, browser]
     Runtime --> Diet[Context diet / interlang]
@@ -578,7 +578,7 @@ flowchart TD
     Rehydrate --> Prompt
 ```
 
-Kcode combats hallucination by making the model reason from evidence:
+Neura combats hallucination by making the model reason from evidence:
 
 1. **Recent exact context** remains visible.
 2. **Old bulky context** becomes compact references.
@@ -600,7 +600,7 @@ flowchart LR
     Guess --> Hallucination[Hallucination risk]
 ```
 
-Kcode avoids that by replacing old low-value blocks with structured references:
+Neura avoids that by replacing old low-value blocks with structured references:
 
 ```mermaid
 flowchart LR
@@ -629,10 +629,10 @@ same long policy text. This combats hallucination because the model still sees:
 - this is a summary, not exact text,
 - exact content exists locally,
 - a stable id/hash identifies it,
-- Kcode has scored confidence, priority, and semantic topics,
+- Neura has scored confidence, priority, and semantic topics,
 - and it should request `.ctx_get id=...` instead of inventing details.
 
-If Kcode itself decides a compacted block is low-confidence or high-priority, it
+If Neura itself decides a compacted block is low-confidence or high-priority, it
 can proactively inject an exact excerpt, but only when that block's semantic
 topics overlap the latest real user turn. Auto-restore is capped to one short
 excerpt by default. This preserves the anti-hallucination benefit for relevant
@@ -663,7 +663,7 @@ or:
 . err need_ref <hash>
 ```
 
-Kcode parses that request, retrieves the exact block from the local vault, and injects it back into the conversation.
+Neura parses that request, retrieves the exact block from the local vault, and injects it back into the conversation.
 
 If the model knows the topic but not the id, it can search refs first:
 
@@ -671,14 +671,14 @@ If the model knows the topic but not the id, it can search refs first:
 .ctx_search query=<path/function/error/topic> reason=<why this search is needed>
 ```
 
-Kcode returns matching context references and summaries only. The model must still call `.ctx_get id=<id> reason=<why>` for exact text; summaries are not authority.
+Neura returns matching context references and summaries only. The model must still call `.ctx_get id=<id> reason=<why>` for exact text; summaries are not authority.
 
 You can inspect retrieval state in the TUI with `/context` or `/tokens`. This reports current-turn retrieval counts, duplicate/cap suppressions, injected chars, and recent retrieval events.
 
 ```mermaid
 sequenceDiagram
     participant M as Remote model
-    participant K as Kcode
+    participant K as Neura
     participant V as Local context vault
 
     M-->>K: .ctx_get id=ctx:abc reason=need exact error
@@ -694,7 +694,7 @@ This matters because summaries are useful for orientation, but exact code, error
 
 ## 5. Memory: durable hints, not fake evidence
 
-Kcode memory stores useful durable facts outside the main chat transcript.
+Neura memory stores useful durable facts outside the main chat transcript.
 
 Examples:
 
@@ -720,19 +720,19 @@ flowchart TD
 
 ### How this reduces hallucination
 
-Without memory, the model may try to infer old decisions from partial context. With memory, Kcode can preserve a compact durable statement such as:
+Without memory, the model may try to infer old decisions from partial context. With memory, Neura can preserve a compact durable statement such as:
 
 ```text
-The active repo was renamed from Jcode to Kcode. The Kcode home is ~/.kcode. Legacy ~/.jcode compatibility matters.
+The active repo was renamed from Jcode to Neura. The Neura home is ~/.neura. Legacy ~/.jcode compatibility matters.
 ```
 
-That prevents the model from guessing the rename state. But Kcode can still verify with files and git before making claims.
+That prevents the model from guessing the rename state. But Neura can still verify with files and git before making claims.
 
 ---
 
 ## 6. Tool-first grounding
 
-Kcode has tool access for files, shell commands, git, browser, background jobs, and more. The agent is expected to inspect and test rather than guess.
+Neura has tool access for files, shell commands, git, browser, background jobs, and more. The agent is expected to inspect and test rather than guess.
 
 ```mermaid
 flowchart TD
@@ -760,8 +760,8 @@ The local sidecar model can help with routing, summaries, memory extraction, and
 
 ```mermaid
 flowchart LR
-    K[Kcode runtime] --> B[Local model bridge]
-    B --> L[kcode-oss-20b-mxfp4 GGUF]
+    K[Neura runtime] --> B[Local model bridge]
+    B --> L[neura-oss-20b-mxfp4 GGUF]
     L --> B
     B --> K
     K --> R[Remote main model]
@@ -779,9 +779,9 @@ But file contents, command output, tests, and exact rehydrated context remain mo
 
 ---
 
-## 8. Real Kcode data from live context-diet accounting
+## 8. Real Neura data from live context-diet accounting
 
-The following data was measured from the local Kcode `interlang-stats.jsonl` on this machine during real usage after the more aggressive ultra-mode context-diet tuning.
+The following data was measured from the local Neura `interlang-stats.jsonl` on this machine during real usage after the more aggressive ultra-mode context-diet tuning.
 
 ### Recent 50 compaction events
 
@@ -838,13 +838,13 @@ pie title Recent 50 events: original vs encoded chars
     "Chars avoided" : 15336645
 ```
 
-These numbers matter for hallucination because they show that Kcode is not just truncating huge context. It is converting old context into compact references while keeping exact content locally recoverable.
+These numbers matter for hallucination because they show that Neura is not just truncating huge context. It is converting old context into compact references while keeping exact content locally recoverable.
 
 ---
 
 ## 9. Why compression can reduce hallucination instead of increasing it
 
-Compression can be dangerous if it destroys evidence. Kcode's approach is different:
+Compression can be dangerous if it destroys evidence. Neura's approach is different:
 
 ```mermaid
 flowchart TD
@@ -861,13 +861,13 @@ flowchart TD
     Mitigation5 --> Safer
 ```
 
-The model gets enough information to know what the old block was about, but it is warned not to invent exact details. If details matter, it can ask Kcode to retrieve them.
+The model gets enough information to know what the old block was about, but it is warned not to invent exact details. If details matter, it can ask Neura to retrieve them.
 
 ---
 
-## 10. Failure modes Kcode still watches for
+## 10. Failure modes Neura still watches for
 
-Kcode is designed to reduce hallucinations, not magically eliminate them. Important remaining risks include:
+Neura is designed to reduce hallucinations, not magically eliminate them. Important remaining risks include:
 
 | Risk | Mitigation |
 |---|---|
@@ -875,14 +875,14 @@ Kcode is designed to reduce hallucinations, not magically eliminate them. Import
 | Memory is outdated | Verify with tools and current repo state. |
 | Tool output is too large | Summarize plus retain exact local block. |
 | Local sidecar gives weak advice | Treat sidecar as helper, not authority. |
-| Remote model ignores protocol | Kcode can re-prompt with rehydrated evidence and explicit instructions. |
-| Tests are not run | Kcode's coding workflow emphasizes validation before claiming success. |
+| Remote model ignores protocol | Neura can re-prompt with rehydrated evidence and explicit instructions. |
+| Tests are not run | Neura's coding workflow emphasizes validation before claiming success. |
 
 ---
 
 ## 11. Hallucination-control checklist
 
-When Kcode is working correctly, high-confidence answers should usually come from this loop:
+When Neura is working correctly, high-confidence answers should usually come from this loop:
 
 ```mermaid
 flowchart TD
@@ -910,7 +910,7 @@ Practical checklist:
 
 ## 12. Bottom line
 
-Kcode combats hallucinations by combining:
+Neura combats hallucinations by combining:
 
 1. **context compression that does not delete exact evidence,**
 2. **local exact rehydration via stable references,**
@@ -923,17 +923,17 @@ The result is a system that can run long, tool-heavy sessions while reducing bot
 
 ## Token savings without losing grounding
 
-Kcode's token-saving path is designed to reduce fixed overhead without hiding evidence the model may need. Context refs can be rehydrated exactly with `.ctx_get`, and direct-answer turns now use dynamic tool-schema pruning: they send only core tools plus `tool_expand`, so the model can request more tools rather than carrying every schema on every turn. This lowers cost on simple turns without weakening grounded tool use on complex tasks.
+Neura's token-saving path is designed to reduce fixed overhead without hiding evidence the model may need. Context refs can be rehydrated exactly with `.ctx_get`, and direct-answer turns now use dynamic tool-schema pruning: they send only core tools plus `tool_expand`, so the model can request more tools rather than carrying every schema on every turn. This lowers cost on simple turns without weakening grounded tool use on complex tasks.
 
 ---
 
-## Analytical addendum: Kcode as an operational agent system
+## Analytical addendum: Neura as an operational agent system
 
-Kcode is best understood as a terminal-native operational agent rather than a single prompt wrapper. The system combines provider routing, workspace tools, local cognition, documentation validation, and failure repair learning into one development loop.
+Neura is best understood as a terminal-native operational agent rather than a single prompt wrapper. The system combines provider routing, workspace tools, local cognition, documentation validation, and failure repair learning into one development loop.
 
 ### Architectural identity
 
-Kcode emphasizes:
+Neura emphasizes:
 
 - **operational clarity**: every major behavior should be traceable to source;
 - **local agency**: the agent can inspect and modify the workspace directly;
@@ -944,9 +944,9 @@ Kcode emphasizes:
 
 ### Memory as a first-class capability
 
-Kcode's memory is intentionally compact. It is not meant to dump every historical message into context. Instead, adaptive cognition and operational repair learning preserve high-signal information: what failed, what fixed it, what validation mattered, and what operational pattern is recurring.
+Neura's memory is intentionally compact. It is not meant to dump every historical message into context. Instead, adaptive cognition and operational repair learning preserve high-signal information: what failed, what fixed it, what validation mattered, and what operational pattern is recurring.
 
-This creates a practical advantage in long-running repository evolution. Kcode can avoid repeating the same investigations and can spend provider tokens on current reasoning rather than rediscovering old context.
+This creates a practical advantage in long-running repository evolution. Neura can avoid repeating the same investigations and can spend provider tokens on current reasoning rather than rediscovering old context.
 
 ### Local sidecar model role
 
@@ -954,4 +954,4 @@ The optional local sidecar model is a cost and latency optimization. It can help
 
 ### Documentation ethos
 
-Kcode documentation should be implementation-backed. The generated inventory is not decorative; it is a guardrail against stale docs. When source structure changes, docs should change with it.
+Neura documentation should be implementation-backed. The generated inventory is not decorative; it is a guardrail against stale docs. When source structure changes, docs should change with it.

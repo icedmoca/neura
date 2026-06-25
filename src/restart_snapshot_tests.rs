@@ -16,10 +16,10 @@ impl TestEnvGuard {
     fn new() -> anyhow::Result<Self> {
         let lock = crate::storage::lock_test_env();
         let temp_home = tempfile::Builder::new()
-            .prefix("kcode-restart-snapshot-test-home-")
+            .prefix("neura-restart-snapshot-test-home-")
             .tempdir()?;
-        let prev_home = std::env::var_os("KCODE_HOME");
-        crate::env::set_var("KCODE_HOME", temp_home.path());
+        let prev_home = std::env::var_os("NEURA_HOME");
+        crate::env::set_var("NEURA_HOME", temp_home.path());
         Ok(Self {
             prev_home,
             _temp_home: temp_home,
@@ -31,9 +31,9 @@ impl TestEnvGuard {
 impl Drop for TestEnvGuard {
     fn drop(&mut self) {
         if let Some(prev_home) = &self.prev_home {
-            crate::env::set_var("KCODE_HOME", prev_home);
+            crate::env::set_var("NEURA_HOME", prev_home);
         } else {
-            crate::env::remove_var("KCODE_HOME");
+            crate::env::remove_var("NEURA_HOME");
         }
     }
 }
@@ -77,7 +77,7 @@ fn save_and_load_snapshot_round_trip() {
 fn load_snapshot_reports_path_for_malformed_json() {
     let _guard = TestEnvGuard::new().expect("setup test env");
     let path = snapshot_path().expect("snapshot path");
-    std::fs::create_dir_all(path.parent().expect("snapshot parent")).expect("create kcode dir");
+    std::fs::create_dir_all(path.parent().expect("snapshot parent")).expect("create neura dir");
     std::fs::write(&path, "not valid json").expect("write malformed snapshot");
 
     let err = load_snapshot().expect_err("malformed snapshot should fail");
@@ -183,8 +183,8 @@ fn arm_auto_restore_from_recent_crashes_ignores_old_crashes() {
     crashed.status = crate::session::SessionStatus::Active;
     crashed.last_pid = Some(dead_pid);
     crashed.save().expect("save stale active session");
-    let active_dir = crate::storage::kcode_dir()
-        .expect("kcode dir")
+    let active_dir = crate::storage::neura_dir()
+        .expect("neura dir")
         .join("active_pids");
     std::fs::create_dir_all(&active_dir).expect("create active pid dir");
     std::fs::write(active_dir.join(&crashed.id), dead_pid.to_string())

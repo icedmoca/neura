@@ -2,7 +2,7 @@
 
 //! Server registry for multi-server architecture
 //!
-//! Tracks running servers in `~/.kcode/servers.json` for discovery by clients.
+//! Tracks running servers in `~/.neura/servers.json` for discovery by clients.
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use tokio::fs;
 
-use crate::storage::kcode_dir;
+use crate::storage::neura_dir;
 
 /// Information about a running server
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,26 +188,26 @@ impl ServerRegistry {
 
 /// Get the path to the registry file
 pub fn registry_path() -> Result<PathBuf> {
-    Ok(kcode_dir()?.join("servers.json"))
+    Ok(neura_dir()?.join("servers.json"))
 }
 
 /// Get the socket directory path
 pub fn socket_dir() -> Result<PathBuf> {
-    Ok(crate::storage::runtime_dir().join("kcode"))
+    Ok(crate::storage::runtime_dir().join("neura"))
 }
 
 /// Get the socket path for a named server
 pub fn server_socket_path(name: &str) -> PathBuf {
     socket_dir()
         .map(|d| d.join(format!("{}.sock", name)))
-        .unwrap_or_else(|_| std::env::temp_dir().join(format!("kcode-{}.sock", name)))
+        .unwrap_or_else(|_| std::env::temp_dir().join(format!("neura-{}.sock", name)))
 }
 
 /// Get the debug socket path for a named server
 pub fn server_debug_socket_path(name: &str) -> PathBuf {
     socket_dir()
         .map(|d| d.join(format!("{}-debug.sock", name)))
-        .unwrap_or_else(|_| std::env::temp_dir().join(format!("kcode-{}-debug.sock", name)))
+        .unwrap_or_else(|_| std::env::temp_dir().join(format!("neura-{}-debug.sock", name)))
 }
 
 /// Check if a process is still running

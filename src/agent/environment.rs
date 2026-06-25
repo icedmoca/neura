@@ -1,4 +1,4 @@
-use super::{Agent, KCODE_REPO_SOURCE_STATE, WORKING_GIT_STATE_CACHE};
+use super::{Agent, NEURA_REPO_SOURCE_STATE, WORKING_GIT_STATE_CACHE};
 use crate::logging;
 use crate::session::{EnvSnapshot, GitState};
 use chrono::Utc;
@@ -62,8 +62,8 @@ impl Agent {
         reason: &str,
         detail: EnvSnapshotDetail,
     ) -> EnvSnapshot {
-        let (kcode_git_hash, kcode_git_dirty) = match detail {
-            EnvSnapshotDetail::Full => KCODE_REPO_SOURCE_STATE.clone(),
+        let (neura_git_hash, neura_git_dirty) = match detail {
+            EnvSnapshotDetail::Full => NEURA_REPO_SOURCE_STATE.clone(),
             EnvSnapshotDetail::Minimal => (None, None),
         };
 
@@ -82,9 +82,9 @@ impl Agent {
             working_dir,
             provider: self.provider.name().to_string(),
             model: self.provider.model().to_string(),
-            kcode_version: env!("KCODE_VERSION").to_string(),
-            kcode_git_hash,
-            kcode_git_dirty,
+            neura_version: env!("NEURA_VERSION").to_string(),
+            neura_git_hash,
+            neura_git_dirty,
             os: std::env::consts::OS.to_string(),
             arch: std::env::consts::ARCH.to_string(),
             pid: std::process::id(),

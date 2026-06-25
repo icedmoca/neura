@@ -7,7 +7,7 @@
 //! - Provider routing: Ranks providers using OpenRouter's endpoint API data (throughput, uptime, cost, cache support)
 //! - Provider pinning: Pins to a provider per-session for cache locality; refreshes pin on cache hits
 //! - Cache support: Automatically injects cache breakpoints when provider supports caching
-//! - Manual pinning: Set KCODE_OPENROUTER_PROVIDER or use model@Provider syntax
+//! - Manual pinning: Set NEURA_OPENROUTER_PROVIDER or use model@Provider syntax
 
 use super::{EventStream, Provider};
 use crate::message::{
@@ -23,12 +23,12 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures::{Stream, StreamExt};
-pub use kcode_provider_openrouter::{
+pub use neura_provider_openrouter::{
     EndpointInfo, ModelInfo, ModelPricing, ModelTimestampIndex, ProviderRouting,
     all_model_timestamps, load_endpoints_disk_cache_public, load_model_pricing_disk_cache_public,
     load_model_timestamp_index, model_created_timestamp, model_created_timestamp_from_index,
 };
-use kcode_provider_openrouter::{
+use neura_provider_openrouter::{
     KIMI_FALLBACK_PROVIDERS, ModelCatalogRefreshState, ModelsCache, ParsedProvider, PinSource,
     ProviderPin, current_unix_secs, known_providers, load_disk_cache, load_disk_cache_entry,
     load_endpoints_disk_cache, parse_model_spec, save_disk_cache, save_endpoints_disk_cache,
@@ -78,10 +78,10 @@ const MAX_BACKGROUND_ENDPOINT_REFRESHES: usize = 8;
 
 fn explicit_openrouter_runtime_configured() -> bool {
     [
-        "KCODE_OPENROUTER_API_BASE",
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENROUTER_DYNAMIC_BEARER_PROVIDER",
+        "NEURA_OPENROUTER_API_BASE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENROUTER_DYNAMIC_BEARER_PROVIDER",
     ]
     .iter()
     .any(|var| std::env::var_os(var).is_some())
@@ -123,7 +123,7 @@ fn autodetected_openai_compatible_profile()
 }
 
 fn configured_api_base() -> String {
-    let raw = std::env::var("KCODE_OPENROUTER_API_BASE")
+    let raw = std::env::var("NEURA_OPENROUTER_API_BASE")
         .ok()
         .map(|v| v.trim().to_string())
         .filter(|v| !v.is_empty())
@@ -131,7 +131,7 @@ fn configured_api_base() -> String {
         .unwrap_or_else(|| DEFAULT_API_BASE.to_string());
     normalize_api_base(&raw).unwrap_or_else(|| {
         crate::logging::warn(&format!(
-            "Ignoring invalid KCODE_OPENROUTER_API_BASE '{}'; using {}",
+            "Ignoring invalid NEURA_OPENROUTER_API_BASE '{}'; using {}",
             raw, DEFAULT_API_BASE
         ));
         DEFAULT_API_BASE.to_string()
@@ -139,7 +139,7 @@ fn configured_api_base() -> String {
 }
 
 fn configured_api_key_name() -> String {
-    let raw = std::env::var("KCODE_OPENROUTER_API_KEY_NAME")
+    let raw = std::env::var("NEURA_OPENROUTER_API_KEY_NAME")
         .ok()
         .map(|v| v.trim().to_string())
         .filter(|v| !v.is_empty())
@@ -149,7 +149,7 @@ fn configured_api_key_name() -> String {
         raw
     } else {
         crate::logging::warn(&format!(
-            "Ignoring invalid KCODE_OPENROUTER_API_KEY_NAME '{}'; using {}",
+            "Ignoring invalid NEURA_OPENROUTER_API_KEY_NAME '{}'; using {}",
             raw, DEFAULT_API_KEY_NAME
         ));
         DEFAULT_API_KEY_NAME.to_string()
@@ -157,7 +157,7 @@ fn configured_api_key_name() -> String {
 }
 
 fn configured_env_file_name() -> String {
-    let raw = std::env::var("KCODE_OPENROUTER_ENV_FILE")
+    let raw = std::env::var("NEURA_OPENROUTER_ENV_FILE")
         .ok()
         .map(|v| v.trim().to_string())
         .filter(|v| !v.is_empty())
@@ -167,7 +167,7 @@ fn configured_env_file_name() -> String {
         raw
     } else {
         crate::logging::warn(&format!(
-            "Ignoring invalid KCODE_OPENROUTER_ENV_FILE '{}'; using {}",
+            "Ignoring invalid NEURA_OPENROUTER_ENV_FILE '{}'; using {}",
             raw, DEFAULT_ENV_FILE
         ));
         DEFAULT_ENV_FILE.to_string()
@@ -183,12 +183,12 @@ fn parse_env_bool(value: &str) -> Option<bool> {
 }
 
 fn provider_features_enabled(api_base: &str) -> bool {
-    if let Ok(raw) = std::env::var("KCODE_OPENROUTER_PROVIDER_FEATURES") {
+    if let Ok(raw) = std::env::var("NEURA_OPENROUTER_PROVIDER_FEATURES") {
         if let Some(value) = parse_env_bool(&raw) {
             return value;
         }
         crate::logging::warn(&format!(
-            "Ignoring invalid KCODE_OPENROUTER_PROVIDER_FEATURES '{}'; expected true/false",
+            "Ignoring invalid NEURA_OPENROUTER_PROVIDER_FEATURES '{}'; expected true/false",
             raw
         ));
     }
@@ -196,12 +196,12 @@ fn provider_features_enabled(api_base: &str) -> bool {
 }
 
 fn model_catalog_enabled() -> bool {
-    if let Ok(raw) = std::env::var("KCODE_OPENROUTER_MODEL_CATALOG") {
+    if let Ok(raw) = std::env::var("NEURA_OPENROUTER_MODEL_CATALOG") {
         if let Some(value) = parse_env_bool(&raw) {
             return value;
         }
         crate::logging::warn(&format!(
-            "Ignoring invalid KCODE_OPENROUTER_MODEL_CATALOG '{}'; expected true/false",
+            "Ignoring invalid NEURA_OPENROUTER_MODEL_CATALOG '{}'; expected true/false",
             raw
         ));
     }
@@ -215,7 +215,7 @@ enum AuthHeaderMode {
 }
 
 fn configured_auth_header_mode() -> AuthHeaderMode {
-    let Some(raw) = std::env::var("KCODE_OPENROUTER_AUTH_HEADER")
+    let Some(raw) = std::env::var("NEURA_OPENROUTER_AUTH_HEADER")
         .ok()
         .map(|v| v.trim().to_ascii_lowercase())
         .filter(|v| !v.is_empty())
@@ -228,7 +228,7 @@ fn configured_auth_header_mode() -> AuthHeaderMode {
         "api-key" | "apikey" => AuthHeaderMode::ApiKey,
         other => {
             crate::logging::warn(&format!(
-                "Ignoring invalid KCODE_OPENROUTER_AUTH_HEADER '{}'; expected authorization-bearer or api-key",
+                "Ignoring invalid NEURA_OPENROUTER_AUTH_HEADER '{}'; expected authorization-bearer or api-key",
                 other
             ));
             AuthHeaderMode::AuthorizationBearer
@@ -237,14 +237,14 @@ fn configured_auth_header_mode() -> AuthHeaderMode {
 }
 
 fn configured_auth_header_name() -> HeaderName {
-    let raw = std::env::var("KCODE_OPENROUTER_AUTH_HEADER_NAME")
+    let raw = std::env::var("NEURA_OPENROUTER_AUTH_HEADER_NAME")
         .ok()
         .map(|v| v.trim().to_string())
         .filter(|v| !v.is_empty())
         .unwrap_or_else(|| "api-key".to_string());
     HeaderName::from_bytes(raw.as_bytes()).unwrap_or_else(|_| {
         crate::logging::warn(&format!(
-            "Ignoring invalid KCODE_OPENROUTER_AUTH_HEADER_NAME '{}'; using api-key",
+            "Ignoring invalid NEURA_OPENROUTER_AUTH_HEADER_NAME '{}'; using api-key",
             raw
         ));
         HeaderName::from_static("api-key")
@@ -252,14 +252,14 @@ fn configured_auth_header_name() -> HeaderName {
 }
 
 fn configured_dynamic_bearer_provider() -> Option<String> {
-    std::env::var("KCODE_OPENROUTER_DYNAMIC_BEARER_PROVIDER")
+    std::env::var("NEURA_OPENROUTER_DYNAMIC_BEARER_PROVIDER")
         .ok()
         .map(|v| v.trim().to_ascii_lowercase())
         .filter(|v| !v.is_empty())
 }
 
 fn configured_allow_no_auth() -> bool {
-    std::env::var("KCODE_OPENROUTER_ALLOW_NO_AUTH")
+    std::env::var("NEURA_OPENROUTER_ALLOW_NO_AUTH")
         .ok()
         .and_then(|raw| parse_env_bool(&raw))
         .or_else(|| {
@@ -551,13 +551,13 @@ impl OpenRouterProvider {
 
     /// Return true if this model is a Kimi K2/K2.5 variant (Moonshot).
     fn is_kimi_model(model: &str) -> bool {
-        kcode_provider_openrouter::is_kimi_model(model)
+        neura_provider_openrouter::is_kimi_model(model)
     }
 
     /// Parse thinking override from env. Values: "enabled"/"disabled"/"auto".
     /// Returns Some(true)=force enable, Some(false)=force disable, None=auto.
     fn thinking_override() -> Option<bool> {
-        let raw = std::env::var("KCODE_OPENROUTER_THINKING").ok()?;
+        let raw = std::env::var("NEURA_OPENROUTER_THINKING").ok()?;
         let value = raw.trim().to_lowercase();
         match value.as_str() {
             "enabled" | "enable" | "on" | "true" | "1" => Some(true),
@@ -565,7 +565,7 @@ impl OpenRouterProvider {
             "auto" | "" => None,
             other => {
                 crate::logging::info(&format!(
-                    "Warning: Unsupported KCODE_OPENROUTER_THINKING '{}'; expected enabled/disabled/auto",
+                    "Warning: Unsupported NEURA_OPENROUTER_THINKING '{}'; expected enabled/disabled/auto",
                     other
                 ));
                 None
@@ -580,7 +580,7 @@ impl OpenRouterProvider {
         let supports_model_catalog = model_catalog_enabled();
         let send_openrouter_headers = supports_provider_features;
         let auth = Self::resolve_auth()?;
-        let static_models = std::env::var("KCODE_OPENROUTER_STATIC_MODELS")
+        let static_models = std::env::var("NEURA_OPENROUTER_STATIC_MODELS")
             .ok()
             .map(|raw| {
                 raw.lines()
@@ -591,13 +591,13 @@ impl OpenRouterProvider {
             })
             .unwrap_or_default();
 
-        if std::env::var_os("KCODE_OPENROUTER_CACHE_NAMESPACE").is_none()
+        if std::env::var_os("NEURA_OPENROUTER_CACHE_NAMESPACE").is_none()
             && let Some(profile) = autodetected_profile.as_ref()
         {
-            crate::env::set_var("KCODE_OPENROUTER_CACHE_NAMESPACE", &profile.id);
+            crate::env::set_var("NEURA_OPENROUTER_CACHE_NAMESPACE", &profile.id);
         }
 
-        let model = std::env::var("KCODE_OPENROUTER_MODEL")
+        let model = std::env::var("NEURA_OPENROUTER_MODEL")
             .ok()
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty())
@@ -878,7 +878,7 @@ impl OpenRouterProvider {
 
     /// Parse provider routing configuration from environment variables
     fn parse_provider_routing() -> ProviderRouting {
-        kcode_provider_openrouter::parse_provider_routing_from_env()
+        neura_provider_openrouter::parse_provider_routing_from_env()
     }
 
     fn set_explicit_pin(&self, model: &str, provider: ParsedProvider) {
@@ -910,7 +910,7 @@ impl OpenRouterProvider {
     }
 
     fn rank_providers_from_endpoints(endpoints: &[EndpointInfo]) -> Vec<String> {
-        kcode_provider_openrouter::rank_providers_from_endpoints(endpoints)
+        neura_provider_openrouter::rank_providers_from_endpoints(endpoints)
     }
 
     async fn effective_routing(&self, model: &str) -> ProviderRouting {
@@ -1190,12 +1190,12 @@ impl OpenRouterProvider {
                         })
                     } else {
                         anyhow::bail!(
-                            "Azure OpenAI is configured for Entra ID, but Azure settings are incomplete. Run `kcode login --provider azure`."
+                            "Azure OpenAI is configured for Entra ID, but Azure settings are incomplete. Run `neura login --provider azure`."
                         )
                     }
                 }
                 other => anyhow::bail!(
-                    "Unsupported KCODE_OPENROUTER_DYNAMIC_BEARER_PROVIDER '{}'.",
+                    "Unsupported NEURA_OPENROUTER_DYNAMIC_BEARER_PROVIDER '{}'.",
                     other
                 ),
             };
@@ -1224,7 +1224,7 @@ impl OpenRouterProvider {
         let key_name = configured_api_key_name();
         let api_key = Self::get_api_key().ok_or_else(|| {
             anyhow::anyhow!(
-                "{} not found in environment or ~/.config/kcode/{}",
+                "{} not found in environment or ~/.config/neura/{}",
                 key_name,
                 configured_env_file_name()
             )

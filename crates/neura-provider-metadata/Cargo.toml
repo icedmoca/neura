@@ -1,0 +1,11 @@
+[package]
+name = "neura-provider-metadata"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "neura_provider_metadata"
+path = "src/lib.rs"
+
+[dependencies]
+url = "2"

@@ -2645,209 +2645,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kcode"
-version = "0.10.3"
-dependencies = [
- "agentgrep",
- "anyhow",
- "arboard",
- "async-stream",
- "async-trait",
- "base64 0.22.1",
- "bytes",
- "chrono",
- "clap",
- "crossterm 0.28.1",
- "dirs",
- "flate2",
- "futures",
- "glob",
- "global-hotkey",
- "hex",
- "ignore",
- "image",
- "kcode-agent-runtime",
- "kcode-azure-auth",
- "kcode-embedding",
- "kcode-notify-email",
- "kcode-pdf",
- "kcode-provider-core",
- "kcode-provider-gemini",
- "kcode-provider-metadata",
- "kcode-provider-openrouter",
- "kcode-tui-workspace",
- "libc",
- "mermaid-rs-renderer",
- "open",
- "proctitle",
- "pulldown-cmark",
- "qr2term",
- "rand 0.9.3",
- "ratatui",
- "ratatui-image",
- "regex",
- "reqwest",
- "resvg",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2",
- "similar",
- "syntect",
- "tar",
- "tempfile",
- "thiserror 1.0.69",
- "tikv-jemalloc-ctl",
- "tikv-jemalloc-sys",
- "tikv-jemallocator",
- "tokenizers",
- "tokio",
- "tokio-stream",
- "tokio-tungstenite",
- "toml",
- "unicode-width 0.2.0",
- "url",
- "urlencoding",
- "usvg",
- "uuid",
- "walkdir",
- "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "kcode-agent-runtime"
-version = "0.1.0"
-dependencies = [
- "thiserror 1.0.69",
- "tokio",
-]
-
-[[package]]
-name = "kcode-azure-auth"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "azure_core",
- "azure_identity",
-]
-
-[[package]]
-name = "kcode-desktop"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "glyphon",
- "libc",
- "pollster",
- "pulldown-cmark",
- "serde_json",
- "wgpu",
- "winit",
-]
-
-[[package]]
-name = "kcode-embedding"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "reqwest",
- "tokenizers",
- "tract-hir",
- "tract-onnx",
-]
-
-[[package]]
-name = "kcode-mobile-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "kcode-mobile-sim"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytemuck",
- "clap",
- "kcode-mobile-core",
- "libc",
- "pollster",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "wgpu",
- "winit",
-]
-
-[[package]]
-name = "kcode-notify-email"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "imap",
- "lettre",
- "mail-parser",
- "native-tls",
- "pulldown-cmark",
- "urlencoding",
-]
-
-[[package]]
-name = "kcode-pdf"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "pdf-extract",
-]
-
-[[package]]
-name = "kcode-provider-core"
-version = "0.1.0"
-dependencies = [
- "reqwest",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "kcode-provider-gemini"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "kcode-provider-metadata"
-version = "0.1.0"
-dependencies = [
- "url",
-]
-
-[[package]]
-name = "kcode-provider-openrouter"
-version = "0.1.0"
-dependencies = [
- "dirs",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "kcode-tui-workspace"
-version = "0.1.0"
-dependencies = [
- "ratatui",
-]
-
-[[package]]
 name = "keyboard-types"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3415,6 +3212,209 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c196769dd60fd4f363e11d948139556a344e79d451aeb2fa2fd040738ef7691"
 dependencies = [
  "jni-sys 0.3.1",
+]
+
+[[package]]
+name = "neura"
+version = "0.10.3"
+dependencies = [
+ "agentgrep",
+ "anyhow",
+ "arboard",
+ "async-stream",
+ "async-trait",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "clap",
+ "crossterm 0.28.1",
+ "dirs",
+ "flate2",
+ "futures",
+ "glob",
+ "global-hotkey",
+ "hex",
+ "ignore",
+ "image",
+ "libc",
+ "mermaid-rs-renderer",
+ "neura-agent-runtime",
+ "neura-azure-auth",
+ "neura-embedding",
+ "neura-notify-email",
+ "neura-pdf",
+ "neura-provider-core",
+ "neura-provider-gemini",
+ "neura-provider-metadata",
+ "neura-provider-openrouter",
+ "neura-tui-workspace",
+ "open",
+ "proctitle",
+ "pulldown-cmark",
+ "qr2term",
+ "rand 0.9.3",
+ "ratatui",
+ "ratatui-image",
+ "regex",
+ "reqwest",
+ "resvg",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "similar",
+ "syntect",
+ "tar",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tikv-jemalloc-ctl",
+ "tikv-jemalloc-sys",
+ "tikv-jemallocator",
+ "tokenizers",
+ "tokio",
+ "tokio-stream",
+ "tokio-tungstenite",
+ "toml",
+ "unicode-width 0.2.0",
+ "url",
+ "urlencoding",
+ "usvg",
+ "uuid",
+ "walkdir",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "neura-agent-runtime"
+version = "0.1.0"
+dependencies = [
+ "thiserror 1.0.69",
+ "tokio",
+]
+
+[[package]]
+name = "neura-azure-auth"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "azure_core",
+ "azure_identity",
+]
+
+[[package]]
+name = "neura-desktop"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "glyphon",
+ "libc",
+ "pollster",
+ "pulldown-cmark",
+ "serde_json",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
+name = "neura-embedding"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "reqwest",
+ "tokenizers",
+ "tract-hir",
+ "tract-onnx",
+]
+
+[[package]]
+name = "neura-mobile-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "neura-mobile-sim"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "clap",
+ "libc",
+ "neura-mobile-core",
+ "pollster",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
+name = "neura-notify-email"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "imap",
+ "lettre",
+ "mail-parser",
+ "native-tls",
+ "pulldown-cmark",
+ "urlencoding",
+]
+
+[[package]]
+name = "neura-pdf"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "pdf-extract",
+]
+
+[[package]]
+name = "neura-provider-core"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "neura-provider-gemini"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "neura-provider-metadata"
+version = "0.1.0"
+dependencies = [
+ "url",
+]
+
+[[package]]
+name = "neura-provider-openrouter"
+version = "0.1.0"
+dependencies = [
+ "dirs",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "neura-tui-workspace"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
 ]
 
 [[package]]

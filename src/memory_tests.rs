@@ -13,20 +13,20 @@ where
     F: FnOnce(&Path) -> T,
 {
     let _guard = crate::storage::lock_test_env();
-    let old = std::env::var("KCODE_HOME").ok();
+    let old = std::env::var("NEURA_HOME").ok();
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("time went backwards")
         .as_nanos();
-    let dir = std::env::temp_dir().join(format!("kcode-test-{}", unique));
+    let dir = std::env::temp_dir().join(format!("neura-test-{}", unique));
     fs::create_dir_all(&dir).expect("create temp dir");
-    crate::env::set_var("KCODE_HOME", &dir);
+    crate::env::set_var("NEURA_HOME", &dir);
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(&dir)));
 
     match old {
-        Some(value) => crate::env::set_var("KCODE_HOME", value),
-        None => crate::env::remove_var("KCODE_HOME"),
+        Some(value) => crate::env::set_var("NEURA_HOME", value),
+        None => crate::env::remove_var("NEURA_HOME"),
     }
     let _ = fs::remove_dir_all(&dir);
 
@@ -356,8 +356,8 @@ fn graph_based_memory_operations() {
 #[test]
 fn project_memories_are_isolated_by_explicit_project_dir() {
     with_temp_home(|_home| {
-        let manager_a = MemoryManager::new().with_project_dir("/tmp/kcode-project-a");
-        let manager_b = MemoryManager::new().with_project_dir("/tmp/kcode-project-b");
+        let manager_a = MemoryManager::new().with_project_dir("/tmp/neura-project-a");
+        let manager_b = MemoryManager::new().with_project_dir("/tmp/neura-project-b");
 
         manager_a
             .remember_project(MemoryEntry::new(
@@ -393,7 +393,7 @@ fn project_memories_are_isolated_by_explicit_project_dir() {
 #[test]
 fn manager_search_scoped_normalizes_whitespace_and_separators() {
     with_temp_home(|_home| {
-        let manager = MemoryManager::new().with_project_dir("/tmp/kcode-search-normalization");
+        let manager = MemoryManager::new().with_project_dir("/tmp/neura-search-normalization");
 
         manager
             .remember_project(MemoryEntry::new(
@@ -412,7 +412,7 @@ fn manager_search_scoped_normalizes_whitespace_and_separators() {
 #[test]
 fn prompt_memories_scoped_keeps_only_most_recent_entries() {
     with_temp_home(|_home| {
-        let manager = MemoryManager::new().with_project_dir("/tmp/kcode-prompt-topk");
+        let manager = MemoryManager::new().with_project_dir("/tmp/neura-prompt-topk");
 
         let mut oldest = MemoryEntry::new(MemoryCategory::Fact, "build artifact note");
         oldest.created_at = Utc::now() - chrono::Duration::seconds(30);
@@ -463,7 +463,7 @@ fn prompt_memories_scoped_keeps_only_most_recent_entries() {
 #[test]
 fn goal_memory_upsert_skips_embedding_generation() {
     with_temp_home(|_home| {
-        let manager = MemoryManager::new().with_project_dir("/tmp/kcode-goal-memory");
+        let manager = MemoryManager::new().with_project_dir("/tmp/neura-goal-memory");
 
         let mut entry = MemoryEntry::new(
             MemoryCategory::Custom("goal".to_string()),
@@ -489,7 +489,7 @@ fn goal_memory_upsert_skips_embedding_generation() {
 #[test]
 fn scoped_retrieval_respects_project_vs_global() {
     with_temp_home(|_home| {
-        let manager = MemoryManager::new().with_project_dir("/tmp/kcode-scope-test");
+        let manager = MemoryManager::new().with_project_dir("/tmp/neura-scope-test");
 
         manager
             .remember_project(MemoryEntry::new(
@@ -536,10 +536,10 @@ fn scoped_retrieval_respects_project_vs_global() {
 fn retrieval_candidates_include_local_skills() {
     with_temp_home(|home| {
         let project_dir = home.join("project-with-skill");
-        fs::create_dir_all(project_dir.join(".kcode/skills/firefox-browser"))
+        fs::create_dir_all(project_dir.join(".neura/skills/firefox-browser"))
             .expect("create skills dir");
         fs::write(
-                project_dir.join(".kcode/skills/firefox-browser/SKILL.md"),
+                project_dir.join(".neura/skills/firefox-browser/SKILL.md"),
                 "---\nname: firefox-browser\ndescription: Control Firefox browser sessions\nallowed-tools: bash, read, write\n---\n\nUse this skill to open sites and click buttons.",
             )
             .expect("write skill");
@@ -623,20 +623,20 @@ fn search_explained_prioritizes_corrections_and_trust() {
     let mut store = MemoryStore::default();
     let low = MemoryEntry::new(
         MemoryCategory::Fact,
-        "Use the old deployment command for kcode release".to_string(),
+        "Use the old deployment command for neura release".to_string(),
     )
     .with_source("test")
     .with_trust(TrustLevel::Low);
     let correction = MemoryEntry::new(
         MemoryCategory::Correction,
-        "Correction: use cargo build --release --bin kcode before /reload".to_string(),
+        "Correction: use cargo build --release --bin neura before /reload".to_string(),
     )
     .with_source("test")
     .with_trust(TrustLevel::High);
     let low_id = store.add(low);
     let correction_id = store.add(correction);
 
-    let explained = store.search_explained("kcode release reload command", 10);
+    let explained = store.search_explained("neura release reload command", 10);
     assert_eq!(
         explained.first().map(|e| e.id.as_str()),
         Some(correction_id.as_str())

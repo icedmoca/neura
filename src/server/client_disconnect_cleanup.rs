@@ -6,7 +6,7 @@ use super::{
 };
 use crate::agent::Agent;
 use anyhow::Result;
-use kcode_agent_runtime::InterruptSignal;
+use neura_agent_runtime::InterruptSignal;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -281,7 +281,7 @@ mod tests {
     fn running_disconnect_during_reload_is_expected() {
         let _guard = crate::storage::lock_test_env();
         let runtime = tempfile::TempDir::new().expect("create runtime dir");
-        crate::env::set_var("KCODE_RUNTIME_DIR", runtime.path());
+        crate::env::set_var("NEURA_RUNTIME_DIR", runtime.path());
         crate::server::clear_reload_marker();
         crate::server::write_reload_state(
             "test-request",
@@ -294,14 +294,14 @@ mod tests {
             DisconnectDisposition::Reloading
         );
         crate::server::clear_reload_marker();
-        crate::env::remove_var("KCODE_RUNTIME_DIR");
+        crate::env::remove_var("NEURA_RUNTIME_DIR");
     }
 
     #[test]
     fn running_disconnect_during_recent_socket_ready_reload_is_expected() {
         let _guard = crate::storage::lock_test_env();
         let runtime = tempfile::TempDir::new().expect("create runtime dir");
-        crate::env::set_var("KCODE_RUNTIME_DIR", runtime.path());
+        crate::env::set_var("NEURA_RUNTIME_DIR", runtime.path());
         crate::server::clear_reload_marker();
         crate::server::write_reload_state(
             "test-request",
@@ -314,6 +314,6 @@ mod tests {
             DisconnectDisposition::Reloading
         );
         crate::server::clear_reload_marker();
-        crate::env::remove_var("KCODE_RUNTIME_DIR");
+        crate::env::remove_var("NEURA_RUNTIME_DIR");
     }
 }

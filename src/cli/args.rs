@@ -17,11 +17,11 @@ pub(crate) enum GoogleAccessTierArg {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "kcode")]
-#[command(version = env!("KCODE_VERSION"))]
+#[command(name = "neura")]
+#[command(version = env!("NEURA_VERSION"))]
 #[command(about = "J-Code: A coding agent using Claude Max or ChatGPT Pro subscriptions")]
 pub(crate) struct Args {
-    /// Provider to use (kcode, claude, openai, openrouter, azure, opencode, opencode-go, zai, 302ai, baseten, cortecs, deepseek, firmware, huggingface, moonshotai, nebius, scaleway, stackit, groq, mistral, perplexity, togetherai, deepinfra, xai, lmstudio, ollama, chutes, cerebras, alibaba-coding-plan, openai-compatible, cursor, copilot, gemini, antigravity, google, or auto-detect)
+    /// Provider to use (neura, claude, openai, openrouter, azure, opencode, opencode-go, zai, 302ai, baseten, cortecs, deepseek, firmware, huggingface, moonshotai, nebius, scaleway, stackit, groq, mistral, perplexity, togetherai, deepinfra, xai, lmstudio, ollama, chutes, cerebras, alibaba-coding-plan, openai-compatible, cursor, copilot, gemini, antigravity, google, or auto-detect)
     #[arg(short, long, default_value = "auto", global = true)]
     pub(crate) provider: ProviderChoice,
 
@@ -61,7 +61,7 @@ pub(crate) struct Args {
     #[deprecated = "Use default client/server mode instead"]
     pub(crate) standalone: bool,
 
-    /// Disable auto-detection of kcode repository and self-dev mode
+    /// Disable auto-detection of neura repository and self-dev mode
     #[arg(long, global = true)]
     pub(crate) no_selfdev: bool,
 
@@ -146,7 +146,7 @@ pub(crate) enum Command {
     /// Run in simple REPL mode (no TUI)
     Repl,
 
-    /// Update kcode to the latest version
+    /// Update neura to the latest version
     Update,
 
     /// Show build/version information in human or JSON form
@@ -171,7 +171,7 @@ pub(crate) enum Command {
         build: bool,
     },
 
-    /// Debug socket CLI - interact with running kcode server
+    /// Debug socket CLI - interact with running neura server
     Debug {
         /// Debug command to run (list, start, sessions, create_session, message, tool, state, history, etc.)
         #[arg(default_value = "help")]
@@ -203,11 +203,11 @@ pub(crate) enum Command {
     Provider(ProviderCommand),
 
     /// Inspect dynamic latent operational recurrence state
-    #[command(subcommand, name = "kcode-latent")]
+    #[command(subcommand, name = "neura-latent")]
     Latent(LatentCommand),
 
     /// Run evidence-ranked bounded self-improvement commands
-    #[command(subcommand, name = "kcode-self-improve")]
+    #[command(subcommand, name = "neura-self-improve")]
     SelfImprove(SelfImproveCommand),
 
     /// Memory management commands
@@ -232,12 +232,12 @@ pub(crate) enum Command {
     /// Review and respond to pending ambient permission requests
     Permissions,
 
-    /// Inject externally transcribed text into the active Kcode TUI
+    /// Inject externally transcribed text into the active Neura TUI
     Transcript {
         /// Transcript text. If omitted, reads from stdin.
         text: Option<String>,
 
-        /// How to apply the transcript inside Kcode
+        /// How to apply the transcript inside Neura
         #[arg(long, value_enum, default_value = "send")]
         mode: TranscriptModeArg,
 
@@ -246,21 +246,21 @@ pub(crate) enum Command {
         session: Option<String>,
     },
 
-    /// Run configured dictation: send to last-focused kcode client or type raw text
+    /// Run configured dictation: send to last-focused neura client or type raw text
     Dictate {
-        /// Type the transcript into the focused app instead of sending to kcode
+        /// Type the transcript into the focused app instead of sending to neura
         #[arg(long)]
         r#type: bool,
     },
 
-    /// Set up a global hotkey (Alt+;) to launch kcode
+    /// Set up a global hotkey (Alt+;) to launch neura
     SetupHotkey {
         /// Internal: run as the macOS hotkey listener process.
         #[arg(long, hide = true)]
         listen_macos_hotkey: bool,
     },
 
-    /// Install a launcher so kcode appears in your app launcher
+    /// Install a launcher so neura appears in your app launcher
     SetupLauncher,
 
     /// Browser automation setup and status
@@ -355,7 +355,7 @@ pub(crate) enum Command {
         output: Option<String>,
     },
 
-    /// Save or restore the current set of open kcode windows across a system reboot
+    /// Save or restore the current set of open neura windows across a system reboot
     Restart {
         #[command(subcommand)]
         action: RestartCommand,
@@ -364,9 +364,9 @@ pub(crate) enum Command {
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum RestartCommand {
-    /// Save a reboot snapshot of currently active kcode windows
+    /// Save a reboot snapshot of currently active neura windows
     Save {
-        /// Restore this reboot snapshot automatically the next time plain `kcode` starts
+        /// Restore this reboot snapshot automatically the next time plain `neura` starts
         #[arg(long)]
         auto_restore: bool,
     },
@@ -501,7 +501,7 @@ pub(crate) enum MemoryCommand {
     /// Clear test memory storage (used by debug sessions)
     ClearTest,
 
-    /// Ensure the Kcode GGUF local model server is running
+    /// Ensure the Neura GGUF local model server is running
     SidecarEnsure {
         /// Emit JSON instead of plain text
         #[arg(long)]

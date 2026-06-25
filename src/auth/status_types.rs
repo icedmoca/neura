@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 /// Authentication status for all supported providers
 #[derive(Debug, Clone, Default)]
 pub struct AuthStatus {
-    /// Kcode subscription router credentials
-    pub kcode: AuthState,
+    /// Neura subscription router credentials
+    pub neura: AuthState,
     /// Anthropic provider (Claude models) - via OAuth or API key
     pub anthropic: ProviderAuth,
     /// OpenRouter provider - via API key
@@ -67,7 +67,7 @@ pub enum AuthCredentialSource {
     None,
     EnvironmentVariable,
     AppConfigFile,
-    KcodeManagedFile,
+    NeuraManagedFile,
     TrustedExternalFile,
     TrustedExternalAppState,
     LocalCliSession,
@@ -81,7 +81,7 @@ impl AuthCredentialSource {
             Self::None => "none",
             Self::EnvironmentVariable => "environment variable",
             Self::AppConfigFile => "app config file",
-            Self::KcodeManagedFile => "kcode-managed file",
+            Self::NeuraManagedFile => "neura-managed file",
             Self::TrustedExternalFile => "trusted external file",
             Self::TrustedExternalAppState => "trusted external app state",
             Self::LocalCliSession => "local CLI session",

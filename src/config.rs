@@ -1,6 +1,6 @@
-//! Configuration file support for kcode
+//! Configuration file support for neura
 //!
-//! Config is loaded from `~/.kcode/config.toml` (or `$KCODE_HOME/config.toml`)
+//! Config is loaded from `~/.neura/config.toml` (or `$NEURA_HOME/config.toml`)
 //! Environment variables override config file settings.
 
 use serde::{Deserialize, Serialize};
@@ -226,7 +226,7 @@ impl Default for NamedProviderConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct AuthConfig {
-    /// External auth source ids that the user has approved kcode to read/use.
+    /// External auth source ids that the user has approved neura to read/use.
     pub trusted_external_sources: Vec<String>,
     /// Path-bound approvals for external auth sources managed by other tools.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -664,7 +664,7 @@ pub struct ProviderConfig {
     pub openai_native_compaction_threshold_tokens: usize,
     /// How to handle cross-provider failover when the same input would be resent elsewhere.
     pub cross_provider_failover: CrossProviderFailoverMode,
-    /// Whether kcode should automatically try another account on the same provider
+    /// Whether neura should automatically try another account on the same provider
     /// before falling back to a different provider.
     pub same_provider_account_failover: bool,
     /// Copilot premium request mode: "normal", "one", or "zero"
@@ -755,7 +755,7 @@ pub struct SafetyConfig {
     pub email_smtp_port: u16,
     /// Email sender address
     pub email_from: Option<String>,
-    /// SMTP password (prefer KCODE_SMTP_PASSWORD env var)
+    /// SMTP password (prefer NEURA_SMTP_PASSWORD env var)
     pub email_password: Option<String>,
     /// IMAP host for receiving email replies (e.g. imap.gmail.com)
     pub email_imap_host: Option<String>,

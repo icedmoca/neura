@@ -69,6 +69,6 @@ fn trivial_relevance_context_skips_only_low_information_chatter() {
         "User: fix the GitHub push workflow"
     ));
     assert!(!is_trivial_relevance_context(
-        "User: use /home/dad/.kcode/build-src/kcode for Kcode fixes"
+        "User: use /home/dad/.neura/build-src/neura for Neura fixes"
     ));
 }

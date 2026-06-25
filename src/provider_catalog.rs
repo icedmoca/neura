@@ -1,7 +1,7 @@
-pub use kcode_provider_metadata::*;
+pub use neura_provider_metadata::*;
 use std::collections::HashSet;
 
-pub const OPENAI_COMPAT_LOCAL_ENABLED_ENV: &str = "KCODE_OPENAI_COMPAT_LOCAL_ENABLED";
+pub const OPENAI_COMPAT_LOCAL_ENABLED_ENV: &str = "NEURA_OPENAI_COMPAT_LOCAL_ENABLED";
 
 fn api_base_uses_localhost(raw: &str) -> bool {
     let Ok(parsed) = url::Url::parse(raw) else {
@@ -35,44 +35,44 @@ pub fn resolve_openai_compatible_profile(
         return resolved;
     }
 
-    if let Some(base) = env_override("KCODE_OPENAI_COMPAT_API_BASE") {
+    if let Some(base) = env_override("NEURA_OPENAI_COMPAT_API_BASE") {
         if let Some(normalized) = normalize_api_base(&base) {
             resolved.api_base = normalized;
         } else {
             eprintln!(
-                "Warning: ignoring invalid KCODE_OPENAI_COMPAT_API_BASE '{}'. Use https://... (or http://localhost).",
+                "Warning: ignoring invalid NEURA_OPENAI_COMPAT_API_BASE '{}'. Use https://... (or http://localhost).",
                 base
             );
         }
     }
 
-    if let Some(key_name) = env_override("KCODE_OPENAI_COMPAT_API_KEY_NAME") {
+    if let Some(key_name) = env_override("NEURA_OPENAI_COMPAT_API_KEY_NAME") {
         if is_safe_env_key_name(&key_name) {
             resolved.api_key_env = key_name;
         } else {
             eprintln!(
-                "Warning: ignoring invalid KCODE_OPENAI_COMPAT_API_KEY_NAME '{}'.",
+                "Warning: ignoring invalid NEURA_OPENAI_COMPAT_API_KEY_NAME '{}'.",
                 key_name
             );
         }
     }
 
-    if let Some(env_file) = env_override("KCODE_OPENAI_COMPAT_ENV_FILE") {
+    if let Some(env_file) = env_override("NEURA_OPENAI_COMPAT_ENV_FILE") {
         if is_safe_env_file_name(&env_file) {
             resolved.env_file = env_file;
         } else {
             eprintln!(
-                "Warning: ignoring invalid KCODE_OPENAI_COMPAT_ENV_FILE '{}'.",
+                "Warning: ignoring invalid NEURA_OPENAI_COMPAT_ENV_FILE '{}'.",
                 env_file
             );
         }
     }
 
-    if let Some(setup_url) = env_override("KCODE_OPENAI_COMPAT_SETUP_URL") {
+    if let Some(setup_url) = env_override("NEURA_OPENAI_COMPAT_SETUP_URL") {
         resolved.setup_url = setup_url;
     }
 
-    if let Some(model) = env_override("KCODE_OPENAI_COMPAT_DEFAULT_MODEL") {
+    if let Some(model) = env_override("NEURA_OPENAI_COMPAT_DEFAULT_MODEL") {
         resolved.default_model = Some(model);
     }
 
@@ -84,28 +84,28 @@ pub fn resolve_openai_compatible_profile(
 }
 
 pub fn apply_openai_compatible_profile_env(profile: Option<OpenAiCompatibleProfile>) {
-    if std::env::var_os("KCODE_PROVIDER_PROFILE_ACTIVE").is_some() {
+    if std::env::var_os("NEURA_PROVIDER_PROFILE_ACTIVE").is_some() {
         return;
     }
 
     let vars = [
-        "KCODE_OPENROUTER_API_BASE",
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENROUTER_CACHE_NAMESPACE",
-        "KCODE_OPENROUTER_PROVIDER_FEATURES",
-        "KCODE_OPENROUTER_ALLOW_NO_AUTH",
-        "KCODE_OPENROUTER_MODEL_CATALOG",
-        "KCODE_OPENROUTER_MODEL",
-        "KCODE_OPENROUTER_STATIC_MODELS",
-        "KCODE_OPENROUTER_AUTH_HEADER",
-        "KCODE_OPENROUTER_AUTH_HEADER_NAME",
-        "KCODE_OPENROUTER_DYNAMIC_BEARER_PROVIDER",
-        "KCODE_OPENROUTER_PROVIDER",
-        "KCODE_OPENROUTER_NO_FALLBACK",
-        "KCODE_NAMED_PROVIDER_PROFILE",
-        "KCODE_PROVIDER_PROFILE_ACTIVE",
-        "KCODE_PROVIDER_PROFILE_NAME",
+        "NEURA_OPENROUTER_API_BASE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENROUTER_CACHE_NAMESPACE",
+        "NEURA_OPENROUTER_PROVIDER_FEATURES",
+        "NEURA_OPENROUTER_ALLOW_NO_AUTH",
+        "NEURA_OPENROUTER_MODEL_CATALOG",
+        "NEURA_OPENROUTER_MODEL",
+        "NEURA_OPENROUTER_STATIC_MODELS",
+        "NEURA_OPENROUTER_AUTH_HEADER",
+        "NEURA_OPENROUTER_AUTH_HEADER_NAME",
+        "NEURA_OPENROUTER_DYNAMIC_BEARER_PROVIDER",
+        "NEURA_OPENROUTER_PROVIDER",
+        "NEURA_OPENROUTER_NO_FALLBACK",
+        "NEURA_NAMED_PROVIDER_PROFILE",
+        "NEURA_PROVIDER_PROFILE_ACTIVE",
+        "NEURA_PROVIDER_PROFILE_NAME",
     ];
 
     for var in vars {
@@ -114,15 +114,15 @@ pub fn apply_openai_compatible_profile_env(profile: Option<OpenAiCompatibleProfi
 
     if let Some(profile) = profile {
         let resolved = resolve_openai_compatible_profile(profile);
-        crate::env::set_var("KCODE_OPENROUTER_API_BASE", &resolved.api_base);
-        crate::env::set_var("KCODE_OPENROUTER_API_KEY_NAME", &resolved.api_key_env);
-        crate::env::set_var("KCODE_OPENROUTER_ENV_FILE", &resolved.env_file);
-        crate::env::set_var("KCODE_OPENROUTER_CACHE_NAMESPACE", &resolved.id);
-        crate::env::set_var("KCODE_OPENROUTER_PROVIDER_FEATURES", "0");
+        crate::env::set_var("NEURA_OPENROUTER_API_BASE", &resolved.api_base);
+        crate::env::set_var("NEURA_OPENROUTER_API_KEY_NAME", &resolved.api_key_env);
+        crate::env::set_var("NEURA_OPENROUTER_ENV_FILE", &resolved.env_file);
+        crate::env::set_var("NEURA_OPENROUTER_CACHE_NAMESPACE", &resolved.id);
+        crate::env::set_var("NEURA_OPENROUTER_PROVIDER_FEATURES", "0");
         if resolved.requires_api_key {
-            crate::env::remove_var("KCODE_OPENROUTER_ALLOW_NO_AUTH");
+            crate::env::remove_var("NEURA_OPENROUTER_ALLOW_NO_AUTH");
         } else {
-            crate::env::set_var("KCODE_OPENROUTER_ALLOW_NO_AUTH", "1");
+            crate::env::set_var("NEURA_OPENROUTER_ALLOW_NO_AUTH", "1");
         }
     }
 }
@@ -138,7 +138,7 @@ fn inline_key_env_name(profile_name: &str) -> String {
             }
         })
         .collect::<String>();
-    format!("KCODE_PROVIDER_{}_API_KEY", suffix)
+    format!("NEURA_PROVIDER_{}_API_KEY", suffix)
 }
 
 pub fn apply_named_provider_profile_env(profile_name: &str) -> anyhow::Result<String> {
@@ -166,13 +166,13 @@ pub fn apply_named_provider_profile_env_from_config(
         )
     })?;
 
-    crate::env::remove_var("KCODE_PROVIDER_PROFILE_ACTIVE");
-    crate::env::remove_var("KCODE_PROVIDER_PROFILE_NAME");
-    crate::env::remove_var("KCODE_NAMED_PROVIDER_PROFILE");
+    crate::env::remove_var("NEURA_PROVIDER_PROFILE_ACTIVE");
+    crate::env::remove_var("NEURA_PROVIDER_PROFILE_NAME");
+    crate::env::remove_var("NEURA_NAMED_PROVIDER_PROFILE");
     apply_openai_compatible_profile_env(None);
-    crate::env::set_var("KCODE_OPENROUTER_API_BASE", &api_base);
-    crate::env::set_var("KCODE_OPENROUTER_CACHE_NAMESPACE", profile_name);
-    crate::env::set_var("KCODE_NAMED_PROVIDER_PROFILE", profile_name);
+    crate::env::set_var("NEURA_OPENROUTER_API_BASE", &api_base);
+    crate::env::set_var("NEURA_OPENROUTER_CACHE_NAMESPACE", profile_name);
+    crate::env::set_var("NEURA_NAMED_PROVIDER_PROFILE", profile_name);
 
     let provider_features = matches!(
         profile.provider_type,
@@ -180,11 +180,11 @@ pub fn apply_named_provider_profile_env_from_config(
     ) || profile.provider_routing
         || profile.allow_provider_pinning;
     crate::env::set_var(
-        "KCODE_OPENROUTER_PROVIDER_FEATURES",
+        "NEURA_OPENROUTER_PROVIDER_FEATURES",
         if provider_features { "1" } else { "0" },
     );
     crate::env::set_var(
-        "KCODE_OPENROUTER_MODEL_CATALOG",
+        "NEURA_OPENROUTER_MODEL_CATALOG",
         if profile.model_catalog
             || matches!(
                 profile.provider_type,
@@ -203,7 +203,7 @@ pub fn apply_named_provider_profile_env_from_config(
         .map(str::trim)
         .filter(|v| !v.is_empty())
     {
-        crate::env::set_var("KCODE_OPENROUTER_MODEL", model);
+        crate::env::set_var("NEURA_OPENROUTER_MODEL", model);
     }
 
     let static_models = profile
@@ -213,12 +213,12 @@ pub fn apply_named_provider_profile_env_from_config(
         .filter(|id| !id.is_empty())
         .collect::<Vec<_>>();
     if !static_models.is_empty() {
-        crate::env::set_var("KCODE_OPENROUTER_STATIC_MODELS", static_models.join("\n"));
+        crate::env::set_var("NEURA_OPENROUTER_STATIC_MODELS", static_models.join("\n"));
     }
 
     match profile.auth {
         crate::config::NamedProviderAuth::None => {
-            crate::env::set_var("KCODE_OPENROUTER_ALLOW_NO_AUTH", "1");
+            crate::env::set_var("NEURA_OPENROUTER_ALLOW_NO_AUTH", "1");
         }
         crate::config::NamedProviderAuth::Bearer | crate::config::NamedProviderAuth::Header => {
             let key_env = profile
@@ -247,7 +247,7 @@ pub fn apply_named_provider_profile_env_from_config(
                         key_env
                     );
                 }
-                crate::env::set_var("KCODE_OPENROUTER_API_KEY_NAME", &key_env);
+                crate::env::set_var("NEURA_OPENROUTER_API_KEY_NAME", &key_env);
             }
 
             if let Some(env_file) = profile
@@ -263,29 +263,29 @@ pub fn apply_named_provider_profile_env_from_config(
                         env_file
                     );
                 }
-                crate::env::set_var("KCODE_OPENROUTER_ENV_FILE", env_file);
+                crate::env::set_var("NEURA_OPENROUTER_ENV_FILE", env_file);
             }
 
             let requires_key = profile
                 .requires_api_key
                 .unwrap_or(!api_base_uses_localhost(&api_base));
             if !requires_key {
-                crate::env::set_var("KCODE_OPENROUTER_ALLOW_NO_AUTH", "1");
+                crate::env::set_var("NEURA_OPENROUTER_ALLOW_NO_AUTH", "1");
             }
 
             match profile.auth {
                 crate::config::NamedProviderAuth::Bearer => {
-                    crate::env::set_var("KCODE_OPENROUTER_AUTH_HEADER", "bearer");
+                    crate::env::set_var("NEURA_OPENROUTER_AUTH_HEADER", "bearer");
                 }
                 crate::config::NamedProviderAuth::Header => {
-                    crate::env::set_var("KCODE_OPENROUTER_AUTH_HEADER", "api-key");
+                    crate::env::set_var("NEURA_OPENROUTER_AUTH_HEADER", "api-key");
                     if let Some(header) = profile
                         .auth_header
                         .as_deref()
                         .map(str::trim)
                         .filter(|v| !v.is_empty())
                     {
-                        crate::env::set_var("KCODE_OPENROUTER_AUTH_HEADER_NAME", header);
+                        crate::env::set_var("NEURA_OPENROUTER_AUTH_HEADER_NAME", header);
                     }
                 }
                 crate::config::NamedProviderAuth::None => {}
@@ -313,8 +313,8 @@ pub fn openrouter_like_api_key_sources() -> Vec<(String, String)> {
     }
 
     if let Some(source) = configured_api_key_source(
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
         "OPENROUTER_API_KEY",
         "openrouter.env",
     ) {
@@ -322,8 +322,8 @@ pub fn openrouter_like_api_key_sources() -> Vec<(String, String)> {
     }
 
     if let Some(source) = configured_api_key_source(
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
         OPENAI_COMPAT_PROFILE.api_key_env,
         OPENAI_COMPAT_PROFILE.env_file,
     ) {

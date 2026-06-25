@@ -1,4 +1,4 @@
-use kcode_provider_core::ModelRoute;
+use neura_provider_core::ModelRoute;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 

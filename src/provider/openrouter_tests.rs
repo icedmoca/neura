@@ -51,7 +51,7 @@ fn test_config_dir(temp: &TempDir) -> std::path::PathBuf {
 }
 
 fn write_test_api_key(temp: &TempDir, env_file: &str, env_key: &str, value: &str) {
-    let config_dir = test_config_dir(temp).join("kcode");
+    let config_dir = test_config_dir(temp).join("neura");
     std::fs::create_dir_all(&config_dir).expect("create test config dir");
     std::fs::write(config_dir.join(env_file), format!("{env_key}={value}\n"))
         .expect("write test api key");
@@ -65,29 +65,29 @@ fn test_has_credentials() {
 #[test]
 fn test_configured_api_base_accepts_https() {
     let _lock = ENV_LOCK.lock().unwrap();
-    let prev = std::env::var("KCODE_OPENROUTER_API_BASE").ok();
+    let prev = std::env::var("NEURA_OPENROUTER_API_BASE").ok();
     crate::env::set_var(
-        "KCODE_OPENROUTER_API_BASE",
+        "NEURA_OPENROUTER_API_BASE",
         "https://api.groq.com/openai/v1/",
     );
     assert_eq!(configured_api_base(), "https://api.groq.com/openai/v1");
     if let Some(value) = prev {
-        crate::env::set_var("KCODE_OPENROUTER_API_BASE", value);
+        crate::env::set_var("NEURA_OPENROUTER_API_BASE", value);
     } else {
-        crate::env::remove_var("KCODE_OPENROUTER_API_BASE");
+        crate::env::remove_var("NEURA_OPENROUTER_API_BASE");
     }
 }
 
 #[test]
 fn test_configured_api_base_rejects_insecure_http_remote() {
     let _lock = ENV_LOCK.lock().unwrap();
-    let prev = std::env::var("KCODE_OPENROUTER_API_BASE").ok();
-    crate::env::set_var("KCODE_OPENROUTER_API_BASE", "http://example.com/v1");
+    let prev = std::env::var("NEURA_OPENROUTER_API_BASE").ok();
+    crate::env::set_var("NEURA_OPENROUTER_API_BASE", "http://example.com/v1");
     assert_eq!(configured_api_base(), DEFAULT_API_BASE);
     if let Some(value) = prev {
-        crate::env::set_var("KCODE_OPENROUTER_API_BASE", value);
+        crate::env::set_var("NEURA_OPENROUTER_API_BASE", value);
     } else {
-        crate::env::remove_var("KCODE_OPENROUTER_API_BASE");
+        crate::env::remove_var("NEURA_OPENROUTER_API_BASE");
     }
 }
 
@@ -98,10 +98,10 @@ fn autodetects_single_saved_openai_compatible_profile() {
     let _xdg = EnvVarGuard::set("XDG_CONFIG_HOME", temp.path());
     let _home = EnvVarGuard::set("HOME", temp.path());
     let _appdata = EnvVarGuard::set("APPDATA", temp.path().join("AppData").join("Roaming"));
-    let _openrouter_base = EnvVarGuard::remove("KCODE_OPENROUTER_API_BASE");
-    let _openrouter_key = EnvVarGuard::remove("KCODE_OPENROUTER_API_KEY_NAME");
-    let _openrouter_file = EnvVarGuard::remove("KCODE_OPENROUTER_ENV_FILE");
-    let _openrouter_dynamic = EnvVarGuard::remove("KCODE_OPENROUTER_DYNAMIC_BEARER_PROVIDER");
+    let _openrouter_base = EnvVarGuard::remove("NEURA_OPENROUTER_API_BASE");
+    let _openrouter_key = EnvVarGuard::remove("NEURA_OPENROUTER_API_KEY_NAME");
+    let _openrouter_file = EnvVarGuard::remove("NEURA_OPENROUTER_ENV_FILE");
+    let _openrouter_dynamic = EnvVarGuard::remove("NEURA_OPENROUTER_DYNAMIC_BEARER_PROVIDER");
     let _openrouter_api_key = EnvVarGuard::remove("OPENROUTER_API_KEY");
     let _opencode_api_key = EnvVarGuard::remove("OPENCODE_API_KEY");
 
@@ -128,18 +128,18 @@ fn autodetects_single_saved_local_openai_compatible_profile() {
     let _xdg = EnvVarGuard::set("XDG_CONFIG_HOME", temp.path());
     let _home = EnvVarGuard::set("HOME", temp.path());
     let _appdata = EnvVarGuard::set("APPDATA", temp.path().join("AppData").join("Roaming"));
-    let _openrouter_base = EnvVarGuard::remove("KCODE_OPENROUTER_API_BASE");
-    let _openrouter_key = EnvVarGuard::remove("KCODE_OPENROUTER_API_KEY_NAME");
-    let _openrouter_file = EnvVarGuard::remove("KCODE_OPENROUTER_ENV_FILE");
-    let _openrouter_dynamic = EnvVarGuard::remove("KCODE_OPENROUTER_DYNAMIC_BEARER_PROVIDER");
-    let _openrouter_no_auth = EnvVarGuard::remove("KCODE_OPENROUTER_ALLOW_NO_AUTH");
+    let _openrouter_base = EnvVarGuard::remove("NEURA_OPENROUTER_API_BASE");
+    let _openrouter_key = EnvVarGuard::remove("NEURA_OPENROUTER_API_KEY_NAME");
+    let _openrouter_file = EnvVarGuard::remove("NEURA_OPENROUTER_ENV_FILE");
+    let _openrouter_dynamic = EnvVarGuard::remove("NEURA_OPENROUTER_DYNAMIC_BEARER_PROVIDER");
+    let _openrouter_no_auth = EnvVarGuard::remove("NEURA_OPENROUTER_ALLOW_NO_AUTH");
     let _openrouter_api_key = EnvVarGuard::remove("OPENROUTER_API_KEY");
     let _lmstudio_api_key = EnvVarGuard::remove("LMSTUDIO_API_KEY");
 
     let lmstudio = crate::provider_catalog::resolve_openai_compatible_profile(
         crate::provider_catalog::LMSTUDIO_PROFILE,
     );
-    let config_dir = test_config_dir(&temp).join("kcode");
+    let config_dir = test_config_dir(&temp).join("neura");
     std::fs::create_dir_all(&config_dir).expect("create test config dir");
     std::fs::write(
         config_dir.join(&lmstudio.env_file),
@@ -164,10 +164,10 @@ fn does_not_guess_when_multiple_saved_openai_compatible_profiles_exist() {
     let _xdg = EnvVarGuard::set("XDG_CONFIG_HOME", temp.path());
     let _home = EnvVarGuard::set("HOME", temp.path());
     let _appdata = EnvVarGuard::set("APPDATA", temp.path().join("AppData").join("Roaming"));
-    let _openrouter_base = EnvVarGuard::remove("KCODE_OPENROUTER_API_BASE");
-    let _openrouter_key = EnvVarGuard::remove("KCODE_OPENROUTER_API_KEY_NAME");
-    let _openrouter_file = EnvVarGuard::remove("KCODE_OPENROUTER_ENV_FILE");
-    let _openrouter_dynamic = EnvVarGuard::remove("KCODE_OPENROUTER_DYNAMIC_BEARER_PROVIDER");
+    let _openrouter_base = EnvVarGuard::remove("NEURA_OPENROUTER_API_BASE");
+    let _openrouter_key = EnvVarGuard::remove("NEURA_OPENROUTER_API_KEY_NAME");
+    let _openrouter_file = EnvVarGuard::remove("NEURA_OPENROUTER_ENV_FILE");
+    let _openrouter_dynamic = EnvVarGuard::remove("NEURA_OPENROUTER_DYNAMIC_BEARER_PROVIDER");
     let _openrouter_api_key = EnvVarGuard::remove("OPENROUTER_API_KEY");
     let _opencode_api_key = EnvVarGuard::remove("OPENCODE_API_KEY");
     let _chutes_api_key = EnvVarGuard::remove("CHUTES_API_KEY");
@@ -204,12 +204,12 @@ fn autodetected_profile_seeds_default_model_and_cache_namespace() {
     let _xdg = EnvVarGuard::set("XDG_CONFIG_HOME", temp.path());
     let _home = EnvVarGuard::set("HOME", temp.path());
     let _appdata = EnvVarGuard::set("APPDATA", temp.path().join("AppData").join("Roaming"));
-    let _openrouter_base = EnvVarGuard::remove("KCODE_OPENROUTER_API_BASE");
-    let _openrouter_key = EnvVarGuard::remove("KCODE_OPENROUTER_API_KEY_NAME");
-    let _openrouter_file = EnvVarGuard::remove("KCODE_OPENROUTER_ENV_FILE");
-    let _openrouter_dynamic = EnvVarGuard::remove("KCODE_OPENROUTER_DYNAMIC_BEARER_PROVIDER");
-    let _openrouter_model = EnvVarGuard::remove("KCODE_OPENROUTER_MODEL");
-    let _openrouter_cache_ns = EnvVarGuard::remove("KCODE_OPENROUTER_CACHE_NAMESPACE");
+    let _openrouter_base = EnvVarGuard::remove("NEURA_OPENROUTER_API_BASE");
+    let _openrouter_key = EnvVarGuard::remove("NEURA_OPENROUTER_API_KEY_NAME");
+    let _openrouter_file = EnvVarGuard::remove("NEURA_OPENROUTER_ENV_FILE");
+    let _openrouter_dynamic = EnvVarGuard::remove("NEURA_OPENROUTER_DYNAMIC_BEARER_PROVIDER");
+    let _openrouter_model = EnvVarGuard::remove("NEURA_OPENROUTER_MODEL");
+    let _openrouter_cache_ns = EnvVarGuard::remove("NEURA_OPENROUTER_CACHE_NAMESPACE");
     let _zhipu = EnvVarGuard::remove("ZHIPU_API_KEY");
 
     let zai = crate::provider_catalog::resolve_openai_compatible_profile(
@@ -220,7 +220,7 @@ fn autodetected_profile_seeds_default_model_and_cache_namespace() {
     let provider = OpenRouterProvider::new().expect("provider");
     assert_eq!(provider.model.blocking_read().clone(), "glm-4.5");
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_CACHE_NAMESPACE")
+        std::env::var("NEURA_OPENROUTER_CACHE_NAMESPACE")
             .ok()
             .as_deref(),
         Some("zai")

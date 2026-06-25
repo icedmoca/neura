@@ -108,7 +108,7 @@ pub(super) fn reconnect_status_message(app: &App, state: &RemoteRunState, detail
                 .and_then(|id| crate::id::extract_session_name(id))
         });
     let resume_hint = if let Some(name) = &session_name {
-        format!(" · resume: kcode --resume {}", name)
+        format!(" · resume: neura --resume {}", name)
     } else {
         String::new()
     };
@@ -147,7 +147,7 @@ pub(super) fn reload_wait_status_message(
                 .and_then(|id| crate::id::extract_session_name(id))
         });
     let resume_hint = if let Some(name) = &session_name {
-        format!(" · resume: kcode --resume {}", name)
+        format!(" · resume: neura --resume {}", name)
     } else {
         String::new()
     };
@@ -423,7 +423,7 @@ pub(in crate::tui::app) async fn connect_with_retry(
         Err(e) => {
             if state.reconnect_attempts == 0 && !app.server_spawning {
                 return Err(anyhow::anyhow!(
-                    "Failed to connect to server. Is `kcode serve` running? Error: {}",
+                    "Failed to connect to server. Is `neura serve` running? Error: {}",
                     e
                 ));
             }
@@ -612,9 +612,9 @@ pub(in crate::tui::app) async fn handle_post_connect<B: ratatui::backend::Backen
                 .clone()
                 .unwrap_or_else(|| crate::id::new_id("ses"));
             if (has_reload_ctx_for_session || !app.reload_info.is_empty())
-                && let Ok(kcode_dir) = crate::storage::kcode_dir()
+                && let Ok(neura_dir) = crate::storage::neura_dir()
             {
-                let marker = kcode_dir.join(format!("client-reload-pending-{}", session_id));
+                let marker = neura_dir.join(format!("client-reload-pending-{}", session_id));
                 let info = if app.reload_info.is_empty() {
                     "reload".to_string()
                 } else {
@@ -739,8 +739,8 @@ pub(super) fn load_reload_reconnect_hints(
 
     let has_client_reload_marker = session_to_resume
         .and_then(|sid| {
-            let kcode_dir = crate::storage::kcode_dir().ok()?;
-            let marker = kcode_dir.join(format!("client-reload-pending-{}", sid));
+            let neura_dir = crate::storage::neura_dir().ok()?;
+            let marker = neura_dir.join(format!("client-reload-pending-{}", sid));
             if marker.exists() {
                 let info = std::fs::read_to_string(&marker).ok()?;
                 let _ = std::fs::remove_file(&marker);

@@ -23,11 +23,11 @@ impl ReloadContext {
 
     pub fn path_for_session(session_id: &str) -> Result<std::path::PathBuf> {
         let sanitized = Self::sanitize_session_id(session_id);
-        Ok(storage::kcode_dir()?.join(format!("reload-context-{}.json", sanitized)))
+        Ok(storage::neura_dir()?.join(format!("reload-context-{}.json", sanitized)))
     }
 
     fn legacy_path() -> Result<std::path::PathBuf> {
-        Ok(storage::kcode_dir()?.join("reload-context.json"))
+        Ok(storage::neura_dir()?.join("reload-context.json"))
     }
 
     pub fn save(&self) -> Result<()> {
@@ -232,7 +232,7 @@ impl SelfDevTool {
         execution_mode: ToolExecutionMode,
     ) -> Result<ToolOutput> {
         let repo_dir = build::get_repo_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not find kcode repository directory"))?;
+            .ok_or_else(|| anyhow::anyhow!("Could not find neura repository directory"))?;
 
         let target_binary = build::find_dev_binary(&repo_dir)
             .unwrap_or_else(|| build::release_binary_path(&repo_dir));
@@ -240,7 +240,7 @@ impl SelfDevTool {
             return Ok(ToolOutput::new(
                 format!(
                     "No binary found at {}.\n\
-                     Run 'kcode self-dev --build' first, or build with 'scripts/dev_cargo.sh build --profile selfdev -p kcode --bin kcode' and then try reload again.",
+                     Run 'neura self-dev --build' first, or build with 'scripts/dev_cargo.sh build --profile selfdev -p neura --bin neura' and then try reload again.",
                     target_binary.display()
                 )
                 .to_string(),
@@ -262,7 +262,7 @@ impl SelfDevTool {
             build::current_source_state(&repo_dir)?
         };
         let hash = source.version_label.clone();
-        let version_before = env!("KCODE_VERSION").to_string();
+        let version_before = env!("NEURA_VERSION").to_string();
         let published = if SelfDevTool::is_test_session() {
             None
         } else {

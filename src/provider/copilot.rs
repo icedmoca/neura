@@ -147,7 +147,7 @@ impl CopilotApiProvider {
     pub fn new() -> Result<Self> {
         let github_token = copilot_auth::load_github_token()?;
         let model =
-            std::env::var("KCODE_COPILOT_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
+            std::env::var("NEURA_COPILOT_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
 
         let provider = Self {
             client: crate::provider::shared_http_client(),
@@ -173,7 +173,7 @@ impl CopilotApiProvider {
     }
 
     fn env_premium_mode() -> u8 {
-        match std::env::var("KCODE_COPILOT_PREMIUM").ok().as_deref() {
+        match std::env::var("NEURA_COPILOT_PREMIUM").ok().as_deref() {
             Some("0") => PremiumMode::Zero as u8,
             Some("1") => PremiumMode::OnePerSession as u8,
             _ => PremiumMode::Normal as u8,
@@ -182,7 +182,7 @@ impl CopilotApiProvider {
 
     pub fn new_with_token(github_token: String) -> Self {
         let model =
-            std::env::var("KCODE_COPILOT_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
+            std::env::var("NEURA_COPILOT_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
 
         let provider = Self {
             client: crate::provider::shared_http_client(),
@@ -204,7 +204,7 @@ impl CopilotApiProvider {
     }
 
     fn startup_prefetch_grace_ms() -> u64 {
-        std::env::var("KCODE_COPILOT_PREFETCH_STARTUP_GRACE_MS")
+        std::env::var("NEURA_COPILOT_PREFETCH_STARTUP_GRACE_MS")
             .ok()
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or(2000)
@@ -213,7 +213,7 @@ impl CopilotApiProvider {
     fn get_or_create_machine_id() -> String {
         let machine_id_path = dirs::home_dir()
             .unwrap_or_default()
-            .join(".kcode")
+            .join(".neura")
             .join("machine_id");
         if let Ok(id) = std::fs::read_to_string(&machine_id_path) {
             let id = id.trim().to_string();
@@ -297,12 +297,12 @@ impl CopilotApiProvider {
 
     /// Detect the user's Copilot tier and set the best default model.
     /// Call this after construction. Fetches a bearer token and queries /models.
-    /// If KCODE_COPILOT_MODEL is set, this is a no-op (user override).
+    /// If NEURA_COPILOT_MODEL is set, this is a no-op (user override).
     pub async fn detect_tier_and_set_default(&self) {
         let detect_start = std::time::Instant::now();
-        if std::env::var("KCODE_COPILOT_MODEL").is_ok() {
+        if std::env::var("NEURA_COPILOT_MODEL").is_ok() {
             crate::logging::info(
-                "Copilot model overridden via KCODE_COPILOT_MODEL, skipping tier detection",
+                "Copilot model overridden via NEURA_COPILOT_MODEL, skipping tier detection",
             );
             self.mark_init_done();
             return;

@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use tokio::sync::mpsc;
 
-const SWARM_STATE_DIR: &str = "kcode-swarm-state";
+const SWARM_STATE_DIR: &str = "neura-swarm-state";
 
 pub(super) struct LoadedSwarmRuntimeState {
     pub plans: HashMap<String, VersionedPlan>,

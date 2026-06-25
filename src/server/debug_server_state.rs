@@ -35,7 +35,7 @@ pub(super) async fn maybe_handle_server_state_command(
     channel_subscriptions_by_session: &ChannelSubscriptions,
     debug_jobs: &Arc<RwLock<HashMap<String, DebugJob>>>,
     event_history: &Arc<RwLock<VecDeque<SwarmEvent>>>,
-    shutdown_signals: &Arc<RwLock<HashMap<String, kcode_agent_runtime::InterruptSignal>>>,
+    shutdown_signals: &Arc<RwLock<HashMap<String, neura_agent_runtime::InterruptSignal>>>,
     soft_interrupt_queues: &SessionInterruptQueues,
 ) -> Result<Option<String>> {
     if cmd == "sessions" {
@@ -268,7 +268,7 @@ async fn build_server_memory_payload(
     channel_subscriptions_by_session: &ChannelSubscriptions,
     debug_jobs: &Arc<RwLock<HashMap<String, DebugJob>>>,
     event_history: &Arc<RwLock<VecDeque<SwarmEvent>>>,
-    shutdown_signals: &Arc<RwLock<HashMap<String, kcode_agent_runtime::InterruptSignal>>>,
+    shutdown_signals: &Arc<RwLock<HashMap<String, neura_agent_runtime::InterruptSignal>>>,
     soft_interrupt_queues: &SessionInterruptQueues,
 ) -> serde_json::Value {
     let process = crate::process_memory::snapshot_with_source("server:memory");

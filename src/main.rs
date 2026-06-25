@@ -34,7 +34,7 @@ fn configure_system_allocator() {
     }
 
     const M_ARENA_MAX: i32 = -8;
-    let arena_max = std::env::var("KCODE_GLIBC_ARENA_MAX")
+    let arena_max = std::env::var("NEURA_GLIBC_ARENA_MAX")
         .ok()
         .and_then(|value| value.trim().parse::<i32>().ok())
         .filter(|value| *value > 0)
@@ -53,5 +53,5 @@ fn main() -> Result<()> {
         .enable_all()
         .build()?;
 
-    runtime.block_on(async { kcode::run().await })
+    runtime.block_on(async { neura::run().await })
 }

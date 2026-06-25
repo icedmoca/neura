@@ -9,12 +9,12 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::SystemTime;
 
-/// Get the kcode repository directory
+/// Get the neura repository directory
 pub fn get_repo_dir() -> Option<PathBuf> {
     // First try: compile-time directory
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let path = PathBuf::from(manifest_dir);
-    if is_kcode_repo(&path) {
+    if is_neura_repo(&path) {
         return Some(path);
     }
 
@@ -25,7 +25,7 @@ pub fn get_repo_dir() -> Option<PathBuf> {
             .parent()
             .and_then(|p| p.parent())
             .and_then(|p| p.parent())
-            && is_kcode_repo(repo)
+            && is_neura_repo(repo)
         {
             return Some(repo.to_path_buf());
         }
@@ -46,7 +46,7 @@ pub fn get_repo_dir() -> Option<PathBuf> {
 
 pub fn find_repo_in_ancestors(start: &Path) -> Option<PathBuf> {
     for dir in start.ancestors() {
-        if is_kcode_repo(dir) {
+        if is_neura_repo(dir) {
             return Some(dir.to_path_buf());
         }
     }
@@ -54,12 +54,12 @@ pub fn find_repo_in_ancestors(start: &Path) -> Option<PathBuf> {
 }
 
 pub fn binary_stem() -> &'static str {
-    "kcode"
+    "neura"
 }
 
 pub fn binary_name() -> &'static str {
     if cfg!(windows) {
-        "kcode.exe"
+        "neura.exe"
     } else {
         binary_stem()
     }
@@ -105,12 +105,12 @@ pub fn selfdev_build_command(repo_dir: &Path) -> SelfDevBuildCommand {
                 "--profile".to_string(),
                 SELFDEV_CARGO_PROFILE.to_string(),
                 "-p".to_string(),
-                "kcode".to_string(),
+                "neura".to_string(),
                 "--bin".to_string(),
-                "kcode".to_string(),
+                "neura".to_string(),
             ],
             display: format!(
-                "scripts/dev_cargo.sh build --profile {} -p kcode --bin kcode",
+                "scripts/dev_cargo.sh build --profile {} -p neura --bin neura",
                 SELFDEV_CARGO_PROFILE
             ),
         };
@@ -123,12 +123,12 @@ pub fn selfdev_build_command(repo_dir: &Path) -> SelfDevBuildCommand {
             "--profile".to_string(),
             SELFDEV_CARGO_PROFILE.to_string(),
             "-p".to_string(),
-            "kcode".to_string(),
+            "neura".to_string(),
             "--bin".to_string(),
-            "kcode".to_string(),
+            "neura".to_string(),
         ],
         display: format!(
-            "cargo build --profile {} -p kcode --bin kcode",
+            "cargo build --profile {} -p neura --bin neura",
             SELFDEV_CARGO_PROFILE
         ),
     }
@@ -183,17 +183,17 @@ fn home_dir() -> Result<PathBuf> {
 
 /// Directory for the single launcher path users execute from PATH.
 ///
-/// Defaults to `~/.local/bin` on Unix, `%LOCALAPPDATA%\kcode\bin` on Windows.
-/// Overridable with `KCODE_INSTALL_DIR`.
+/// Defaults to `~/.local/bin` on Unix, `%LOCALAPPDATA%\neura\bin` on Windows.
+/// Overridable with `NEURA_INSTALL_DIR`.
 pub fn launcher_dir() -> Result<PathBuf> {
-    if let Ok(custom) = std::env::var("KCODE_INSTALL_DIR") {
+    if let Ok(custom) = std::env::var("NEURA_INSTALL_DIR") {
         let trimmed = custom.trim();
         if !trimmed.is_empty() {
             return Ok(PathBuf::from(trimmed));
         }
     }
 
-    if let Ok(sandbox_home) = std::env::var("KCODE_HOME") {
+    if let Ok(sandbox_home) = std::env::var("NEURA_HOME") {
         let trimmed = sandbox_home.trim();
         if !trimmed.is_empty() {
             return Ok(PathBuf::from(trimmed).join("bin"));
@@ -203,12 +203,12 @@ pub fn launcher_dir() -> Result<PathBuf> {
     #[cfg(windows)]
     {
         if let Ok(local) = std::env::var("LOCALAPPDATA") {
-            return Ok(PathBuf::from(local).join("kcode").join("bin"));
+            return Ok(PathBuf::from(local).join("neura").join("bin"));
         }
         Ok(home_dir()?
             .join("AppData")
             .join("Local")
-            .join("kcode")
+            .join("neura")
             .join("bin"))
     }
     #[cfg(not(windows))]
@@ -217,7 +217,7 @@ pub fn launcher_dir() -> Result<PathBuf> {
     }
 }
 
-/// Path to the launcher binary (`~/.local/bin/kcode` by default).
+/// Path to the launcher binary (`~/.local/bin/neura` by default).
 pub fn launcher_binary_path() -> Result<PathBuf> {
     Ok(launcher_dir()?.join(binary_name()))
 }
@@ -365,9 +365,9 @@ pub fn preferred_reload_candidate(is_selfdev_session: bool) -> Option<(PathBuf, 
     }
 }
 
-/// Check if a directory is the kcode repository
-pub fn is_kcode_repo(dir: &Path) -> bool {
-    // Check for Cargo.toml with name = "kcode"
+/// Check if a directory is the neura repository
+pub fn is_neura_repo(dir: &Path) -> bool {
+    // Check for Cargo.toml with name = "neura"
     let cargo_toml = dir.join("Cargo.toml");
     if !cargo_toml.exists() {
         return false;
@@ -380,7 +380,7 @@ pub fn is_kcode_repo(dir: &Path) -> bool {
 
     // Read Cargo.toml and check package name
     if let Ok(content) = std::fs::read_to_string(&cargo_toml)
-        && content.contains("name = \"kcode\"")
+        && content.contains("name = \"neura\"")
     {
         return true;
     }

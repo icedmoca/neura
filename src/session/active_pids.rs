@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn active_pids_dir() -> Option<std::path::PathBuf> {
-    storage::kcode_dir().ok().map(|d| d.join("active_pids"))
+    storage::neura_dir().ok().map(|d| d.join("active_pids"))
 }
 
 pub(super) fn register_active_pid(session_id: &str, pid: u32) {
@@ -31,7 +31,7 @@ pub fn find_active_session_id_by_pid(pid: u32) -> Option<String> {
     None
 }
 
-/// List active session IDs currently tracked in ~/.kcode/active_pids.
+/// List active session IDs currently tracked in ~/.neura/active_pids.
 pub fn active_session_ids() -> Vec<String> {
     let Some(dir) = active_pids_dir() else {
         return Vec::new();

@@ -13,11 +13,11 @@ fn env_truthy(key: &str) -> bool {
 }
 
 fn qr_rendering_enabled() -> bool {
-    env_truthy("KCODE_SHOW_LOGIN_QR") || env_truthy("KCODE_LOGIN_QR")
+    env_truthy("NEURA_SHOW_LOGIN_QR") || env_truthy("NEURA_LOGIN_QR")
 }
 
 fn tui_qr_rendering_enabled() -> bool {
-    env_truthy("KCODE_SHOW_TUI_LOGIN_QR") || env_truthy("KCODE_TUI_LOGIN_QR")
+    env_truthy("NEURA_SHOW_TUI_LOGIN_QR") || env_truthy("NEURA_TUI_LOGIN_QR")
 }
 
 pub fn render_unicode_qr(data: &str) -> Result<String, qr2term::QrError> {
@@ -101,39 +101,39 @@ mod tests {
     #[test]
     fn markdown_section_wraps_qr_in_code_block() {
         let _guard = lock_test_env();
-        crate::env::set_var("KCODE_SHOW_LOGIN_QR", "1");
+        crate::env::set_var("NEURA_SHOW_LOGIN_QR", "1");
         let section =
             markdown_section("https://example.com/login", "Scan this on another device:").unwrap();
         assert!(section.starts_with("Scan this on another device:\n\n```text\n"));
         assert!(section.ends_with("\n```"));
-        crate::env::remove_var("KCODE_SHOW_LOGIN_QR");
+        crate::env::remove_var("NEURA_SHOW_LOGIN_QR");
     }
 
     #[test]
     fn tui_markdown_section_is_opt_in_even_when_general_qr_is_enabled() {
         let _guard = lock_test_env();
-        crate::env::set_var("KCODE_SHOW_LOGIN_QR", "1");
-        crate::env::remove_var("KCODE_SHOW_TUI_LOGIN_QR");
-        crate::env::remove_var("KCODE_TUI_LOGIN_QR");
+        crate::env::set_var("NEURA_SHOW_LOGIN_QR", "1");
+        crate::env::remove_var("NEURA_SHOW_TUI_LOGIN_QR");
+        crate::env::remove_var("NEURA_TUI_LOGIN_QR");
         assert!(markdown_section_for_tui("https://example.com/login", "Scan:").is_none());
-        crate::env::remove_var("KCODE_SHOW_LOGIN_QR");
+        crate::env::remove_var("NEURA_SHOW_LOGIN_QR");
     }
 
     #[test]
     fn tui_markdown_section_uses_dedicated_env_flag() {
         let _guard = lock_test_env();
-        crate::env::set_var("KCODE_SHOW_TUI_LOGIN_QR", "1");
+        crate::env::set_var("NEURA_SHOW_TUI_LOGIN_QR", "1");
         let section = markdown_section_for_tui("https://example.com/login", "Scan:")
             .expect("tui qr should be enabled");
         assert!(section.starts_with("Scan:\n\n```text\n"));
         assert!(section.ends_with("\n```"));
-        crate::env::remove_var("KCODE_SHOW_TUI_LOGIN_QR");
+        crate::env::remove_var("NEURA_SHOW_TUI_LOGIN_QR");
     }
 
     #[test]
     fn indented_section_prefixes_each_line() {
         let _guard = lock_test_env();
-        crate::env::set_var("KCODE_SHOW_LOGIN_QR", "1");
+        crate::env::set_var("NEURA_SHOW_LOGIN_QR", "1");
         let section = indented_section("https://example.com/login", "Scan:", "    ").unwrap();
         assert!(section.starts_with("Scan:\n\n    "));
         assert!(
@@ -142,14 +142,14 @@ mod tests {
                 .skip(2)
                 .all(|line| line.is_empty() || line.starts_with("    "))
         );
-        crate::env::remove_var("KCODE_SHOW_LOGIN_QR");
+        crate::env::remove_var("NEURA_SHOW_LOGIN_QR");
     }
 
     #[test]
     fn qr_sections_are_disabled_by_default() {
         let _guard = lock_test_env();
-        crate::env::remove_var("KCODE_SHOW_LOGIN_QR");
-        crate::env::remove_var("KCODE_LOGIN_QR");
+        crate::env::remove_var("NEURA_SHOW_LOGIN_QR");
+        crate::env::remove_var("NEURA_LOGIN_QR");
         assert!(markdown_section("https://example.com/login", "Scan:").is_none());
         assert!(indented_section("https://example.com/login", "Scan:", "    ").is_none());
     }

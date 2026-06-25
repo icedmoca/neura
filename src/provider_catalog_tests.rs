@@ -48,7 +48,7 @@ fn matrix_profiles_have_unique_ids_and_safe_metadata() {
 fn matrix_login_provider_aliases_resolve_to_canonical_ids() {
     assert_eq!(
         resolve_login_provider("subscription").map(|provider| provider.id),
-        Some("kcode")
+        Some("neura")
     );
     assert_eq!(
         resolve_login_provider("anthropic").map(|provider| provider.id),
@@ -134,7 +134,7 @@ fn matrix_cli_login_selection_preserves_existing_order() {
     );
     assert_eq!(
         resolve_login_selection("4", &providers).map(|provider| provider.id),
-        Some("kcode")
+        Some("neura")
     );
     assert_eq!(
         resolve_login_selection("5", &providers).map(|provider| provider.id),
@@ -162,15 +162,15 @@ fn matrix_cli_login_selection_preserves_existing_order() {
 fn matrix_openrouter_like_sources_include_all_static_profiles() {
     let _lock = crate::storage::lock_test_env();
     let guard = EnvGuard::save(&[
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
     ]);
-    crate::env::remove_var("KCODE_OPENROUTER_API_KEY_NAME");
-    crate::env::remove_var("KCODE_OPENROUTER_ENV_FILE");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_API_KEY_NAME");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_ENV_FILE");
+    crate::env::remove_var("NEURA_OPENROUTER_API_KEY_NAME");
+    crate::env::remove_var("NEURA_OPENROUTER_ENV_FILE");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_API_KEY_NAME");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_ENV_FILE");
 
     let sources = openrouter_like_api_key_sources();
     drop(guard);
@@ -193,16 +193,16 @@ fn matrix_openrouter_like_sources_include_all_static_profiles() {
 fn matrix_openrouter_like_sources_accept_valid_overrides() {
     let _lock = crate::storage::lock_test_env();
     let _guard = EnvGuard::save(&[
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
     ]);
 
-    crate::env::set_var("KCODE_OPENROUTER_API_KEY_NAME", "ALT_OPENROUTER_KEY");
-    crate::env::set_var("KCODE_OPENROUTER_ENV_FILE", "alt-openrouter.env");
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_KEY_NAME", "ALT_COMPAT_KEY");
-    crate::env::set_var("KCODE_OPENAI_COMPAT_ENV_FILE", "alt-compat.env");
+    crate::env::set_var("NEURA_OPENROUTER_API_KEY_NAME", "ALT_OPENROUTER_KEY");
+    crate::env::set_var("NEURA_OPENROUTER_ENV_FILE", "alt-openrouter.env");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_KEY_NAME", "ALT_COMPAT_KEY");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_ENV_FILE", "alt-compat.env");
 
     let sources = openrouter_like_api_key_sources();
     assert!(sources.contains(&(
@@ -244,18 +244,18 @@ fn named_provider_config_accepts_openai_compatible_spelling() {
 fn named_provider_profile_maps_to_openai_compatible_runtime_env() {
     let _lock = crate::storage::lock_test_env();
     let _guard = EnvGuard::save(&[
-        "KCODE_OPENROUTER_API_BASE",
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENROUTER_CACHE_NAMESPACE",
-        "KCODE_OPENROUTER_PROVIDER_FEATURES",
-        "KCODE_OPENROUTER_ALLOW_NO_AUTH",
-        "KCODE_OPENROUTER_MODEL_CATALOG",
-        "KCODE_OPENROUTER_MODEL",
-        "KCODE_OPENROUTER_STATIC_MODELS",
-        "KCODE_OPENROUTER_AUTH_HEADER",
-        "KCODE_OPENROUTER_AUTH_HEADER_NAME",
-        "KCODE_NAMED_PROVIDER_PROFILE",
+        "NEURA_OPENROUTER_API_BASE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENROUTER_CACHE_NAMESPACE",
+        "NEURA_OPENROUTER_PROVIDER_FEATURES",
+        "NEURA_OPENROUTER_ALLOW_NO_AUTH",
+        "NEURA_OPENROUTER_MODEL_CATALOG",
+        "NEURA_OPENROUTER_MODEL",
+        "NEURA_OPENROUTER_STATIC_MODELS",
+        "NEURA_OPENROUTER_AUTH_HEADER",
+        "NEURA_OPENROUTER_AUTH_HEADER_NAME",
+        "NEURA_NAMED_PROVIDER_PROFILE",
         "MY_GATEWAY_API_KEY",
     ]);
 
@@ -282,51 +282,51 @@ fn named_provider_profile_maps_to_openai_compatible_runtime_env() {
     apply_named_provider_profile_env_from_config("my-gateway", &cfg).expect("apply profile");
 
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_API_BASE").ok().as_deref(),
+        std::env::var("NEURA_OPENROUTER_API_BASE").ok().as_deref(),
         Some("https://llm.example.com/v1")
     );
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_API_KEY_NAME")
+        std::env::var("NEURA_OPENROUTER_API_KEY_NAME")
             .ok()
             .as_deref(),
         Some("MY_GATEWAY_API_KEY")
     );
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_PROVIDER_FEATURES")
+        std::env::var("NEURA_OPENROUTER_PROVIDER_FEATURES")
             .ok()
             .as_deref(),
         Some("0")
     );
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_MODEL_CATALOG")
+        std::env::var("NEURA_OPENROUTER_MODEL_CATALOG")
             .ok()
             .as_deref(),
         Some("0")
     );
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_MODEL").ok().as_deref(),
+        std::env::var("NEURA_OPENROUTER_MODEL").ok().as_deref(),
         Some("opaque/model@id")
     );
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_STATIC_MODELS")
+        std::env::var("NEURA_OPENROUTER_STATIC_MODELS")
             .ok()
             .as_deref(),
         Some("opaque/model@id\nanother-local-id")
     );
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_AUTH_HEADER")
+        std::env::var("NEURA_OPENROUTER_AUTH_HEADER")
             .ok()
             .as_deref(),
         Some("api-key")
     );
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_AUTH_HEADER_NAME")
+        std::env::var("NEURA_OPENROUTER_AUTH_HEADER_NAME")
             .ok()
             .as_deref(),
         Some("x-api-key")
     );
     assert_eq!(
-        std::env::var("KCODE_NAMED_PROVIDER_PROFILE")
+        std::env::var("NEURA_NAMED_PROVIDER_PROFILE")
             .ok()
             .as_deref(),
         Some("my-gateway")
@@ -337,13 +337,13 @@ fn named_provider_profile_maps_to_openai_compatible_runtime_env() {
 fn named_provider_inline_api_key_is_private_runtime_fallback() {
     let _lock = crate::storage::lock_test_env();
     let _guard = EnvGuard::save(&[
-        "KCODE_OPENROUTER_API_BASE",
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_CACHE_NAMESPACE",
-        "KCODE_OPENROUTER_PROVIDER_FEATURES",
-        "KCODE_OPENROUTER_MODEL_CATALOG",
-        "KCODE_NAMED_PROVIDER_PROFILE",
-        "KCODE_PROVIDER_MY_GATEWAY_API_KEY",
+        "NEURA_OPENROUTER_API_BASE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_CACHE_NAMESPACE",
+        "NEURA_OPENROUTER_PROVIDER_FEATURES",
+        "NEURA_OPENROUTER_MODEL_CATALOG",
+        "NEURA_NAMED_PROVIDER_PROFILE",
+        "NEURA_PROVIDER_MY_GATEWAY_API_KEY",
     ]);
 
     let cfg: crate::config::Config = toml::from_str(
@@ -359,13 +359,13 @@ fn named_provider_inline_api_key_is_private_runtime_fallback() {
     apply_named_provider_profile_env_from_config("my-gateway", &cfg).expect("apply profile");
 
     assert_eq!(
-        std::env::var("KCODE_OPENROUTER_API_KEY_NAME")
+        std::env::var("NEURA_OPENROUTER_API_KEY_NAME")
             .ok()
             .as_deref(),
-        Some("KCODE_PROVIDER_MY_GATEWAY_API_KEY")
+        Some("NEURA_PROVIDER_MY_GATEWAY_API_KEY")
     );
     assert_eq!(
-        std::env::var("KCODE_PROVIDER_MY_GATEWAY_API_KEY")
+        std::env::var("NEURA_PROVIDER_MY_GATEWAY_API_KEY")
             .ok()
             .as_deref(),
         Some("inline-secret")
@@ -376,16 +376,16 @@ fn named_provider_inline_api_key_is_private_runtime_fallback() {
 fn matrix_openrouter_like_sources_reject_invalid_overrides() {
     let _lock = crate::storage::lock_test_env();
     let _guard = EnvGuard::save(&[
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
     ]);
 
-    crate::env::set_var("KCODE_OPENROUTER_API_KEY_NAME", "bad-key-name");
-    crate::env::set_var("KCODE_OPENROUTER_ENV_FILE", "../bad.env");
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_KEY_NAME", "bad key");
-    crate::env::set_var("KCODE_OPENAI_COMPAT_ENV_FILE", "../bad-compat.env");
+    crate::env::set_var("NEURA_OPENROUTER_API_KEY_NAME", "bad-key-name");
+    crate::env::set_var("NEURA_OPENROUTER_ENV_FILE", "../bad.env");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_KEY_NAME", "bad key");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_ENV_FILE", "../bad-compat.env");
 
     let sources = openrouter_like_api_key_sources();
     assert!(
@@ -404,19 +404,19 @@ fn matrix_openrouter_like_sources_reject_invalid_overrides() {
 fn matrix_openai_compatible_profile_overrides_apply_when_valid() {
     let _lock = crate::storage::lock_test_env();
     let _guard = EnvGuard::save(&[
-        "KCODE_OPENAI_COMPAT_API_BASE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_DEFAULT_MODEL",
+        "NEURA_OPENAI_COMPAT_API_BASE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_DEFAULT_MODEL",
     ]);
 
     crate::env::set_var(
-        "KCODE_OPENAI_COMPAT_API_BASE",
+        "NEURA_OPENAI_COMPAT_API_BASE",
         "https://api.groq.com/openai/v1/",
     );
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_KEY_NAME", "GROQ_API_KEY");
-    crate::env::set_var("KCODE_OPENAI_COMPAT_ENV_FILE", "groq.env");
-    crate::env::set_var("KCODE_OPENAI_COMPAT_DEFAULT_MODEL", "openai/gpt-oss-120b");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_KEY_NAME", "GROQ_API_KEY");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_ENV_FILE", "groq.env");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_DEFAULT_MODEL", "openai/gpt-oss-120b");
 
     let resolved = resolve_openai_compatible_profile(OPENAI_COMPAT_PROFILE);
     assert_eq!(resolved.api_base, "https://api.groq.com/openai/v1");
@@ -432,14 +432,14 @@ fn matrix_openai_compatible_profile_overrides_apply_when_valid() {
 fn matrix_openai_compatible_profile_overrides_reject_invalid_values() {
     let _lock = crate::storage::lock_test_env();
     let _guard = EnvGuard::save(&[
-        "KCODE_OPENAI_COMPAT_API_BASE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_API_BASE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
     ]);
 
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_BASE", "http://example.com/v1");
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_KEY_NAME", "bad-key-name");
-    crate::env::set_var("KCODE_OPENAI_COMPAT_ENV_FILE", "../bad.env");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_BASE", "http://example.com/v1");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_KEY_NAME", "bad-key-name");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_ENV_FILE", "../bad.env");
 
     let resolved = resolve_openai_compatible_profile(OPENAI_COMPAT_PROFILE);
     assert_eq!(resolved.api_base, OPENAI_COMPAT_PROFILE.api_base);
@@ -451,28 +451,28 @@ fn matrix_openai_compatible_profile_overrides_reject_invalid_values() {
 fn matrix_openai_compatible_profile_overrides_read_from_env_file() {
     let _lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let config_root = temp.path().join("config").join("kcode");
+    let config_root = temp.path().join("config").join("neura");
     std::fs::create_dir_all(&config_root).expect("config dir");
 
     let _guard = EnvGuard::save(&[
-        "KCODE_HOME",
-        "KCODE_OPENAI_COMPAT_API_BASE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_DEFAULT_MODEL",
+        "NEURA_HOME",
+        "NEURA_OPENAI_COMPAT_API_BASE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_DEFAULT_MODEL",
     ]);
-    crate::env::set_var("KCODE_HOME", temp.path());
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_API_BASE");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_API_KEY_NAME");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_ENV_FILE");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_DEFAULT_MODEL");
+    crate::env::set_var("NEURA_HOME", temp.path());
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_API_BASE");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_API_KEY_NAME");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_ENV_FILE");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_DEFAULT_MODEL");
     std::fs::write(
         config_root.join(OPENAI_COMPAT_PROFILE.env_file),
         concat!(
-            "KCODE_OPENAI_COMPAT_API_BASE=https://api.example.com/v1\n",
-            "KCODE_OPENAI_COMPAT_API_KEY_NAME=EXAMPLE_API_KEY\n",
-            "KCODE_OPENAI_COMPAT_ENV_FILE=example.env\n",
-            "KCODE_OPENAI_COMPAT_DEFAULT_MODEL=example/model\n",
+            "NEURA_OPENAI_COMPAT_API_BASE=https://api.example.com/v1\n",
+            "NEURA_OPENAI_COMPAT_API_KEY_NAME=EXAMPLE_API_KEY\n",
+            "NEURA_OPENAI_COMPAT_ENV_FILE=example.env\n",
+            "NEURA_OPENAI_COMPAT_DEFAULT_MODEL=example/model\n",
         ),
     )
     .expect("env file");
@@ -488,16 +488,16 @@ fn matrix_openai_compatible_profile_overrides_read_from_env_file() {
 fn matrix_openai_compatible_localhost_override_allows_no_auth() {
     let _lock = crate::storage::lock_test_env();
     let _guard = EnvGuard::save(&[
-        "KCODE_OPENAI_COMPAT_API_BASE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_LOCAL_ENABLED",
+        "NEURA_OPENAI_COMPAT_API_BASE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_LOCAL_ENABLED",
     ]);
 
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_BASE", "http://localhost:11434/v1");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_API_KEY_NAME");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_ENV_FILE");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_LOCAL_ENABLED");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_BASE", "http://localhost:11434/v1");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_API_KEY_NAME");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_ENV_FILE");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_LOCAL_ENABLED");
 
     let resolved = resolve_openai_compatible_profile(OPENAI_COMPAT_PROFILE);
     assert_eq!(resolved.api_base, "http://localhost:11434/v1");
@@ -511,11 +511,11 @@ fn matrix_openai_compatible_localhost_override_allows_no_auth() {
 fn matrix_load_api_key_from_env_or_config_prefers_env() {
     let _lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let config_root = temp.path().join("config").join("kcode");
+    let config_root = temp.path().join("config").join("neura");
     std::fs::create_dir_all(&config_root).expect("config dir");
 
-    let _guard = EnvGuard::save(&["KCODE_HOME", "OPENCODE_API_KEY"]);
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let _guard = EnvGuard::save(&["NEURA_HOME", "OPENCODE_API_KEY"]);
+    crate::env::set_var("NEURA_HOME", temp.path());
     crate::env::set_var("OPENCODE_API_KEY", "env-secret");
     std::fs::write(
         config_root.join("opencode.env"),
@@ -533,11 +533,11 @@ fn matrix_load_api_key_from_env_or_config_prefers_env() {
 fn matrix_load_api_key_from_env_or_config_reads_config_file() {
     let _lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let config_root = temp.path().join("config").join("kcode");
+    let config_root = temp.path().join("config").join("neura");
     std::fs::create_dir_all(&config_root).expect("config dir");
 
-    let _guard = EnvGuard::save(&["KCODE_HOME", "OPENCODE_API_KEY"]);
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let _guard = EnvGuard::save(&["NEURA_HOME", "OPENCODE_API_KEY"]);
+    crate::env::set_var("NEURA_HOME", temp.path());
     crate::env::remove_var("OPENCODE_API_KEY");
     std::fs::write(
         config_root.join("opencode.env"),
@@ -555,11 +555,11 @@ fn matrix_load_api_key_from_env_or_config_reads_config_file() {
 fn load_api_key_accepts_legacy_zai_key_name() {
     let _lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let config_root = temp.path().join("config").join("kcode");
+    let config_root = temp.path().join("config").join("neura");
     std::fs::create_dir_all(&config_root).expect("config dir");
 
-    let _guard = EnvGuard::save(&["KCODE_HOME", "ZHIPU_API_KEY", "ZAI_API_KEY"]);
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let _guard = EnvGuard::save(&["NEURA_HOME", "ZHIPU_API_KEY", "ZAI_API_KEY"]);
+    crate::env::set_var("NEURA_HOME", temp.path());
     crate::env::remove_var("ZHIPU_API_KEY");
     crate::env::remove_var("ZAI_API_KEY");
     std::fs::write(config_root.join("zai.env"), "ZAI_API_KEY=legacy-secret\n").expect("env file");

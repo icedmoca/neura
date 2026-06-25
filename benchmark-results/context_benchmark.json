@@ -18,7 +18,7 @@
       "estimated_prompt_tokens": 24699,
       "estimated_tokens_per_success": 2058.25
     },
-    "kcode_exact": {
+    "neura_exact": {
       "queries": 12,
       "successes": 12,
       "success_rate": 1.0,
@@ -81,7 +81,7 @@
       "partial": false,
       "cited_context_id": "ctx:fact-2",
       "prompt_chars": 8233,
-      "answer": "kcode_dynamic_tool_pruning (source ctx:fact-2)"
+      "answer": "neura_dynamic_tool_pruning (source ctx:fact-2)"
     },
     {
       "strategy": "full_context",
@@ -107,7 +107,7 @@
       "partial": false,
       "cited_context_id": "ctx:fact-4",
       "prompt_chars": 8233,
-      "answer": "kubectl rollout undo deploy/kcode-api (source ctx:fact-4)"
+      "answer": "kubectl rollout undo deploy/neura-api (source ctx:fact-4)"
     },
     {
       "strategy": "full_context",
@@ -133,7 +133,7 @@
       "partial": false,
       "cited_context_id": "ctx:fact-6",
       "prompt_chars": 8233,
-      "answer": "support@kcode.local (source ctx:fact-6)"
+      "answer": "support@neura.local (source ctx:fact-6)"
     },
     {
       "strategy": "full_context",
@@ -201,7 +201,7 @@
       "answer": "Not found in provided context."
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q0",
       "kind": "known_fact",
       "success": true,
@@ -214,7 +214,7 @@
       "answer": "staging-blue (source ctx:fact-0)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q1",
       "kind": "known_fact",
       "success": true,
@@ -227,7 +227,7 @@
       "answer": "db13.internal (source ctx:fact-1)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q2",
       "kind": "known_fact",
       "success": true,
@@ -237,10 +237,10 @@
       "partial": false,
       "cited_context_id": "ctx:fact-2",
       "prompt_chars": 3238,
-      "answer": "kcode_dynamic_tool_pruning (source ctx:fact-2)"
+      "answer": "neura_dynamic_tool_pruning (source ctx:fact-2)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q3",
       "kind": "known_fact",
       "success": true,
@@ -253,7 +253,7 @@
       "answer": "Mira (source ctx:fact-3)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q4",
       "kind": "known_fact",
       "success": true,
@@ -263,10 +263,10 @@
       "partial": false,
       "cited_context_id": "ctx:fact-4",
       "prompt_chars": 3253,
-      "answer": "kubectl rollout undo deploy/kcode-api (source ctx:fact-4)"
+      "answer": "kubectl rollout undo deploy/neura-api (source ctx:fact-4)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q5",
       "kind": "known_fact",
       "success": true,
@@ -279,7 +279,7 @@
       "answer": "kc_ctx_v3 (source ctx:fact-5)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q6",
       "kind": "known_fact",
       "success": true,
@@ -289,10 +289,10 @@
       "partial": false,
       "cited_context_id": "ctx:fact-6",
       "prompt_chars": 3232,
-      "answer": "support@kcode.local (source ctx:fact-6)"
+      "answer": "support@neura.local (source ctx:fact-6)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q7",
       "kind": "known_fact",
       "success": true,
@@ -305,7 +305,7 @@
       "answer": "openai/gpt-5.5 (source ctx:fact-7)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q8",
       "kind": "known_fact",
       "success": true,
@@ -318,7 +318,7 @@
       "answer": "9197 (source ctx:fact-8)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q9",
       "kind": "known_fact",
       "success": true,
@@ -331,7 +331,7 @@
       "answer": "7 (source ctx:fact-9)"
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q_absent_1",
       "kind": "absent",
       "success": true,
@@ -344,7 +344,7 @@
       "answer": "Not found in provided context."
     },
     {
-      "strategy": "kcode_exact",
+      "strategy": "neura_exact",
       "query_id": "q_absent_2",
       "kind": "absent",
       "success": true,
@@ -393,7 +393,7 @@
       "partial": false,
       "cited_context_id": "ctx:fact-2",
       "prompt_chars": 558,
-      "answer": "kcode_dynamic_tool_pruning (source ctx:fact-2)"
+      "answer": "neura_dynamic_tool_pruning (source ctx:fact-2)"
     },
     {
       "strategy": "lexical_rag",
@@ -419,7 +419,7 @@
       "partial": false,
       "cited_context_id": "ctx:fact-4",
       "prompt_chars": 383,
-      "answer": "kubectl rollout undo deploy/kcode-api (source ctx:fact-4)"
+      "answer": "kubectl rollout undo deploy/neura-api (source ctx:fact-4)"
     },
     {
       "strategy": "lexical_rag",
@@ -445,7 +445,7 @@
       "partial": false,
       "cited_context_id": "ctx:fact-6",
       "prompt_chars": 370,
-      "answer": "support@kcode.local (source ctx:fact-6)"
+      "answer": "support@neura.local (source ctx:fact-6)"
     },
     {
       "strategy": "lexical_rag",

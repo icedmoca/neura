@@ -1,6 +1,6 @@
 use super::*;
 
-/// When `kcode` spawns `kcode serve`, stderr is piped for log draining, so
+/// When `neura` spawns `neura serve`, stderr is piped for log draining, so
 /// `stderr().is_terminal()` is false even from a real interactive session.
 /// `/dev/tty` is the portable way to prompt in that setup (and for other
 /// piped-stdio cases) while still failing in CI with no controlling terminal.
@@ -21,7 +21,7 @@ fn try_open_tty_for_prompt() -> Option<std::fs::File> {
 }
 
 pub(super) fn can_prompt_for_external_auth() -> bool {
-    if std::env::var("KCODE_NON_INTERACTIVE").is_ok() {
+    if std::env::var("NEURA_NON_INTERACTIVE").is_ok() {
         return false;
     }
     if try_open_tty_for_prompt().is_some() {
@@ -37,7 +37,7 @@ pub(super) fn external_auth_blocked_message(
     login_hint: &str,
 ) -> String {
     format!(
-        "Found existing {} credentials from {} at {} but kcode will not read them without confirmation. Re-run in an interactive terminal to approve this auth source for future kcode sessions, or run `{}`.",
+        "Found existing {} credentials from {} at {} but neura will not read them without confirmation. Re-run in an interactive terminal to approve this auth source for future neura sessions, or run `{}`.",
         provider_name,
         source_name,
         path.display(),
@@ -64,7 +64,7 @@ pub(super) fn prompt_to_trust_external_auth(
         )?;
         writeln!(
             tty,
-            "kcode will only read that source in place after you approve it."
+            "neura will only read that source in place after you approve it."
         )?;
         writeln!(
             tty,
@@ -72,7 +72,7 @@ pub(super) fn prompt_to_trust_external_auth(
         )?;
         write!(
             tty,
-            "Trust this auth source for future kcode sessions? [y/N]: "
+            "Trust this auth source for future neura sessions? [y/N]: "
         )?;
         tty.flush()?;
         io::BufReader::new(&mut tty).read_line(&mut input)?;
@@ -84,9 +84,9 @@ pub(super) fn prompt_to_trust_external_auth(
             source_name,
             path.display()
         );
-        eprintln!("kcode will only read that source in place after you approve it.");
+        eprintln!("neura will only read that source in place after you approve it.");
         eprintln!("It will not move, delete, or rewrite the original auth there.");
-        eprint!("Trust this auth source for future kcode sessions? [y/N]: ");
+        eprint!("Trust this auth source for future neura sessions? [y/N]: ");
         io::stderr().flush()?;
 
         io::stdin().read_line(&mut input)?;
@@ -260,11 +260,11 @@ fn prompt_to_review_external_auth_sources(
     if let Some(mut tty) = try_open_tty_for_prompt() {
         use std::io::BufRead;
         writeln!(tty)?;
-        writeln!(tty, "Found existing logins that kcode can reuse.")?;
+        writeln!(tty, "Found existing logins that neura can reuse.")?;
         writeln!(tty, "Nothing has been imported yet.")?;
         writeln!(
             tty,
-            "Approve the sources you want kcode to read in place; rejected sources stay untouched."
+            "Approve the sources you want neura to read in place; rejected sources stay untouched."
         )?;
         writeln!(tty)?;
 
@@ -285,10 +285,10 @@ fn prompt_to_review_external_auth_sources(
         io::BufReader::new(&mut tty).read_line(&mut input)?;
     } else {
         eprintln!();
-        eprintln!("Found existing logins that kcode can reuse.");
+        eprintln!("Found existing logins that neura can reuse.");
         eprintln!("Nothing has been imported yet.");
         eprintln!(
-            "Approve the sources you want kcode to read in place; rejected sources stay untouched."
+            "Approve the sources you want neura to read in place; rejected sources stay untouched."
         );
         eprintln!();
 
@@ -505,7 +505,7 @@ pub(crate) fn format_external_auth_review_candidates_markdown(
     candidates: &[ExternalAuthReviewCandidate],
 ) -> String {
     let mut message = String::from(
-        "**Auto Import Existing Logins**\n\nFound existing logins that kcode can reuse. Nothing has been imported yet.\n\nReply with `a` to approve all, `1,3` to approve specific sources, or `/cancel` to abort.\n",
+        "**Auto Import Existing Logins**\n\nFound existing logins that neura can reuse. Nothing has been imported yet.\n\nReply with `a` to approve all, `1,3` to approve specific sources, or `/cancel` to abort.\n",
     );
     for (index, candidate) in candidates.iter().enumerate() {
         message.push_str(&format!(

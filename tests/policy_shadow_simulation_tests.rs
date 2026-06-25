@@ -1,8 +1,8 @@
-use kcode::operational_policy::{
+use neura::operational_policy::{
     OperationalPolicyRule, OperationalPolicyState, PolicyAction, PolicyDomain, PolicyWiringStatus,
     policy_state_path,
 };
-use kcode::policy_shadow_simulation::{
+use neura::policy_shadow_simulation::{
     PolicyShadowLedger, PolicyShadowResult, demote_bad, promote_safe, shadow_ledger_path,
 };
 use tempfile::TempDir;
@@ -12,11 +12,11 @@ fn promotes_and_demotes_from_shadow_ledger() {
     let dir = TempDir::new().unwrap();
     unsafe {
         std::env::set_var(
-            "KCODE_OPERATIONAL_POLICY_STATE",
+            "NEURA_OPERATIONAL_POLICY_STATE",
             dir.path().join("policy.json"),
         )
     };
-    unsafe { std::env::set_var("KCODE_POLICY_SHADOW_LEDGER", dir.path().join("shadow.json")) };
+    unsafe { std::env::set_var("NEURA_POLICY_SHADOW_LEDGER", dir.path().join("shadow.json")) };
     let mut state = OperationalPolicyState::default();
     state.rules.push(OperationalPolicyRule {
         id: "r1".into(),

@@ -10,18 +10,18 @@ use tokio::sync::Mutex;
 
 /// Convert a filesystem path to a Windows named pipe path.
 ///
-/// e.g. `/run/user/1000/kcode.sock` -> `\\.\pipe\kcode`
-/// e.g. `/run/user/1000/kcode/myserver.sock` -> `\\.\pipe\kcode-myserver`
+/// e.g. `/run/user/1000/neura.sock` -> `\\.\pipe\neura`
+/// e.g. `/run/user/1000/neura/myserver.sock` -> `\\.\pipe\neura-myserver`
 fn path_to_pipe_name(path: &Path) -> String {
     let stem: String = path
         .file_stem()
         .and_then(|s| s.to_str())
-        .unwrap_or("kcode")
+        .unwrap_or("neura")
         .chars()
         .filter(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_'))
         .take(32)
         .collect();
-    let stem = if stem.is_empty() { "kcode" } else { &stem };
+    let stem = if stem.is_empty() { "neura" } else { &stem };
     let normalized = path
         .to_string_lossy()
         .replace('\\', "/")
@@ -131,7 +131,7 @@ impl Stream {
         use std::sync::atomic::{AtomicU64, Ordering};
         static PAIR_COUNTER: AtomicU64 = AtomicU64::new(0);
         let counter = PAIR_COUNTER.fetch_add(1, Ordering::Relaxed);
-        let pipe_name = format!(r"\\.\pipe\kcode-pair-{}-{}", std::process::id(), counter);
+        let pipe_name = format!(r"\\.\pipe\neura-pair-{}-{}", std::process::id(), counter);
         let mut server = ServerOptions::new()
             .first_pipe_instance(true)
             .create(&pipe_name)?;
@@ -388,8 +388,8 @@ mod tests {
 
     #[test]
     fn pipe_name_is_stable_and_normalizes_case_and_separators() {
-        let a = path_to_pipe_name(Path::new(r"C:\Temp\Kcode\server.sock"));
-        let b = path_to_pipe_name(Path::new("c:/temp/kcode/server.sock"));
+        let a = path_to_pipe_name(Path::new(r"C:\Temp\Neura\server.sock"));
+        let b = path_to_pipe_name(Path::new("c:/temp/neura/server.sock"));
         assert_eq!(a, b, "pipe names should be normalized consistently");
         assert!(
             a.starts_with(r"\\.\pipe\server-"),
@@ -402,7 +402,7 @@ mod tests {
     fn pipe_name_falls_back_when_stem_is_empty() {
         let name = path_to_pipe_name(Path::new("..."));
         assert!(
-            name.starts_with(r"\\.\pipe\kcode-"),
+            name.starts_with(r"\\.\pipe\neura-"),
             "unexpected pipe name: {}",
             name
         );

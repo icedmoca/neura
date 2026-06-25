@@ -16,7 +16,7 @@ pub mod long_horizon_pressure;
 
 ## Purpose
 
-The layer gives Kcode deterministic infrastructure for answering:
+The layer gives Neura deterministic infrastructure for answering:
 
 - How does operational cognition behave across many steps?
 - When do drift, compression, and convergence become concerning?

@@ -1,4 +1,4 @@
-//! Debug socket tool - send commands to the kcode debug socket
+//! Debug socket tool - send commands to the neura debug socket
 //!
 //! This tool provides direct access to the debug socket API, allowing the agent
 //! to control visual debugging, spawn test instances, and inspect agent state.

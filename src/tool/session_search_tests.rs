@@ -7,16 +7,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 fn with_temp_home<T>(f: impl FnOnce(&std::path::Path) -> T) -> T {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("create temp dir");
-    let previous_home = std::env::var("KCODE_HOME").ok();
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let previous_home = std::env::var("NEURA_HOME").ok();
+    crate::env::set_var("NEURA_HOME", temp.path());
     std::fs::create_dir_all(temp.path().join("sessions")).expect("create sessions dir");
 
     let result = f(temp.path());
 
     if let Some(previous_home) = previous_home {
-        crate::env::set_var("KCODE_HOME", previous_home);
+        crate::env::set_var("NEURA_HOME", previous_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 
     result

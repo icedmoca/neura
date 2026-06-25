@@ -4,8 +4,8 @@ use super::*;
 fn side_panel_pages_persist_and_focus_latest() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let session_id = "ses_side_panel_test";
     let first = write_markdown_page(session_id, "notes", Some("Notes"), "# Notes", true)
@@ -40,9 +40,9 @@ fn side_panel_pages_persist_and_focus_latest() {
     assert_eq!(reloaded.pages.len(), 2);
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -50,8 +50,8 @@ fn side_panel_pages_persist_and_focus_latest() {
 fn side_panel_delete_falls_back_to_most_recent_page() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let session_id = "ses_side_panel_delete";
     write_markdown_page(session_id, "one", Some("One"), "# One", true).expect("page one");
@@ -62,9 +62,9 @@ fn side_panel_delete_falls_back_to_most_recent_page() {
     assert_eq!(after_delete.focused_page_id.as_deref(), Some("one"));
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -72,8 +72,8 @@ fn side_panel_delete_falls_back_to_most_recent_page() {
 fn load_markdown_file_uses_source_path_content() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let source = temp.path().join("guide.md");
     std::fs::write(&source, "# Guide\n\nHello").expect("write source file");
@@ -105,9 +105,9 @@ fn load_markdown_file_uses_source_path_content() {
     assert_eq!(page.content, "# Guide\n\nUpdated");
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -115,8 +115,8 @@ fn load_markdown_file_uses_source_path_content() {
 fn load_markdown_file_rejects_non_markdown_extensions() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let source = temp.path().join("notes.txt");
     std::fs::write(&source, "not markdown").expect("write source file");
@@ -126,9 +126,9 @@ fn load_markdown_file_rejects_non_markdown_extensions() {
     assert!(err.to_string().contains("only supports markdown files"));
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 

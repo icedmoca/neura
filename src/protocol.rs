@@ -1,4 +1,4 @@
-//! Client-server protocol for kcode
+//! Client-server protocol for neura
 //!
 //! Uses newline-delimited JSON over Unix socket.
 //! Server streams events back to clients during message processing.
@@ -306,7 +306,7 @@ pub enum Request {
         capabilities: Vec<String>,
     },
 
-    /// Send a task to kcode agent
+    /// Send a task to neura agent
     #[serde(rename = "agent_task")]
     AgentTask {
         id: u64,
@@ -319,7 +319,7 @@ pub enum Request {
         async_: bool,
     },
 
-    /// Query kcode agent's capabilities
+    /// Query neura agent's capabilities
     #[serde(rename = "agent_capabilities")]
     AgentCapabilities { id: u64 },
 

@@ -6,7 +6,7 @@ use crate::message::{
     format_background_task_notification_markdown, format_background_task_progress_markdown,
 };
 use crate::protocol::{NotificationType, ServerEvent};
-use kcode_agent_runtime::SoftInterruptSource;
+use neura_agent_runtime::SoftInterruptSource;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

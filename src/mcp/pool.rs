@@ -1,7 +1,7 @@
 //! Shared MCP Server Pool
 //!
 //! Manages a global pool of MCP server processes that are shared across
-//! all kcode sessions. Instead of each session spawning its own set of
+//! all neura sessions. Instead of each session spawning its own set of
 //! MCP servers (N sessions × M servers = N×M processes), sessions share
 //! a single pool (M processes total).
 //!
@@ -33,7 +33,7 @@ enum ConnectAttempt {
 
 /// Global shared pool of MCP server processes.
 ///
-/// Only one pool exists per kcode daemon. It owns the child processes
+/// Only one pool exists per neura daemon. It owns the child processes
 /// and hands out cheap `McpHandle` clones to sessions.
 pub struct SharedMcpPool {
     clients: Mutex<HashMap<String, McpClient>>,

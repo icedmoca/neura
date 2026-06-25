@@ -2,11 +2,11 @@ use crate::test_support::*;
 
 // ============================================================================
 // Binary Integration Tests
-// These tests run the actual kcode binary and require real credentials.
+// These tests run the actual neura binary and require real credentials.
 // Run with: cargo test --test e2e binary_integration -- --ignored
 // ============================================================================
 
-/// Test that the kcode binary can run standalone with Claude provider
+/// Test that the neura binary can run standalone with Claude provider
 #[tokio::test]
 #[ignore] // Requires Claude credentials
 async fn binary_integration_standalone_claude() -> Result<()> {
@@ -18,7 +18,7 @@ async fn binary_integration_standalone_claude() -> Result<()> {
             "run",
             "--release",
             "--bin",
-            "kcode",
+            "neura",
             "--",
             "run",
             "Say 'test-ok' and nothing else",
@@ -38,7 +38,7 @@ async fn binary_integration_standalone_claude() -> Result<()> {
     Ok(())
 }
 
-/// Test that the kcode binary can run with OpenAI provider
+/// Test that the neura binary can run with OpenAI provider
 #[tokio::test]
 #[ignore] // Requires OpenAI/Codex credentials
 async fn binary_integration_openai_provider() -> Result<()> {
@@ -50,7 +50,7 @@ async fn binary_integration_openai_provider() -> Result<()> {
             "run",
             "--release",
             "--bin",
-            "kcode",
+            "neura",
             "--",
             "--provider",
             "openai",
@@ -77,13 +77,13 @@ async fn binary_integration_openai_provider() -> Result<()> {
     Ok(())
 }
 
-/// Test that kcode version command works
+/// Test that neura version command works
 #[tokio::test]
 async fn binary_version_command() -> Result<()> {
     use std::process::Command;
     let _env = setup_test_env()?;
 
-    let output = Command::new(env!("CARGO_BIN_EXE_kcode"))
+    let output = Command::new(env!("CARGO_BIN_EXE_neura"))
         .arg("--version")
         .output()?;
 
@@ -91,8 +91,8 @@ async fn binary_version_command() -> Result<()> {
 
     assert!(output.status.success(), "Version command should succeed");
     assert!(
-        stdout.contains("kcode") || stdout.contains("20"),
-        "Version should contain 'kcode' or date. Got: {}",
+        stdout.contains("neura") || stdout.contains("20"),
+        "Version should contain 'neura' or date. Got: {}",
         stdout
     );
 
@@ -101,7 +101,7 @@ async fn binary_version_command() -> Result<()> {
 
 /// Test full server reload handoff against a real spawned server process.
 ///
-/// Requires a built release binary at target/release/kcode because the reload
+/// Requires a built release binary at target/release/neura because the reload
 /// flow execs into the repo's reload candidate.
 #[tokio::test]
 #[ignore]
@@ -109,7 +109,7 @@ async fn binary_integration_reload_handoff() -> Result<()> {
     let _env = setup_test_env()?;
 
     let release_binary =
-        kcode::build::release_binary_path(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
+        neura::build::release_binary_path(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
     if !release_binary.exists() {
         anyhow::bail!(
             "release binary missing at {} (run `cargo build --release` first)",
@@ -118,7 +118,7 @@ async fn binary_integration_reload_handoff() -> Result<()> {
     }
 
     let temp_root = tempfile::Builder::new()
-        .prefix("kcode-reload-e2e-")
+        .prefix("neura-reload-e2e-")
         .tempdir()?;
     let runtime_dir = temp_root.path().join("runtime");
     let home_dir = temp_root.path().join("home");
@@ -128,22 +128,22 @@ async fn binary_integration_reload_handoff() -> Result<()> {
     std::fs::create_dir_all(&home_dir)?;
     std::fs::create_dir_all(&install_dir)?;
 
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let stderr_file = std::fs::File::create(&stderr_path)?;
-    let mut child = Command::new(env!("CARGO_BIN_EXE_kcode"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_neura"))
         .arg("--no-update")
         .arg("--socket")
         .arg(&socket_path)
         .arg("serve")
         // This test must exercise the real exec-based reload handoff, not the
         // in-process test shortcut used by other e2e cases.
-        .env_remove("KCODE_TEST_SESSION")
-        .env("KCODE_HOME", &home_dir)
-        .env("KCODE_RUNTIME_DIR", &runtime_dir)
-        .env("KCODE_INSTALL_DIR", &install_dir)
-        .env("KCODE_DEBUG_CONTROL", "1")
+        .env_remove("NEURA_TEST_SESSION")
+        .env("NEURA_HOME", &home_dir)
+        .env("NEURA_RUNTIME_DIR", &runtime_dir)
+        .env("NEURA_INSTALL_DIR", &install_dir)
+        .env("NEURA_DEBUG_CONTROL", "1")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::from(stderr_file))
@@ -180,7 +180,7 @@ async fn binary_integration_reload_handoff() -> Result<()> {
         );
 
         let marker_deadline = Instant::now() + Duration::from_secs(20);
-        while kcode::server::reload_marker_active(Duration::from_secs(30)) {
+        while neura::server::reload_marker_active(Duration::from_secs(30)) {
             if Instant::now() >= marker_deadline {
                 anyhow::bail!("reload marker remained active too long after restart");
             }
@@ -226,7 +226,7 @@ async fn binary_integration_reload_handoff() -> Result<()> {
 
 /// Test repeated self-dev reload handoff against a real TUI client running in a PTY.
 ///
-/// Requires a built release binary at target/release/kcode because the
+/// Requires a built release binary at target/release/neura because the
 /// self-dev server reload path execs into the repo's reload candidate.
 #[cfg(unix)]
 #[tokio::test]
@@ -235,7 +235,7 @@ async fn binary_integration_selfdev_reload_reconnects_quickly() -> Result<()> {
     let _env = setup_test_env()?;
 
     let release_binary =
-        kcode::build::release_binary_path(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
+        neura::build::release_binary_path(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
     if !release_binary.exists() {
         anyhow::bail!(
             "release binary missing at {} (run `cargo build --release` first)",
@@ -244,7 +244,7 @@ async fn binary_integration_selfdev_reload_reconnects_quickly() -> Result<()> {
     }
 
     let temp_root = tempfile::Builder::new()
-        .prefix("kcode-selfdev-reload-e2e-")
+        .prefix("neura-selfdev-reload-e2e-")
         .tempdir()?;
     let runtime_dir = temp_root.path().join("runtime");
     let home_dir = temp_root.path().join("home");
@@ -253,12 +253,12 @@ async fn binary_integration_selfdev_reload_reconnects_quickly() -> Result<()> {
     std::fs::create_dir_all(&home_dir)?;
     std::fs::create_dir_all(&install_dir)?;
 
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", &home_dir);
-    let _runtime_guard = EnvVarGuard::set("KCODE_RUNTIME_DIR", &runtime_dir);
-    let _install_guard = EnvVarGuard::set("KCODE_INSTALL_DIR", &install_dir);
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", &home_dir);
+    let _runtime_guard = EnvVarGuard::set("NEURA_RUNTIME_DIR", &runtime_dir);
+    let _install_guard = EnvVarGuard::set("NEURA_INSTALL_DIR", &install_dir);
 
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
     let mut command = Command::new(&release_binary);
     command
         .arg("--no-update")
@@ -266,10 +266,10 @@ async fn binary_integration_selfdev_reload_reconnects_quickly() -> Result<()> {
         .arg("antigravity")
         .arg("self-dev")
         .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .env_remove("KCODE_TEST_SESSION")
-        .env("KCODE_HOME", &home_dir)
-        .env("KCODE_RUNTIME_DIR", &runtime_dir)
-        .env("KCODE_INSTALL_DIR", &install_dir);
+        .env_remove("NEURA_TEST_SESSION")
+        .env("NEURA_HOME", &home_dir)
+        .env("NEURA_RUNTIME_DIR", &runtime_dir)
+        .env("NEURA_INSTALL_DIR", &install_dir);
 
     let mut child = spawn_pty_child(command)?;
 
@@ -341,7 +341,7 @@ async fn binary_integration_selfdev_client_reload_resumes_session() -> Result<()
     let _env = setup_test_env()?;
 
     let release_binary =
-        kcode::build::release_binary_path(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
+        neura::build::release_binary_path(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
     if !release_binary.exists() {
         anyhow::bail!(
             "release binary missing at {} (run `cargo build --release` first)",
@@ -350,7 +350,7 @@ async fn binary_integration_selfdev_client_reload_resumes_session() -> Result<()
     }
 
     let temp_root = tempfile::Builder::new()
-        .prefix("kcode-selfdev-client-reload-e2e-")
+        .prefix("neura-selfdev-client-reload-e2e-")
         .tempdir()?;
     let runtime_dir = temp_root.path().join("runtime");
     let home_dir = temp_root.path().join("home");
@@ -359,14 +359,14 @@ async fn binary_integration_selfdev_client_reload_resumes_session() -> Result<()
     std::fs::create_dir_all(&home_dir)?;
     std::fs::create_dir_all(&install_dir)?;
 
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", &home_dir);
-    let _runtime_guard = EnvVarGuard::set("KCODE_RUNTIME_DIR", &runtime_dir);
-    let _install_guard = EnvVarGuard::set("KCODE_INSTALL_DIR", &install_dir);
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", &home_dir);
+    let _runtime_guard = EnvVarGuard::set("NEURA_RUNTIME_DIR", &runtime_dir);
+    let _install_guard = EnvVarGuard::set("NEURA_INSTALL_DIR", &install_dir);
 
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
-    let starter_binary = temp_root.path().join("kcode-selfdev-client-starter");
-    std::fs::copy(env!("CARGO_BIN_EXE_kcode"), &starter_binary)?;
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
+    let starter_binary = temp_root.path().join("neura-selfdev-client-starter");
+    std::fs::copy(env!("CARGO_BIN_EXE_neura"), &starter_binary)?;
     let starter_mtime = std::fs::metadata(&release_binary)?
         .modified()?
         .checked_sub(Duration::from_secs(60))
@@ -380,10 +380,10 @@ async fn binary_integration_selfdev_client_reload_resumes_session() -> Result<()
         .arg("antigravity")
         .arg("self-dev")
         .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .env_remove("KCODE_TEST_SESSION")
-        .env("KCODE_HOME", &home_dir)
-        .env("KCODE_RUNTIME_DIR", &runtime_dir)
-        .env("KCODE_INSTALL_DIR", &install_dir);
+        .env_remove("NEURA_TEST_SESSION")
+        .env("NEURA_HOME", &home_dir)
+        .env("NEURA_RUNTIME_DIR", &runtime_dir)
+        .env("NEURA_INSTALL_DIR", &install_dir);
 
     let mut child = spawn_pty_child(command)?;
 
@@ -503,7 +503,7 @@ async fn binary_integration_selfdev_full_reload_resumes_session_quickly() -> Res
     let _env = setup_test_env()?;
 
     let release_binary =
-        kcode::build::release_binary_path(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
+        neura::build::release_binary_path(std::path::Path::new(env!("CARGO_MANIFEST_DIR")));
     if !release_binary.exists() {
         anyhow::bail!(
             "release binary missing at {} (run `cargo build --release` first)",
@@ -512,7 +512,7 @@ async fn binary_integration_selfdev_full_reload_resumes_session_quickly() -> Res
     }
 
     let temp_root = tempfile::Builder::new()
-        .prefix("kcode-selfdev-full-reload-e2e-")
+        .prefix("neura-selfdev-full-reload-e2e-")
         .tempdir()?;
     let runtime_dir = temp_root.path().join("runtime");
     let home_dir = temp_root.path().join("home");
@@ -521,14 +521,14 @@ async fn binary_integration_selfdev_full_reload_resumes_session_quickly() -> Res
     std::fs::create_dir_all(&home_dir)?;
     std::fs::create_dir_all(&install_dir)?;
 
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", &home_dir);
-    let _runtime_guard = EnvVarGuard::set("KCODE_RUNTIME_DIR", &runtime_dir);
-    let _install_guard = EnvVarGuard::set("KCODE_INSTALL_DIR", &install_dir);
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", &home_dir);
+    let _runtime_guard = EnvVarGuard::set("NEURA_RUNTIME_DIR", &runtime_dir);
+    let _install_guard = EnvVarGuard::set("NEURA_INSTALL_DIR", &install_dir);
 
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
-    let starter_binary = temp_root.path().join("kcode-selfdev-full-reload-starter");
-    std::fs::copy(env!("CARGO_BIN_EXE_kcode"), &starter_binary)?;
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
+    let starter_binary = temp_root.path().join("neura-selfdev-full-reload-starter");
+    std::fs::copy(env!("CARGO_BIN_EXE_neura"), &starter_binary)?;
     let starter_mtime = std::fs::metadata(&release_binary)?
         .modified()?
         .checked_sub(Duration::from_secs(60))
@@ -542,10 +542,10 @@ async fn binary_integration_selfdev_full_reload_resumes_session_quickly() -> Res
         .arg("antigravity")
         .arg("self-dev")
         .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .env_remove("KCODE_TEST_SESSION")
-        .env("KCODE_HOME", &home_dir)
-        .env("KCODE_RUNTIME_DIR", &runtime_dir)
-        .env("KCODE_INSTALL_DIR", &install_dir);
+        .env_remove("NEURA_TEST_SESSION")
+        .env("NEURA_HOME", &home_dir)
+        .env("NEURA_RUNTIME_DIR", &runtime_dir)
+        .env("NEURA_INSTALL_DIR", &install_dir);
 
     let mut child = spawn_pty_child(command)?;
 

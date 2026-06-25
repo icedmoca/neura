@@ -588,7 +588,7 @@ fn provider_style(provider_id: &str) -> Style {
         | "cerebras"
         | "alibaba-coding-plan"
         | "antigravity"
-        | "kcode" => Color::Rgb(189, 200, 255),
+        | "neura" => Color::Rgb(189, 200, 255),
         _ => Color::Rgb(180, 190, 220),
     };
     Style::default().fg(color).bold()

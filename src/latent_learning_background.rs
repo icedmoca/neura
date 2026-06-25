@@ -76,13 +76,13 @@ impl Default for ControlState {
 }
 
 pub fn learning_dir() -> PathBuf {
-    std::env::var_os("KCODE_LATENT_LEARNING_DIR")
+    std::env::var_os("NEURA_LATENT_LEARNING_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let home = std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("."));
-            home.join(".kcode").join("latent_learning")
+            home.join(".neura").join("latent_learning")
         })
 }
 
@@ -336,11 +336,11 @@ mod tests {
     #[test]
     fn ingests_and_cycles_sample() {
         let dir = TempDir::new().unwrap();
-        unsafe { std::env::set_var("KCODE_LATENT_LEARNING_DIR", dir.path()) };
-        unsafe { std::env::set_var("KCODE_LATENT_STATE", dir.path().join("latent.json")) };
+        unsafe { std::env::set_var("NEURA_LATENT_LEARNING_DIR", dir.path()) };
+        unsafe { std::env::set_var("NEURA_LATENT_STATE", dir.path().join("latent.json")) };
         unsafe {
             std::env::set_var(
-                "KCODE_LATENT_LEARNING_STATE",
+                "NEURA_LATENT_LEARNING_STATE",
                 dir.path().join("learning.json"),
             )
         };
@@ -363,11 +363,11 @@ mod tests {
     #[test]
     fn pause_blocks_cycle_consumption() {
         let dir = TempDir::new().unwrap();
-        unsafe { std::env::set_var("KCODE_LATENT_LEARNING_DIR", dir.path()) };
-        unsafe { std::env::set_var("KCODE_LATENT_STATE", dir.path().join("latent.json")) };
+        unsafe { std::env::set_var("NEURA_LATENT_LEARNING_DIR", dir.path()) };
+        unsafe { std::env::set_var("NEURA_LATENT_STATE", dir.path().join("latent.json")) };
         unsafe {
             std::env::set_var(
-                "KCODE_LATENT_LEARNING_STATE",
+                "NEURA_LATENT_LEARNING_STATE",
                 dir.path().join("learning.json"),
             )
         };

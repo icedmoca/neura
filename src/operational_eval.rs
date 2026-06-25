@@ -45,7 +45,7 @@ pub struct EvalGateDecision {
 pub fn eval_report_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("operational_eval_report.json")
 }
 
@@ -144,7 +144,7 @@ pub fn run_operational_eval_suite() -> Result<OperationalEvalReport> {
 
 fn eval_token_abstraction() -> OperationalEvalScenario {
     let abstraction = tokenize_text(
-        "kcode should evaluate its own latent memory, operational policy, and token abstractions",
+        "neura should evaluate its own latent memory, operational policy, and token abstractions",
     );
     let score = if abstraction.token_count > 0 && !abstraction.token_text_preview.is_empty() {
         1.0
@@ -345,7 +345,7 @@ pub fn load_or_run_eval_report() -> Result<OperationalEvalReport> {
 
 pub fn render_operational_eval_report(report: &OperationalEvalReport) -> String {
     let mut out = String::new();
-    out.push_str("# Kcode Operational Self-Eval Report\n\n");
+    out.push_str("# Neura Operational Self-Eval Report\n\n");
     out.push_str(&format!("- Passed: `{}`\n", report.passed));
     out.push_str(&format!("- Mean score: `{:.3}`\n", report.mean_score));
     out.push_str(&format!("- Gate: `{}`\n", report.gate.reason));

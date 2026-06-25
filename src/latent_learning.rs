@@ -184,13 +184,13 @@ pub struct LearningStep {
 }
 
 pub fn learning_state_path() -> PathBuf {
-    std::env::var_os("KCODE_LATENT_LEARNING_STATE")
+    std::env::var_os("NEURA_LATENT_LEARNING_STATE")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let home = std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("."));
-            home.join(".kcode").join("latent_learning_state.json")
+            home.join(".neura").join("latent_learning_state.json")
         })
 }
 

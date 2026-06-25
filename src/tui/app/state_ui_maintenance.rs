@@ -104,7 +104,7 @@ impl App {
                     Self::client_maintenance_card_message(
                         action,
                         "checking for updates",
-                        "Running in the background. kcode will reload automatically when the update is ready.",
+                        "Running in the background. neura will reload automatically when the update is ready.",
                     ),
                 );
                 crate::update::spawn_background_session_update(session_id);
@@ -116,7 +116,7 @@ impl App {
                     Self::client_maintenance_card_message(
                         action,
                         "starting background rebuild",
-                        "Running in the background. kcode will reload automatically after the rebuild succeeds.",
+                        "Running in the background. neura will reload automatically after the rebuild succeeds.",
                     ),
                 );
                 crate::cli::hot_exec::spawn_background_session_rebuild(session_id);
@@ -138,7 +138,7 @@ impl App {
             Self::client_maintenance_card_message(
                 action,
                 "reloading client",
-                "The new binary is ready, so kcode is switching over now.",
+                "The new binary is ready, so neura is switching over now.",
             ),
         );
         self.save_input_for_reload(&session_id);
@@ -170,7 +170,7 @@ impl App {
                     Self::client_maintenance_card_message(
                         action,
                         message,
-                        "Still running in the background. kcode will reload automatically when ready.",
+                        "Still running in the background. neura will reload automatically when ready.",
                     ),
                 );
             }

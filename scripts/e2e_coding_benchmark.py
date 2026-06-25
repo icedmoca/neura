@@ -50,7 +50,7 @@ def main():
         'metadata':{
             'benchmark_type':'combined_benchmark_report',
             'generated_at_unix':time.time(),
-            'repo':'~/.kcode/build-src/kcode',
+            'repo':'~/.neura/build-src/neura',
             'note':'Remote-model autonomous coding runs are marked UNMEASURED. Local results measure context availability, oracle upper bounds, and focused test execution.'
         },
         'task_success_vs_token_cost': e2e,

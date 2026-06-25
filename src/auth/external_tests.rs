@@ -12,8 +12,8 @@ fn write_auth_file(path: &std::path::Path, value: serde_json::Value) {
 fn opencode_api_key_imports_from_trusted_file() {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().unwrap();
-    let prev = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", dir.path());
+    let prev = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", dir.path());
 
     let path = ExternalAuthSource::OpenCode.path().unwrap();
     write_auth_file(
@@ -31,9 +31,9 @@ fn opencode_api_key_imports_from_trusted_file() {
     );
 
     if let Some(prev) = prev {
-        crate::env::set_var("KCODE_HOME", prev);
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -41,9 +41,9 @@ fn opencode_api_key_imports_from_trusted_file() {
 fn pi_api_key_env_reference_uses_named_env_var() {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().unwrap();
-    let prev_home = std::env::var_os("KCODE_HOME");
+    let prev_home = std::env::var_os("NEURA_HOME");
     let prev_key = std::env::var_os("PI_OPENAI_KEY");
-    crate::env::set_var("KCODE_HOME", dir.path());
+    crate::env::set_var("NEURA_HOME", dir.path());
     crate::env::set_var("PI_OPENAI_KEY", "sk-from-env-ref");
 
     let path = ExternalAuthSource::Pi.path().unwrap();
@@ -61,9 +61,9 @@ fn pi_api_key_env_reference_uses_named_env_var() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
     if let Some(prev_key) = prev_key {
         crate::env::set_var("PI_OPENAI_KEY", prev_key);
@@ -76,8 +76,8 @@ fn pi_api_key_env_reference_uses_named_env_var() {
 fn pi_shell_command_api_keys_are_not_executed() {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().unwrap();
-    let prev = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", dir.path());
+    let prev = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", dir.path());
 
     let path = ExternalAuthSource::Pi.path().unwrap();
     write_auth_file(
@@ -91,9 +91,9 @@ fn pi_shell_command_api_keys_are_not_executed() {
     assert!(load_api_key_for_env("OPENAI_API_KEY").is_none());
 
     if let Some(prev) = prev {
-        crate::env::set_var("KCODE_HOME", prev);
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -101,8 +101,8 @@ fn pi_shell_command_api_keys_are_not_executed() {
 fn load_copilot_oauth_token_from_pi_auth() {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().unwrap();
-    let prev = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", dir.path());
+    let prev = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", dir.path());
 
     let path = ExternalAuthSource::Pi.path().unwrap();
     write_auth_file(
@@ -121,9 +121,9 @@ fn load_copilot_oauth_token_from_pi_auth() {
     assert_eq!(load_copilot_oauth_token().as_deref(), Some("ghu_pi_token"));
 
     if let Some(prev) = prev {
-        crate::env::set_var("KCODE_HOME", prev);
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -131,8 +131,8 @@ fn load_copilot_oauth_token_from_pi_auth() {
 fn unconsented_source_detects_supported_api_key_files() {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().unwrap();
-    let prev = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", dir.path());
+    let prev = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", dir.path());
 
     let path = ExternalAuthSource::OpenCode.path().unwrap();
     write_auth_file(
@@ -148,9 +148,9 @@ fn unconsented_source_detects_supported_api_key_files() {
     );
 
     if let Some(prev) = prev {
-        crate::env::set_var("KCODE_HOME", prev);
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -158,8 +158,8 @@ fn unconsented_source_detects_supported_api_key_files() {
 fn source_provider_labels_reports_supported_oauth_and_api_key_imports() {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().unwrap();
-    let prev = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", dir.path());
+    let prev = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", dir.path());
 
     let path = ExternalAuthSource::OpenCode.path().unwrap();
     write_auth_file(
@@ -187,8 +187,8 @@ fn source_provider_labels_reports_supported_oauth_and_api_key_imports() {
     assert!(labels.contains(&"OpenRouter/API-key providers"));
 
     if let Some(prev) = prev {
-        crate::env::set_var("KCODE_HOME", prev);
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }

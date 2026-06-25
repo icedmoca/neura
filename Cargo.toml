@@ -1,5 +1,5 @@
 [package]
-name = "kcode"
+name = "neura"
 version = "0.10.3"
 description = "Possibly the greatest coding agent ever built — blazing-fast TUI, multi-model, swarm coordination, 30+ tools"
 edition = "2024"
@@ -7,27 +7,27 @@ edition = "2024"
 [workspace]
 members = [
     ".",
-    "crates/kcode-agent-runtime",
-    "crates/kcode-embedding",
-    "crates/kcode-pdf",
-    "crates/kcode-azure-auth",
-    "crates/kcode-notify-email",
-    "crates/kcode-provider-metadata",
-    "crates/kcode-provider-core",
-    "crates/kcode-provider-openrouter",
-    "crates/kcode-provider-gemini",
-    "crates/kcode-tui-workspace",
-    "crates/kcode-mobile-core",
-    "crates/kcode-mobile-sim",
-    "crates/kcode-desktop",
+    "crates/neura-agent-runtime",
+    "crates/neura-embedding",
+    "crates/neura-pdf",
+    "crates/neura-azure-auth",
+    "crates/neura-notify-email",
+    "crates/neura-provider-metadata",
+    "crates/neura-provider-core",
+    "crates/neura-provider-openrouter",
+    "crates/neura-provider-gemini",
+    "crates/neura-tui-workspace",
+    "crates/neura-mobile-core",
+    "crates/neura-mobile-sim",
+    "crates/neura-desktop",
 ]
 
 [lib]
-name = "kcode"
+name = "neura"
 path = "src/lib.rs"
 
 [[bin]]
-name = "kcode"
+name = "neura"
 path = "src/main.rs"
 
 [[bin]]
@@ -35,12 +35,12 @@ name = "test_api"
 path = "src/bin/test_api.rs"
 
 [[bin]]
-name = "kcode-harness"
+name = "neura-harness"
 path = "src/bin/harness.rs"
 
 [[bin]]
-name = "kcode-bench"
-path = "src/bin/kcode_bench.rs"
+name = "neura-bench"
+path = "src/bin/neura_bench.rs"
 
 [dependencies]
 # Memory allocator (reduces fragmentation for long-running server)
@@ -85,7 +85,7 @@ uuid = { version = "1", features = ["v4", "v5"] }
 proctitle = "0.1"
 
 # Embeddings (local inference) - behind feature flag (163 crates, slow to compile)
-kcode-embedding = { path = "crates/kcode-embedding", optional = true }
+neura-embedding = { path = "crates/neura-embedding", optional = true }
 
 # OAuth
 base64 = "0.22"
@@ -94,14 +94,14 @@ rand = "0.9.3"
 hex = "0.4"
 url = "2"
 open = "5"               # Open URLs in browser
-kcode-azure-auth = { path = "crates/kcode-azure-auth" }
-kcode-agent-runtime = { path = "crates/kcode-agent-runtime" }
-kcode-notify-email = { path = "crates/kcode-notify-email" }
-kcode-provider-metadata = { path = "crates/kcode-provider-metadata" }
-kcode-provider-core = { path = "crates/kcode-provider-core" }
-kcode-provider-openrouter = { path = "crates/kcode-provider-openrouter" }
-kcode-provider-gemini = { path = "crates/kcode-provider-gemini" }
-kcode-tui-workspace = { path = "crates/kcode-tui-workspace" }
+neura-azure-auth = { path = "crates/neura-azure-auth" }
+neura-agent-runtime = { path = "crates/neura-agent-runtime" }
+neura-notify-email = { path = "crates/neura-notify-email" }
+neura-provider-metadata = { path = "crates/neura-provider-metadata" }
+neura-provider-core = { path = "crates/neura-provider-core" }
+neura-provider-openrouter = { path = "crates/neura-provider-openrouter" }
+neura-provider-gemini = { path = "crates/neura-provider-gemini" }
+neura-tui-workspace = { path = "crates/neura-tui-workspace" }
 
 # Streaming
 tokio-stream = "0.1"
@@ -122,7 +122,7 @@ pulldown-cmark = "0.12"
 unicode-width = "0.2"   # Unicode character display width
 
 # PDF parsing (behind feature flag)
-kcode-pdf = { path = "crates/kcode-pdf", optional = true }
+neura-pdf = { path = "crates/neura-pdf", optional = true }
 
 # Archive extraction (for auto-update)
 flate2 = "1"
@@ -148,8 +148,8 @@ jemalloc-prof = [
     "tikv-jemallocator/profiling",
     "tikv-jemalloc-ctl/profiling",
 ]
-embeddings = ["dep:kcode-embedding"]
-pdf = ["dep:kcode-pdf"]
+embeddings = ["dep:neura-embedding"]
+pdf = ["dep:neura-pdf"]
 probe-bins = []
 
 [[bin]]

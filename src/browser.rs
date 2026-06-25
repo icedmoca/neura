@@ -28,20 +28,20 @@ const REQUIRED_BRIDGE_ACTION_PROBES: &[(&str, &str)] = &[
     ("scroll", r#"{"position":"top"}"#),
     (
         "uploadFile",
-        r#"{"selector":"input[type=file]","path":"/tmp/kcode-browser-capability-probe"}"#,
+        r#"{"selector":"input[type=file]","path":"/tmp/neura-browser-capability-probe"}"#,
     ),
 ];
 
-fn kcode_dir() -> PathBuf {
-    storage::kcode_dir().unwrap_or_else(|_| {
+fn neura_dir() -> PathBuf {
+    storage::neura_dir().unwrap_or_else(|_| {
         dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join(".kcode")
+            .join(".neura")
     })
 }
 
 fn browser_dir() -> PathBuf {
-    kcode_dir().join("browser")
+    neura_dir().join("browser")
 }
 
 pub fn browser_binary_path() -> PathBuf {
@@ -204,7 +204,7 @@ pub async fn ensure_browser_setup() -> Result<String> {
     }
 
     if initial_status.responding && !initial_status.compatible {
-        log.push_str("Browser bridge is connected, but the live Firefox extension is out of date for this kcode build. Attempting repair steps...\n");
+        log.push_str("Browser bridge is connected, but the live Firefox extension is out of date for this neura build. Attempting repair steps...\n");
         if !initial_status.missing_actions.is_empty() {
             log.push_str(&format!(
                 "Missing actions: {}\n",
@@ -300,7 +300,7 @@ pub async fn ensure_browser_setup() -> Result<String> {
                             Ok(false) => {
                                 log.push_str("timed out\n");
                                 log.push_str(
-                                    "       Extension not detected. You can retry with: kcode browser setup\n",
+                                    "       Extension not detected. You can retry with: neura browser setup\n",
                                 );
                                 log.push_str(
                                     "       Or manually install: Firefox > about:addons > Install from file > ",
@@ -327,7 +327,7 @@ pub async fn ensure_browser_setup() -> Result<String> {
                     "       Existing browser setup was already completed, so setup will not reopen the extension installer.\n",
                 );
                 log.push_str(
-                    "       Make sure Firefox is running with the Browser Agent Bridge extension enabled, then re-run `kcode browser status`.\n",
+                    "       Make sure Firefox is running with the Browser Agent Bridge extension enabled, then re-run `neura browser status`.\n",
                 );
             }
         }
@@ -341,18 +341,18 @@ pub async fn ensure_browser_setup() -> Result<String> {
     if final_status.ready {
         log.push_str("\nSetup complete. Browser bridge is ready.\n");
     } else if final_status.responding && !final_status.compatible {
-        log.push_str("\nSetup is not complete yet. The Firefox extension is connected, but it is still missing required actions for this kcode build.\n");
+        log.push_str("\nSetup is not complete yet. The Firefox extension is connected, but it is still missing required actions for this neura build.\n");
         if !final_status.missing_actions.is_empty() {
             log.push_str(&format!(
                 "Missing actions: {}\n",
                 final_status.missing_actions.join(", ")
             ));
         }
-        log.push_str("Use `kcode browser status` to verify readiness after updating the extension in Firefox.\n");
+        log.push_str("Use `neura browser status` to verify readiness after updating the extension in Firefox.\n");
     } else if final_status.binary_installed {
         log.push_str("\nSetup is not complete yet. Browser bridge binaries are installed, but the Firefox extension/bridge is not responding.\n");
         log.push_str(
-            "Use `kcode browser status` to re-check readiness after any manual Firefox step.\n",
+            "Use `neura browser status` to re-check readiness after any manual Firefox step.\n",
         );
     } else {
         log.push_str("\nSetup is not complete yet. Browser bridge binary is still missing.\n");
@@ -366,7 +366,7 @@ async fn download_browser_binary() -> Result<()> {
 
     let release_info: serde_json::Value = reqwest::Client::new()
         .get(GITHUB_API_LATEST)
-        .header("User-Agent", "kcode")
+        .header("User-Agent", "neura")
         .send()
         .await?
         .json()
@@ -411,7 +411,7 @@ async fn download_browser_binary() -> Result<()> {
     // Download browser CLI
     let browser_bytes = reqwest::Client::new()
         .get(download_url)
-        .header("User-Agent", "kcode")
+        .header("User-Agent", "neura")
         .send()
         .await?
         .bytes()
@@ -424,7 +424,7 @@ async fn download_browser_binary() -> Result<()> {
     // Download XPI
     let xpi_bytes = reqwest::Client::new()
         .get(xpi_url)
-        .header("User-Agent", "kcode")
+        .header("User-Agent", "neura")
         .send()
         .await?
         .bytes()
@@ -439,7 +439,7 @@ async fn download_browser_binary() -> Result<()> {
     {
         let host_bytes = reqwest::Client::new()
             .get(host_url)
-            .header("User-Agent", "kcode")
+            .header("User-Agent", "neura")
             .send()
             .await?
             .bytes()
@@ -561,7 +561,7 @@ fn install_native_host_manifest() -> Result<bool> {
 
     let manifest = serde_json::json!({
         "name": NATIVE_HOST_NAME,
-        "description": "Native host for Firefox Agent Bridge (managed by kcode)",
+        "description": "Native host for Firefox Agent Bridge (managed by neura)",
         "path": effective_host,
         "type": "stdio",
         "allowed_extensions": [

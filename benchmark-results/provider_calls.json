@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "benchmark_type": "real_provider_kcode_run_smoke",
+    "benchmark_type": "real_provider_neura_run_smoke",
     "runs": 3
   },
   "summary": [
@@ -40,7 +40,7 @@
       "id": "direct_time_arizona",
       "kind": "direct_answer",
       "message": "Answer in one short sentence: what time zone is Arizona in, outside the Navajo Nation? Do not use tools.",
-      "command": "/home/dad/.kcode/builds/current/kcode run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.kcode/build-src/kcode <message>",
+      "command": "/home/dad/.neura/builds/current/neura run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.neura/build-src/neura <message>",
       "returncode": 0,
       "wall_seconds": 1.989,
       "stdout_tail": "{\n  \"session_id\": \"session_donkey_1778032675380_eb62810bafab33a3\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"Arizona is in Mountain Standard Time (MST, UTC-7) year-round outside the Navajo Nation.\",\n  \"usage\": {\n    \"input_tokens\": 4258,\n    \"output_tokens\": 26,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
@@ -62,11 +62,11 @@
       "id": "file_read_readme",
       "kind": "file_tool",
       "message": "Use tools if needed. In one sentence, tell me the first Markdown heading in README.md in the current directory.",
-      "command": "/home/dad/.kcode/builds/current/kcode run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.kcode/build-src/kcode <message>",
+      "command": "/home/dad/.neura/builds/current/neura run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.neura/build-src/neura <message>",
       "returncode": 0,
       "wall_seconds": 4.963,
       "stdout_tail": "{\n  \"session_id\": \"session_jaguar_1778032677369_b9eff6735df1c5b6\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"The first Markdown heading in README.md is `## Documentation`.\",\n  \"usage\": {\n    \"input_tokens\": 4712,\n    \"output_tokens\": 16,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",
-      "stderr_tail": "[trace] session_id session_jaguar_1778032677369_b9eff6735df1c5b6\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n\n[trace] tool_use_start name=read id=call_tpqjlFMzwiWYxrwwsIazaEGd\n[trace] tool_input read {\n  \"file_path\": \"README.md\",\n  \"intent\": \"Read README to find first Markdown heading\",\n  \"limit\": 20,\n  \"start_line\": 1\n}\n[trace] token_usage input=4257 output=38 cache_read=0 cache_write=0\n[trace] tool_exec_start name=read id=call_tpqjlFMzwiWYxrwwsIazaEGd\n[trace] tool_exec_done name=read id=call_tpqjlFMzwiWYxrwwsIazaEGd\n    1\t<p align=\"center\">\n    2\t  <img src=\"assets/kcode.png\" alt=\"Kcode\" width=\"1720\">\n    3\t</p>\n    4\t\n    5\t> Kcode lets you run long, tool heavy coding sessions without blowing up token costs by compressing old context into references and only restoring exact data when needed, reducing hallucinations by grounding the model in real, retrievable source data instead of guesswork.\n    6\t\n    7\t---\n    8\t\n    9\tKcode is a local first coding agent harness with a terminal UI, tool orchestration, memory/context management, and an optional local GGUF sidecar model.\n   10\t\n   11\t[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-icedmoca%2Fkcode--oss--20b--mxfp4-yellow?logo=huggingface)](https://huggingface.co/icedmoca/kcode-oss-20b-mxfp4)\n   12\t\n   13\tFor a detailed architecture explanation, see [ABOUT.md](ABOUT.md).\n   14\t\n   15\tFor details on hallucination mitigation, exact context rehydration, and real token-saving data, see [HALLUCINATION_MITIGATION.md](HALLUCINATION_MITIGATION.md) and [STATISTICS.md](STATISTICS.md).\n   16\t\n   17\t## Documentation\n   18\t\n   19\t- [Benchmarks](BENCHMARKS.md) - measured token reduction, tool-schema pruning, and benchmark methodology.\n   20\t\n\n... 211 more lines (use start_line=21 to continue)\n\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4712 output=16 cache_read=0 cache_write=0\n",
+      "stderr_tail": "[trace] session_id session_jaguar_1778032677369_b9eff6735df1c5b6\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n\n[trace] tool_use_start name=read id=call_tpqjlFMzwiWYxrwwsIazaEGd\n[trace] tool_input read {\n  \"file_path\": \"README.md\",\n  \"intent\": \"Read README to find first Markdown heading\",\n  \"limit\": 20,\n  \"start_line\": 1\n}\n[trace] token_usage input=4257 output=38 cache_read=0 cache_write=0\n[trace] tool_exec_start name=read id=call_tpqjlFMzwiWYxrwwsIazaEGd\n[trace] tool_exec_done name=read id=call_tpqjlFMzwiWYxrwwsIazaEGd\n    1\t<p align=\"center\">\n    2\t  <img src=\"assets/neura.png\" alt=\"Neura\" width=\"1720\">\n    3\t</p>\n    4\t\n    5\t> Neura lets you run long, tool heavy coding sessions without blowing up token costs by compressing old context into references and only restoring exact data when needed, reducing hallucinations by grounding the model in real, retrievable source data instead of guesswork.\n    6\t\n    7\t---\n    8\t\n    9\tNeura is a local first coding agent harness with a terminal UI, tool orchestration, memory/context management, and an optional local GGUF sidecar model.\n   10\t\n   11\t[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-icedmoca%2Fneura--oss--20b--mxfp4-yellow?logo=huggingface)](https://huggingface.co/icedmoca/neura-oss-20b-mxfp4)\n   12\t\n   13\tFor a detailed architecture explanation, see [ABOUT.md](ABOUT.md).\n   14\t\n   15\tFor details on hallucination mitigation, exact context rehydration, and real token-saving data, see [HALLUCINATION_MITIGATION.md](HALLUCINATION_MITIGATION.md) and [STATISTICS.md](STATISTICS.md).\n   16\t\n   17\t## Documentation\n   18\t\n   19\t- [Benchmarks](BENCHMARKS.md) - measured token reduction, tool-schema pruning, and benchmark methodology.\n   20\t\n\n... 211 more lines (use start_line=21 to continue)\n\n[trace] status_detail=opening websocket\n[trace] connection_phase=connecting\n[trace] connection_type=websocket/persistent-fresh\n[trace] connection_phase=waiting for response\n[trace] connection_phase=streaming\n[trace] token_usage input=4712 output=16 cache_read=0 cache_write=0\n",
       "json": {
         "session_id": "session_jaguar_1778032677369_b9eff6735df1c5b6",
         "provider": "OpenAI",
@@ -84,7 +84,7 @@
       "id": "repo_file_count",
       "kind": "file_tool",
       "message": "Use tools if needed. Count how many top-level Markdown files are in the current directory and answer with only the number.",
-      "command": "/home/dad/.kcode/builds/current/kcode run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.kcode/build-src/kcode <message>",
+      "command": "/home/dad/.neura/builds/current/neura run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.neura/build-src/neura <message>",
       "returncode": 0,
       "wall_seconds": 5.076,
       "stdout_tail": "{\n  \"session_id\": \"session_giraffe_1778032682333_e70cbe46859387f5\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"5\",\n  \"usage\": {\n    \"input_tokens\": 4399,\n    \"output_tokens\": 5,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",

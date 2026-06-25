@@ -85,7 +85,7 @@ impl App {
             }
             "swarm" => "`/swarm [on|off|status]`\nToggle swarm features for this session.",
             "dictate" | "dictation" => {
-                "`/dictate`\nRun the configured external speech-to-text command and inject the transcript into kcode.\n\nConfigure `[dictation]` in `~/.kcode/config.toml`:\n- `command`: shell command that prints transcript to stdout, for example `~/.local/bin/my-whisper-script --grammar-target code`\n- `mode`: `insert|append|replace|send`\n- `key`: optional hotkey (for example `alt+;`)\n- `timeout_secs`: max wait time"
+                "`/dictate`\nRun the configured external speech-to-text command and inject the transcript into neura.\n\nConfigure `[dictation]` in `~/.neura/config.toml`:\n- `command`: shell command that prints transcript to stdout, for example `~/.local/bin/my-whisper-script --grammar-target code`\n- `mode`: `insert|append|replace|send`\n- `key`: optional hotkey (for example `alt+;`)\n- `timeout_secs`: max wait time"
             }
             "poke" => {
                 "`/poke [on|off|status]`\nPoke the model to resume when it has stopped with incomplete todos.\n\
@@ -98,7 +98,7 @@ impl App {
                 finish the work, update the todo list to reflect what is done, or ask for user input if genuinely blocked."
             }
             "transfer" => {
-                "`/transfer`\nCompact the current session into a summary-only handoff, copy the current todo list to a fresh session, and open that transferred session in a new window.\n\nIf a turn is currently running, kcode first soft-pauses the current session at the next safe point, then performs the transfer."
+                "`/transfer`\nCompact the current session into a summary-only handoff, copy the current todo list to a fresh session, and open that transferred session in a new window.\n\nIf a turn is currently running, neura first soft-pauses the current session at the next safe point, then performs the transfer."
             }
             "improve" => {
                 "`/improve [focus]`\nStart an autonomous repo-improvement loop. The model inspects the project, writes a ranked todo list, implements the highest-leverage safe improvements, validates them, then keeps going until further work has diminishing returns.\n\n`/improve plan [focus]`\nGenerate a ranked improve todo list only, without editing files.\n\n`/improve resume`\nResume the last saved improve mode for this session using the current improve todos.\n\n`/improve status`\nShow the inferred status of the current improve run and todo batch.\n\n`/improve stop`\nAsk the model to stop after the next safe point, update todos, and summarize remaining work."
@@ -110,13 +110,13 @@ impl App {
                 "`/reload`\nReload into the newest available binary if one is ready. This is fast and does not rebuild."
             }
             "restart" => {
-                "`/restart`\nRestart kcode with the current binary. Session is preserved.\nUseful after config changes, MCP server updates, or env var changes."
+                "`/restart`\nRestart neura with the current binary. Session is preserved.\nUseful after config changes, MCP server updates, or env var changes."
             }
             "rebuild" => {
-                "`/rebuild`\nRun `git pull --ff-only`, `cargo build --release`, and release tests in the background. kcode stays usable and reloads automatically when the build is ready."
+                "`/rebuild`\nRun `git pull --ff-only`, `cargo build --release`, and release tests in the background. neura stays usable and reloads automatically when the build is ready."
             }
             "selfdev" => {
-                "`/selfdev`\nSpawn a new self-dev kcode session in a separate terminal.\n\n`/selfdev <prompt>`\nSpawn a new self-dev session and auto-deliver the prompt to it.\n\n`/selfdev status`\nShow current self-dev/build status."
+                "`/selfdev`\nSpawn a new self-dev neura session in a separate terminal.\n\n`/selfdev <prompt>`\nSpawn a new self-dev session and auto-deliver the prompt to it.\n\n`/selfdev status`\nShow current self-dev/build status."
             }
             "split" => {
                 "`/split`\nSplit the current session into a new window. Clones the full conversation history so both sessions continue from the same point."
@@ -129,9 +129,9 @@ impl App {
                 "`/usage`\nFetch and display usage limits for connected providers. This command only reports real connected-provider usage windows and reset times."
             }
             "subscription" => {
-                "`/subscription`\nShow curated kcode subscription status for this session, including router config, runtime mode, curated models, and planned tier budget scaffolding."
+                "`/subscription`\nShow curated neura subscription status for this session, including router config, runtime mode, curated models, and planned tier budget scaffolding."
             }
-            "version" => "`/version`\nShow kcode version/build details.",
+            "version" => "`/version`\nShow neura version/build details.",
             "changelog" => "`/changelog`\nShow recent changes embedded in this build.",
             "config" => {
                 "`/config`\nShow active configuration.\n\n`/config init`\nCreate default config file.\n\n`/config edit`\nOpen config in `$EDITOR`."
@@ -140,7 +140,7 @@ impl App {
                 "`/alignment`\nShow the current alignment and the saved default.\n\n`/alignment centered`\nSave centered alignment as the default and apply it immediately.\n\n`/alignment left`\nSave left-aligned mode as the default and apply it immediately.\n\nPress `Alt+C` anytime to toggle alignment just for the current session."
             }
             "auth" | "login" => {
-                "`/auth`\nShow authentication status for all providers.\n\n`/login`\nInteractive provider selection - pick a provider to log into.\n\n`/login <provider>`\nStart login flow directly for any provider shown by `/login` or the `/login ` completions.\n\nUse `/login kcode` for curated kcode subscription access via your router, not OpenRouter BYOK."
+                "`/auth`\nShow authentication status for all providers.\n\n`/login`\nInteractive provider selection - pick a provider to log into.\n\n`/login <provider>`\nStart login flow directly for any provider shown by `/login` or the `/login ` completions.\n\nUse `/login neura` for curated neura subscription access via your router, not OpenRouter BYOK."
             }
             "account" | "accounts" => {
                 "`/account`\nOpen the inline account picker showing both Claude and OpenAI accounts together. It lists saved accounts plus new/replace actions for each provider.\n\n`/account claude` / `/account openai`\nOpen the inline picker filtered to that provider.\n\n`/account <provider> settings`\nShow provider-specific account/settings details.\n\n`/account <provider> login`\nStart or refresh credentials for a provider.\n\n`/account claude add` / `/account openai add`\nCreate the next numbered OAuth account directly.\n\n`/account <provider> switch <label>`\nSwitch the active account for multi-account providers.\n\n`/account <provider> remove <label>`\nRemove a saved account.\n\n`/account default-provider <provider|auto>`\nSet the preferred default provider for future sessions.\n\n`/account default-model <model|clear>`\nSet the preferred default model for future sessions.\n\nOpenAI-specific settings: `/account openai transport ...`, `/account openai effort ...`, `/account openai fast on|off`.\n\nCustom provider settings: `/account openai-compatible api-base ...`, `api-key-name ...`, `env-file ...`, `default-model ...`."

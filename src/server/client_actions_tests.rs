@@ -87,15 +87,15 @@ impl Provider for StreamingMockProvider {
 fn clone_split_session_uses_persisted_session_state() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let mut parent = crate::session::Session::create_with_id(
         "session_parent_split_test".to_string(),
         None,
         None,
     );
-    parent.working_dir = Some("/tmp/kcode-split-test".to_string());
+    parent.working_dir = Some("/tmp/neura-split-test".to_string());
     parent.model = Some("gpt-test".to_string());
     parent.add_message(
         Role::User,
@@ -129,9 +129,9 @@ fn clone_split_session_uses_persisted_session_state() {
     assert_ne!(child.id, parent.id);
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -149,7 +149,7 @@ async fn enabling_swarm_does_not_auto_elect_coordinator() {
             session_id: session_id.to_string(),
             event_tx: member_event_tx,
             event_txs: HashMap::new(),
-            working_dir: Some(PathBuf::from("/tmp/kcode-passive-swarm")),
+            working_dir: Some(PathBuf::from("/tmp/neura-passive-swarm")),
             swarm_id: None,
             swarm_enabled: false,
             status: "ready".to_string(),
@@ -203,7 +203,7 @@ async fn enabling_swarm_does_not_auto_elect_coordinator() {
             .get(session_id)
             .and_then(|member| member.swarm_id.clone())
             .as_deref(),
-        Some("/tmp/kcode-passive-swarm")
+        Some("/tmp/neura-passive-swarm")
     );
     assert_eq!(
         swarm_members

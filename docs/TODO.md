@@ -1,6 +1,6 @@
-# Kcode Roadmap / TODO
+# Neura Roadmap / TODO
 
-This roadmap tracks high-impact future work for Kcode. It is intentionally practical: each item should eventually become an issue, milestone, benchmark, or release note.
+This roadmap tracks high-impact future work for Neura. It is intentionally practical: each item should eventually become an issue, milestone, benchmark, or release note.
 
 ```mermaid
 flowchart LR
@@ -8,7 +8,7 @@ flowchart LR
     A --> C[Tooling + MCPs]
     B --> D[Local-Only Usage]
     C --> E[Web + Mobile UX]
-    D --> F[Portable Kcode]
+    D --> F[Portable Neura]
     E --> G[Team + Plugin Ecosystem]
     F --> G
 ```
@@ -18,11 +18,11 @@ flowchart LR
 | Area | Goal | Priority | Status |
 |---|---|---:|---|
 | Sidecar model quality | Make local helper routing, memory, summaries, and critique faster and more accurate | P0 | [ ] |
-| Local-only mode | Make Kcode useful without remote providers for supported workflows | P0 | [ ] |
+| Local-only mode | Make Neura useful without remote providers for supported workflows | P0 | [ ] |
 | Tooling expansion | Add more safe, high-leverage tools and workflows | P1 | [ ] |
 | MCP ecosystem | Add more first-party MCP integrations | P1 | [ ] |
 | Portable distribution | Run from a USB stick or portable folder | P1 | [ ] |
-| Web/mobile access | Make Kcode usable outside the terminal | P2 | [ ] |
+| Web/mobile access | Make Neura usable outside the terminal | P2 | [ ] |
 | Team/workspace features | Shared memory, goals, artifacts, and dashboards | P2 | [ ] |
 
 ---
@@ -57,11 +57,11 @@ flowchart LR
 ### Local-model-only usage
 
 - [ ] **Easy install and local-model-only usage**
-  - Make it obvious how to install and run Kcode without a remote provider.
+  - Make it obvious how to install and run Neura without a remote provider.
   - Add a first-run wizard option: “local only.”
   - Document what works well locally and what still needs a remote frontier model.
   - Acceptance criteria:
-    - `KCODE_SKIP_REMOTE=1` or equivalent documented path,
+    - `NEURA_SKIP_REMOTE=1` or equivalent documented path,
     - README/INSTALL quickstart for local-only mode,
     - benchmark section for local-only tasks.
 
@@ -97,10 +97,10 @@ flowchart LR
 | Notion | docs and lightweight project state | optional productivity bridge |
 | Filesystem index | local semantic/code search | should be privacy-first |
 
-### Portable Kcode
+### Portable Neura
 
-- [ ] **USB stick / portable Kcode setup**
-  - Make Kcode runnable from a portable folder or USB drive.
+- [ ] **USB stick / portable Neura setup**
+  - Make Neura runnable from a portable folder or USB drive.
   - Avoid hardcoded absolute paths where possible.
   - Support portable config/model/cache directories.
   - Acceptance criteria:
@@ -115,7 +115,7 @@ flowchart LR
 ### Web UI
 
 - [ ] **Web UI**
-  - Build a browser interface for Kcode sessions.
+  - Build a browser interface for Neura sessions.
   - Useful for users who do not want a terminal UI.
   - Suggested features:
     - session list,
@@ -128,8 +128,8 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    Browser[Web UI] --> Server[Kcode local server]
-    Server --> Agent[Kcode agent runtime]
+    Browser[Web UI] --> Server[Neura local server]
+    Server --> Agent[Neura agent runtime]
     Agent --> Tools[Tools + MCPs]
     Agent --> Memory[Memory + context vault]
     Agent --> Provider[Remote/local model providers]
@@ -138,7 +138,7 @@ flowchart TD
 ### Mobile app
 
 - [ ] **Mobile app**
-  - Remote monitor/control for long-running Kcode tasks.
+  - Remote monitor/control for long-running Neura tasks.
   - Likely first version should be companion-style, not a full IDE.
   - Suggested features:
     - push notifications,
@@ -152,21 +152,21 @@ flowchart TD
 ## P2 — Ecosystem and collaboration
 
 
-### Kcode API endpoints
+### Neura API endpoints
 
-- [ ] **Kcode API endpoints**
+- [ ] **Neura API endpoints**
   - Expose a small local HTTP/WebSocket API so other apps can start sessions, send prompts, inspect status, and subscribe to tool events.
   - Keep it local-first and secure by default.
 
 | Endpoint | Method | Example use | Example payload / response |
 |---|---|---|---|
-| `/api/sessions` | `POST` | Start a new Kcode session | `{ "cwd": "/repo", "model": "gpt-5.5" }` |
+| `/api/sessions` | `POST` | Start a new Neura session | `{ "cwd": "/repo", "model": "gpt-5.5" }` |
 | `/api/sessions/{id}/prompt` | `POST` | Send a prompt to a session | `{ "message": "fix the failing tests" }` |
 | `/api/sessions/{id}/events` | `GET` / WebSocket | Stream model/tool/status events | `tool_started`, `tool_finished`, `assistant_delta` |
 | `/api/sessions/{id}/status` | `GET` | Check if a session is running, waiting, or done | `{ "status": "running", "current_tool": "bash" }` |
 | `/api/sessions/{id}/cancel` | `POST` | Stop a running task | `{ "reason": "user cancelled" }` |
 | `/api/tools` | `GET` | List available tools/MCPs | `{ "tools": ["bash", "read", "browser"] }` |
-| `/api/memory/search` | `POST` | Search Kcode memory | `{ "query": "deploy target", "scope": "project" }` |
+| `/api/memory/search` | `POST` | Search Neura memory | `{ "query": "deploy target", "scope": "project" }` |
 | `/api/benchmarks/summary` | `GET` | Show benchmark/token/latency summary | `{ "token_reduction_pct": 92.7 }` |
 
 Acceptance criteria:
@@ -200,9 +200,9 @@ Acceptance criteria:
 | Milestone | Theme | Candidate deliverables |
 |---|---|---|
 | M1 | Sidecar quality | sidecar benchmarks, optimized routing, multiple sidecar profiles |
-| M2 | Local-only Kcode | local-only install path, local task suite, local model docs |
+| M2 | Local-only Neura | local-only install path, local task suite, local model docs |
 | M3 | Tooling + MCP expansion | Telegram/Obsidian/GitHub MCP recipes, safer plugin permissions |
-| M4 | Portable Kcode | USB/portable layout, path portability tests, docs |
+| M4 | Portable Neura | USB/portable layout, path portability tests, docs |
 | M5 | Web/mobile UX | web dashboard, mobile companion, approval notifications |
 | M6 | Team ecosystem | shared memory, plugin marketplace, benchmark dashboard |
 

@@ -23,9 +23,9 @@ const MAX_OUTPUT_LEN: usize = 30000;
 const DEFAULT_TIMEOUT_MS: u64 = 120000;
 const STDIN_POLL_INTERVAL_MS: u64 = 500;
 const STDIN_INITIAL_DELAY_MS: u64 = 300;
-const PROGRESS_MARKER_PREFIX: &str = "KCODE_PROGRESS ";
-const CHECKPOINT_MARKER_PREFIX: &str = "KCODE_CHECKPOINT ";
-const BACKGROUND_PROGRESS_GUIDANCE: &str = "For long jobs, emit `KCODE_PROGRESS {json}`/`KCODE_CHECKPOINT {json}` or simple progress like 42%, 3/10, Running/Building.";
+const PROGRESS_MARKER_PREFIX: &str = "NEURA_PROGRESS ";
+const CHECKPOINT_MARKER_PREFIX: &str = "NEURA_CHECKPOINT ";
+const BACKGROUND_PROGRESS_GUIDANCE: &str = "For long jobs, emit `NEURA_PROGRESS {json}`/`NEURA_CHECKPOINT {json}` or simple progress like 42%, 3/10, Running/Building.";
 const BASH_TOOL_DESCRIPTION: &str =
     "Run a bash command. For long background jobs, print progress/checkpoint lines.";
 const WINDOWS_SHELL_TOOL_DESCRIPTION: &str =
@@ -415,7 +415,7 @@ async fn handle_background_output_line(
         }
         Ok(None) => {}
         Err(err) => {
-            let warning = format!("[kcode warning] failed to parse background progress: {err}\n");
+            let warning = format!("[neura warning] failed to parse background progress: {err}\n");
             file.write_all(warning.as_bytes()).await.ok();
             file.flush().await.ok();
         }
@@ -450,9 +450,9 @@ fn build_detached_shell_wrapper(command: &str) -> StdCommand {
     let mut cmd = StdCommand::new("bash");
     cmd.arg("-lc")
         .arg(
-            r#"eval "$KCODE_RELOAD_DETACH_COMMAND"; status=$?; printf '\n--- Command finished with exit code: %s ---\n' "$status"; exit "$status""#,
+            r#"eval "$NEURA_RELOAD_DETACH_COMMAND"; status=$?; printf '\n--- Command finished with exit code: %s ---\n' "$status"; exit "$status""#,
         )
-        .env("KCODE_RELOAD_DETACH_COMMAND", command);
+        .env("NEURA_RELOAD_DETACH_COMMAND", command);
     cmd
 }
 
@@ -595,7 +595,7 @@ impl Tool for BashTool {
         if crate::browser::is_browser_command(&params.command) {
             params.command = crate::browser::rewrite_command_with_full_path(&params.command);
 
-            // Start/attach a browser session for this kcode session.
+            // Start/attach a browser session for this neura session.
             // This gives each agent its own browser tab, preventing
             // multi-agent conflicts when using the browser bridge.
             if !cfg!(windows)

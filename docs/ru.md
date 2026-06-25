@@ -1,16 +1,16 @@
-# Kcode Technical Rubric and System Diagrams
+# Neura Technical Rubric and System Diagrams
 
-This document explains Kcode at multiple levels of detail. It is meant for reviewers, contributors, and technically curious users who want a structured mental model of the system.
+This document explains Neura at multiple levels of detail. It is meant for reviewers, contributors, and technically curious users who want a structured mental model of the system.
 
 ## Level 0 — One-sentence overview
 
-Kcode is a local-first terminal coding agent harness that connects a remote model to local tools, memory, context compression, exact context recall, MCP integrations, and optional local sidecar models.
+Neura is a local-first terminal coding agent harness that connects a remote model to local tools, memory, context compression, exact context recall, MCP integrations, and optional local sidecar models.
 
 ## Level 1 — Simple system map
 
 ```mermaid
 flowchart TD
-    U[User] --> T[Kcode Terminal UI]
+    U[User] --> T[Neura Terminal UI]
     T --> A[Agent Runtime]
     A --> P[Remote Model Provider]
     A --> Tools[Local Tools]
@@ -41,7 +41,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant UI as Kcode UI
+    participant UI as Neura UI
     participant A as Agent Runtime
     participant Mem as Memory Layer
     participant Ctx as Context Diet / Vault
@@ -104,7 +104,7 @@ mindmap
 
 ## Level 3 — Context architecture
 
-Kcode treats context like a local virtual memory system.
+Neura treats context like a local virtual memory system.
 
 ```mermaid
 flowchart LR
@@ -163,14 +163,14 @@ flowchart TD
 
 | Category | Example | Retention expectation |
 |---|---|---|
-| Fact | project uses `~/.kcode/build-src/kcode` | durable until corrected |
+| Fact | project uses `~/.neura/build-src/neura` | durable until corrected |
 | Preference | user wants concise answers | durable but user-editable |
 | Entity | repo, model, server, person | durable with relationships |
 | Correction | old assumption was wrong | high priority for future turns |
 
 ### Memory migration rubric
 
-| Concern | Kcode-style answer |
+| Concern | Neura-style answer |
 |---|---|
 | Schema changes | version entries and support compatibility adapters |
 | Bad extraction | keep audit trail and allow correction memories |
@@ -259,7 +259,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    K[Kcode Runtime] --> Main[Remote Main Model]
+    K[Neura Runtime] --> Main[Remote Main Model]
     K --> Sidecar[Local Sidecar Model]
     Sidecar --> Route[Routing]
     Sidecar --> Mem[Memory extraction]
@@ -281,8 +281,8 @@ flowchart LR
 | cheap routing | sidecar | latency/cost |
 | memory extraction | sidecar or remote fallback | structured local task |
 | benchmark grading | sidecar + deterministic checks | repeatability |
-| exact context lookup | Kcode runtime | must be deterministic/local |
-| tool execution | Kcode runtime | real-world side effects |
+| exact context lookup | Neura runtime | must be deterministic/local |
+| tool execution | Neura runtime | real-world side effects |
 
 ---
 
@@ -291,9 +291,9 @@ flowchart LR
 ```mermaid
 flowchart TD
     Artifacts[Benchmark artifacts] --> Provider[Observed provider runs]
-    Artifacts --> Local[Observed local Kcode telemetry]
+    Artifacts --> Local[Observed local Neura telemetry]
     Artifacts --> Baselines[Simulated/inferred baselines]
-    Provider --> Claims[Observed Kcode claims]
+    Provider --> Claims[Observed Neura claims]
     Local --> Claims
     Baselines --> Comparisons[RAG/full-context comparisons]
 ```
@@ -334,7 +334,7 @@ flowchart TD
 
 ## Contributor rubric
 
-A Kcode feature is ready when it has:
+A Neura feature is ready when it has:
 
 - [ ] clear user-facing purpose,
 - [ ] documented configuration,

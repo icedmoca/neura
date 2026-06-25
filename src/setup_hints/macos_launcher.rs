@@ -1,6 +1,6 @@
 use super::{
     MacTerminalKind, SetupHintsState, effective_macos_terminal, escape_applescript_text,
-    escape_shell_single_quotes, launch_command_for_macos_terminal, paused_kcode_shell_command,
+    escape_shell_single_quotes, launch_command_for_macos_terminal, paused_neura_shell_command,
     save_preferred_macos_terminal,
 };
 use anyhow::{Context, Result};
@@ -33,7 +33,7 @@ pub(super) fn install_macos_app_launcher() -> Result<(PathBuf, MacTerminalKind)>
     let exe = std::env::current_exe()?;
     let exe_path = exe.to_string_lossy().into_owned();
     let terminal = effective_macos_terminal();
-    let launcher_path = macos_dir.join("kcode-launcher");
+    let launcher_path = macos_dir.join("neura-launcher");
     let launcher_script = macos_launcher_script(terminal, &exe_path, &app_dir);
     std::fs::write(&launcher_path, launcher_script)?;
 
@@ -49,17 +49,17 @@ pub(super) fn install_macos_app_launcher() -> Result<(PathBuf, MacTerminalKind)>
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Kcode</string>
+    <string>Neura</string>
     <key>CFBundleDisplayName</key>
-    <string>Kcode</string>
+    <string>Neura</string>
     <key>CFBundleIdentifier</key>
-    <string>com.kcode.launcher</string>
+    <string>com.neura.launcher</string>
     <key>CFBundleVersion</key>
     <string>{version}</string>
     <key>CFBundleShortVersionString</key>
     <string>{version}</string>
     <key>CFBundleExecutable</key>
-    <string>kcode-launcher</string>
+    <string>neura-launcher</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSApplicationCategoryType</key>
@@ -67,7 +67,7 @@ pub(super) fn install_macos_app_launcher() -> Result<(PathBuf, MacTerminalKind)>
 </dict>
 </plist>
 "#,
-        version = env!("KCODE_VERSION")
+        version = env!("NEURA_VERSION")
     );
     std::fs::write(contents_dir.join("Info.plist"), info_plist)?;
 
@@ -85,12 +85,12 @@ pub(super) fn install_macos_app_launcher() -> Result<(PathBuf, MacTerminalKind)>
 
 fn macos_app_launcher_dir() -> Result<PathBuf> {
     let home = dirs::home_dir().context("Could not find home directory")?;
-    Ok(home.join("Applications").join("Kcode.app"))
+    Ok(home.join("Applications").join("Neura.app"))
 }
 
 fn legacy_macos_app_launcher_dir() -> Result<PathBuf> {
     let home = dirs::home_dir().context("Could not find home directory")?;
-    Ok(home.join("Applications").join("kcode.app"))
+    Ok(home.join("Applications").join("neura.app"))
 }
 
 fn macos_app_launcher_info_plist_path(app_dir: &Path) -> PathBuf {
@@ -101,7 +101,7 @@ fn macos_app_launcher_executable_path(app_dir: &Path) -> PathBuf {
     app_dir
         .join("Contents")
         .join("MacOS")
-        .join("kcode-launcher")
+        .join("neura-launcher")
 }
 
 fn macos_app_launcher_is_valid(app_dir: &Path) -> bool {
@@ -155,14 +155,14 @@ fn should_refresh_macos_app_launcher_paths(
 fn macos_launcher_script(terminal: MacTerminalKind, exe_path: &str, app_dir: &Path) -> String {
     let app_dir_escaped = escape_shell_single_quotes(&app_dir.to_string_lossy());
     let exe_path_escaped = escape_shell_single_quotes(exe_path);
-    let shell_command = paused_kcode_shell_command(exe_path);
+    let shell_command = paused_neura_shell_command(exe_path);
     let launch_command = launch_command_for_macos_terminal(terminal, &shell_command);
     let missing_message = escape_applescript_text(&format!(
-        "Kcode could not launch because the executable was not found.\n\nExpected path:\n{}\n\nTry reinstalling kcode or rerun:\nkcode setup-launcher",
+        "Neura could not launch because the executable was not found.\n\nExpected path:\n{}\n\nTry reinstalling neura or rerun:\nneura setup-launcher",
         exe_path
     ));
     let terminal_failure_message = escape_applescript_text(&format!(
-        "Kcode could not open {}.\n\nTry rerunning:\nkcode setup-launcher\n\nLauncher log:\n~/.kcode/launcher/macos-launcher.log",
+        "Neura could not open {}.\n\nTry rerunning:\nneura setup-launcher\n\nLauncher log:\n~/.neura/launcher/macos-launcher.log",
         terminal.label()
     ));
 
@@ -171,10 +171,10 @@ fn macos_launcher_script(terminal: MacTerminalKind, exe_path: &str, app_dir: &Pa
 set -u
 
 PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
-LOG_DIR="$HOME/.kcode/launcher"
+LOG_DIR="$HOME/.neura/launcher"
 LOG_FILE="$LOG_DIR/macos-launcher.log"
 mkdir -p "$LOG_DIR" >/dev/null 2>&1 || true
-LOCK_DIR="${{TMPDIR:-/tmp}}/kcode-macos-launcher.lock"
+LOCK_DIR="${{TMPDIR:-/tmp}}/neura-macos-launcher.lock"
 PID_FILE="$LOCK_DIR/pid"
 
 if mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -186,7 +186,7 @@ else
       ''|*[!0-9]*) OLD_PID= ;;
     esac
     if [ -n "${{OLD_PID:-}}" ] && kill -0 "$OLD_PID" 2>/dev/null; then
-      printf '%s\n' "kcode launcher already running as pid $OLD_PID" >> "$LOG_FILE"
+      printf '%s\n' "neura launcher already running as pid $OLD_PID" >> "$LOG_FILE"
       exit 0
     fi
   fi
@@ -194,7 +194,7 @@ else
   if mkdir "$LOCK_DIR" 2>/dev/null; then
     printf '%s\n' "$$" > "$PID_FILE"
   else
-    printf '%s\n' "kcode launcher lock busy" >> "$LOG_FILE"
+    printf '%s\n' "neura launcher lock busy" >> "$LOG_FILE"
     exit 0
   fi
 fi
@@ -202,17 +202,17 @@ trap 'rm -rf "$LOCK_DIR"' EXIT HUP INT TERM
 
 # Avoid terminal app session restoration recursively replaying this launcher.
 export KITTY_DISABLE_SESSION_RESTORE=1
-export KCODE_MACOS_LAUNCHER=1
+export NEURA_MACOS_LAUNCHER=1
 
 show_missing_executable() {{
   /usr/bin/osascript <<'APPLESCRIPT' >/dev/null 2>&1 || true
-display alert "Kcode launch failed" message "{missing_message}" as critical
+display alert "Neura launch failed" message "{missing_message}" as critical
 APPLESCRIPT
 }}
 
 show_terminal_launch_failure() {{
   /usr/bin/osascript <<'APPLESCRIPT' >/dev/null 2>&1 || true
-display alert "Kcode launch failed" message "{terminal_failure_message}" as critical
+display alert "Neura launch failed" message "{terminal_failure_message}" as critical
 APPLESCRIPT
 }}
 

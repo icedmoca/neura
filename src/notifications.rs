@@ -11,10 +11,10 @@ use crate::config::{SafetyConfig, config};
 use crate::logging;
 use crate::safety::AmbientTranscript;
 
-use kcode_notify_email::{
+use neura_notify_email::{
     ReplyAction, SendEmailRequest, build_permission_email_html, poll_imap_once, send_email,
 };
-pub use kcode_notify_email::{extract_permission_id, parse_permission_reply};
+pub use neura_notify_email::{extract_permission_id, parse_permission_reply};
 
 /// Notification priority levels (maps to ntfy priority header).
 #[derive(Debug, Clone, Copy)]
@@ -104,10 +104,10 @@ impl NotificationDispatcher {
 
     /// Send a permission request notification (high priority).
     pub fn dispatch_permission_request(&self, action: &str, description: &str, request_id: &str) {
-        let title = format!("kcode: permission needed ({})", action);
-        let safe_body = "An ambient action needs your approval. Open kcode to review.".to_string();
+        let title = format!("neura: permission needed ({})", action);
+        let safe_body = "An ambient action needs your approval. Open neura to review.".to_string();
         let detailed_body = format!(
-            "Action: {}\n{}\n\nRequest ID: {}\nReview in kcode to approve or deny.",
+            "Action: {}\n{}\n\nRequest ID: {}\nReview in neura to approve or deny.",
             action, description, request_id
         );
 
@@ -116,7 +116,7 @@ impl NotificationDispatcher {
             .config
             .email_from
             .as_deref()
-            .unwrap_or("kcode@localhost");
+            .unwrap_or("neura@localhost");
         let email_html = build_permission_email_html(action, description, request_id, reply_to);
 
         self.send_all_with_email_override(
@@ -277,7 +277,7 @@ async fn send_ntfy(
 
 fn send_desktop(title: &str, body: &str, urgency: &str) {
     let result = std::process::Command::new("notify-send")
-        .arg("--app-name=kcode")
+        .arg("--app-name=neura")
         .arg(format!("--urgency={}", urgency))
         .arg("--icon=dialog-information")
         .arg(title)
@@ -420,7 +420,7 @@ fn format_cycle_body_safe(transcript: &AmbientTranscript) -> String {
         ));
     }
 
-    lines.push("Check kcode for full details.".to_string());
+    lines.push("Check neura for full details.".to_string());
     lines.join("\n")
 }
 
@@ -451,7 +451,7 @@ fn format_cycle_body_detailed(transcript: &AmbientTranscript) -> String {
     if transcript.pending_permissions > 0 {
         lines.push(String::new());
         lines.push(format!(
-            "**⚠ {} permission request(s) pending** — review in kcode",
+            "**⚠ {} permission request(s) pending** — review in neura",
             transcript.pending_permissions
         ));
     }
@@ -493,7 +493,7 @@ mod tests {
         let body = format_cycle_body_safe(&transcript);
         assert!(body.contains("Memories modified: 3"));
         assert!(body.contains("Compactions: 1"));
-        assert!(body.contains("Check kcode for full details"));
+        assert!(body.contains("Check neura for full details"));
         // Safe body must NOT include model-generated summary
         assert!(!body.contains("Cleaned up"));
         assert!(!body.contains("permission"));
@@ -546,7 +546,7 @@ mod tests {
 
         let safe = format_cycle_body_safe(&transcript);
         assert!(safe.contains("2 permission request(s) pending"));
-        assert!(safe.contains("Check kcode for full details"));
+        assert!(safe.contains("Check neura for full details"));
 
         let detailed = format_cycle_body_detailed(&transcript);
         assert!(detailed.contains("2 permission request(s) pending"));

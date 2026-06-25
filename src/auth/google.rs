@@ -65,11 +65,11 @@ impl GoogleTokens {
 }
 
 pub fn credentials_path() -> Result<std::path::PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("google_credentials.json"))
+    Ok(crate::storage::neura_dir()?.join("google_credentials.json"))
 }
 
 pub fn tokens_path() -> Result<std::path::PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("google_oauth.json"))
+    Ok(crate::storage::neura_dir()?.join("google_oauth.json"))
 }
 
 pub fn load_credentials() -> Result<GoogleCredentials> {
@@ -115,11 +115,11 @@ pub fn save_credentials(creds: &GoogleCredentials) -> Result<()> {
 pub fn load_tokens() -> Result<GoogleTokens> {
     let path = tokens_path()?;
     if !path.exists() {
-        anyhow::bail!("No Google tokens found. Run `kcode login google` first.");
+        anyhow::bail!("No Google tokens found. Run `neura login google` first.");
     }
     crate::storage::harden_secret_file_permissions(&path);
     crate::storage::read_json(&path)
-        .map_err(|_| anyhow::anyhow!("No Google tokens found. Run `kcode login google` first."))
+        .map_err(|_| anyhow::anyhow!("No Google tokens found. Run `neura login google` first."))
 }
 
 pub fn save_tokens(tokens: &GoogleTokens) -> Result<()> {

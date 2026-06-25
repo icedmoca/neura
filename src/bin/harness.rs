@@ -1,15 +1,15 @@
 use anyhow::Result;
 use clap::Parser;
-use kcode::id::new_id;
-use kcode::message::{Message, ToolDefinition};
-use kcode::provider::{EventStream, Provider};
-use kcode::tool::{Registry, ToolContext, ToolExecutionMode};
+use neura::id::new_id;
+use neura::message::{Message, ToolDefinition};
+use neura::provider::{EventStream, Provider};
+use neura::tool::{Registry, ToolContext, ToolExecutionMode};
 use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Parser)]
-#[command(name = "kcode-harness")]
+#[command(name = "neura-harness")]
 #[command(about = "Run a deterministic tool harness smoke test")]
 struct Args {
     /// Use an explicit working directory (defaults to a temp folder).
@@ -211,6 +211,6 @@ async fn main() -> Result<()> {
 
 fn create_temp_workspace() -> Result<PathBuf> {
     let mut path = std::env::temp_dir();
-    path.push(format!("kcode-harness-{}", new_id("run")));
+    path.push(format!("neura-harness-{}", new_id("run")));
     Ok(path)
 }

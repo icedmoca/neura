@@ -1,15 +1,15 @@
 use super::*;
 
-fn with_temp_kcode_home<T>(f: impl FnOnce() -> T) -> T {
+fn with_temp_neura_home<T>(f: impl FnOnce() -> T) -> T {
     let _guard = crate::storage::lock_test_env();
     let temp_home = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp_home.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp_home.path());
     let result = f();
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
     result
 }
@@ -19,7 +19,7 @@ fn create_git_repo_fixture() -> tempfile::TempDir {
     std::fs::create_dir_all(temp.path().join(".git")).expect("create .git dir");
     std::fs::write(
         temp.path().join("Cargo.toml"),
-        "[package]\nname = \"kcode\"\nversion = \"0.0.0\"\n",
+        "[package]\nname = \"neura\"\nversion = \"0.0.0\"\n",
     )
     .expect("write Cargo.toml");
     std::process::Command::new("git")
@@ -79,7 +79,7 @@ fn test_binary_version_hash_mismatch_rejects_publish_candidate() {
         git_hash: Some("oldhash".to_string()),
     };
 
-    let error = validate_binary_version_matches_source_report(&report, Path::new("kcode"), &source)
+    let error = validate_binary_version_matches_source_report(&report, Path::new("neura"), &source)
         .expect_err("mismatched git hash should be rejected");
 
     assert!(
@@ -165,13 +165,13 @@ fn test_binary_choice_for_canary_session() {
 #[test]
 fn test_find_repo_in_ancestors_walks_upward() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let repo = temp.path().join("kcode-repo");
+    let repo = temp.path().join("neura-repo");
     let nested = repo.join("a").join("b").join("c");
 
     std::fs::create_dir_all(repo.join(".git")).expect("create .git");
     std::fs::write(
         repo.join("Cargo.toml"),
-        "[package]\nname = \"kcode\"\nversion = \"0.0.0\"\n",
+        "[package]\nname = \"neura\"\nversion = \"0.0.0\"\n",
     )
     .expect("write Cargo.toml");
     std::fs::create_dir_all(&nested).expect("create nested dirs");
@@ -184,8 +184,8 @@ fn test_find_repo_in_ancestors_walks_upward() {
 fn test_client_update_candidate_prefers_dev_binary_for_selfdev() {
     let _guard = crate::storage::lock_test_env();
     let temp_home = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp_home.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp_home.path());
 
     let version = "test-current";
     let version_binary =
@@ -201,24 +201,24 @@ fn test_client_update_candidate_prefers_dev_binary_for_selfdev() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
 #[test]
-fn launcher_dir_uses_sandbox_bin_when_kcode_home_is_set() {
-    with_temp_kcode_home(|| {
+fn launcher_dir_uses_sandbox_bin_when_neura_home_is_set() {
+    with_temp_neura_home(|| {
         let launcher_dir = launcher_dir().expect("launcher dir");
-        let expected = storage::kcode_dir().expect("kcode dir").join("bin");
+        let expected = storage::neura_dir().expect("neura dir").join("bin");
         assert_eq!(launcher_dir, expected);
     });
 }
 
 #[test]
 fn update_launcher_symlink_stays_inside_sandbox_home() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let version = "sandbox-current";
         let version_binary =
             install_binary_at_version(std::env::current_exe().as_ref().unwrap(), version)
@@ -226,8 +226,8 @@ fn update_launcher_symlink_stays_inside_sandbox_home() {
         update_current_symlink(version).expect("update current symlink");
 
         let launcher = update_launcher_symlink_to_current().expect("update launcher");
-        let expected_launcher = storage::kcode_dir()
-            .expect("kcode dir")
+        let expected_launcher = storage::neura_dir()
+            .expect("neura dir")
             .join("bin")
             .join(binary_name());
         assert_eq!(launcher, expected_launcher);
@@ -267,7 +267,7 @@ fn dirty_source_state_uses_fingerprint_in_version_label() {
 
 #[test]
 fn pending_activation_can_complete_and_roll_back() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let current_version = "stable-prev";
         let shared_version = "shared-prev";
         install_binary_at_version(std::env::current_exe().as_ref().unwrap(), current_version)
@@ -327,7 +327,7 @@ fn pending_activation_can_complete_and_roll_back() {
 
 #[test]
 fn shared_server_candidate_prefers_approved_channel_over_current() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let approved_version = "shared-ok";
         let current_version = "current-dev";
         install_binary_at_version(std::env::current_exe().as_ref().unwrap(), approved_version)

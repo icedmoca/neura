@@ -213,7 +213,7 @@ pub fn error_to_lines(error: &str) -> Vec<Line<'static>> {
 /// Terminal-friendly theme (works on dark backgrounds)
 pub fn terminal_theme() -> Theme {
     Theme {
-        // Catppuccin-inspired pastel dark theme tuned for kcode's terminal UI.
+        // Catppuccin-inspired pastel dark theme tuned for neura's terminal UI.
         // Uses transparent canvas so the rendered PNG integrates with the TUI,
         // while keeping nodes/labels readable against dark panes.
         background: "#00000000".to_string(),

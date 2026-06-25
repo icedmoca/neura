@@ -1,4 +1,4 @@
-//! End-to-end tests for kcode using a mock provider
+//! End-to-end tests for neura using a mock provider
 //!
 //! These tests verify the full flow from user input to response
 //! without making actual API calls.

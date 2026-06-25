@@ -105,7 +105,7 @@ impl Provider for StreamingTestProvider {
 async fn runner_stays_alive_to_service_schedules_when_ambient_disabled() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let provider: Arc<dyn Provider> = Arc::new(TestProvider);
     let runner = AmbientRunnerHandle::new(Arc::new(crate::safety::SafetySystem::new()));
@@ -125,7 +125,7 @@ async fn runner_stays_alive_to_service_schedules_when_ambient_disabled() {
 async fn spawn_target_creates_one_child_session_and_runs_task() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let provider = StreamingTestProvider::default();
     provider.queue_response(vec![

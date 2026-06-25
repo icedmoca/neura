@@ -1,7 +1,7 @@
 use super::*;
 use serde::{Deserialize, Serialize};
 
-const PROVIDER_FAILOVER_PROMPT_PREFIX: &str = "[kcode-provider-failover]";
+const PROVIDER_FAILOVER_PROMPT_PREFIX: &str = "[neura-provider-failover]";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct ProviderFailoverPrompt {

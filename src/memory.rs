@@ -63,7 +63,7 @@ const LEGACY_NOTE_CATEGORY: &str = "note";
 
 // === Phase 3 — `.mem_get` retrieval contract ===
 //
-// Anchor mode (`KCODE_MEMORY_ANCHOR=1`) replaces the full memory injection
+// Anchor mode (`NEURA_MEMORY_ANCHOR=1`) replaces the full memory injection
 // with a tiny `<mem-anchor count="N" via=".mem_get" />` pointer. To keep the
 // model's recall capability intact, the full prompt that *would* have been
 // injected is stashed here, keyed by session id, so when the model emits
@@ -157,7 +157,7 @@ pub fn maybe_rehydrate_mem_get(session_id: &str, model_text: &str) -> Option<Str
         snap.clone()
     };
     Some(format!(
-        "<system-reminder>\nKcode .mem_get rehydration fulfilled (reason={}). The relevant memory entries follow. Treat them as authoritative for this turn.\n\n{}\n\n(memory_ids: {})\n</system-reminder>",
+        "<system-reminder>\nNeura .mem_get rehydration fulfilled (reason={}). The relevant memory entries follow. Treat them as authoritative for this turn.\n\n{}\n\n(memory_ids: {})\n</system-reminder>",
         req.reason.as_deref().unwrap_or("unspecified"),
         snapshot.prompt,
         snapshot.memory_ids.join(",")
@@ -520,7 +520,7 @@ impl MemoryManager {
             anyhow::bail!("clear_test_storage only allowed in test mode");
         }
 
-        let test_dir = storage::kcode_dir()?.join("memory").join("test");
+        let test_dir = storage::neura_dir()?.join("memory").join("test");
         if test_dir.exists() {
             std::fs::remove_dir_all(&test_dir)?;
             crate::logging::info("Cleared test memory storage");
@@ -537,7 +537,7 @@ impl MemoryManager {
     fn project_memory_path(&self) -> Result<Option<PathBuf>> {
         // In test mode, use test directory
         if self.test_mode {
-            let test_dir = storage::kcode_dir()?.join("memory").join("test");
+            let test_dir = storage::neura_dir()?.join("memory").join("test");
             std::fs::create_dir_all(&test_dir)?;
             return Ok(Some(test_dir.join("test_project.json")));
         }
@@ -555,13 +555,13 @@ impl MemoryManager {
             format!("{:016x}", hasher.finish())
         };
 
-        let memory_dir = storage::kcode_dir()?.join("memory").join("projects");
+        let memory_dir = storage::neura_dir()?.join("memory").join("projects");
         Ok(Some(memory_dir.join(format!("{}.json", project_hash))))
     }
 
     fn legacy_notes_path(&self) -> Result<Option<PathBuf>> {
         if self.test_mode {
-            let test_dir = storage::kcode_dir()?.join("notes").join("test");
+            let test_dir = storage::neura_dir()?.join("notes").join("test");
             std::fs::create_dir_all(&test_dir)?;
             return Ok(Some(test_dir.join("test_notes.json")));
         }
@@ -580,7 +580,7 @@ impl MemoryManager {
         };
 
         Ok(Some(
-            storage::kcode_dir()?
+            storage::neura_dir()?
                 .join("notes")
                 .join(format!("{}.json", project_hash)),
         ))
@@ -638,11 +638,11 @@ impl MemoryManager {
 
     fn global_memory_path(&self) -> Result<PathBuf> {
         if self.test_mode {
-            let test_dir = storage::kcode_dir()?.join("memory").join("test");
+            let test_dir = storage::neura_dir()?.join("memory").join("test");
             std::fs::create_dir_all(&test_dir)?;
             Ok(test_dir.join("test_global.json"))
         } else {
-            Ok(storage::kcode_dir()?.join("memory").join("global.json"))
+            Ok(storage::neura_dir()?.join("memory").join("global.json"))
         }
     }
 
@@ -831,7 +831,7 @@ impl MemoryManager {
         }
 
         #[cfg(test)]
-        if std::env::var_os("KCODE_TEST_ALLOW_MEMORY_EMBEDDINGS").is_none() {
+        if std::env::var_os("NEURA_TEST_ALLOW_MEMORY_EMBEDDINGS").is_none() {
             return false;
         }
 

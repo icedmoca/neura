@@ -1,8 +1,8 @@
-# Kcode Benchmarks
+# Neura Benchmarks
 
-This document tracks benchmark evidence for Kcode's context compression, context vault, memory, and dynamic tool-schema pipeline.
+This document tracks benchmark evidence for Neura's context compression, context vault, memory, and dynamic tool-schema pipeline.
 
-The numbers below are **real local measurements** from the active Kcode installation under `~/.kcode` unless a row is explicitly marked as a benchmark plan. They are not synthetic marketing numbers.
+The numbers below are **real local measurements** from the active Neura installation under `~/.neura` unless a row is explicitly marked as a benchmark plan. They are not synthetic marketing numbers.
 
 
 
@@ -14,10 +14,10 @@ This report is written as an engineering benchmark, not a marketing claim. Every
 
 | ID | Hypothesis | Primary metric | Primary artifact |
 |---|---|---|---|
-| H1 | Compact context reduces prompt representation size versus Kcode's recorded uncompressed replay baseline. | Aggregate reduction %, chars/token estimate | `../benchmark-results/final_complete_benchmark_suite.json` |
+| H1 | Compact context reduces prompt representation size versus Neura's recorded uncompressed replay baseline. | Aggregate reduction %, chars/token estimate | `../benchmark-results/final_complete_benchmark_suite.json` |
 | H2 | Exact/path-aware context retrieval preserves needed context better than a simple lexical/path RAG baseline on repo-history tasks. | Context success rate, failure types | `../benchmark-results/coding_task_benchmark.json` |
-| H3 | Kcode's provider pipeline can perform real edit→test loops on bounded coding fixtures. | Final tests passed / tasks | `../benchmark-results/provider_edit_benchmark.json` |
-| H4 | Kcode avoids unsupported answers on the defined adversarial hallucination suite. | Pass rate, Wilson interval | `../benchmark-results/provider_adversarial_80_summary.json` |
+| H3 | Neura's provider pipeline can perform real edit→test loops on bounded coding fixtures. | Final tests passed / tasks | `../benchmark-results/provider_edit_benchmark.json` |
+| H4 | Neura avoids unsupported answers on the defined adversarial hallucination suite. | Pass rate, Wilson interval | `../benchmark-results/provider_adversarial_80_summary.json` |
 | H5 | Provider latency is acceptable for small direct/file/edit/adversarial runs. | p50/p95/max wall time | `../benchmark-results/final_complete_benchmark_suite.json` |
 
 ### Claims ledger
@@ -25,9 +25,9 @@ This report is written as an engineering benchmark, not a marketing claim. Every
 | Claim | Measured result | Scope limit |
 |---|---:|---|
 | Prompt representation is smaller than replaying recorded full context. | 92%+ aggregate reduction in final rollup. | Replay baseline, not universal provider billing. |
-| Kcode exact context recall is accurate on deterministic questions. | 100% precision/recall in `context_benchmark.py`. | Synthetic deterministic context facts. |
-| Kcode exact/path retrieval works on real repo-history context tasks. | 100% context success on 75 tasks. | File-availability benchmark, not autonomous editing. |
-| Lexical/path RAG baseline is weaker on this task mix. | 48% success on 75 real repo tasks. | Inferred/simulated baseline comparison, not a Kcode observed claim and not a tuned embedding RAG system. |
+| Neura exact context recall is accurate on deterministic questions. | 100% precision/recall in `context_benchmark.py`. | Synthetic deterministic context facts. |
+| Neura exact/path retrieval works on real repo-history context tasks. | 100% context success on 75 tasks. | File-availability benchmark, not autonomous editing. |
+| Lexical/path RAG baseline is weaker on this task mix. | 48% success on 75 real repo tasks. | Inferred/simulated baseline comparison, not a Neura observed claim and not a tuned embedding RAG system. |
 | Provider edit/test pipeline works. | 10/10 bounded Python fixtures passed. | Small fixtures, not SWE-bench-scale issues. |
 | Adversarial unsupported-answer rate is low on tested templates. | 80/80 passed; Wilson 95% upper bound 4.58%. | Template distribution, not all natural prompts. |
 | User intervention was not needed in smoke runs. | 0 interventions across provider smoke/edit/messy runs. | Non-interactive scripted prompts only. |
@@ -57,23 +57,23 @@ A checksum manifest is committed at `../benchmark-results/artifact_manifest.json
 
 ## Evaluation architecture
 
-Kcode benchmark evidence is separated into three tiers. Tables and claims in this document must be read with the tier label attached.
+Neura benchmark evidence is separated into three tiers. Tables and claims in this document must be read with the tier label attached.
 
 | Tier | Meaning | Evidence type | Authority |
 |---|---|---|---|
-| Tier 1 — instrumented provider measurements | Real Kcode provider runs and real tool/edit/test execution | API outputs, provider trace tokens when present, wall time, final test results, per-run JSON traces | Authoritative for observed behavior in those runs |
-| Tier 2 — observed local `.kcode` benchmark measurements | Reproducible local `.kcode` benchmark scripts and telemetry-derived outputs with known oracles | synthetic context tasks, real git-history context tasks, deterministic reruns | Observed local behavior for Kcode artifacts; not provider generation behavior unless paired with Tier 1 |
-| Tier 3 — inferred / simulated baseline comparisons | Counterfactual or approximate measurements | full-context replay baseline, `chars/4` token estimates, modeled cost comparisons | Useful for comparison only; not a headline Kcode-observed claim |
+| Tier 1 — instrumented provider measurements | Real Neura provider runs and real tool/edit/test execution | API outputs, provider trace tokens when present, wall time, final test results, per-run JSON traces | Authoritative for observed behavior in those runs |
+| Tier 2 — observed local `.neura` benchmark measurements | Reproducible local `.neura` benchmark scripts and telemetry-derived outputs with known oracles | synthetic context tasks, real git-history context tasks, deterministic reruns | Observed local behavior for Neura artifacts; not provider generation behavior unless paired with Tier 1 |
+| Tier 3 — inferred / simulated baseline comparisons | Counterfactual or approximate measurements | full-context replay baseline, `chars/4` token estimates, modeled cost comparisons | Useful for comparison only; not a headline Neura-observed claim |
 
-Tier 1 is the strongest evidence in this report. Tier 2 reports observed local Kcode benchmark outputs from committed scripts and `.kcode` telemetry. Tier 3 is reserved for RAG comparisons and counterfactual/full-context/token-estimate baselines and must not be merged with provider-measured token counts.
+Tier 1 is the strongest evidence in this report. Tier 2 reports observed local Neura benchmark outputs from committed scripts and `.neura` telemetry. Tier 3 is reserved for RAG comparisons and counterfactual/full-context/token-estimate baselines and must not be merged with provider-measured token counts.
 
 ## Ground truth definition layer
 
 | Benchmark category | Oracle / ground truth source | Success computation | Ignored / excluded | Failure conditions |
 |---|---|---|---|---|
-| Provider edit→test coding | Fixture unit tests plus final file state | Initial tests fail, Kcode edits files, final `python -m unittest` passes | Large real issues, style quality beyond tests, hidden tests | final tests fail, timeout, provider error, no edit when edit required |
+| Provider edit→test coding | Fixture unit tests plus final file state | Initial tests fail, Neura edits files, final `python -m unittest` passes | Large real issues, style quality beyond tests, hidden tests | final tests fail, timeout, provider error, no edit when edit required |
 | Provider direct/file/tool prompts | Expected answer derived from repository files or prompt facts | Return code 0 and answer contains expected value | Subjective wording differences | wrong value, no answer, unverifiable claim |
-| Kcode retrieval/context questions | Exact target context block or target file path | Required block/file appears in retrieved context | Model reasoning after retrieval | missed block/file, wrong block cited, distractor selected; RAG rows are baseline comparisons, not Kcode claims |
+| Neura retrieval/context questions | Exact target context block or target file path | Required block/file appears in retrieved context | Model reasoning after retrieval | missed block/file, wrong block cited, distractor selected; RAG rows are baseline comparisons, not Neura claims |
 | Hallucination/adversarial prompts | Prompt-local facts and explicit instructions | Answer refuses/flags absent facts, resolves conflicts as instructed | Unscored prose style | unsupported fact, invented file/tool output, wrong conflict resolution |
 | Token efficiency | Recorded telemetry fields and provider trace usage where present | Tier 1 provider tokens reported separately from Tier 3 replay estimates | Hidden provider serialization not exposed in traces | mixing estimated and observed token counts, missing baseline label |
 | Latency | Wall-clock timing around scripted runs | p50/p95/max over recorded provider runs | Network/provider variability attribution | timeout, missing timing, failed run counted separately |
@@ -86,40 +86,40 @@ This is the single top-level summary table. “Observed” means provider-report
 
 | Area | Tier | Primary metric | Result | Artifact |
 |---|---|---|---:|---|
-| Retrieval accuracy, Kcode exact/path | Tier 2 observed local | context/file success rate | 100.00% on deterministic questions; 100.00% on 75 real repo context tasks | `context_benchmark.json`, `coding_task_benchmark.json` |
+| Retrieval accuracy, Neura exact/path | Tier 2 observed local | context/file success rate | 100.00% on deterministic questions; 100.00% on 75 real repo context tasks | `context_benchmark.json`, `coding_task_benchmark.json` |
 | Retrieval accuracy, lexical/path RAG baseline | Tier 3 inferred/simulated baseline | context/file success rate | 66.67% deterministic; 48.00% real repo context tasks | `context_benchmark.json`, `coding_task_benchmark.json` |
 | Coding success | Tier 1 | final tests passed | 10/10 provider edit→test fixtures | `provider_edit_benchmark.json` |
 | Hallucination guard | Tier 1 | unsupported-answer failures | 0/80 failures; Wilson 95% upper bound 4.58% | `provider_adversarial_80_summary.json` |
 | Token efficiency, observed provider calls | Tier 1 | provider trace input/output tokens where present | reported per run; not all providers expose complete billing context | `provider_calls.json`, `provider_edit_benchmark.json` |
-| Token efficiency, `.kcode` telemetry replay | Tier 2 observed telemetry + Tier 3 replay baseline | compact vs recorded full-context replay | 92%+ aggregate reduction in final rollup | `final_complete_benchmark_suite.json` |
+| Token efficiency, `.neura` telemetry replay | Tier 2 observed telemetry + Tier 3 replay baseline | compact vs recorded full-context replay | 92%+ aggregate reduction in final rollup | `final_complete_benchmark_suite.json` |
 | Latency | Tier 1 | wall-clock provider run latency | p50/p95/max reported in final rollup | `final_complete_benchmark_suite.json` |
 | Tool-use success | Tier 1 | file/tool/edit runs successful | provider file/tool 2/2; edit/tool 10/10 | `provider_calls.json`, `provider_edit_benchmark.json` |
 
 
-## Kcode claim rule
+## Neura claim rule
 
-All headline claims about **Kcode itself** in this document are based on one of two observed sources:
+All headline claims about **Neura itself** in this document are based on one of two observed sources:
 
-1. real provider executions through `kcode run --json --trace`, or
-2. committed local `.kcode` benchmark artifacts/telemetry generated by scripts in this repository.
+1. real provider executions through `neura run --json --trace`, or
+2. committed local `.neura` benchmark artifacts/telemetry generated by scripts in this repository.
 
-RAG comparisons, full-context replay comparisons, and `chars/4` token conversions are labeled as inferred or simulated baselines. They are included for context, not as observed Kcode behavior.
+RAG comparisons, full-context replay comparisons, and `chars/4` token conversions are labeled as inferred or simulated baselines. They are included for context, not as observed Neura behavior.
 
 ## Measurement snapshot
 
 | Field | Value |
 |---|---:|
-| Source checkout | `~/.kcode/build-src/kcode` |
+| Source checkout | `~/.neura/build-src/neura` |
 | Repo HEAD when measured | `4812e47` |
-| Installed binary reported | `kcode v0.10.168-dev (6dc42ed, dirty)` |
-| Interlang telemetry file | `~/.kcode/interlang-stats.jsonl` |
+| Installed binary reported | `neura v0.10.168-dev (6dc42ed, dirty)` |
+| Interlang telemetry file | `~/.neura/interlang-stats.jsonl` |
 | Telemetry size | 2.6 MiB |
 | Telemetry events parsed | 3,716 |
 | Non-zero compression events | 3,662 |
 | Tool schema functions in source | 42 |
 | Rust tests in source tree | 2,554 |
 
-> Note: the installed binary reported an older embedded commit than the docs HEAD because the working tree had later docs-only commits after the binary was built. The benchmarked compression/tool behavior comes from the `.kcode` telemetry and current source tree.
+> Note: the installed binary reported an older embedded commit than the docs HEAD because the working tree had later docs-only commits after the binary was built. The benchmarked compression/tool behavior comes from the `.neura` telemetry and current source tree.
 
 ## Token usage vs the recorded full-context replay baseline
 
@@ -143,14 +143,14 @@ Approximate token savings depend on tokenizer and provider formatting. A rough c
 Provider-measured tokens, telemetry-inferred tokens, and simulated counterfactual tokens are never summed into one headline value.
 
 - **Observed:** token fields emitted by provider traces for a specific request.
-- **Inferred:** local Kcode telemetry such as original/encoded chars and exact-token counters where available.
+- **Inferred:** local Neura telemetry such as original/encoded chars and exact-token counters where available.
 - **Simulated:** `chars/4` or full-context replay estimates used only for relative comparisons.
 
 If a provider omits hidden system tokens, cached tokens, routing overhead, or billing adjustments, this report leaves them out rather than imputing them.
 
 ### Baseline sensitivity note
 
-The token-reduction percentages compare Kcode's compact representation with a recorded full-context replay baseline derived from telemetry fields (`original_chars`, dieted original chars, and raw context avoided chars). They are not a claim that every provider or every competing agent would literally resend the same bytes. Provider serialization, hidden system prompts, model tokenizer, and alternative pruning strategies can change absolute billed tokens. The result is strongest as an apples-to-apples replay comparison of Kcode compact refs versus Kcode's recorded uncompressed context blocks.
+The token-reduction percentages compare Neura's compact representation with a recorded full-context replay baseline derived from telemetry fields (`original_chars`, dieted original chars, and raw context avoided chars). They are not a claim that every provider or every competing agent would literally resend the same bytes. Provider serialization, hidden system prompts, model tokenizer, and alternative pruning strategies can change absolute billed tokens. The result is strongest as an apples-to-apples replay comparison of Neura compact refs versus Neura's recorded uncompressed context blocks.
 
 ## Short / medium / long session reduction
 
@@ -166,7 +166,7 @@ Interpretation: compression is intentionally modest on short turns, where exact 
 
 ## Tool-schema overhead and pruning
 
-Kcode contains 42 tool schema definitions in source. Sending every schema on every turn creates a large fixed cost, especially for direct-answer questions.
+Neura contains 42 tool schema definitions in source. Sending every schema on every turn creates a large fixed cost, especially for direct-answer questions.
 
 Current behavior:
 
@@ -182,7 +182,7 @@ This is designed to reduce fixed prompt overhead without disabling tools. Regres
 A reproducible local benchmark harness now lives at `../scripts/context_benchmark.py`. It does not call a remote model. Instead, it isolates the context layer and compares three strategies over 80 synthetic-but-deterministic context blocks and 12 queries:
 
 - **full_context:** sends every block and always has the answer when it exists,
-- **kcode_exact:** sends compact refs and rehydrates the exact block by ID/alias/query,
+- **neura_exact:** sends compact refs and rehydrates the exact block by ID/alias/query,
 - **lexical_rag:** retrieves the top 3 blocks with simple bag-of-words lexical scoring.
 
 This benchmark directly covers task success vs token cost, context recall accuracy, and unsupported-answer/hallucination behavior for the retrieval layer.
@@ -190,10 +190,10 @@ This benchmark directly covers task success vs token cost, context recall accura
 | Strategy | Queries | Success rate | Hallucination rate | Miss rate | Prompt chars | Est. prompt tokens | Est. tokens/success |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Full context | 12 | 100.00% | 0.00% | 0.00% | 98,796 | 24,699 | 2,058.25 |
-| Kcode exact refs | 12 | 100.00% | 0.00% | 0.00% | 38,351 | 9,588 | 798.98 |
+| Neura exact refs | 12 | 100.00% | 0.00% | 0.00% | 38,351 | 9,588 | 798.98 |
 | Lexical RAG | 12 | 66.67% | 33.33% | 16.67% | 5,634 | 1,408 | 176.06 |
 
-Measured result: Kcode exact refs matched full-context success and hallucination behavior while using **61.18% fewer estimated prompt tokens** than full context on this benchmark. Lexical RAG was cheapest, but it missed or hallucinated on several queries because the top lexical hits can be distractors or obsolete facts.
+Measured result: Neura exact refs matched full-context success and hallucination behavior while using **61.18% fewer estimated prompt tokens** than full context on this benchmark. Lexical RAG was cheapest, but it missed or hallucinated on several queries because the top lexical hits can be distractors or obsolete facts.
 
 Artifacts:
 
@@ -214,7 +214,7 @@ Scope note: this is a deterministic local context benchmark, not a remote-model 
 
 ## Actual provider edit→test coding benchmark
 
-This benchmark is intentionally small but it is **actual coding**, not just context retrieval. Kcode was run through the real non-interactive provider path in temporary repositories with failing Python unit tests. The provider had to edit files and run `python -m unittest`; success required the final tests to pass.
+This benchmark is intentionally small but it is **actual coding**, not just context retrieval. Neura was run through the real non-interactive provider path in temporary repositories with failing Python unit tests. The provider had to edit files and run `python -m unittest`; success required the final tests to pass.
 
 Artifacts:
 
@@ -235,10 +235,10 @@ Scope note: this is now a statistically meaningful coding benchmark. It uses sma
 
 ## Real provider-call smoke benchmark
 
-This run uses the actual non-interactive Kcode CLI with OpenAI `gpt-5.5`:
+This run uses the actual non-interactive Neura CLI with OpenAI `gpt-5.5`:
 
 ```bash
-kcode run --json --trace --quiet --no-update --no-selfdev --cwd ~/.kcode/build-src/kcode <message>
+neura run --json --trace --quiet --no-update --no-selfdev --cwd ~/.neura/build-src/neura <message>
 ```
 
 It is intentionally small to avoid runaway cost, but it verifies that provider calls, JSON usage accounting, direct-answer behavior, and tool-capable prompts work end to end.
@@ -276,7 +276,7 @@ The provider edit→test benchmark uses synthetic Python fixtures because it mus
 
 ## Real repo coding-task context benchmark
 
-This benchmark mines real work from the Kcode git history. Each task is a real changed file from a real non-merge commit, represented as: commit subject plus the changed file path. The benchmark compares whether each context strategy supplies the file needed for the task, and at what prompt cost.
+This benchmark mines real work from the Neura git history. Each task is a real changed file from a real non-merge commit, represented as: commit subject plus the changed file path. The benchmark compares whether each context strategy supplies the file needed for the task, and at what prompt cost.
 
 This is closer to end-to-end coding than the synthetic context benchmark, but it is still a **context availability benchmark**, not a remote-model coding benchmark. It does not ask a model to edit files. It measures whether the model would have the required file context available.
 
@@ -291,10 +291,10 @@ Measured run:
 | Strategy | Real tasks | Context success rate | Prompt tokens | Tokens/success | Failure profile |
 |---|---:|---:|---:|---:|---|
 | Full context | 75 | 100.00% | 155,638,575 | 2,075,181.00 | none: 75 |
-| Kcode path-exact | 75 | 100.00% | 1,104,348 | 14,724.64 | none: 75 |
+| Neura path-exact | 75 | 100.00% | 1,104,348 | 14,724.64 | none: 75 |
 | Lexical RAG | 75 | 48.00% | 1,760,622 | 48,906.17 | none: 36, missed all changed files: 39 |
 
-Measured result: on 75 real git-history coding-context tasks, Kcode path-exact retrieval matched full-context context availability while using **99.29% fewer estimated prompt tokens** than full context. Compared with the simple lexical RAG baseline, Kcode had higher context success and lower total token cost in this run.
+Measured result: on 75 real git-history coding-context tasks, Neura path-exact retrieval matched full-context context availability while using **99.29% fewer estimated prompt tokens** than full context. Compared with the simple lexical RAG baseline, Neura had higher context success and lower total token cost in this run.
 
 Re-run:
 
@@ -304,7 +304,7 @@ python3 ../scripts/coding_task_benchmark.py
 
 ### What this proves
 
-- Kcode-style exact/path-aware context can preserve required file availability at a tiny fraction of full-context cost.
+- Neura-style exact/path-aware context can preserve required file availability at a tiny fraction of full-context cost.
 - Simple lexical RAG can be cheaper on some individual queries but misses required files frequently on real repo commit tasks.
 - Token savings are not just from synthetic facts; they also appear on real repository history.
 
@@ -322,7 +322,7 @@ These remain unproven until we run a remote-model editing benchmark:
 The decisive test implemented here does take the same 75 mined tasks and execute real model runs under three configurations:
 
 1. full context,
-2. Kcode context vault/path-exact retrieval,
+2. Neura context vault/path-exact retrieval,
 3. lexical/semantic RAG.
 
 For each task, start from the parent commit, let the agent modify the repo, and score:
@@ -348,7 +348,7 @@ That benchmark is more expensive, but it is the correct way to prove end-to-end 
 Recommended controlled protocol:
 
 1. Select 50 to 100 real coding tasks from the repo issue history or curated fixtures.
-2. Run each task under three modes: no compression, Kcode compression, and standard RAG-only retrieval.
+2. Run each task under three modes: no compression, Neura compression, and standard RAG-only retrieval.
 3. Score success by `cargo test`, expected file diff, and human review for requirements coverage.
 4. Report completion rate, partial completion rate, and regressions.
 
@@ -358,7 +358,7 @@ Recommended controlled protocol:
 |---|---|---|
 | No compression / full context | Highest exact-context availability, highest token cost, hard context-window failure in long sessions. | Baseline approximated from original chars in telemetry. |
 | Standard RAG | Lower prompt size, but may retrieve semantically similar wrong chunks and lose exact ordering/tool-output provenance. | Now measured against a specific RAG implementation. |
-| Kcode context vault | Compact refs preserve exact local text and support `.ctx_get` rehydration. | Token reduction measured from `.kcode` telemetry. |
+| Neura context vault | Compact refs preserve exact local text and support `.ctx_get` rehydration. | Token reduction measured from `.neura` telemetry. |
 
 A fair RAG comparison needs the same task set, same model, same context budget, and the same stored session corpus. The current committed baseline is lexical/path retrieval, not a production embedding RAG stack; embedding RAG remains outside measured scope until a local or hosted embedding index is run on the same tasks.
 
@@ -401,7 +401,7 @@ Artifacts:
 | Memory conflicts | 20 | 20 | 100.00% | 83.89%–100.00% |
 | **Total** | **80** | **80** | **100.00%** | **95.42%–100.00%** |
 
-Measured result: Kcode passed 80/80 adversarial hallucination-guard prompts. For this benchmark distribution, the measured hallucination/unsupported-answer rate was **0.00%**, with a Wilson 95% upper bound of **4.58%**. This is no longer just a 9-run anecdote, but it is still scoped to these adversarial prompt templates rather than every possible real-world conversation.
+Measured result: Neura passed 80/80 adversarial hallucination-guard prompts. For this benchmark distribution, the measured hallucination/unsupported-answer rate was **0.00%**, with a Wilson 95% upper bound of **4.58%**. This is no longer just a 9-run anecdote, but it is still scoped to these adversarial prompt templates rather than every possible real-world conversation.
 
 Provider usage for this suite: 172,670 total input tokens, mean 4316.75 input tokens/run.
 
@@ -425,7 +425,7 @@ Measured hallucination rates are reported in the complete coverage matrix, the 8
 
 ## Context recall accuracy
 
-Kcode supports two recall paths:
+Neura supports two recall paths:
 
 1. automatic bounded restore for high-confidence relevant context,
 2. explicit `.ctx_get id=ctx:<hash> reason=<why>` exact rehydration.
@@ -521,7 +521,7 @@ Proxy measured from the 75 real git-history coding-context tasks by weakening ta
 | Lexical/path success rate | 48.00% |
 | Failures | 39 |
 
-Interpretation: weak/ambiguous navigation is exactly where simple lexical/path retrieval breaks down. Kcode exact-path succeeds when the path/session anchor is known, but the harder prompt class “fix the bug I mentioned earlier” still requires labeled session-memory benchmarks. That exact natural-language ambiguity remains outside measured scope.
+Interpretation: weak/ambiguous navigation is exactly where simple lexical/path retrieval breaks down. Neura exact-path succeeds when the path/session anchor is known, but the harder prompt class “fix the bug I mentioned earlier” still requires labeled session-memory benchmarks. That exact natural-language ambiguity remains outside measured scope.
 
 ### Long-horizon planning / multi-file refactor proxy
 
@@ -530,7 +530,7 @@ Proxy: group the 75 real commit-file tasks back into multi-file commits and ask 
 | Strategy | Multi-file commit groups | All-files-available success rate | Est. prompt tokens | Tokens/success |
 |---|---:|---:|---:|---:|
 | Full context | 9 | 100.00% | 53,112,456 | 5,901,384.00 |
-| Kcode path-exact | 9 | 100.00% | 392,970 | 43,663.33 |
+| Neura path-exact | 9 | 100.00% | 392,970 | 43,663.33 |
 | Lexical RAG | 9 | 0.00% | 284,535 | n/a |
 
 Interpretation: this supports file-availability for multi-file changes, but it does **not** prove autonomous long-horizon planning across sessions. Real multi-step refactors still need an execution benchmark that runs the agent over parent commits, lets it plan/edit/test repeatedly, and scores final diffs.
@@ -553,7 +553,7 @@ Interpretation: 9/9 provider workflow smoke runs passed, and the separate 40-pro
 
 | Baseline | Tasks | Success rate | Status |
 |---|---:|---:|---|
-| Kcode exact-path | 75 | 100.00% | measured |
+| Neura exact-path | 75 | 100.00% | measured |
 | Lexical/path RAG | 75 | 48.00% | measured |
 | Production embedding RAG | n/a | n/a | outside measured scope |
 
@@ -592,10 +592,10 @@ Concrete failure traces are included because percentages alone are easy to overr
 | F1 | Real repo context task from git history where lexical/path RAG did not retrieve the changed file | Target changed file appears in retrieved context | lexical/path RAG retrieved zero relevant changed files | missed file / wrong retrieval | `coding_task_benchmark.json` rows with `failure_type=missed_all_changed_files` |
 | F2 | Deterministic context question with distractor/obsolete facts | Retrieve and cite the exact target context ID | lexical RAG selected distractor context and produced unsupported answer | distractor retrieval / hallucination | `context_benchmark.json` lexical RAG failed rows |
 | F3 | Multi-file commit proxy | All changed files for a commit group are available | lexical RAG did not make all files available for any of 9 multi-file groups | multi-file retrieval failure | `advanced_gap_metrics.json` |
-| F4 | Provider adversarial fake-symbol prompt | Say `UNVERIFIED` rather than inventing a signature | Kcode passed; included as replay template for hallucination guard | no failure observed in Kcode; adversarial guard case | `provider-adversarial-80-runs/code_fake_*.json` |
-| F5 | Provider edit→test fixture | Modify code and pass unit tests | Kcode passed; if it fails in future, final test output is the oracle | no failure observed in Kcode; execution replay case | `provider-edit-runs/*.json` |
+| F4 | Provider adversarial fake-symbol prompt | Say `UNVERIFIED` rather than inventing a signature | Neura passed; included as replay template for hallucination guard | no failure observed in Neura; adversarial guard case | `provider-adversarial-80-runs/code_fake_*.json` |
+| F5 | Provider edit→test fixture | Modify code and pass unit tests | Neura passed; if it fails in future, final test output is the oracle | no failure observed in Neura; execution replay case | `provider-edit-runs/*.json` |
 
-Failure rows F1–F3 are actual negative results from baselines. F4–F5 are positive Kcode replay templates included so future regressions have concrete prompts, expected behavior, and artifacts.
+Failure rows F1–F3 are actual negative results from baselines. F4–F5 are positive Neura replay templates included so future regressions have concrete prompts, expected behavior, and artifacts.
 
 ## Negative and weak results
 
@@ -630,23 +630,23 @@ The current telemetry proves large token reduction, but it does now provide labe
 
 ## Storage footprint breakdown
 
-The earlier raw `~/.kcode` footprint is not memory/vault-only. A targeted local breakdown showed:
+The earlier raw `~/.neura` footprint is not memory/vault-only. A targeted local breakdown showed:
 
 | Path | Size |
 |---|---:|
-| `~/.kcode/build-src` | 28 GB |
-| `~/.kcode/models` | 17 GB |
-| `~/.kcode/builds` | 11 GB |
-| `~/.kcode/logs` | 2.0 GB |
-| `~/.kcode/interlang-stats.jsonl` | 2.7 MB |
-| `~/.kcode/memory` | 472 KB |
-| `~/.kcode/mcp.json` | 4 KB |
+| `~/.neura/build-src` | 28 GB |
+| `~/.neura/models` | 17 GB |
+| `~/.neura/builds` | 11 GB |
+| `~/.neura/logs` | 2.0 GB |
+| `~/.neura/interlang-stats.jsonl` | 2.7 MB |
+| `~/.neura/memory` | 472 KB |
+| `~/.neura/mcp.json` | 4 KB |
 
 Interpretation: most local disk use in this profile is source/build/model/log data, not saved memories. A future vault-only benchmark should separate exact-context vault bytes from logs, model caches, source checkouts, and build artifacts.
 
 ## Scalability with context size
 
-Measured local storage footprint under `~/.kcode` during this snapshot was about **119.16 GB** across all files, including builds, models, caches, source checkouts, and context artifacts. This is not the same as context-vault-only size.
+Measured local storage footprint under `~/.neura` during this snapshot was about **119.16 GB** across all files, including builds, models, caches, source checkouts, and context artifacts. This is not the same as context-vault-only size.
 
 Recommended scalability benchmark:
 
@@ -750,7 +750,7 @@ The current measured non-exact baseline is lexical/path retrieval. That is usefu
 | Scoring | same oracle as retrieval benchmarks: target file/chunk present, exact block match where applicable |
 | Artifacts | committed index config, run JSON, per-query retrieved IDs, failure classifications |
 
-This baseline is required before making broad claims against “RAG” as a category. Until then, the benchmark only compares Kcode exact/path retrieval against the committed lexical/path baseline.
+This baseline is required before making broad claims against “RAG” as a category. Until then, the benchmark only compares Neura exact/path retrieval against the committed lexical/path baseline.
 
 ## External benchmark hook
 
@@ -770,8 +770,8 @@ external_runner(task, strategy) -> {
 
 Required external baselines:
 
-- full-context Kcode replay,
-- Kcode compact context/vault,
+- full-context Neura replay,
+- Neura compact context/vault,
 - lexical/path RAG from this repo,
 - at least one embedding RAG baseline with committed model/index/chunking settings,
 - optionally another coding agent under the same task and token budget.
@@ -785,7 +785,7 @@ From the repository root, or by adjusting paths relative to `docs/`:
 ```bash
 python3 - <<'PY'
 import json, pathlib
-p = pathlib.Path.home() / '.kcode/interlang-stats.jsonl'
+p = pathlib.Path.home() / '.neura/interlang-stats.jsonl'
 rows = []
 for line in p.read_text(errors='ignore').splitlines():
     try:
@@ -809,17 +809,17 @@ PY
 
 _Last updated: 2026-05-03T07:14:52-07:00_
 
-This document summarizes live Kcode context-compression accounting from this machine and the current safeguards that keep long GPT-style coding sessions token-efficient without deleting exact evidence.
+This document summarizes live Neura context-compression accounting from this machine and the current safeguards that keep long GPT-style coding sessions token-efficient without deleting exact evidence.
 
 ## Data source and methodology
 
 Primary data source:
 
 ```text
-/home/dad/.kcode/interlang-stats.jsonl
+/home/dad/.neura/interlang-stats.jsonl
 ```
 
-Each JSONL row is emitted by Kcode's interlang/context-diet path when a turn compresses or references context. The counters are pre-provider local accounting, not provider billing records. Character-based token estimates use the conservative `chars / 4` approximation. When the local tokenizer is available, Kcode also records exact local-tokenizer token counts for original and encoded blocks.
+Each JSONL row is emitted by Neura's interlang/context-diet path when a turn compresses or references context. The counters are pre-provider local accounting, not provider billing records. Character-based token estimates use the conservative `chars / 4` approximation. When the local tokenizer is available, Neura also records exact local-tokenizer token counts for original and encoded blocks.
 
 Important caveats:
 
@@ -862,29 +862,29 @@ Important caveats:
 
 ## Retrieval fidelity and effective context
 
-The compression numbers above measure efficiency, but the important context-retention property is separate: Kcode's context diet is **lossless for vaulted `<ctx>` entries**. When old exact text is replaced by a compact ref, the full original text remains in the local context vault and can be rehydrated by ID with `.ctx_get`.
+The compression numbers above measure efficiency, but the important context-retention property is separate: Neura's context diet is **lossless for vaulted `<ctx>` entries**. When old exact text is replaced by a compact ref, the full original text remains in the local context vault and can be rehydrated by ID with `.ctx_get`.
 
-This gives Kcode an **effective context model** that is closer to a retrieval-backed large context window than to ordinary summarization:
+This gives Neura an **effective context model** that is closer to a retrieval-backed large context window than to ordinary summarization:
 
 ```text
 active prompt = recent exact context + compact refs + selected exact rehydrations
 effective context = active prompt + exact local vault addressable by ctx IDs
 ```
 
-In that abstract sense, Kcode can behave like it has a much larger working context than the provider prompt alone, because old exact evidence is not destroyed when it leaves the active prompt. The no-drift property applies to the retrieval layer: a retrieved `<ctx>` block is the original text, not a regenerated summary.
+In that abstract sense, Neura can behave like it has a much larger working context than the provider prompt alone, because old exact evidence is not destroyed when it leaves the active prompt. The no-drift property applies to the retrieval layer: a retrieved `<ctx>` block is the original text, not a regenerated summary.
 
 The precise claim is:
 
 - **Lossless local retention:** vaulted `<ctx>` content is recoverable exactly by ID.
 - **No summary drift on retrieval:** `.ctx_get` returns stored original text, so retrieved evidence does not accumulate summarization drift.
-- **Large effective context:** compact refs let Kcode represent far more historical context than would fit or be efficient in the active provider prompt.
+- **Large effective context:** compact refs let Neura represent far more historical context than would fit or be efficient in the active provider prompt.
 - **Selective active context:** not every old token is always sent to the model. Instead, exact text is manually or automatically rehydrated when needed.
 
-So the end result is effectively similar to a huge context window for evidence that is referenced and retrieved, while still being much cheaper and less distracting than sending every old token on every turn. The honest limitation is retrieval selection: Kcode must either identify the right ref automatically or request it explicitly with `.ctx_get`.
+So the end result is effectively similar to a huge context window for evidence that is referenced and retrieved, while still being much cheaper and less distracting than sending every old token on every turn. The honest limitation is retrieval selection: Neura must either identify the right ref automatically or request it explicitly with `.ctx_get`.
 
 ## Current safety and efficiency behavior
 
-Current Kcode uses several layers to avoid wasting remote-model context while preserving exact evidence:
+Current Neura uses several layers to avoid wasting remote-model context while preserving exact evidence:
 
 1. **Recent context stays exact.** Current task details and the newest messages are not dieted away.
 2. **Old bulky context becomes compact refs.** Long old text, tool output, logs, and repeated content become `<ctx>` or `<il:seen>` references.
@@ -895,17 +895,17 @@ Current Kcode uses several layers to avoid wasting remote-model context while pr
 <ctx k="old-tool-result" id="ctx:..." n=8507 c="0.56" p="high" ar="true" t="build,error" s="lines=...; files=[...]; first=..."/>
 ```
 
-5. **Auto-restore is intent and topic gated.** Low-confidence/high-priority blocks are not restored merely because they are important. Kcode now requires concrete exact/debug/fix/failure intent plus semantic-topic overlap with the latest real user turn.
+5. **Auto-restore is intent and topic gated.** Low-confidence/high-priority blocks are not restored merely because they are important. Neura now requires concrete exact/debug/fix/failure intent plus semantic-topic overlap with the latest real user turn.
 6. **Generic self-test/statistics turns stay compact.** Words like `test`, `build`, `token`, or `memory` no longer auto-restore old exact code by themselves. This specifically prevents a reload/self-test/statistics request from pulling unrelated prompt or memory source snippets into the prompt.
 7. **Auto-restore is bounded.** Current defaults restore at most one exact excerpt and at most about 1,800 chars proactively.
 8. **Stats reminders are gated.** Compression stats are written locally every time, but model-visible stats reminders are only added when the user asks about token/context/compression/ctx/interlang/rehydration.
 9. **Tool output caps are stricter.** A single tool output is capped more aggressively and uses a short truncation notice rather than a long explanatory paragraph.
-10. **Direct-answer turns avoid full tool schemas.** If the latest user turn does not look like it needs a specific tool, Kcode now sends only the always-on core tools plus `tool_expand`, instead of paying for every tool schema up front. The model can still expand the toolset when a task unexpectedly needs more capability.
+10. **Direct-answer turns avoid full tool schemas.** If the latest user turn does not look like it needs a specific tool, Neura now sends only the always-on core tools plus `tool_expand`, instead of paying for every tool schema up front. The model can still expand the toolset when a task unexpectedly needs more capability.
 11. **Moderate tool outputs stay literal.** Immediate vault refs now target much larger blocks by default, so medium-sized outputs do not create noisy reference objects that themselves inflate later context.
 
 ## Why topic-gated auto-restore matters
 
-Before these patches, Kcode could auto-restore exact old blocks just because they were low-confidence or high-priority. In practice this meant old installer logs, GitHub API responses, build diffs, or prompt/memory code could be injected into unrelated turns. That protected correctness, but sometimes wasted tokens.
+Before these patches, Neura could auto-restore exact old blocks just because they were low-confidence or high-priority. In practice this meant old installer logs, GitHub API responses, build diffs, or prompt/memory code could be injected into unrelated turns. That protected correctness, but sometimes wasted tokens.
 
 Current behavior is more selective:
 
@@ -921,7 +921,7 @@ This keeps the anti-hallucination escape hatch while avoiding unrelated old evid
 
 ## Dynamic tool-schema pruning
 
-Tool definitions can be a large fixed cost. Kcode classifies the latest user turn before a provider request:
+Tool definitions can be a large fixed cost. Neura classifies the latest user turn before a provider request:
 
 - obvious file/shell/web/browser/GitHub/mail/image tasks get the relevant tool families,
 - direct-answer turns keep only the core always-on tools and `tool_expand`,
@@ -981,16 +981,16 @@ Current targeted test count: **13 passed**.
 ## How to inspect local stats
 
 ```bash
-less ~/.kcode/interlang-stats.jsonl
-wc -l ~/.kcode/interlang-stats.jsonl
-tail -n 20 ~/.kcode/interlang-stats.jsonl | jq .
+less ~/.neura/interlang-stats.jsonl
+wc -l ~/.neura/interlang-stats.jsonl
+tail -n 20 ~/.neura/interlang-stats.jsonl | jq .
 ```
 
 Useful fields: `original_chars`, `encoded_chars`, `saved_tokens_estimate`, `exact_saved_tokens`, `diet_blocks`, `seen_ref_blocks`, `raw_context_avoided_tokens_estimate`, `low_confidence_blocks`, `auto_rehydrate_candidates`, `auto_rehydrate_skipped`, and `auto_rehydrated_blocks`.
 
 ## Bottom line
 
-Across 3,136 recorded compaction events, Kcode represented about 1,909,792,620 original characters as 197,759,789 encoded characters, a 89.64% character reduction. The conservative estimate is 428,008,180 tokens saved, while local-tokenizer accounting shows 546,612,882 exact tokens saved.
+Across 3,136 recorded compaction events, Neura represented about 1,909,792,620 original characters as 197,759,789 encoded characters, a 89.64% character reduction. The conservative estimate is 428,008,180 tokens saved, while local-tokenizer accounting shows 546,612,882 exact tokens saved.
 
 The current implementation is intentionally more conservative about what it sends to the remote model: exact old content stays retrievable without summary drift, while proactive exact restore requires concrete intent and relevance to the latest real user turn.
 
@@ -998,7 +998,7 @@ The current implementation is intentionally more conservative about what it send
 
 ## Analytical addendum: benchmark dimensions for an operational agent
 
-Benchmarking Kcode means evaluating more than raw model output. Kcode is an operational agent: providers, local models, tool latency, prompt memory, repair learning, and TUI responsiveness all affect quality.
+Benchmarking Neura means evaluating more than raw model output. Neura is an operational agent: providers, local models, tool latency, prompt memory, repair learning, and TUI responsiveness all affect quality.
 
 | Dimension | What it measures | Why it matters |
 | --- | --- | --- |

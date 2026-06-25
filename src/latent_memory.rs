@@ -353,13 +353,13 @@ impl LatentMemoryBank {
 }
 
 pub fn latent_memory_path() -> PathBuf {
-    std::env::var_os("KCODE_LATENT_MEMORY_STATE")
+    std::env::var_os("NEURA_LATENT_MEMORY_STATE")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let home = std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("."));
-            home.join(".kcode").join("latent_memory_bank.json")
+            home.join(".neura").join("latent_memory_bank.json")
         })
 }
 

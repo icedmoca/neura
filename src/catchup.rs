@@ -237,7 +237,7 @@ pub fn render_markdown(
 }
 
 fn state_path() -> Result<std::path::PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join(CATCHUP_STATE_FILE))
+    Ok(crate::storage::neura_dir()?.join(CATCHUP_STATE_FILE))
 }
 
 fn load_seen_state() -> PersistedCatchupState {

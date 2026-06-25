@@ -4,8 +4,8 @@
 
 use anyhow::Result;
 use async_stream::stream;
-use kcode::message::{Message, StreamEvent, ToolDefinition};
-use kcode::provider::{EventStream, Provider};
+use neura::message::{Message, StreamEvent, ToolDefinition};
+use neura::provider::{EventStream, Provider};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 

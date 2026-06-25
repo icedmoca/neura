@@ -73,7 +73,7 @@ fn now_ms() -> u128 {
 pub fn replay_report_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("evidence_replay_report.json")
 }
 
@@ -284,7 +284,7 @@ fn alternative_paths(block: &EvidenceBlock, replay_score: f64) -> Vec<ReplayAlte
 
 pub fn render_replay_report(report: &ReplayReport) -> String {
     let mut out = String::new();
-    out.push_str("# Kcode Evidence Replay Report\n\n");
+    out.push_str("# Neura Evidence Replay Report\n\n");
     out.push_str(&format!("- Summary: `{}`\n", report.summary));
     out.push_str(&format!("- Replayed: `{}`\n", report.replayed));
     out.push_str(&format!(

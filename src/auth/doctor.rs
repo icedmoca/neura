@@ -10,11 +10,11 @@ pub fn recommended_actions(
     let mut actions = Vec::new();
     match state {
         AuthState::NotConfigured => actions.push(format!(
-            "Connect it: `kcode login --provider {}`",
+            "Connect it: `neura login --provider {}`",
             provider.id
         )),
         AuthState::Expired => actions.push(format!(
-            "Refresh or replace the current login: `kcode login --provider {}`",
+            "Refresh or replace the current login: `neura login --provider {}`",
             provider.id
         )),
         AuthState::Available => {}
@@ -22,7 +22,7 @@ pub fn recommended_actions(
 
     if validation.is_none() {
         actions.push(format!(
-            "Run runtime verification: `kcode auth-test --provider {}`",
+            "Run runtime verification: `neura auth-test --provider {}`",
             provider.id
         ));
     }
@@ -30,7 +30,7 @@ pub fn recommended_actions(
         || validation_result.is_some_and(|value| value != "validation passed")
     {
         actions.push(format!(
-            "Inspect runtime readiness: `kcode auth-test --provider {}`",
+            "Inspect runtime readiness: `neura auth-test --provider {}`",
             provider.id
         ));
     }
@@ -40,12 +40,12 @@ pub fn recommended_actions(
         || matches!(provider.auth_kind, LoginProviderAuthKind::Hybrid)
     {
         actions.push(format!(
-            "Use the manual-safe fallback if browser/callback flow is flaky: `kcode login --provider {} --print-auth-url`",
+            "Use the manual-safe fallback if browser/callback flow is flaky: `neura login --provider {} --print-auth-url`",
             provider.id
         ));
     }
 
-    actions.push("Review current state: `kcode auth status --json`".to_string());
+    actions.push("Review current state: `neura auth status --json`".to_string());
     actions.dedup();
     actions
 }

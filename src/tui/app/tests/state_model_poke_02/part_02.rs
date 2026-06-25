@@ -1,6 +1,6 @@
 #[test]
 fn test_agents_review_picker_saves_config_override() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         configure_test_remote_models(&mut app);
         app.open_agent_model_picker(crate::tui::AgentModelTarget::Review);
@@ -136,7 +136,7 @@ fn test_model_command_provider_suggestions_include_auto_for_normalized_bare_open
 
 #[test]
 fn test_remote_fallback_provider_suggestions_normalize_bare_openai_openrouter_routes() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let prev_api_key = std::env::var_os("OPENROUTER_API_KEY");
         crate::env::set_var("OPENROUTER_API_KEY", "test-openrouter-key");
         crate::auth::AuthStatus::invalidate_cache();

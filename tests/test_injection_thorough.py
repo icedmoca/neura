@@ -20,7 +20,7 @@ import sys
 import re
 
 RUNTIME_DIR = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-SOCKET_PATH = os.path.join(RUNTIME_DIR, "kcode-debug.sock")
+SOCKET_PATH = os.path.join(RUNTIME_DIR, "neura-debug.sock")
 
 def send_cmd(sock, cmd, session_id=None, timeout=120):
     """Send a debug command and get the response."""
@@ -306,7 +306,7 @@ def main():
     # Check socket exists
     if not os.path.exists(SOCKET_PATH):
         print(f"ERROR: Socket not found at {SOCKET_PATH}")
-        print("Make sure kcode is running with debug control enabled.")
+        print("Make sure neura is running with debug control enabled.")
         return 1
 
     all_passed = True

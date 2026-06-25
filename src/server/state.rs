@@ -1,7 +1,7 @@
 use crate::bus::FileOp;
 use crate::plan::PlanItem;
 use crate::protocol::ServerEvent;
-use kcode_agent_runtime::{SoftInterruptMessage, SoftInterruptQueue, SoftInterruptSource};
+use neura_agent_runtime::{SoftInterruptMessage, SoftInterruptQueue, SoftInterruptSource};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};

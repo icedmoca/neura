@@ -1346,7 +1346,7 @@ impl Agent {
 
             // If provider handles tools internally (like Claude Code CLI), only run native tools locally
             if self.provider.handles_tools_internally() {
-                tool_calls.retain(|tc| KCODE_NATIVE_TOOLS.contains(&tc.name.as_str()));
+                tool_calls.retain(|tc| NEURA_NATIVE_TOOLS.contains(&tc.name.as_str()));
                 if tool_calls.is_empty() {
                     logging::info("Provider handles tools internally - task complete");
                     break;
@@ -1363,7 +1363,7 @@ impl Agent {
                     .clone()
                     .unwrap_or_else(|| self.session.id.clone());
 
-                let is_native_tool = KCODE_NATIVE_TOOLS.contains(&tc.name.as_str());
+                let is_native_tool = NEURA_NATIVE_TOOLS.contains(&tc.name.as_str());
 
                 // Check if SDK already executed this tool
                 if let Some((sdk_content, sdk_is_error)) = sdk_tool_results.remove(&tc.id) {
@@ -1682,7 +1682,7 @@ fn messages_contain_auto_exact(messages: &[Message]) -> bool {
 
 fn text_contains_auto_exact(text: &str) -> bool {
     text.contains("<ctx_auto_exact")
-        || text.contains("Kcode auto-restored one relevant exact excerpt")
+        || text.contains("Neura auto-restored one relevant exact excerpt")
 }
 
 fn summarize_provider_block_for_payload_diet(text: &str, kind: &str) -> String {

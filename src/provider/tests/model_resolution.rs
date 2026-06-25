@@ -129,8 +129,8 @@ fn test_set_model_accepts_bare_openai_openrouter_pin_when_openrouter_available()
 fn test_forced_openrouter_treats_claude_like_model_as_provider_local() {
     with_clean_provider_test_env(|| {
         with_env_var("OPENROUTER_API_KEY", "test-openrouter-key", || {
-            with_env_var("KCODE_OPENROUTER_PROVIDER_FEATURES", "0", || {
-                with_env_var("KCODE_OPENROUTER_API_BASE", "https://compat.example.test/v1", || {
+            with_env_var("NEURA_OPENROUTER_PROVIDER_FEATURES", "0", || {
+                with_env_var("NEURA_OPENROUTER_API_BASE", "https://compat.example.test/v1", || {
                     let openrouter = Arc::new(
                         openrouter::OpenRouterProvider::new()
                             .expect("custom compatible provider should initialize"),
@@ -166,8 +166,8 @@ fn test_forced_openrouter_treats_claude_like_model_as_provider_local() {
 fn test_forced_openrouter_preserves_custom_at_sign_model_ids() {
     with_clean_provider_test_env(|| {
         with_env_var("OPENROUTER_API_KEY", "test-openrouter-key", || {
-            with_env_var("KCODE_OPENROUTER_PROVIDER_FEATURES", "0", || {
-                with_env_var("KCODE_OPENROUTER_API_BASE", "https://compat.example.test/v1", || {
+            with_env_var("NEURA_OPENROUTER_PROVIDER_FEATURES", "0", || {
+                with_env_var("NEURA_OPENROUTER_API_BASE", "https://compat.example.test/v1", || {
                     let openrouter = Arc::new(
                         openrouter::OpenRouterProvider::new()
                             .expect("custom compatible provider should initialize"),
@@ -203,8 +203,8 @@ fn test_forced_openrouter_preserves_custom_at_sign_model_ids() {
 fn test_custom_compatible_model_routes_do_not_request_openrouter_rewrite() {
     with_clean_provider_test_env(|| {
         with_env_var("OPENROUTER_API_KEY", "test-openrouter-key", || {
-            with_env_var("KCODE_OPENROUTER_PROVIDER_FEATURES", "0", || {
-                with_env_var("KCODE_OPENROUTER_API_BASE", "https://compat.example.test/v1", || {
+            with_env_var("NEURA_OPENROUTER_PROVIDER_FEATURES", "0", || {
+                with_env_var("NEURA_OPENROUTER_API_BASE", "https://compat.example.test/v1", || {
                     let openrouter = Arc::new(
                         openrouter::OpenRouterProvider::new()
                             .expect("custom compatible provider should initialize"),

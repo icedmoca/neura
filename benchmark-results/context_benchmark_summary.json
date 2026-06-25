@@ -18,7 +18,7 @@
       "estimated_prompt_tokens": 24699,
       "estimated_tokens_per_success": 2058.25
     },
-    "kcode_exact": {
+    "neura_exact": {
       "queries": 12,
       "successes": 12,
       "success_rate": 1.0,

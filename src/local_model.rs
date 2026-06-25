@@ -37,20 +37,20 @@ impl Default for LocalModelConfig {
     fn default() -> Self {
         Self {
             provider: LocalModelProviderKind::LmStudio,
-            base_url: env::var("KCODE_LM_STUDIO_BASE_URL")
+            base_url: env::var("NEURA_LM_STUDIO_BASE_URL")
                 .unwrap_or_else(|_| "http://127.0.0.1:1234/v1".into()),
             chat_path: "/chat/completions".into(),
             models_path: "/models".into(),
-            api_key: env::var("KCODE_LM_STUDIO_API_KEY").ok(),
-            model: env::var("KCODE_LM_STUDIO_MODEL").ok(),
-            timeout_ms: env::var("KCODE_LOCAL_MODEL_TIMEOUT_MS")
+            api_key: env::var("NEURA_LM_STUDIO_API_KEY").ok(),
+            model: env::var("NEURA_LM_STUDIO_MODEL").ok(),
+            timeout_ms: env::var("NEURA_LOCAL_MODEL_TIMEOUT_MS")
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(750),
-            prefer_local: env::var("KCODE_PREFER_LOCAL_MODEL")
+            prefer_local: env::var("NEURA_PREFER_LOCAL_MODEL")
                 .map(|v| v != "0" && v != "false")
                 .unwrap_or(false),
-            allow_remote_fallback: env::var("KCODE_ALLOW_REMOTE_FALLBACK")
+            allow_remote_fallback: env::var("NEURA_ALLOW_REMOTE_FALLBACK")
                 .map(|v| v != "0" && v != "false")
                 .unwrap_or(true),
         }
@@ -110,7 +110,7 @@ pub fn wsl_lm_studio_hint(mode: &LocalRuntimeOsMode, base_url: &str) -> Option<S
         return None;
     }
     if base_url.contains("127.0.0.1") || base_url.contains("localhost") {
-        Some("WSL detected: if LM Studio runs on Windows and localhost fails, bind LM Studio to 0.0.0.0 or set KCODE_LM_STUDIO_BASE_URL to http://<windows-host-ip>:1234/v1".into())
+        Some("WSL detected: if LM Studio runs on Windows and localhost fails, bind LM Studio to 0.0.0.0 or set NEURA_LM_STUDIO_BASE_URL to http://<windows-host-ip>:1234/v1".into())
     } else {
         Some("WSL detected with non-localhost LM Studio URL; ensure Windows firewall allows port 1234".into())
     }
@@ -290,7 +290,7 @@ pub fn providers() -> Vec<LocalProviderInfo> {
 }
 
 pub fn is_local_model_enabled() -> bool {
-    env::var("KCODE_PREFER_LOCAL_MODEL")
+    env::var("NEURA_PREFER_LOCAL_MODEL")
         .map(|v| v != "0" && v != "false")
         .unwrap_or(false)
 }
@@ -375,7 +375,7 @@ pub fn availability_detail_for<T: AsRef<str>>(model: T) -> String {
 }
 
 pub fn enrich_enabled() -> bool {
-    env::var("KCODE_LOCAL_MODEL_ENRICH")
+    env::var("NEURA_LOCAL_MODEL_ENRICH")
         .map(|v| v != "0" && v != "false")
         .unwrap_or(false)
 }
@@ -428,16 +428,16 @@ pub struct LocalModelServerStatus {
 }
 
 pub fn discover_gguf_model_path() -> Option<PathBuf> {
-    if let Ok(path) = std::env::var("KCODE_LOCAL_MODEL_PATH") {
+    if let Ok(path) = std::env::var("NEURA_LOCAL_MODEL_PATH") {
         let path = PathBuf::from(path);
         if path.exists() {
             return Some(path);
         }
     }
     let home = std::env::var("HOME").ok()?;
-    let dir = PathBuf::from(home).join(".kcode/models/gguf");
+    let dir = PathBuf::from(home).join(".neura/models/gguf");
     for name in [
-        "kcode-oss-20b-mxfp4.gguf",
+        "neura-oss-20b-mxfp4.gguf",
         "gpt-oss-20b-mxfp4_moe.gguf",
         "jcode-gpt-oss-20b.gguf",
         "deepseek-coder-6.7b-instruct.Q4_K_M.gguf",
@@ -469,7 +469,7 @@ pub fn local_model_health(config: &LocalModelConfig) -> LocalModelServerStatus {
                 .clone()
                 .unwrap_or_else(|| "gpt-oss-20b-mxfp4_moe".to_string()),
             model_path,
-            message: "local Kcode model server reachable".into(),
+            message: "local Neura model server reachable".into(),
         },
         Ok(resp) => LocalModelServerStatus {
             ok: false,
@@ -514,11 +514,11 @@ pub fn ensure_local_model_server(
     }
     let Some(model_path) = discover_gguf_model_path() else {
         return Ok(LocalModelServerStatus {
-            message: "no GGUF model found under ~/.kcode/models/gguf".into(),
+            message: "no GGUF model found under ~/.neura/models/gguf".into(),
             ..status
         });
     };
-    let server_bin = std::env::var("KCODE_LLAMA_SERVER")
+    let server_bin = std::env::var("NEURA_LLAMA_SERVER")
         .ok()
         .map(PathBuf::from)
         .or_else(|| find_on_path("llama-server"))
@@ -526,7 +526,7 @@ pub fn ensure_local_model_server(
     let Some(server_bin) = server_bin else {
         return Ok(LocalModelServerStatus {
             model_path: Some(model_path),
-            message: "llama-server not found; install llama.cpp server or set KCODE_LLAMA_SERVER"
+            message: "llama-server not found; install llama.cpp server or set NEURA_LLAMA_SERVER"
                 .into(),
             ..status
         });
@@ -544,7 +544,7 @@ pub fn ensure_local_model_server(
     let log_path = std::env::var("HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("/tmp"))
-        .join(".kcode/local-model-server.log");
+        .join(".neura/local-model-server.log");
     if let Some(parent) = log_path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }

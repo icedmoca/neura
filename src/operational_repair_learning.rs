@@ -380,7 +380,7 @@ mod tests {
     #[test]
     fn successful_repair_becomes_prompt_memory() {
         let mut memory = OperationalRepairMemory::default();
-        let observation = obs("model not found", "kcode run");
+        let observation = obs("model not found", "neura run");
         memory.observe_failure(&observation);
         memory.record_repair(
             &observation,

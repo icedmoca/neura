@@ -1,13 +1,13 @@
 use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
-use kcode::message::{ContentBlock, Role, ToolCall};
-use kcode::perf::{SyntheticSystemProfile, TuiPerfPolicy, tui_policy_for};
-use kcode::prompt::ContextInfo;
-use kcode::session::{Session, StoredDisplayRole};
-use kcode::side_panel::{
+use neura::message::{ContentBlock, Role, ToolCall};
+use neura::perf::{SyntheticSystemProfile, TuiPerfPolicy, tui_policy_for};
+use neura::prompt::ContextInfo;
+use neura::session::{Session, StoredDisplayRole};
+use neura::side_panel::{
     SidePanelPage, SidePanelPageFormat, SidePanelPageSource, SidePanelSnapshot,
 };
-use kcode::tui::{DisplayMessage, ProcessingStatus, TuiState, info_widget::InfoWidgetData};
+use neura::tui::{DisplayMessage, ProcessingStatus, TuiState, info_widget::InfoWidgetData};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use serde::Serialize;
@@ -333,7 +333,7 @@ struct BenchState {
     scroll_offset: usize,
     is_processing: bool,
     status: ProcessingStatus,
-    diff_mode: kcode::config::DiffDisplayMode,
+    diff_mode: neura::config::DiffDisplayMode,
     queue_mode: bool,
     context_info: ContextInfo,
     info_widget: InfoWidgetData,
@@ -426,7 +426,7 @@ impl BenchState {
             scroll_offset: 0,
             is_processing,
             status,
-            diff_mode: kcode::config::DiffDisplayMode::Off,
+            diff_mode: neura::config::DiffDisplayMode::Off,
             queue_mode: true,
             context_info: ContextInfo::default(),
             info_widget: InfoWidgetData::default(),
@@ -442,7 +442,7 @@ impl BenchState {
                 .then(|| match side_panel_source {
                     SidePanelSource::LinkedFile => Some(
                         std::env::temp_dir()
-                            .join("kcode_tui_bench")
+                            .join("neura_tui_bench")
                             .join("side_panel_linked.md"),
                     ),
                     SidePanelSource::Managed => None,
@@ -459,10 +459,10 @@ impl BenchState {
         focused_page_id: Option<&str>,
         max_messages: usize,
     ) -> Result<Self> {
-        let session = kcode::replay::load_session(id_or_path)
+        let session = neura::replay::load_session(id_or_path)
             .with_context(|| format!("failed to load session '{}'", id_or_path))?;
         let mut side_panel =
-            kcode::side_panel::snapshot_for_session(&session.id).unwrap_or_default();
+            neura::side_panel::snapshot_for_session(&session.id).unwrap_or_default();
         if side_panel.pages.is_empty() {
             side_panel = reconstruct_side_panel_snapshot_from_session(&session);
         }
@@ -502,9 +502,9 @@ impl BenchState {
                 ProcessingStatus::Idle
             },
             diff_mode: if matches!(mode, BenchMode::FileDiff) {
-                kcode::config::DiffDisplayMode::File
+                neura::config::DiffDisplayMode::File
             } else {
-                kcode::config::DiffDisplayMode::Off
+                neura::config::DiffDisplayMode::Off
             },
             queue_mode: true,
             context_info: ContextInfo::default(),
@@ -548,17 +548,17 @@ impl BenchState {
                 path.display()
             )
         })?;
-        let _ = kcode::side_panel::refresh_linked_page_content(&mut self.side_panel, None);
+        let _ = neura::side_panel::refresh_linked_page_content(&mut self.side_panel, None);
         Ok(())
     }
 
     fn prewarm_side_panel(&self, width: u16, height: u16) -> bool {
-        kcode::tui::prewarm_focused_side_panel(
+        neura::tui::prewarm_focused_side_panel(
             &self.side_panel,
             width,
             height,
             40,
-            kcode::tui::mermaid::protocol_type().is_some(),
+            neura::tui::mermaid::protocol_type().is_some(),
             false,
         )
     }
@@ -608,7 +608,7 @@ fn session_to_display_messages(session: &Session, max_messages: usize) -> Vec<Di
     out
 }
 
-fn stored_message_visible_text(message: &kcode::session::StoredMessage) -> String {
+fn stored_message_visible_text(message: &neura::session::StoredMessage) -> String {
     let mut parts = Vec::new();
     for block in &message.content {
         match block {
@@ -808,7 +808,7 @@ impl TuiState for BenchState {
         })
     }
 
-    fn side_pane_images(&self) -> Vec<kcode::session::RenderedImage> {
+    fn side_pane_images(&self) -> Vec<neura::session::RenderedImage> {
         Vec::new()
     }
 
@@ -916,7 +916,7 @@ impl TuiState for BenchState {
         None
     }
 
-    fn batch_progress(&self) -> Option<kcode::bus::BatchProgress> {
+    fn batch_progress(&self) -> Option<neura::bus::BatchProgress> {
         None
     }
 
@@ -940,7 +940,7 @@ impl TuiState for BenchState {
         false
     }
 
-    fn diff_mode(&self) -> kcode::config::DiffDisplayMode {
+    fn diff_mode(&self) -> neura::config::DiffDisplayMode {
         self.diff_mode
     }
 
@@ -1006,7 +1006,7 @@ impl TuiState for BenchState {
     }
 
     fn context_limit(&self) -> Option<usize> {
-        Some(kcode::provider::DEFAULT_CONTEXT_LIMIT)
+        Some(neura::provider::DEFAULT_CONTEXT_LIMIT)
     }
 
     fn client_update_available(&self) -> bool {
@@ -1027,19 +1027,19 @@ impl TuiState for BenchState {
 
     fn render_streaming_markdown(&self, width: usize) -> Vec<ratatui::text::Line<'static>> {
         // For benchmarks, just use the standard markdown renderer
-        kcode::tui::markdown::render_markdown_with_width(&self.streaming_text, Some(width))
+        neura::tui::markdown::render_markdown_with_width(&self.streaming_text, Some(width))
     }
 
     fn centered_mode(&self) -> bool {
         false
     }
 
-    fn auth_status(&self) -> kcode::auth::AuthStatus {
-        kcode::auth::AuthStatus::default()
+    fn auth_status(&self) -> neura::auth::AuthStatus {
+        neura::auth::AuthStatus::default()
     }
 
-    fn diagram_mode(&self) -> kcode::config::DiagramDisplayMode {
-        kcode::config::DiagramDisplayMode::Pinned
+    fn diagram_mode(&self) -> neura::config::DiagramDisplayMode {
+        neura::config::DiagramDisplayMode::Pinned
     }
 
     fn diagram_focus(&self) -> bool {
@@ -1066,8 +1066,8 @@ impl TuiState for BenchState {
         true
     }
 
-    fn diagram_pane_position(&self) -> kcode::config::DiagramPanePosition {
-        kcode::config::DiagramPanePosition::default()
+    fn diagram_pane_position(&self) -> neura::config::DiagramPanePosition {
+        neura::config::DiagramPanePosition::default()
     }
 
     fn diagram_zoom(&self) -> u8 {
@@ -1082,7 +1082,7 @@ impl TuiState for BenchState {
     fn diff_pane_focus(&self) -> bool {
         self.diff_pane_focus
     }
-    fn side_panel(&self) -> &kcode::side_panel::SidePanelSnapshot {
+    fn side_panel(&self) -> &neura::side_panel::SidePanelSnapshot {
         &self.side_panel
     }
     fn pin_images(&self) -> bool {
@@ -1090,17 +1090,17 @@ impl TuiState for BenchState {
     }
 
     fn chat_native_scrollbar(&self) -> bool {
-        kcode::config::config().display.native_scrollbars.chat
+        neura::config::config().display.native_scrollbars.chat
     }
 
     fn side_panel_native_scrollbar(&self) -> bool {
-        kcode::config::config().display.native_scrollbars.side_panel
+        neura::config::config().display.native_scrollbars.side_panel
     }
 
     fn diff_line_wrap(&self) -> bool {
         true
     }
-    fn inline_interactive_state(&self) -> Option<&kcode::tui::InlineInteractiveState> {
+    fn inline_interactive_state(&self) -> Option<&neura::tui::InlineInteractiveState> {
         None
     }
 
@@ -1114,25 +1114,25 @@ impl TuiState for BenchState {
 
     fn session_picker_overlay(
         &self,
-    ) -> Option<&std::cell::RefCell<kcode::tui::session_picker::SessionPicker>> {
+    ) -> Option<&std::cell::RefCell<neura::tui::session_picker::SessionPicker>> {
         None
     }
 
     fn login_picker_overlay(
         &self,
-    ) -> Option<&std::cell::RefCell<kcode::tui::login_picker::LoginPicker>> {
+    ) -> Option<&std::cell::RefCell<neura::tui::login_picker::LoginPicker>> {
         None
     }
 
     fn account_picker_overlay(
         &self,
-    ) -> Option<&std::cell::RefCell<kcode::tui::account_picker::AccountPicker>> {
+    ) -> Option<&std::cell::RefCell<neura::tui::account_picker::AccountPicker>> {
         None
     }
 
     fn usage_overlay(
         &self,
-    ) -> Option<&std::cell::RefCell<kcode::tui::usage_overlay::UsageOverlay>> {
+    ) -> Option<&std::cell::RefCell<neura::tui::usage_overlay::UsageOverlay>> {
         None
     }
 
@@ -1144,19 +1144,19 @@ impl TuiState for BenchState {
         self.started_at.elapsed().as_millis() as u64
     }
 
-    fn copy_badge_ui(&self) -> kcode::tui::CopyBadgeUiState {
-        kcode::tui::CopyBadgeUiState::default()
+    fn copy_badge_ui(&self) -> neura::tui::CopyBadgeUiState {
+        neura::tui::CopyBadgeUiState::default()
     }
 
     fn copy_selection_mode(&self) -> bool {
         false
     }
 
-    fn copy_selection_range(&self) -> Option<kcode::tui::CopySelectionRange> {
+    fn copy_selection_range(&self) -> Option<neura::tui::CopySelectionRange> {
         None
     }
 
-    fn copy_selection_status(&self) -> Option<kcode::tui::CopySelectionStatus> {
+    fn copy_selection_status(&self) -> Option<neura::tui::CopySelectionStatus> {
         None
     }
 
@@ -1164,7 +1164,7 @@ impl TuiState for BenchState {
         Vec::new()
     }
 
-    fn cache_ttl_status(&self) -> Option<kcode::tui::CacheTtlInfo> {
+    fn cache_ttl_status(&self) -> Option<neura::tui::CacheTtlInfo> {
         None
     }
 }
@@ -1181,9 +1181,9 @@ fn make_text(len: usize) -> String {
 }
 
 fn main() -> Result<()> {
-    if std::env::var("KCODE_TUI_PROFILE").is_ok() {
-        kcode::logging::init();
-        if let Some(path) = kcode::logging::log_path() {
+    if std::env::var("NEURA_TUI_PROFILE").is_ok() {
+        neura::logging::init();
+        if let Some(path) = neura::logging::log_path() {
             println!("profile_log: {}", path.display());
         }
     }
@@ -1208,7 +1208,7 @@ fn main() -> Result<()> {
     let stream_text = make_text(args.assistant_len.max(args.stream_chunk));
 
     if matches!(args.mode, BenchMode::MermaidFlicker) {
-        let result = kcode::tui::mermaid::debug_flicker_benchmark(args.frames.max(4));
+        let result = neura::tui::mermaid::debug_flicker_benchmark(args.frames.max(4));
         println!("mode: {:?}", args.mode);
         println!("steps: {}", result.steps);
         println!("protocol_supported: {}", result.protocol_supported);
@@ -1248,21 +1248,21 @@ fn main() -> Result<()> {
     }
 
     if matches!(args.mode, BenchMode::FileDiff) {
-        state.diff_mode = kcode::config::DiffDisplayMode::File;
+        state.diff_mode = neura::config::DiffDisplayMode::File;
     }
 
     let profile_mermaid_ui = matches!(args.mode, BenchMode::MermaidUi);
     let profile_side_panel = matches!(args.mode, BenchMode::SidePanel | BenchMode::MermaidUi);
     if profile_side_panel {
-        kcode::tui::mermaid::init_picker();
-        kcode::tui::mermaid::clear_active_diagrams();
-        kcode::tui::mermaid::clear_streaming_preview_diagram();
-        kcode::tui::clear_side_panel_render_caches();
-        kcode::tui::reset_side_panel_debug_stats();
-        kcode::tui::markdown::reset_debug_stats();
-        kcode::tui::mermaid::reset_debug_stats();
+        neura::tui::mermaid::init_picker();
+        neura::tui::mermaid::clear_active_diagrams();
+        neura::tui::mermaid::clear_streaming_preview_diagram();
+        neura::tui::clear_side_panel_render_caches();
+        neura::tui::reset_side_panel_debug_stats();
+        neura::tui::markdown::reset_debug_stats();
+        neura::tui::mermaid::reset_debug_stats();
         if !args.keep_mermaid_cache {
-            let _ = kcode::tui::mermaid::clear_cache();
+            let _ = neura::tui::mermaid::clear_cache();
         }
         if !args.no_side_panel_prewarm {
             let _ = state.prewarm_side_panel(args.width, args.height);
@@ -1298,19 +1298,19 @@ fn main() -> Result<()> {
             state.is_processing = true;
             state.status = ProcessingStatus::Streaming;
         }
-        let markdown_before = profile_side_panel.then(kcode::tui::markdown::debug_stats);
-        let mermaid_before = profile_side_panel.then(kcode::tui::mermaid::debug_stats);
-        let side_panel_before = profile_side_panel.then(kcode::tui::side_panel_debug_stats);
+        let markdown_before = profile_side_panel.then(neura::tui::markdown::debug_stats);
+        let mermaid_before = profile_side_panel.then(neura::tui::mermaid::debug_stats);
+        let side_panel_before = profile_side_panel.then(neura::tui::side_panel_debug_stats);
         let frame_start = Instant::now();
-        terminal.draw(|f| kcode::tui::render_frame(f, &state))?;
+        terminal.draw(|f| neura::tui::render_frame(f, &state))?;
         let frame_ms = frame_start.elapsed().as_secs_f64() * 1000.0;
         frame_times_ms.push(frame_ms);
         if let (Some(markdown_before), Some(mermaid_before), Some(side_panel_before)) =
             (markdown_before, mermaid_before, side_panel_before)
         {
-            let markdown_after = kcode::tui::markdown::debug_stats();
-            let mermaid_after = kcode::tui::mermaid::debug_stats();
-            let side_panel_after = kcode::tui::side_panel_debug_stats();
+            let markdown_after = neura::tui::markdown::debug_stats();
+            let mermaid_after = neura::tui::mermaid::debug_stats();
+            let side_panel_after = neura::tui::side_panel_debug_stats();
             side_panel_profiles.push(SidePanelFrameProfile {
                 frame,
                 ms: frame_ms,
@@ -1385,24 +1385,24 @@ fn main() -> Result<()> {
     let warm_start = args.warmup_frames.min(frame_times_ms.len());
     let warm_summary = summarize_timing(&frame_times_ms[warm_start..]);
     let first_frame_ms = frame_times_ms.first().copied().unwrap_or(0.0);
-    let side_panel_final_stats = profile_side_panel.then(kcode::tui::side_panel_debug_stats);
-    let markdown_final_stats = profile_side_panel.then(kcode::tui::markdown::debug_stats);
-    let mermaid_final_stats = profile_side_panel.then(kcode::tui::mermaid::debug_stats);
+    let side_panel_final_stats = profile_side_panel.then(neura::tui::side_panel_debug_stats);
+    let markdown_final_stats = profile_side_panel.then(neura::tui::markdown::debug_stats);
+    let mermaid_final_stats = profile_side_panel.then(neura::tui::mermaid::debug_stats);
     let mermaid_ui_summary = if profile_mermaid_ui {
         Some(summarize_mermaid_ui(
             &side_panel_profiles,
-            kcode::tui::mermaid::protocol_type().is_some(),
-            kcode::tui::mermaid::protocol_type().map(|p| format!("{:?}", p)),
+            neura::tui::mermaid::protocol_type().is_some(),
+            neura::tui::mermaid::protocol_type().map(|p| format!("{:?}", p)),
         ))
     } else {
         None
     };
-    let actual_policy = summarize_policy("detected", kcode::perf::tui_policy());
+    let actual_policy = summarize_policy("detected", neura::perf::tui_policy());
     let synthetic_policy = args.synthetic_profile.map(|kind| {
-        let synthetic = kcode::perf::synthetic_profile(kind.to_system_profile());
+        let synthetic = neura::perf::synthetic_profile(kind.to_system_profile());
         summarize_policy(
             kind.to_system_profile().label(),
-            tui_policy_for(&synthetic, &kcode::config::config().display),
+            tui_policy_for(&synthetic, &neura::config::config().display),
         )
     });
     let cold_frame_count = side_panel_profiles

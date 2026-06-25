@@ -2,7 +2,7 @@
   "metadata": {
     "benchmark_type": "combined_benchmark_report",
     "generated_at_unix": 1778032608.3576498,
-    "repo": "~/.kcode/build-src/kcode",
+    "repo": "~/.neura/build-src/neura",
     "note": "Remote-model autonomous coding runs are marked UNMEASURED. Local results measure context availability, oracle upper bounds, and focused test execution."
   },
   "task_success_vs_token_cost": {
@@ -15,7 +15,7 @@
       "autonomous_model_success_rate": "UNMEASURED",
       "autonomous_model_tokens": "UNMEASURED"
     },
-    "kcode_path_exact": {
+    "neura_path_exact": {
       "tasks": 75,
       "oracle_patch_successes_upper_bound": 75,
       "oracle_patch_success_rate_upper_bound": 1.0,
@@ -47,7 +47,7 @@
       "estimated_prompt_tokens": 24699,
       "estimated_tokens_per_success": 2058.25
     },
-    "kcode_exact": {
+    "neura_exact": {
       "queries": 12,
       "successes": 12,
       "success_rate": 1.0,
@@ -83,7 +83,7 @@
         "none": 75
       }
     },
-    "kcode_path_exact": {
+    "neura_path_exact": {
       "tasks": 75,
       "successes": 75,
       "success_rate": 1.0,
@@ -109,7 +109,7 @@
     "command": "cargo test dynamic_tool_filter_tests --lib",
     "success": true,
     "wall_seconds": 13.875,
-    "tail": "me/dad/.kcode/build-src/kcode)\n    Finished `test` profile [unoptimized] target(s) in 13.82s\n     Running unittests src/lib.rs (target/debug/deps/kcode-a3cc3a606a9000c1)\n\nrunning 2 tests\ntest agent::turn_execution::dynamic_tool_filter_tests::weather_turn_keeps_web_tools_and_expand_fallback ... ok\ntest agent::turn_execution::dynamic_tool_filter_tests::direct_answer_turn_keeps_only_core_tools ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 2505 filtered out; finished in 0.00s\n\n"
+    "tail": "me/dad/.neura/build-src/neura)\n    Finished `test` profile [unoptimized] target(s) in 13.82s\n     Running unittests src/lib.rs (target/debug/deps/neura-a3cc3a606a9000c1)\n\nrunning 2 tests\ntest agent::turn_execution::dynamic_tool_filter_tests::weather_turn_keeps_web_tools_and_expand_fallback ... ok\ntest agent::turn_execution::dynamic_tool_filter_tests::direct_answer_turn_keeps_only_core_tools ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 2505 filtered out; finished in 0.00s\n\n"
   },
   "unmeasured": [
     "autonomous remote-model coding success rate",

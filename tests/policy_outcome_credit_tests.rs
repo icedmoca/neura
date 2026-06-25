@@ -1,8 +1,8 @@
-use kcode::operational_policy::{
+use neura::operational_policy::{
     OperationalPolicyState, PolicyAction, PolicyDecision, PolicyDomain, PolicyInfluenceAudit,
     policy_state_path,
 };
-use kcode::policy_outcome_credit::{assign_credit, report};
+use neura::policy_outcome_credit::{assign_credit, report};
 use tempfile::TempDir;
 
 #[test]
@@ -10,12 +10,12 @@ fn outcome_credit_updates_ledger() {
     let dir = TempDir::new().unwrap();
     unsafe {
         std::env::set_var(
-            "KCODE_OPERATIONAL_POLICY_STATE",
+            "NEURA_OPERATIONAL_POLICY_STATE",
             dir.path().join("policy.json"),
         )
     };
-    unsafe { std::env::set_var("KCODE_POLICY_CREDIT_LEDGER", dir.path().join("credit.json")) };
-    unsafe { std::env::set_var("KCODE_LATENT_MEMORY_STATE", dir.path().join("memory.json")) };
+    unsafe { std::env::set_var("NEURA_POLICY_CREDIT_LEDGER", dir.path().join("credit.json")) };
+    unsafe { std::env::set_var("NEURA_LATENT_MEMORY_STATE", dir.path().join("memory.json")) };
     let mut state = OperationalPolicyState::default();
     let decision = PolicyDecision {
         domain: PolicyDomain::ProviderChoice,

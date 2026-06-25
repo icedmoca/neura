@@ -17,9 +17,9 @@ pub async fn run_restart_save_command(auto_restore: bool) -> Result<()> {
     if snapshot.sessions.is_empty() {
         println!("Saved empty reboot snapshot to {}", path.display());
         if auto_restore {
-            println!("Automatic restore is armed for the next plain `kcode` launch.");
+            println!("Automatic restore is armed for the next plain `neura` launch.");
         }
-        println!("\nNo active kcode windows were detected.");
+        println!("\nNo active neura windows were detected.");
         return Ok(());
     }
 
@@ -40,9 +40,9 @@ pub async fn run_restart_save_command(auto_restore: bool) -> Result<()> {
         );
     }
     if auto_restore {
-        println!("\nAutomatic restore is armed for the next plain `kcode` launch.");
+        println!("\nAutomatic restore is armed for the next plain `neura` launch.");
     }
-    println!("\nAfter reboot, restore them with:\n  kcode restart restore");
+    println!("\nAfter reboot, restore them with:\n  neura restart restore");
 
     Ok(())
 }
@@ -52,7 +52,7 @@ pub fn run_restart_status_command() -> Result<()> {
     let snapshot = match crate::restart_snapshot::load_snapshot() {
         Ok(snapshot) => snapshot,
         Err(_) => {
-            println!("No reboot snapshot saved.\n\nCreate one with:\n  kcode restart save");
+            println!("No reboot snapshot saved.\n\nCreate one with:\n  neura restart save");
             return Ok(());
         }
     };
@@ -100,12 +100,12 @@ pub async fn maybe_run_pending_restart_restore_on_startup() -> Result<bool> {
         let _ = crate::restart_snapshot::set_auto_restore_on_next_start(false);
         if synthesized_from_recent_crashes {
             println!(
-                "Detected {} recent kcode session crash(es) from an unexpected shutdown. Restoring them now...\n",
+                "Detected {} recent neura session crash(es) from an unexpected shutdown. Restoring them now...\n",
                 snapshot.sessions.len()
             );
         } else {
             println!(
-                "Found a reboot snapshot with auto-restore enabled. Restoring {} kcode window(s)...\n",
+                "Found a reboot snapshot with auto-restore enabled. Restoring {} neura window(s)...\n",
                 snapshot.sessions.len()
             );
         }
@@ -114,7 +114,7 @@ pub async fn maybe_run_pending_restart_restore_on_startup() -> Result<bool> {
     }
 
     if std::io::stdin().is_terminal() || std::io::stderr().is_terminal() {
-        println!("Saved reboot snapshot detected. Restore it with:\n  kcode restart restore\n");
+        println!("Saved reboot snapshot detected. Restore it with:\n  neura restart restore\n");
     }
 
     Ok(false)
@@ -157,7 +157,7 @@ pub fn run_restart_restore_command() -> Result<()> {
     let fallback = result.outcomes.len().saturating_sub(launched);
 
     if launched > 0 {
-        println!("Restored {} kcode window(s).", launched);
+        println!("Restored {} neura window(s).", launched);
     }
 
     if fallback > 0 {
@@ -170,7 +170,7 @@ pub fn run_restart_restore_command() -> Result<()> {
             println!("{}", outcome.command);
         }
         println!(
-            "\nThe reboot snapshot was kept so you can try `kcode restart restore` again later."
+            "\nThe reboot snapshot was kept so you can try `neura restart restore` again later."
         );
         return Ok(());
     }
@@ -184,7 +184,7 @@ fn current_restart_restore_exe() -> Result<PathBuf> {
     crate::build::client_update_candidate(false)
         .map(|(path, _)| path)
         .or_else(|| std::env::current_exe().ok())
-        .ok_or_else(|| anyhow::anyhow!("Could not determine kcode executable for restore"))
+        .ok_or_else(|| anyhow::anyhow!("Could not determine neura executable for restore"))
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,18 +1,18 @@
-//! Embedding facade for kcode.
+//! Embedding facade for neura.
 //!
-//! The heavy ONNX/tokenizer implementation lives in the `kcode-embedding`
+//! The heavy ONNX/tokenizer implementation lives in the `neura-embedding`
 //! workspace crate so unchanged embedding code can stay cached across self-dev
-//! builds. This module keeps kcode's process-wide cache, stats, and local path /
+//! builds. This module keeps neura's process-wide cache, stats, and local path /
 //! logging integration stable.
 
 use anyhow::Result;
-use kcode_embedding as backend;
+use neura_embedding as backend;
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use crate::storage::kcode_dir;
+use crate::storage::neura_dir;
 
 /// LRU cache capacity for recent embeddings
 const EMBEDDING_CACHE_CAPACITY: usize = 128;
@@ -424,7 +424,7 @@ pub fn find_similar(
 
 /// Get the models directory path.
 pub fn models_dir() -> Result<PathBuf> {
-    let dir = kcode_dir()?.join("models").join(backend::MODEL_NAME);
+    let dir = neura_dir()?.join("models").join(backend::MODEL_NAME);
     std::fs::create_dir_all(&dir)?;
     Ok(dir)
 }

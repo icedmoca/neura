@@ -5,10 +5,10 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 pub fn socket_path() -> PathBuf {
-    if let Ok(custom) = std::env::var("KCODE_SOCKET") {
+    if let Ok(custom) = std::env::var("NEURA_SOCKET") {
         return PathBuf::from(custom);
     }
-    crate::storage::runtime_dir().join("kcode.sock")
+    crate::storage::runtime_dir().join("neura.sock")
 }
 
 /// Debug socket path for testing/introspection
@@ -18,7 +18,7 @@ pub fn debug_socket_path() -> PathBuf {
     let filename = main_path
         .file_name()
         .and_then(|n| n.to_str())
-        .unwrap_or("kcode.sock");
+        .unwrap_or("neura.sock");
     let debug_filename = filename.replace(".sock", "-debug.sock");
     main_path.with_file_name(debug_filename)
 }
@@ -56,7 +56,7 @@ pub async fn connect_socket(path: &std::path::Path) -> Result<Stream> {
         Ok(stream) => Ok(stream),
         Err(err) if err.kind() == std::io::ErrorKind::ConnectionRefused && path.exists() => {
             anyhow::bail!(
-                "Socket exists but refused the connection at {}. Retry, or remove it after confirming no kcode server is running.",
+                "Socket exists but refused the connection at {}. Retry, or remove it after confirming no neura server is running.",
                 path.display()
             )
         }
@@ -85,7 +85,7 @@ pub async fn has_live_listener(path: &std::path::Path) -> bool {
 
 #[cfg(unix)]
 pub(super) fn daemon_lock_path() -> PathBuf {
-    crate::storage::runtime_dir().join("kcode-daemon.lock")
+    crate::storage::runtime_dir().join("neura-daemon.lock")
 }
 
 #[cfg(unix)]
@@ -132,7 +132,7 @@ pub(super) fn acquire_daemon_lock() -> Result<DaemonLockGuard> {
     let path = daemon_lock_path();
     try_acquire_daemon_lock(&path)?.ok_or_else(|| {
         anyhow::anyhow!(
-            "Another kcode server process is already running for runtime dir {}",
+            "Another neura server process is already running for runtime dir {}",
             crate::storage::runtime_dir().display()
         )
     })
@@ -148,13 +148,13 @@ pub(super) fn mark_close_on_exec<T: std::os::fd::AsRawFd>(io: &T) {
 }
 
 pub fn set_socket_path(path: &str) {
-    crate::env::set_var("KCODE_SOCKET", path);
+    crate::env::set_var("NEURA_SOCKET", path);
 }
 
 /// Spawn a server child process and wait until it signals readiness.
 ///
 /// Creates an anonymous pipe, passes the write-end fd to the child via
-/// `KCODE_READY_FD`, and awaits a single byte on the read end. The server
+/// `NEURA_READY_FD`, and awaits a single byte on the read end. The server
 /// calls `signal_ready_fd()` once its accept loops are spawned, so the future
 /// resolves only after the daemon can start servicing client requests.
 ///
@@ -195,7 +195,7 @@ pub async fn spawn_server_notify(cmd: &mut std::process::Command) -> Result<std:
             Ok(())
         });
     }
-    cmd.env("KCODE_READY_FD", write_fd.to_string());
+    cmd.env("NEURA_READY_FD", write_fd.to_string());
 
     let mut child = cmd.spawn()?;
 
@@ -305,7 +305,7 @@ pub(super) fn take_server_start_stderr(child: &mut std::process::Child) -> Strin
 
 #[cfg(unix)]
 pub(super) fn server_start_matches_existing_server(stderr_output: &str) -> bool {
-    stderr_output.contains("Another kcode server process is already running")
+    stderr_output.contains("Another neura server process is already running")
         || stderr_output.contains("Refusing to replace active server socket")
 }
 
@@ -327,7 +327,7 @@ pub(super) fn format_server_start_error(
 ) -> String {
     if stderr_output.trim().is_empty() {
         format!(
-            "Server exited before signalling ready ({}). Check logs at ~/.kcode/logs/",
+            "Server exited before signalling ready ({}). Check logs at ~/.neura/logs/",
             status
         )
     } else {
@@ -358,7 +358,7 @@ pub(super) async fn handle_server_start_exit(
     anyhow::bail!(format_server_start_error(status, &stderr_output));
 }
 
-/// Write a single byte to the fd in `KCODE_READY_FD` and close it.
+/// Write a single byte to the fd in `NEURA_READY_FD` and close it.
 /// Called after startup plumbing is ready so the parent process knows the
 /// server can accept and service client requests. The env var is cleared so child
 /// processes (e.g. tool subprocesses) don't inherit a stale fd.
@@ -367,8 +367,8 @@ pub(super) fn signal_ready_fd() {
     {
         use std::os::unix::io::FromRawFd;
 
-        if let Ok(fd_str) = std::env::var("KCODE_READY_FD") {
-            crate::env::remove_var("KCODE_READY_FD");
+        if let Ok(fd_str) = std::env::var("NEURA_READY_FD") {
+            crate::env::remove_var("NEURA_READY_FD");
             if let Ok(fd) = fd_str.parse::<i32>() {
                 let mut file = unsafe { std::fs::File::from_raw_fd(fd) };
                 let _ = std::io::Write::write_all(&mut file, b"R");

@@ -1,5 +1,5 @@
-use kcode::evidence_ledger::{EvidenceKind, append_evidence_with_links, ledger_path};
-use kcode::evidence_replay::{ReplayConfig, render_replay_report, run_replay};
+use neura::evidence_ledger::{EvidenceKind, append_evidence_with_links, ledger_path};
+use neura::evidence_replay::{ReplayConfig, render_replay_report, run_replay};
 use serde_json::json;
 
 #[test]

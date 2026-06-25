@@ -66,8 +66,8 @@ fn make_session_with_flags(
         search_index,
         server_name: None,
         server_icon: None,
-        source: SessionSource::Kcode,
-        resume_target: ResumeTarget::KcodeSession {
+        source: SessionSource::Neura,
+        resume_target: ResumeTarget::NeuraSession {
             session_id: id.to_string(),
         },
         external_path: None,
@@ -359,8 +359,8 @@ fn test_filter_matches_recent_message_content() {
 fn test_loading_preview_refreshes_search_index_for_picker_filtering() {
     let _env_lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("temp dir");
-    let previous_home = std::env::var("KCODE_HOME").ok();
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let previous_home = std::env::var("NEURA_HOME").ok();
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let mut session = Session::create_with_id(
         "session_preview_search".to_string(),
@@ -399,9 +399,9 @@ fn test_loading_preview_refreshes_search_index_for_picker_filtering() {
     assert_eq!(picker.visible_sessions.len(), 1);
 
     if let Some(previous_home) = previous_home {
-        crate::env::set_var("KCODE_HOME", previous_home);
+        crate::env::set_var("NEURA_HOME", previous_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -591,10 +591,10 @@ fn test_space_selects_multiple_sessions_and_enter_returns_them() {
             assert_eq!(
                 ids,
                 vec![
-                    ResumeTarget::KcodeSession {
+                    ResumeTarget::NeuraSession {
                         session_id: "session_newer".to_string(),
                     },
-                    ResumeTarget::KcodeSession {
+                    ResumeTarget::NeuraSession {
                         session_id: "session_older".to_string(),
                     }
                 ]

@@ -1,6 +1,6 @@
 # Self-Development Mode
 
-You are working on the kcode codebase itself.
+You are working on the neura codebase itself.
 
 Tools:
 - `selfdev` manages self-dev builds and reloads.
@@ -8,10 +8,10 @@ Tools:
 
 ## Workflow
 
-When you make code changes to kcode:
+When you make code changes to neura:
 1. Prefer coordinated builds with `selfdev build`.
 2. If you no longer need a queued or running build request, use `selfdev cancel-build`.
-3. Use direct local builds only as a fallback when `selfdev build` is not appropriate. In that case, use `scripts/dev_cargo.sh build --profile selfdev -p kcode --bin kcode` when available; otherwise use `cargo build --profile selfdev -p kcode --bin kcode`, then `selfdev reload`.
+3. Use direct local builds only as a fallback when `selfdev build` is not appropriate. In that case, use `scripts/dev_cargo.sh build --profile selfdev -p neura --bin neura` when available; otherwise use `cargo build --profile selfdev -p neura --bin neura`, then `selfdev reload`.
 4. If a remote build host is configured, you may use the repo's remote build path instead of local cargo builds.
 5. Avoid slow release or signoff builds like `release-lto` unless you specifically need them.
 6. After reload, continue automatically. Do not wait for user input.

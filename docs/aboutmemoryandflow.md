@@ -1,6 +1,6 @@
-# Kcode Memory and Conversation Flow
+# Neura Memory and Conversation Flow
 
-This document maps the high-level flow of a Kcode agent turn: from the moment the user sends input, through context assembly, memory retrieval, sidecar/tool execution, model output, summarization/compaction, and finally into the next user input cycle.
+This document maps the high-level flow of a Neura agent turn: from the moment the user sends input, through context assembly, memory retrieval, sidecar/tool execution, model output, summarization/compaction, and finally into the next user input cycle.
 
 The diagram is intentionally comprehensive and GitHub-ready. It focuses on the agent lifecycle rather than every internal helper function.
 
@@ -201,11 +201,11 @@ flowchart TD
 
 ### 1. Conversation Turn
 
-A turn begins when the user sends input. Kcode wraps that input with the current session state, available tools, active instructions, and relevant context. The model does not see the entire filesystem or entire past transcript by default. It sees a curated prompt assembled from the most useful pieces.
+A turn begins when the user sends input. Neura wraps that input with the current session state, available tools, active instructions, and relevant context. The model does not see the entire filesystem or entire past transcript by default. It sees a curated prompt assembled from the most useful pieces.
 
 ### 2. Memory Layers
 
-Kcode-style memory can be understood as several layers:
+Neura-style memory can be understood as several layers:
 
 | Layer | Purpose | Typical contents |
 |---|---|---|
@@ -230,7 +230,7 @@ This is why a failed command, screenshot, file read, or background task output b
 
 ### 4. Context Budgeting
 
-Because model context is finite, Kcode must decide what to include. The usual priority order is:
+Because model context is finite, Neura must decide what to include. The usual priority order is:
 
 1. System and developer instructions.
 2. The current user request.
@@ -249,7 +249,7 @@ A single user request can involve many model/tool cycles:
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant H as Kcode Harness
+    participant H as Neura Harness
     participant M as Model
     participant T as Tool / Sidecar
     participant FS as Files / Browser / Shell
@@ -307,7 +307,7 @@ Every assistant output and tool result can influence the next user input because
 If the user says, “fix this bug,” the flow usually looks like this:
 
 1. User sends the request.
-2. Kcode loads session history, repo state, and relevant memory.
+2. Neura loads session history, repo state, and relevant memory.
 3. The model decides it needs to inspect files.
 4. The harness reads/searches files.
 5. Tool results are returned to the model.
@@ -316,7 +316,7 @@ If the user says, “fix this bug,” the flow usually looks like this:
 8. Test output returns to the model.
 9. The model iterates until tests pass or a blocker is found.
 10. The assistant reports what changed.
-11. Kcode stores the final state, tool outputs, and any useful summary for future turns.
+11. Neura stores the final state, tool outputs, and any useful summary for future turns.
 
 ## Why Memory Matters
 
@@ -334,18 +334,18 @@ But memory is also controlled. Not every detail should become durable memory. Te
 
 ## Self-Model Integration Added in the New Phase
 
-Kcode now has an explicit self-model substrate in the Rust crate:
+Neura now has an explicit self-model substrate in the Rust crate:
 
 - `src/self_model.rs`
 - exported through `src/lib.rs` as `pub mod self_model;`
 
-This phase added a deterministic operational cognition layer that can be used by routing, repair, replay, benchmarking, slash-command surfaces, and future telemetry. The goal is not to make the agent “sentient.” The goal is to give Kcode a structured way to reason about its own operational condition while it is working.
+This phase added a deterministic operational cognition layer that can be used by routing, repair, replay, benchmarking, slash-command surfaces, and future telemetry. The goal is not to make the agent “sentient.” The goal is to give Neura a structured way to reason about its own operational condition while it is working.
 
 ### New Core Types
 
 | Type | Role |
 |---|---|
-| `SelfModel` | Snapshot of Kcode’s current operational state across cognitive domains |
+| `SelfModel` | Snapshot of Neura’s current operational state across cognitive domains |
 | `CognitiveDomain` | Functional area being assessed, such as context assembly, memory retrieval, tool execution, provider routing, repair, replay, benchmarking, and user interaction |
 | `OperationalState` | Health state: `Nominal`, `Watch`, `Degraded`, or `Blocked` |
 | `CognitiveSignal` | One normalized observation about a domain |
@@ -385,7 +385,7 @@ The implemented cognitive domains are:
 
 ```mermaid
 mindmap
-  root((Kcode SelfModel))
+  root((Neura SelfModel))
     ContextAssembly
       token pressure
       context confidence
@@ -595,7 +595,7 @@ Expected result:
 With self-model integration, a “fix this bug” request now has an extra operational cognition layer:
 
 1. User sends the request.
-2. Kcode loads session history, repo state, and relevant memory.
+2. Neura loads session history, repo state, and relevant memory.
 3. Context and memory systems emit operational events.
 4. `OperationalCognition` updates the `SelfModel`.
 5. The model receives normal context plus operational guidance.
@@ -606,7 +606,7 @@ With self-model integration, a “fix this bug” request now has an extra opera
 10. Tests run and results update operational state.
 11. If needed, repair/replay guidance triggers recovery before continuing.
 12. The assistant reports what changed.
-13. Kcode stores the final state, tool outputs, summaries, and any useful memory updates.
+13. Neura stores the final state, tool outputs, summaries, and any useful memory updates.
 
 ## Operational Cognition Verbalization + Semantic State Abstraction
 
@@ -627,7 +627,7 @@ This gives routing, repair, replay, telemetry, benchmarks, and future slash/stat
 
 ## Long-Horizon Operational Pressure + Continuous Cognition Stress Infrastructure
 
-The newest phase adds `src/long_horizon_pressure.rs`, a bounded stress infrastructure layer above `SelfModel` and `SemanticOperationalState`. It lets Kcode simulate finite multi-step operational pressure and produce reports without creating an autonomous daemon.
+The newest phase adds `src/long_horizon_pressure.rs`, a bounded stress infrastructure layer above `SelfModel` and `SemanticOperationalState`. It lets Neura simulate finite multi-step operational pressure and produce reports without creating an autonomous daemon.
 
 ```mermaid
 flowchart TD
@@ -646,7 +646,7 @@ See [`docs/long_horizon_report.md`](long_horizon_report.md).
 
 ## Summary
 
-Kcode’s flow is best understood as a loop:
+Neura’s flow is best understood as a loop:
 
 1. **Input arrives.**
 2. **Context and memory are assembled.**

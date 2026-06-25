@@ -19,13 +19,13 @@ impl TestEnvGuard {
     fn new() -> anyhow::Result<Self> {
         let lock = lock_env();
         let temp_home = tempfile::Builder::new()
-            .prefix("kcode-selfdev-test-home-")
+            .prefix("neura-selfdev-test-home-")
             .tempdir()?;
-        let prev_home = std::env::var_os("KCODE_HOME");
-        let prev_test_session = std::env::var_os("KCODE_TEST_SESSION");
+        let prev_home = std::env::var_os("NEURA_HOME");
+        let prev_test_session = std::env::var_os("NEURA_TEST_SESSION");
 
-        crate::env::set_var("KCODE_HOME", temp_home.path());
-        crate::env::set_var("KCODE_TEST_SESSION", "1");
+        crate::env::set_var("NEURA_HOME", temp_home.path());
+        crate::env::set_var("NEURA_TEST_SESSION", "1");
 
         Ok(Self {
             _lock: lock,
@@ -39,15 +39,15 @@ impl TestEnvGuard {
 impl Drop for TestEnvGuard {
     fn drop(&mut self) {
         if let Some(prev_home) = &self.prev_home {
-            crate::env::set_var("KCODE_HOME", prev_home);
+            crate::env::set_var("NEURA_HOME", prev_home);
         } else {
-            crate::env::remove_var("KCODE_HOME");
+            crate::env::remove_var("NEURA_HOME");
         }
 
         if let Some(prev_test_session) = &self.prev_test_session {
-            crate::env::set_var("KCODE_TEST_SESSION", prev_test_session);
+            crate::env::set_var("NEURA_TEST_SESSION", prev_test_session);
         } else {
-            crate::env::remove_var("KCODE_TEST_SESSION");
+            crate::env::remove_var("NEURA_TEST_SESSION");
         }
     }
 }
@@ -184,7 +184,7 @@ async fn test_selfdev_session_and_registry() {
     assert!(result.is_ok(), "selfdev tool should execute successfully");
 
     let _ = std::fs::remove_file(
-        storage::kcode_dir()
+        storage::neura_dir()
             .unwrap()
             .join("sessions")
             .join(format!("{}.json", session_id)),
@@ -195,11 +195,11 @@ async fn test_selfdev_session_and_registry() {
 async fn test_wait_for_reloading_server_returns_false_when_reload_failed() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_socket = std::env::var_os("KCODE_SOCKET");
-    let prev_runtime = std::env::var_os("KCODE_RUNTIME_DIR");
-    let socket_path = temp.path().join("kcode.sock");
+    let prev_socket = std::env::var_os("NEURA_SOCKET");
+    let prev_runtime = std::env::var_os("NEURA_RUNTIME_DIR");
+    let socket_path = temp.path().join("neura.sock");
     crate::server::set_socket_path(socket_path.to_str().expect("utf8 socket path"));
-    crate::env::set_var("KCODE_RUNTIME_DIR", temp.path());
+    crate::env::set_var("NEURA_RUNTIME_DIR", temp.path());
     crate::server::write_reload_state(
         "reload-test",
         "hash",
@@ -211,14 +211,14 @@ async fn test_wait_for_reloading_server_returns_false_when_reload_failed() {
 
     crate::server::clear_reload_marker();
     if let Some(prev_socket) = prev_socket {
-        crate::env::set_var("KCODE_SOCKET", prev_socket);
+        crate::env::set_var("NEURA_SOCKET", prev_socket);
     } else {
-        crate::env::remove_var("KCODE_SOCKET");
+        crate::env::remove_var("NEURA_SOCKET");
     }
     if let Some(prev_runtime) = prev_runtime {
-        crate::env::set_var("KCODE_RUNTIME_DIR", prev_runtime);
+        crate::env::set_var("NEURA_RUNTIME_DIR", prev_runtime);
     } else {
-        crate::env::remove_var("KCODE_RUNTIME_DIR");
+        crate::env::remove_var("NEURA_RUNTIME_DIR");
     }
 }
 
@@ -226,24 +226,24 @@ async fn test_wait_for_reloading_server_returns_false_when_reload_failed() {
 async fn test_wait_for_reloading_server_returns_true_for_live_listener() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_socket = std::env::var_os("KCODE_SOCKET");
-    let prev_runtime = std::env::var_os("KCODE_RUNTIME_DIR");
-    let socket_path = temp.path().join("kcode.sock");
+    let prev_socket = std::env::var_os("NEURA_SOCKET");
+    let prev_runtime = std::env::var_os("NEURA_RUNTIME_DIR");
+    let socket_path = temp.path().join("neura.sock");
     crate::server::set_socket_path(socket_path.to_str().expect("utf8 socket path"));
-    crate::env::set_var("KCODE_RUNTIME_DIR", temp.path());
+    crate::env::set_var("NEURA_RUNTIME_DIR", temp.path());
     let _listener = crate::transport::Listener::bind(&socket_path).expect("bind listener");
 
     assert!(wait_for_reloading_server().await);
 
     if let Some(prev_socket) = prev_socket {
-        crate::env::set_var("KCODE_SOCKET", prev_socket);
+        crate::env::set_var("NEURA_SOCKET", prev_socket);
     } else {
-        crate::env::remove_var("KCODE_SOCKET");
+        crate::env::remove_var("NEURA_SOCKET");
     }
     if let Some(prev_runtime) = prev_runtime {
-        crate::env::set_var("KCODE_RUNTIME_DIR", prev_runtime);
+        crate::env::set_var("NEURA_RUNTIME_DIR", prev_runtime);
     } else {
-        crate::env::remove_var("KCODE_RUNTIME_DIR");
+        crate::env::remove_var("NEURA_RUNTIME_DIR");
     }
 }
 
@@ -269,9 +269,9 @@ fn test_selfdev_build_command_prefers_repo_wrapper_when_present() {
             "--profile".to_string(),
             "selfdev".to_string(),
             "-p".to_string(),
-            "kcode".to_string(),
+            "neura".to_string(),
             "--bin".to_string(),
-            "kcode".to_string(),
+            "neura".to_string(),
         ]
     );
 }
@@ -288,9 +288,9 @@ fn test_selfdev_build_command_falls_back_to_cargo_when_wrapper_missing() {
             "--profile".to_string(),
             "selfdev".to_string(),
             "-p".to_string(),
-            "kcode".to_string(),
+            "neura".to_string(),
             "--bin".to_string(),
-            "kcode".to_string(),
+            "neura".to_string(),
         ]
     );
 }

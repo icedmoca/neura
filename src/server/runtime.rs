@@ -12,7 +12,7 @@ use crate::gateway::GatewayClient;
 use crate::protocol::ServerEvent;
 use crate::provider::Provider;
 use crate::transport::{Listener, Stream};
-use kcode_agent_runtime::InterruptSignal;
+use neura_agent_runtime::InterruptSignal;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 use std::sync::Arc;

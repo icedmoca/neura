@@ -12,7 +12,7 @@ pub use catalog::{
     AnthropicModelCatalog, OpenAIModelCatalog, fetch_anthropic_model_catalog,
     fetch_anthropic_model_catalog_oauth, fetch_openai_context_limits, fetch_openai_model_catalog,
 };
-use kcode_provider_core::{ModelRoute, shared_http_client};
+use neura_provider_core::{ModelRoute, shared_http_client};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -61,7 +61,7 @@ pub(crate) fn ensure_model_allowed_for_subscription(model: &str) -> Result<()> {
         && !crate::subscription_catalog::is_curated_model(model)
     {
         anyhow::bail!(
-            "Model '{}' is not included in the current kcode subscription catalog",
+            "Model '{}' is not included in the current neura subscription catalog",
             model
         );
     }

@@ -1,11 +1,11 @@
 //! Platform setup hints shown on startup.
 //!
 //! - Windows: suggest Alt+; hotkey setup and Alacritty install.
-//! - macOS: detect suboptimal terminal and offer guided Ghostty setup via kcode.
+//! - macOS: detect suboptimal terminal and offer guided Ghostty setup via neura.
 //! - Linux: create a .desktop launcher file.
 //!
 //! Each nudge can be dismissed permanently with "Don't ask again".
-//! State is persisted in `~/.kcode/setup_hints.json`.
+//! State is persisted in `~/.neura/setup_hints.json`.
 
 use crate::storage;
 #[cfg(target_os = "macos")]
@@ -30,7 +30,7 @@ use macos_terminal::launch_script_for_macos_terminal;
 #[cfg(any(test, target_os = "macos"))]
 use macos_terminal::{
     MacTerminalKind, effective_macos_terminal, escape_applescript_text, escape_shell_single_quotes,
-    launch_command_for_macos_terminal, paused_kcode_shell_command, save_preferred_macos_terminal,
+    launch_command_for_macos_terminal, paused_neura_shell_command, save_preferred_macos_terminal,
 };
 #[cfg(windows)]
 use windows_setup::{
@@ -85,7 +85,7 @@ impl StartupHints {
 
 impl SetupHintsState {
     fn path() -> Result<PathBuf> {
-        Ok(storage::kcode_dir()?.join("setup_hints.json"))
+        Ok(storage::neura_dir()?.join("setup_hints.json"))
     }
 
     pub fn load() -> Self {
@@ -124,7 +124,7 @@ fn is_ghostty_installed() -> bool {
 
 #[cfg(target_os = "macos")]
 fn mac_hotkey_support_dir() -> Result<PathBuf> {
-    Ok(storage::kcode_dir()?.join("hotkey"))
+    Ok(storage::neura_dir()?.join("hotkey"))
 }
 
 #[cfg(target_os = "macos")]
@@ -133,7 +133,7 @@ fn mac_hotkey_launch_agent_path() -> Result<PathBuf> {
     Ok(home
         .join("Library")
         .join("LaunchAgents")
-        .join("com.kcode.hotkey.plist"))
+        .join("com.neura.hotkey.plist"))
 }
 
 #[cfg(target_os = "macos")]
@@ -146,9 +146,9 @@ fn install_macos_hotkey_listener(
 
     let exe = std::env::current_exe()?;
     let exe_path = exe.to_string_lossy().into_owned();
-    let shell_command = paused_kcode_shell_command(&exe_path);
+    let shell_command = paused_neura_shell_command(&exe_path);
 
-    let launch_script_path = hotkey_dir.join("launch_kcode.sh");
+    let launch_script_path = hotkey_dir.join("launch_neura.sh");
     std::fs::write(
         &launch_script_path,
         launch_script_for_macos_terminal(terminal, &shell_command),
@@ -170,7 +170,7 @@ fn install_macos_hotkey_listener(
 <plist version=\"1.0\">
 <dict>
     <key>Label</key>
-    <string>com.kcode.hotkey</string>
+    <string>com.neura.hotkey</string>
     <key>ProgramArguments</key>
     <array>
         <string>{exe}</string>
@@ -187,7 +187,7 @@ fn install_macos_hotkey_listener(
     <string>{stderr_path}</string>
     <key>EnvironmentVariables</key>
     <dict>
-        <key>KCODE_PREFERRED_TERMINAL</key>
+        <key>NEURA_PREFERRED_TERMINAL</key>
         <string>{terminal}</string>
     </dict>
 </dict>
@@ -208,7 +208,7 @@ fn install_macos_hotkey_listener(
     let status = std::process::Command::new("launchctl")
         .args(["load", "-w", plist_path.to_string_lossy().as_ref()])
         .status()
-        .context("failed to load kcode LaunchAgent")?;
+        .context("failed to load neura LaunchAgent")?;
     if !status.success() {
         anyhow::bail!("launchctl load failed with exit code {:?}", status.code());
     }
@@ -222,7 +222,7 @@ fn startup_hints_for_launch(state: &SetupHintsState) -> Option<StartupHints> {
         None
     } else {
         Some(format!(
-            "Press Alt+; from anywhere to open kcode in {}.",
+            "Press Alt+; from anywhere to open neura in {}.",
             effective_macos_terminal().label()
         ))
     };
@@ -230,7 +230,7 @@ fn startup_hints_for_launch(state: &SetupHintsState) -> Option<StartupHints> {
     let spawn_notice: Option<String> = None;
 
     if state.launch_count == 1 {
-        let mut message = "Tip: kcode is left-aligned by default. Use `/alignment centered` or press `Alt+C` to toggle left/centered for the current session.".to_string();
+        let mut message = "Tip: neura is left-aligned by default. Use `/alignment centered` or press `Alt+C` to toggle left/centered for the current session.".to_string();
 
         if let Some(spawn_notice) = spawn_notice {
             message.push_str("\n\n");
@@ -247,7 +247,7 @@ fn startup_hints_for_launch(state: &SetupHintsState) -> Option<StartupHints> {
     if state.launch_count <= 3 {
         let config_path = crate::config::Config::path()
             .map(|path| path.display().to_string())
-            .unwrap_or_else(|| "~/.kcode/config.toml".to_string());
+            .unwrap_or_else(|| "~/.neura/config.toml".to_string());
 
         let mut message = format!(
             "You can hotswap text alignment with `Alt+C` (left-aligned ↔ centered).\n\nTo save it permanently, use `/alignment centered` or `/alignment left`. You can also change it in `{}` with `display.centered = true` or `display.centered = false`.\n\nLeft-aligned mode is the default for new configs.",
@@ -280,7 +280,7 @@ fn read_choice() -> String {
 #[cfg(target_os = "macos")]
 fn macos_guided_ghostty_message(current_terminal: MacTerminalKind) -> String {
     format!(
-        "I want to upgrade my macOS terminal setup for kcode. Please guide me step-by-step, wait for confirmation between steps, and keep each step concise.\n\nCurrent terminal: {}\nGoal: install Ghostty and use it for kcode.\n\nPlease help me with:\n1) Detecting if Homebrew is installed (and installing it if missing)\n2) Installing Ghostty\n3) Launching Ghostty and setting it as my preferred terminal for kcode\n4) Optional: adding a macOS keyboard shortcut/launcher flow for kcode\n5) Verifying kcode runs in Ghostty and that inline images/graphics work\n\nAssume I am not an expert; provide exact commands and where to click in macOS settings when needed.",
+        "I want to upgrade my macOS terminal setup for neura. Please guide me step-by-step, wait for confirmation between steps, and keep each step concise.\n\nCurrent terminal: {}\nGoal: install Ghostty and use it for neura.\n\nPlease help me with:\n1) Detecting if Homebrew is installed (and installing it if missing)\n2) Installing Ghostty\n3) Launching Ghostty and setting it as my preferred terminal for neura\n4) Optional: adding a macOS keyboard shortcut/launcher flow for neura\n5) Verifying neura runs in Ghostty and that inline images/graphics work\n\nAssume I am not an expert; provide exact commands and where to click in macOS settings when needed.",
         current_terminal.label()
     )
 }
@@ -300,7 +300,7 @@ fn nudge_macos_ghostty(state: &mut SetupHintsState) -> Option<String> {
 
     eprintln!("\x1b[36m┌─────────────────────────────────────────────────────────────┐\x1b[0m");
     eprintln!(
-        "\x1b[36m│\x1b[0m \x1b[1m💡 Better macOS terminal for kcode: Ghostty\x1b[0m                \x1b[36m│\x1b[0m"
+        "\x1b[36m│\x1b[0m \x1b[1m💡 Better macOS terminal for neura: Ghostty\x1b[0m                \x1b[36m│\x1b[0m"
     );
     eprintln!(
         "\x1b[36m│\x1b[0m                                                             \x1b[36m│\x1b[0m"
@@ -315,14 +315,14 @@ fn nudge_macos_ghostty(state: &mut SetupHintsState) -> Option<String> {
         );
     } else {
         eprintln!(
-            "\x1b[36m│\x1b[0m    Ghostty offers fast rendering and great kcode UX.         \x1b[36m│\x1b[0m"
+            "\x1b[36m│\x1b[0m    Ghostty offers fast rendering and great neura UX.         \x1b[36m│\x1b[0m"
         );
     }
     eprintln!(
         "\x1b[36m│\x1b[0m                                                             \x1b[36m│\x1b[0m"
     );
     eprintln!(
-        "\x1b[36m│\x1b[0m    Let kcode guide you through setup right now?             \x1b[36m│\x1b[0m"
+        "\x1b[36m│\x1b[0m    Let neura guide you through setup right now?             \x1b[36m│\x1b[0m"
     );
     eprintln!(
         "\x1b[36m│\x1b[0m    \x1b[32m[y]\x1b[0m Yes      \x1b[90m[n]\x1b[0m Not now      \x1b[90m[d]\x1b[0m Don't ask again    \x1b[36m│\x1b[0m"
@@ -348,7 +348,7 @@ fn nudge_macos_ghostty(state: &mut SetupHintsState) -> Option<String> {
     }
 }
 
-/// Manual `kcode setup-hotkey` command.
+/// Manual `neura setup-hotkey` command.
 ///
 /// Runs the full interactive setup flow regardless of launch count.
 pub fn run_setup_hotkey(_listen_macos_hotkey: bool) -> Result<()> {
@@ -360,10 +360,10 @@ pub fn run_setup_hotkey(_listen_macos_hotkey: bool) -> Result<()> {
 
         let mut state = SetupHintsState::load();
         let terminal = effective_macos_terminal();
-        eprintln!("\x1b[1mkcode setup-hotkey\x1b[0m");
+        eprintln!("\x1b[1mneura setup-hotkey\x1b[0m");
         eprintln!();
         eprintln!("  Preferred terminal: {}", terminal.label());
-        eprintln!("  Installing a LaunchAgent so Alt+; opens kcode from anywhere.");
+        eprintln!("  Installing a LaunchAgent so Alt+; opens neura from anywhere.");
         eprintln!();
 
         match install_macos_hotkey_listener(Some(terminal)) {
@@ -372,12 +372,12 @@ pub fn run_setup_hotkey(_listen_macos_hotkey: bool) -> Result<()> {
                 state.hotkey_dismissed = true;
                 let _ = state.save();
                 eprintln!(
-                    "  \x1b[32m✓\x1b[0m Created hotkey (\x1b[1mAlt+;\x1b[0m) → {} + kcode",
+                    "  \x1b[32m✓\x1b[0m Created hotkey (\x1b[1mAlt+;\x1b[0m) → {} + neura",
                     installed_terminal.label()
                 );
                 eprintln!();
                 eprintln!(
-                    "  Press \x1b[1mAlt+;\x1b[0m from anywhere to open kcode in {}.",
+                    "  Press \x1b[1mAlt+;\x1b[0m from anywhere to open neura in {}.",
                     installed_terminal.label()
                 );
                 return Ok(());
@@ -413,7 +413,7 @@ fn run_macos_hotkey_listener() -> Result<()> {
     use global_hotkey::{GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState};
     use std::process::Command;
 
-    let launch_script = mac_hotkey_support_dir()?.join("launch_kcode.sh");
+    let launch_script = mac_hotkey_support_dir()?.join("launch_neura.sh");
     let manager =
         GlobalHotKeyManager::new().context("failed to initialize global hotkey manager")?;
     let hotkey = HotKey::new(Some(Modifiers::ALT), Code::Semicolon);
@@ -496,12 +496,12 @@ pub fn maybe_show_setup_hints() -> Option<StartupHints> {
     }
 }
 
-/// Manual `kcode setup-launcher` command.
+/// Manual `neura setup-launcher` command.
 pub fn run_setup_launcher() -> Result<()> {
     #[cfg(target_os = "macos")]
     {
         let mut state = SetupHintsState::load();
-        eprintln!("\x1b[1mkcode setup-launcher\x1b[0m");
+        eprintln!("\x1b[1mneura setup-launcher\x1b[0m");
         eprintln!();
 
         match install_macos_app_launcher() {
@@ -513,11 +513,11 @@ pub fn run_setup_launcher() -> Result<()> {
                     app_dir.display()
                 );
                 eprintln!(
-                    "  \x1b[32m✓\x1b[0m Spotlight/Launchpad/Dock will launch kcode in {}",
+                    "  \x1b[32m✓\x1b[0m Spotlight/Launchpad/Dock will launch neura in {}",
                     terminal.label()
                 );
                 eprintln!();
-                eprintln!("  Tip: pin Kcode.app to your Dock or launch it with Cmd+Space.");
+                eprintln!("  Tip: pin Neura.app to your Dock or launch it with Cmd+Space.");
                 return Ok(());
             }
             Err(e) => {
@@ -534,10 +534,10 @@ pub fn run_setup_launcher() -> Result<()> {
     }
 }
 
-/// Create a desktop shortcut/launcher for kcode.
+/// Create a desktop shortcut/launcher for neura.
 ///
 /// - Windows: creates a .lnk shortcut on the Desktop
-/// - macOS: creates a kcode.app bundle in ~/Applications/
+/// - macOS: creates a neura.app bundle in ~/Applications/
 fn create_desktop_shortcut(state: &mut SetupHintsState) -> Result<()> {
     #[cfg(windows)]
     {

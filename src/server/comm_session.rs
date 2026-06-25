@@ -53,7 +53,7 @@ fn spawn_visible_session_window(
     let exe = crate::build::client_update_candidate(selfdev_requested)
         .map(|(path, _label)| path)
         .or_else(|| std::env::current_exe().ok())
-        .unwrap_or_else(|| PathBuf::from("kcode"));
+        .unwrap_or_else(|| PathBuf::from("neura"));
     if selfdev_requested {
         crate::cli::tui_launch::spawn_selfdev_in_new_terminal(&exe, session_id, cwd)
     } else {
@@ -70,8 +70,8 @@ fn persist_headed_startup_message(session_id: &str, message: &str) {
 }
 
 fn clear_headed_startup_message(session_id: &str) {
-    if let Ok(kcode_dir) = crate::storage::kcode_dir() {
-        let path = kcode_dir.join(format!("client-input-{}", session_id));
+    if let Ok(neura_dir) = crate::storage::neura_dir() {
+        let path = neura_dir.join(format!("client-input-{}", session_id));
         let _ = std::fs::remove_file(path);
     }
 }

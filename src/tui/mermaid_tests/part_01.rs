@@ -33,7 +33,7 @@ fn terminal_theme_renders_common_diagram_types() {
         ),
         (
             "sequence",
-            "sequenceDiagram\n    participant U as User\n    participant J as kcode\n    U->>J: Render mermaid preview\n    J-->>U: Styled diagram",
+            "sequenceDiagram\n    participant U as User\n    participant J as neura\n    U->>J: Render mermaid preview\n    J-->>U: Styled diagram",
         ),
         (
             "pie",
@@ -322,7 +322,7 @@ fn test_streaming_preview_is_ephemeral_and_prioritized() {
 
 #[test]
 fn test_parse_proc_status_value_bytes() {
-    let status = "Name:\tkcode\nVmSize:\t   2048 kB\nVmRSS:\t    512 kB\nVmHWM:\t   1024 kB\n";
+    let status = "Name:\tneura\nVmSize:\t   2048 kB\nVmRSS:\t    512 kB\nVmHWM:\t   1024 kB\n";
     assert_eq!(
         parse_proc_status_value_bytes(status, "VmSize:"),
         Some(2048 * 1024)

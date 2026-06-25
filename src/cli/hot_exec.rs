@@ -38,7 +38,7 @@ pub fn hot_restart(session_id: &str) -> Result<()> {
 
     crate::logging::info(&format!("Restarting with current binary: {:?}", exe));
 
-    crate::env::set_var("KCODE_RESUMING", "1");
+    crate::env::set_var("NEURA_RESUMING", "1");
 
     let mut cmd = ProcessCommand::new(&exe);
     if is_selfdev {
@@ -53,9 +53,9 @@ pub fn hot_restart(session_id: &str) -> Result<()> {
 pub fn hot_reload(session_id: &str) -> Result<()> {
     let cwd = std::env::current_dir()?;
 
-    crate::env::set_var("KCODE_RESUMING", "1");
+    crate::env::set_var("NEURA_RESUMING", "1");
 
-    if let Ok(migrate_binary) = std::env::var("KCODE_MIGRATE_BINARY") {
+    if let Ok(migrate_binary) = std::env::var("NEURA_MIGRATE_BINARY") {
         let binary_path = std::path::PathBuf::from(&migrate_binary);
         if binary_path.exists() {
             crate::logging::info("Migrating to stable binary...");
@@ -135,9 +135,9 @@ pub fn hot_reload(session_id: &str) -> Result<()> {
 pub fn hot_rebuild(session_id: &str) -> Result<()> {
     let cwd = std::env::current_dir()?;
     let repo_dir =
-        build::get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find kcode repository"))?;
+        build::get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))?;
 
-    eprintln!("Rebuilding kcode with session {}...", session_id);
+    eprintln!("Rebuilding neura with session {}...", session_id);
 
     eprintln!("Pulling latest changes...");
     if let Err(e) = update::run_git_pull_ff_only(&repo_dir, true) {
@@ -182,7 +182,7 @@ pub fn hot_rebuild(session_id: &str) -> Result<()> {
 
     update::print_centered(&format!("Restarting with session {}...", session_id));
 
-    crate::env::set_var("KCODE_RESUMING", "1");
+    crate::env::set_var("NEURA_RESUMING", "1");
 
     let mut cmd = ProcessCommand::new(&exe);
     if is_selfdev {
@@ -224,7 +224,7 @@ pub fn spawn_background_session_rebuild(session_id: String) {
             publish(SessionUpdateStatus::Error {
                 session_id,
                 action,
-                message: "Rebuild failed: could not find the kcode repository.".to_string(),
+                message: "Rebuild failed: could not find the neura repository.".to_string(),
             });
             return;
         };
@@ -347,7 +347,7 @@ pub fn hot_update(session_id: &str) -> Result<()> {
 
     match update::check_for_update_blocking() {
         Ok(Some(release)) => {
-            let current = env!("KCODE_VERSION");
+            let current = env!("NEURA_VERSION");
             update::print_centered(&format!(
                 "Update available: {} -> {}",
                 current, release.tag_name
@@ -365,7 +365,7 @@ pub fn hot_update(session_id: &str) -> Result<()> {
 
                     update::print_centered(&format!("Restarting with session {}...", session_id));
 
-                    crate::env::set_var("KCODE_RESUMING", "1");
+                    crate::env::set_var("NEURA_RESUMING", "1");
 
                     let mut cmd = ProcessCommand::new(&exe);
                     if is_selfdev {
@@ -385,7 +385,7 @@ pub fn hot_update(session_id: &str) -> Result<()> {
             }
         }
         Ok(None) => {
-            update::print_centered(&format!("Already up to date ({})", env!("KCODE_VERSION")));
+            update::print_centered(&format!("Already up to date ({})", env!("NEURA_VERSION")));
         }
         Err(e) => {
             update::print_centered(&format!("✗ Update check failed: {}", e));
@@ -393,7 +393,7 @@ pub fn hot_update(session_id: &str) -> Result<()> {
         }
     }
 
-    crate::env::set_var("KCODE_RESUMING", "1");
+    crate::env::set_var("NEURA_RESUMING", "1");
     let exe = std::env::current_exe()?;
     let is_selfdev = crate::cli::selfdev::client_selfdev_requested();
     let mut cmd = ProcessCommand::new(&exe);
@@ -444,7 +444,7 @@ pub fn check_for_updates() -> Option<bool> {
 
 pub fn run_auto_update() -> Result<()> {
     let repo_dir =
-        get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find kcode repository"))?;
+        get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))?;
 
     update::run_git_pull_ff_only(&repo_dir, true)?;
 
@@ -492,15 +492,15 @@ pub fn run_update() -> Result<()> {
             Ok(Some(release)) => {
                 update::print_centered(&format!(
                     "Downloading {} \u{2192} {}...",
-                    env!("KCODE_VERSION"),
+                    env!("NEURA_VERSION"),
                     release.tag_name
                 ));
                 let _path = update::download_and_install_blocking(&release)?;
                 update::print_centered(&format!("✅ Updated to {}", release.tag_name));
-                update::print_centered("Restart kcode to use the new version.");
+                update::print_centered("Restart neura to use the new version.");
             }
             Ok(None) => {
-                update::print_centered(&format!("Already up to date ({})", env!("KCODE_VERSION")));
+                update::print_centered(&format!("Already up to date ({})", env!("NEURA_VERSION")));
             }
             Err(e) => {
                 anyhow::bail!("Update check failed: {}", e);
@@ -510,9 +510,9 @@ pub fn run_update() -> Result<()> {
     }
 
     let repo_dir =
-        get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find kcode repository"))?;
+        get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))?;
 
-    update::print_centered(&format!("Updating kcode from {}...", repo_dir.display()));
+    update::print_centered(&format!("Updating neura from {}...", repo_dir.display()));
 
     update::print_centered("Pulling latest changes (fast-forward only)...");
     update::run_git_pull_ff_only(&repo_dir, true)?;

@@ -142,7 +142,7 @@ impl Provider for MockProvider {
         false
     }
 
-    fn uses_kcode_compaction(&self) -> bool {
+    fn uses_neura_compaction(&self) -> bool {
         false
     }
 
@@ -177,8 +177,8 @@ fn approx_payload_chars(acc: &crate::provider::remote_telemetry::PayloadAccounti
 async fn smoke_a_direct_meow_skips_subsystems() {
     let _g = smoke_env_lock();
     unsafe {
-        std::env::set_var("KCODE_CONTEXT_COMPILER", "v2");
-        std::env::remove_var("KCODE_MEMORY_ANCHOR");
+        std::env::set_var("NEURA_CONTEXT_COMPILER", "v2");
+        std::env::remove_var("NEURA_MEMORY_ANCHOR");
     }
     let provider = MockProvider::new("mock", "test-direct", vec!["meow 😺".to_string()]);
     let mut agent = make_agent(provider.clone());
@@ -221,7 +221,7 @@ async fn smoke_a_direct_meow_skips_subsystems() {
     );
 
     unsafe {
-        std::env::remove_var("KCODE_CONTEXT_COMPILER");
+        std::env::remove_var("NEURA_CONTEXT_COMPILER");
     }
 }
 
@@ -229,8 +229,8 @@ async fn smoke_a_direct_meow_skips_subsystems() {
 async fn smoke_b_direct_arithmetic_minimal_payload() {
     let _g = smoke_env_lock();
     unsafe {
-        std::env::set_var("KCODE_CONTEXT_COMPILER", "v2");
-        std::env::remove_var("KCODE_MEMORY_ANCHOR");
+        std::env::set_var("NEURA_CONTEXT_COMPILER", "v2");
+        std::env::remove_var("NEURA_MEMORY_ANCHOR");
     }
     let provider = MockProvider::new("mock", "test-arith", vec!["4".to_string()]);
     let mut agent = make_agent(provider.clone());
@@ -248,7 +248,7 @@ async fn smoke_b_direct_arithmetic_minimal_payload() {
     let est = approx_payload_chars(acc);
     assert!(est < 12_000, "arithmetic estimate {est} chars < 12KB");
     unsafe {
-        std::env::remove_var("KCODE_CONTEXT_COMPILER");
+        std::env::remove_var("NEURA_CONTEXT_COMPILER");
     }
 }
 
@@ -256,8 +256,8 @@ async fn smoke_b_direct_arithmetic_minimal_payload() {
 async fn smoke_c_memory_anchor_and_mem_get_recovery() {
     let _g = smoke_env_lock();
     unsafe {
-        std::env::set_var("KCODE_CONTEXT_COMPILER", "v2");
-        std::env::set_var("KCODE_MEMORY_ANCHOR", "1");
+        std::env::set_var("NEURA_CONTEXT_COMPILER", "v2");
+        std::env::set_var("NEURA_MEMORY_ANCHOR", "1");
     }
     // Pre-stash some "memory" so the anchor body has something to surface.
     let session_id = "smoke-c-session";
@@ -276,8 +276,8 @@ async fn smoke_c_memory_anchor_and_mem_get_recovery() {
 
     crate::memory::clear_anchored_memory(session_id);
     unsafe {
-        std::env::remove_var("KCODE_MEMORY_ANCHOR");
-        std::env::remove_var("KCODE_CONTEXT_COMPILER");
+        std::env::remove_var("NEURA_MEMORY_ANCHOR");
+        std::env::remove_var("NEURA_CONTEXT_COMPILER");
     }
 }
 
@@ -285,8 +285,8 @@ async fn smoke_c_memory_anchor_and_mem_get_recovery() {
 async fn smoke_d_coding_keeps_tools_admitted() {
     let _g = smoke_env_lock();
     unsafe {
-        std::env::set_var("KCODE_CONTEXT_COMPILER", "v2");
-        std::env::remove_var("KCODE_MEMORY_ANCHOR");
+        std::env::set_var("NEURA_CONTEXT_COMPILER", "v2");
+        std::env::remove_var("NEURA_MEMORY_ANCHOR");
     }
     let provider = MockProvider::new(
         "mock",
@@ -309,7 +309,7 @@ async fn smoke_d_coding_keeps_tools_admitted() {
     // regression that would over-shrink Deep tool admission.
     assert_eq!(acc.tools_count, tool_names.len());
     unsafe {
-        std::env::remove_var("KCODE_CONTEXT_COMPILER");
+        std::env::remove_var("NEURA_CONTEXT_COMPILER");
     }
 }
 
@@ -341,7 +341,7 @@ async fn smoke_f_ctx_vault_round_trips_after_seen_clear() {
         std::env::set_var("HOME", temp.path());
     }
     // Encode a block via the public diet path, then drop in-memory state and
-    // verify `.ctx_get` rehydrates exact text. Mirrors a Kcode restart.
+    // verify `.ctx_get` rehydrates exact text. Mirrors a Neura restart.
     let text = "smoke F vault round trip ".repeat(200);
     // We can't call the private helper directly, but we can drive it via
     // `maybe_compact_messages` against a forced large input.
@@ -358,7 +358,7 @@ async fn smoke_f_ctx_vault_round_trips_after_seen_clear() {
     messages.push(Message::user("now do something"));
     let _ = crate::interlang::maybe_compact_messages(&messages);
     // Walk the temp vault directory: at least one file should exist.
-    let vault_dir = temp.path().join(".kcode/ctx-vault");
+    let vault_dir = temp.path().join(".neura/ctx-vault");
     let mut found_any = false;
     if vault_dir.exists() {
         for entry in std::fs::read_dir(&vault_dir).unwrap() {
@@ -388,8 +388,8 @@ async fn smoke_f_ctx_vault_round_trips_after_seen_clear() {
 async fn smoke_g_regression_coding_with_v1_default() {
     let _g = smoke_env_lock();
     unsafe {
-        std::env::remove_var("KCODE_CONTEXT_COMPILER");
-        std::env::remove_var("KCODE_MEMORY_ANCHOR");
+        std::env::remove_var("NEURA_CONTEXT_COMPILER");
+        std::env::remove_var("NEURA_MEMORY_ANCHOR");
     }
     let provider = MockProvider::new(
         "mock",
@@ -416,12 +416,12 @@ async fn smoke_g_regression_coding_with_v1_default() {
 fn smoke_compiler_mode_parses_v2() {
     let _g = smoke_env_lock();
     unsafe {
-        std::env::set_var("KCODE_CONTEXT_COMPILER", "v2");
+        std::env::set_var("NEURA_CONTEXT_COMPILER", "v2");
     }
     let mode = crate::agent::context_compiler::compiler_mode();
     assert!(matches!(mode, CompilerMode::V2));
     unsafe {
-        std::env::remove_var("KCODE_CONTEXT_COMPILER");
+        std::env::remove_var("NEURA_CONTEXT_COMPILER");
     }
     let mode = crate::agent::context_compiler::compiler_mode();
     assert!(matches!(mode, CompilerMode::V1));

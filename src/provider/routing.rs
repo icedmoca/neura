@@ -1,5 +1,5 @@
 pub(crate) fn should_eager_detect_copilot_tier() -> bool {
-    std::env::var("KCODE_NON_INTERACTIVE").is_err()
+    std::env::var("NEURA_NON_INTERACTIVE").is_err()
 }
 
 pub(crate) fn is_transient_transport_error(error_str: &str) -> bool {

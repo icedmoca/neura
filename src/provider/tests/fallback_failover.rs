@@ -166,8 +166,8 @@ fn test_forced_provider_disables_cross_provider_fallback_sequence() {
 fn test_set_model_rejects_cross_provider_without_creds() {
     let _guard = crate::storage::lock_test_env();
     crate::subscription_catalog::clear_runtime_env();
-    crate::env::remove_var("KCODE_ACTIVE_PROVIDER");
-    crate::env::remove_var("KCODE_FORCE_PROVIDER");
+    crate::env::remove_var("NEURA_ACTIVE_PROVIDER");
+    crate::env::remove_var("NEURA_FORCE_PROVIDER");
 
     let provider = MultiProvider {
         claude: RwLock::new(None),

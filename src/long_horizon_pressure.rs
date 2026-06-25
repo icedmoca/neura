@@ -1,6 +1,6 @@
 //! Long-horizon operational pressure and continuous cognition stress infrastructure.
 //!
-//! This module provides bounded, deterministic stress simulation over Kcode's
+//! This module provides bounded, deterministic stress simulation over Neura's
 //! existing `SelfModel` and semantic operational layer.  It is designed for
 //! tests, benchmarks, telemetry snapshots, and future command surfaces.  It is
 //! explicitly not an autonomous daemon: callers choose the horizon and sample

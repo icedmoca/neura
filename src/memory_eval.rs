@@ -34,7 +34,7 @@ pub fn run_memory_eval() -> MemoryEvalReport {
     let mut store = MemoryStore::default();
     store.add(active(MemoryEntry::new(
         MemoryCategory::Correction,
-        "Correction: build target/release/kcode after source edits so /reload sees a newer binary".to_string()
+        "Correction: build target/release/neura after source edits so /reload sees a newer binary".to_string()
     ).with_trust(TrustLevel::High)));
     store.add(active(MemoryEntry::new(
         MemoryCategory::Preference,
@@ -42,7 +42,7 @@ pub fn run_memory_eval() -> MemoryEvalReport {
     ).with_trust(TrustLevel::High)));
     store.add(active(MemoryEntry::new(
         MemoryCategory::Fact,
-        "Kcode local sidecar model lives under ~/.kcode/models/gguf and should use gpt-oss/kcode GGUF, not phi3".to_string()
+        "Neura local sidecar model lives under ~/.neura/models/gguf and should use gpt-oss/neura GGUF, not phi3".to_string()
     ).with_trust(TrustLevel::High)));
     store.add(active(
         MemoryEntry::new(
@@ -56,7 +56,7 @@ pub fn run_memory_eval() -> MemoryEvalReport {
         MemoryEvalCase {
             name: "reload_binary",
             query: "reload no newer binary",
-            expected_contains: "target/release/kcode",
+            expected_contains: "target/release/neura",
         },
         MemoryEvalCase {
             name: "sidecar_model",

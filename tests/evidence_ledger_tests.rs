@@ -1,4 +1,4 @@
-use kcode::evidence_ledger::{
+use neura::evidence_ledger::{
     EvidenceKind, EvidenceLedger, LedgerQuery, append_evidence_with_links, explain_evidence,
     query_ledger, render_ledger_report,
 };
@@ -64,7 +64,7 @@ fn ledger_report_renders_blocks() {
 
 #[test]
 fn ledger_supports_receipts_links_query_and_explain() {
-    let _ = std::fs::remove_file(kcode::evidence_ledger::ledger_path());
+    let _ = std::fs::remove_file(neura::evidence_ledger::ledger_path());
     let first = append_evidence_with_links(
         EvidenceKind::PolicyDecision,
         "policy-parent",

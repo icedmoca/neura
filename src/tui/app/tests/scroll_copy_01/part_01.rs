@@ -103,7 +103,7 @@ fn create_error_copy_test_app() -> (App, ratatui::Terminal<ratatui::backend::Tes
     let mut app = create_test_app();
     app.display_messages = vec![
         DisplayMessage::user("Show me the last error"),
-        DisplayMessage::error("permission denied while opening ~/.kcode/config.toml"),
+        DisplayMessage::error("permission denied while opening ~/.neura/config.toml"),
     ];
     app.bump_display_messages_version();
     app.scroll_offset = 0;
@@ -370,7 +370,7 @@ fn test_queued_file_activity_repaint_does_not_leave_trailing_digit_artifact() {
     app.is_processing = true;
     app.status = ProcessingStatus::Streaming;
     app.pending_soft_interrupts = vec![
-        "⚠️ File activity: /home/jeremy/kcode/src/lib.rs — amber previously read this file: read lines 1-9999"
+        "⚠️ File activity: /home/jeremy/neura/src/lib.rs — amber previously read this file: read lines 1-9999"
             .to_string(),
     ];
     let first = render_and_snap(&app, &mut terminal);
@@ -380,7 +380,7 @@ fn test_queued_file_activity_repaint_does_not_leave_trailing_digit_artifact() {
     );
 
     app.pending_soft_interrupts = vec![
-        "⚠️ File activity: /home/jeremy/kcode/src/lib.rs — amber previously read this file: read lines 1-9"
+        "⚠️ File activity: /home/jeremy/neura/src/lib.rs — amber previously read this file: read lines 1-9"
             .to_string(),
     ];
     let second = render_and_snap(&app, &mut terminal);
@@ -412,7 +412,7 @@ fn test_notification_file_activity_repaint_does_not_leave_trailing_digit_artifac
     let mut terminal = ratatui::Terminal::new(backend).expect("failed to create test terminal");
 
     app.status_notice = Some((
-        "File activity · /home/jeremy/kcode/src/lib.rs · read lines 1-9999".to_string(),
+        "File activity · /home/jeremy/neura/src/lib.rs · read lines 1-9999".to_string(),
         std::time::Instant::now(),
     ));
     let first = render_and_snap(&app, &mut terminal);
@@ -422,7 +422,7 @@ fn test_notification_file_activity_repaint_does_not_leave_trailing_digit_artifac
     );
 
     app.status_notice = Some((
-        "File activity · /home/jeremy/kcode/src/lib.rs · read lines 1-9".to_string(),
+        "File activity · /home/jeremy/neura/src/lib.rs · read lines 1-9".to_string(),
         std::time::Instant::now(),
     ));
     let second = render_and_snap(&app, &mut terminal);
@@ -446,7 +446,7 @@ fn test_file_activity_scroll_reproduces_trailing_nines_after_native_scroll_like_
     let mut terminal = ratatui::Terminal::new(backend).expect("failed to create test terminal");
 
     let mut lines = vec![
-        "⚠️ File activity: /home/jeremy/kcode/src/lib.rs — amber previously read this file: read lines 1-9"
+        "⚠️ File activity: /home/jeremy/neura/src/lib.rs — amber previously read this file: read lines 1-9"
             .to_string(),
     ];
     for idx in 1..=40 {

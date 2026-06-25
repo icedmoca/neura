@@ -25,7 +25,7 @@ pub(crate) use external_auth::{
 
 #[derive(Debug, Clone, PartialEq, Eq, clap::ValueEnum)]
 pub enum ProviderChoice {
-    Kcode,
+    Neura,
     Claude,
     #[value(alias = "claude-subprocess", hide = true)]
     ClaudeSubprocess,
@@ -101,7 +101,7 @@ pub enum ProviderChoice {
 impl ProviderChoice {
     pub fn as_arg_value(&self) -> &'static str {
         match self {
-            Self::Kcode => "kcode",
+            Self::Neura => "neura",
             Self::Claude => "claude",
             Self::ClaudeSubprocess => "claude-subprocess",
             Self::Openai => "openai",
@@ -183,7 +183,7 @@ pub fn profile_for_choice(choice: &ProviderChoice) -> Option<OpenAiCompatiblePro
 
 pub fn login_provider_for_choice(choice: &ProviderChoice) -> Option<LoginProviderDescriptor> {
     match choice {
-        ProviderChoice::Kcode => Some(crate::provider_catalog::KCODE_LOGIN_PROVIDER),
+        ProviderChoice::Neura => Some(crate::provider_catalog::NEURA_LOGIN_PROVIDER),
         ProviderChoice::Claude | ProviderChoice::ClaudeSubprocess => {
             Some(crate::provider_catalog::CLAUDE_LOGIN_PROVIDER)
         }
@@ -234,7 +234,7 @@ pub fn login_provider_for_choice(choice: &ProviderChoice) -> Option<LoginProvide
 pub fn choice_for_login_provider(provider: LoginProviderDescriptor) -> Option<ProviderChoice> {
     match provider.target {
         LoginProviderTarget::AutoImport => None,
-        LoginProviderTarget::Kcode => Some(ProviderChoice::Kcode),
+        LoginProviderTarget::Neura => Some(ProviderChoice::Neura),
         LoginProviderTarget::Claude => Some(ProviderChoice::Claude),
         LoginProviderTarget::OpenAi => Some(ProviderChoice::Openai),
         LoginProviderTarget::OpenRouter => Some(ProviderChoice::Openrouter),
@@ -310,7 +310,7 @@ pub fn prompt_login_provider_selection(
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
     resolve_login_selection(input.trim(), providers)
-        .ok_or_else(|| anyhow::anyhow!("Invalid choice. Run 'kcode login' to try again."))
+        .ok_or_else(|| anyhow::anyhow!("Invalid choice. Run 'neura login' to try again."))
 }
 
 struct AutoProviderAvailability {
@@ -366,7 +366,7 @@ fn provider_label_for_api_key_env(env_key: &str) -> String {
 
 fn provider_login_hint_for_api_key_env(env_key: &str) -> String {
     if env_key == "OPENROUTER_API_KEY" {
-        return "kcode login --provider openrouter".to_string();
+        return "neura login --provider openrouter".to_string();
     }
 
     crate::provider_catalog::openai_compatible_profiles()
@@ -374,9 +374,9 @@ fn provider_login_hint_for_api_key_env(env_key: &str) -> String {
         .find_map(|profile| {
             let resolved = resolve_openai_compatible_profile(*profile);
             (resolved.api_key_env == env_key)
-                .then(|| format!("kcode login --provider {}", resolved.id))
+                .then(|| format!("neura login --provider {}", resolved.id))
         })
-        .unwrap_or_else(|| "kcode login".to_string())
+        .unwrap_or_else(|| "neura login".to_string())
 }
 
 fn ensure_external_api_key_auth_allowed_for_explicit_choice(env_key: &str) -> Result<()> {
@@ -399,7 +399,7 @@ fn ensure_external_api_key_auth_allowed_for_explicit_choice(env_key: &str) -> Re
         return Ok(());
     }
     anyhow::bail!(
-        "Skipped trusting external {} credentials. Run `{}` to authenticate kcode directly.",
+        "Skipped trusting external {} credentials. Run `{}` to authenticate neura directly.",
         provider_name,
         login_hint
     )
@@ -473,7 +473,7 @@ fn ensure_openai_auth_allowed_for_explicit_choice() -> Result<()> {
     if maybe_prompt_for_generic_oauth_source(
         "OpenAI/Codex",
         auth::external::preferred_unconsented_openai_oauth_source(),
-        "kcode login --provider openai",
+        "neura login --provider openai",
         false,
         || auth::codex::load_credentials().is_ok(),
     )? {
@@ -491,7 +491,7 @@ fn ensure_openai_auth_allowed_for_explicit_choice() -> Result<()> {
             "OpenAI/Codex",
             "Codex",
             &path,
-            "kcode login --provider openai"
+            "neura login --provider openai"
         ));
     }
 
@@ -501,7 +501,7 @@ fn ensure_openai_auth_allowed_for_explicit_choice() -> Result<()> {
     }
 
     anyhow::bail!(
-        "Skipped trusting existing ~/.codex/auth.json credentials. Run `kcode login --provider openai` to authenticate kcode directly."
+        "Skipped trusting existing ~/.codex/auth.json credentials. Run `neura login --provider openai` to authenticate neura directly."
     )
 }
 
@@ -517,7 +517,7 @@ fn maybe_enable_legacy_codex_auth_for_auto(has_other_provider: bool) -> Result<b
         return maybe_prompt_for_generic_oauth_source(
             "OpenAI/Codex",
             Some(source),
-            "kcode login --provider openai",
+            "neura login --provider openai",
             true,
             || auth::codex::load_credentials().is_ok(),
         );
@@ -538,7 +538,7 @@ fn maybe_enable_legacy_codex_auth_for_auto(has_other_provider: bool) -> Result<b
             "OpenAI/Codex",
             "Codex",
             &path,
-            "kcode login --provider openai"
+            "neura login --provider openai"
         ));
     }
 
@@ -558,7 +558,7 @@ fn ensure_claude_auth_allowed_for_explicit_choice() -> Result<()> {
     if maybe_prompt_for_generic_oauth_source(
         "Claude",
         auth::external::preferred_unconsented_anthropic_oauth_source(),
-        "kcode login --provider claude",
+        "neura login --provider claude",
         false,
         || auth::claude::load_credentials().is_ok(),
     )? {
@@ -574,7 +574,7 @@ fn ensure_claude_auth_allowed_for_explicit_choice() -> Result<()> {
             "Claude",
             source.display_name(),
             &path,
-            "kcode login --provider claude"
+            "neura login --provider claude"
         ));
     }
     if prompt_to_trust_external_auth("Claude", source.display_name(), &path)? {
@@ -582,7 +582,7 @@ fn ensure_claude_auth_allowed_for_explicit_choice() -> Result<()> {
         return Ok(());
     }
     anyhow::bail!(
-        "Skipped trusting external Claude credentials. Run `kcode login --provider claude` to authenticate kcode directly."
+        "Skipped trusting external Claude credentials. Run `neura login --provider claude` to authenticate neura directly."
     )
 }
 
@@ -598,7 +598,7 @@ fn maybe_enable_claude_auth_for_auto(has_other_provider: bool) -> Result<bool> {
         return maybe_prompt_for_generic_oauth_source(
             "Claude",
             Some(source),
-            "kcode login --provider claude",
+            "neura login --provider claude",
             true,
             || auth::claude::load_credentials().is_ok(),
         );
@@ -616,7 +616,7 @@ fn maybe_enable_claude_auth_for_auto(has_other_provider: bool) -> Result<bool> {
             "Claude",
             source.display_name(),
             &path,
-            "kcode login --provider claude"
+            "neura login --provider claude"
         ));
     }
     if prompt_to_trust_external_auth("Claude", source.display_name(), &path)? {
@@ -634,7 +634,7 @@ fn ensure_gemini_auth_allowed_for_explicit_choice() -> Result<()> {
     if maybe_prompt_for_generic_oauth_source(
         "Gemini",
         auth::external::preferred_unconsented_gemini_oauth_source(),
-        "kcode login --provider gemini",
+        "neura login --provider gemini",
         false,
         || auth::gemini::load_tokens().is_ok(),
     )? {
@@ -650,7 +650,7 @@ fn ensure_gemini_auth_allowed_for_explicit_choice() -> Result<()> {
             "Gemini",
             "Gemini CLI",
             &path,
-            "kcode login --provider gemini"
+            "neura login --provider gemini"
         ));
     }
     if prompt_to_trust_external_auth("Gemini", "Gemini CLI", &path)? {
@@ -658,7 +658,7 @@ fn ensure_gemini_auth_allowed_for_explicit_choice() -> Result<()> {
         return Ok(());
     }
     anyhow::bail!(
-        "Skipped trusting Gemini CLI credentials. Run `kcode login --provider gemini` to authenticate kcode directly."
+        "Skipped trusting Gemini CLI credentials. Run `neura login --provider gemini` to authenticate neura directly."
     )
 }
 
@@ -674,7 +674,7 @@ fn maybe_enable_gemini_auth_for_auto(has_other_provider: bool) -> Result<bool> {
         return maybe_prompt_for_generic_oauth_source(
             "Gemini",
             Some(source),
-            "kcode login --provider gemini",
+            "neura login --provider gemini",
             true,
             || auth::gemini::load_tokens().is_ok(),
         );
@@ -692,7 +692,7 @@ fn maybe_enable_gemini_auth_for_auto(has_other_provider: bool) -> Result<bool> {
             "Gemini",
             "Gemini CLI",
             &path,
-            "kcode login --provider gemini"
+            "neura login --provider gemini"
         ));
     }
     if prompt_to_trust_external_auth("Gemini", "Gemini CLI", &path)? {
@@ -710,7 +710,7 @@ fn ensure_antigravity_auth_allowed_for_explicit_choice() -> Result<()> {
     if maybe_prompt_for_generic_oauth_source(
         "Antigravity",
         auth::external::preferred_unconsented_antigravity_oauth_source(),
-        "kcode login --provider antigravity",
+        "neura login --provider antigravity",
         false,
         || auth::antigravity::load_tokens().is_ok(),
     )? {
@@ -733,7 +733,7 @@ fn ensure_copilot_auth_allowed_for_explicit_choice() -> Result<()> {
             "GitHub Copilot",
             source.display_name(),
             &path,
-            "kcode login --provider copilot"
+            "neura login --provider copilot"
         ));
     }
     if prompt_to_trust_external_auth("GitHub Copilot", source.display_name(), &path)? {
@@ -741,7 +741,7 @@ fn ensure_copilot_auth_allowed_for_explicit_choice() -> Result<()> {
         return Ok(());
     }
     anyhow::bail!(
-        "Skipped trusting external Copilot credentials. Run `kcode login --provider copilot` to authenticate kcode directly."
+        "Skipped trusting external Copilot credentials. Run `neura login --provider copilot` to authenticate neura directly."
     )
 }
 
@@ -761,7 +761,7 @@ fn maybe_enable_copilot_auth_for_auto(has_other_provider: bool) -> Result<bool> 
             "GitHub Copilot",
             source.display_name(),
             &path,
-            "kcode login --provider copilot"
+            "neura login --provider copilot"
         ));
     }
     if prompt_to_trust_external_auth("GitHub Copilot", source.display_name(), &path)? {
@@ -784,7 +784,7 @@ fn ensure_cursor_auth_allowed_for_explicit_choice() -> Result<()> {
             "Cursor",
             source.display_name(),
             &path,
-            "kcode login --provider cursor"
+            "neura login --provider cursor"
         ));
     }
     if prompt_to_trust_external_auth("Cursor", source.display_name(), &path)? {
@@ -792,7 +792,7 @@ fn ensure_cursor_auth_allowed_for_explicit_choice() -> Result<()> {
         return Ok(());
     }
     anyhow::bail!(
-        "Skipped trusting external Cursor credentials. Run `kcode login --provider cursor` to authenticate kcode directly."
+        "Skipped trusting external Cursor credentials. Run `neura login --provider cursor` to authenticate neura directly."
     )
 }
 
@@ -812,7 +812,7 @@ fn maybe_enable_cursor_auth_for_auto(has_other_provider: bool) -> Result<bool> {
             "Cursor",
             source.display_name(),
             &path,
-            "kcode login --provider cursor"
+            "neura login --provider cursor"
         ));
     }
     if prompt_to_trust_external_auth("Cursor", source.display_name(), &path)? {
@@ -823,12 +823,12 @@ fn maybe_enable_cursor_auth_for_auto(has_other_provider: bool) -> Result<bool> {
 }
 
 pub fn lock_model_provider(provider_key: &str) {
-    crate::env::set_var("KCODE_ACTIVE_PROVIDER", provider_key);
-    crate::env::set_var("KCODE_FORCE_PROVIDER", "1");
+    crate::env::set_var("NEURA_ACTIVE_PROVIDER", provider_key);
+    crate::env::set_var("NEURA_FORCE_PROVIDER", "1");
 }
 
 pub fn unlock_model_provider() {
-    crate::env::remove_var("KCODE_FORCE_PROVIDER");
+    crate::env::remove_var("NEURA_FORCE_PROVIDER");
 }
 
 fn disable_subscription_runtime_mode() {
@@ -862,7 +862,7 @@ pub async fn login_and_bootstrap_provider(
             disable_subscription_runtime_mode();
             Arc::new(provider::MultiProvider::new())
         }
-        LoginProviderTarget::Kcode => Arc::new(provider::kcode::KcodeProvider::new()),
+        LoginProviderTarget::Neura => Arc::new(provider::neura::NeuraProvider::new()),
         LoginProviderTarget::Claude => {
             disable_subscription_runtime_mode();
             Arc::new(provider::MultiProvider::new())
@@ -899,7 +899,7 @@ pub async fn login_and_bootstrap_provider(
         LoginProviderTarget::Cursor => {
             disable_subscription_runtime_mode();
             unlock_model_provider();
-            crate::env::set_var("KCODE_ACTIVE_PROVIDER", "cursor");
+            crate::env::set_var("NEURA_ACTIVE_PROVIDER", "cursor");
             Arc::new(provider::cursor::CursorCliProvider::new())
         }
         LoginProviderTarget::Copilot => {
@@ -909,13 +909,13 @@ pub async fn login_and_bootstrap_provider(
         LoginProviderTarget::Gemini => {
             disable_subscription_runtime_mode();
             unlock_model_provider();
-            crate::env::set_var("KCODE_ACTIVE_PROVIDER", "gemini");
+            crate::env::set_var("NEURA_ACTIVE_PROVIDER", "gemini");
             Arc::new(provider::gemini::GeminiProvider::new())
         }
         LoginProviderTarget::Antigravity => {
             disable_subscription_runtime_mode();
             unlock_model_provider();
-            crate::env::set_var("KCODE_ACTIVE_PROVIDER", "antigravity");
+            crate::env::set_var("NEURA_ACTIVE_PROVIDER", "antigravity");
             Arc::new(provider::antigravity::AntigravityCliProvider::new())
         }
         LoginProviderTarget::Google => {
@@ -969,15 +969,15 @@ async fn init_provider_with_options(
     show_init_messages: bool,
     allow_login_bootstrap: bool,
 ) -> Result<Arc<dyn provider::Provider>> {
-    if let Ok(profile_name) = std::env::var("KCODE_PROVIDER_PROFILE_NAME") {
+    if let Ok(profile_name) = std::env::var("NEURA_PROVIDER_PROFILE_NAME") {
         if !profile_name.trim().is_empty() {
             crate::provider_catalog::apply_named_provider_profile_env(profile_name.trim())?;
-            crate::env::set_var("KCODE_PROVIDER_PROFILE_ACTIVE", "1");
+            crate::env::set_var("NEURA_PROVIDER_PROFILE_ACTIVE", "1");
         }
     }
 
-    if std::env::var_os("KCODE_PROVIDER_PROFILE_ACTIVE").is_none()
-        && std::env::var_os("KCODE_NAMED_PROVIDER_PROFILE").is_none()
+    if std::env::var_os("NEURA_PROVIDER_PROFILE_ACTIVE").is_none()
+        && std::env::var_os("NEURA_NAMED_PROVIDER_PROFILE").is_none()
     {
         if let Some(profile) = profile_for_choice(choice) {
             apply_openai_compatible_profile_env(Some(profile));
@@ -993,9 +993,9 @@ async fn init_provider_with_options(
     };
 
     let provider: Arc<dyn provider::Provider> = match choice {
-        ProviderChoice::Kcode => {
-            init_notice("Using Kcode subscription provider (provider locked)");
-            Arc::new(provider::kcode::KcodeProvider::new())
+        ProviderChoice::Neura => {
+            init_notice("Using Neura subscription provider (provider locked)");
+            Arc::new(provider::neura::NeuraProvider::new())
         }
         ProviderChoice::Claude => {
             disable_subscription_runtime_mode();
@@ -1010,7 +1010,7 @@ async fn init_provider_with_options(
             crate::logging::warn(
                 "Using --provider claude-subprocess is deprecated and will be removed. Prefer `--provider claude`.",
             );
-            crate::env::set_var("KCODE_USE_CLAUDE_CLI", "1");
+            crate::env::set_var("NEURA_USE_CLAUDE_CLI", "1");
             init_notice(
                 "Using deprecated Claude subprocess transport (legacy compatibility mode; provider locked)",
             );
@@ -1029,7 +1029,7 @@ async fn init_provider_with_options(
             ensure_cursor_auth_allowed_for_explicit_choice()?;
             init_notice("Using Cursor CLI provider (experimental)");
             unlock_model_provider();
-            crate::env::set_var("KCODE_ACTIVE_PROVIDER", "cursor");
+            crate::env::set_var("NEURA_ACTIVE_PROVIDER", "cursor");
             Arc::new(provider::cursor::CursorCliProvider::new())
         }
         ProviderChoice::Copilot => {
@@ -1044,7 +1044,7 @@ async fn init_provider_with_options(
             ensure_gemini_auth_allowed_for_explicit_choice()?;
             init_notice("Using Gemini provider (native Google Code Assist OAuth)");
             unlock_model_provider();
-            crate::env::set_var("KCODE_ACTIVE_PROVIDER", "gemini");
+            crate::env::set_var("NEURA_ACTIVE_PROVIDER", "gemini");
             Arc::new(provider::gemini::GeminiProvider::new())
         }
         ProviderChoice::Openrouter => {
@@ -1096,12 +1096,12 @@ async fn init_provider_with_options(
             disable_subscription_runtime_mode();
             let profile = profile_for_choice(choice)
                 .ok_or_else(|| anyhow::anyhow!("missing provider profile for choice"))?;
-            if std::env::var_os("KCODE_PROVIDER_PROFILE_ACTIVE").is_none()
-                && std::env::var_os("KCODE_NAMED_PROVIDER_PROFILE").is_none()
+            if std::env::var_os("NEURA_PROVIDER_PROFILE_ACTIVE").is_none()
+                && std::env::var_os("NEURA_NAMED_PROVIDER_PROFILE").is_none()
             {
                 apply_openai_compatible_profile_env(Some(profile));
             }
-            let display_name = if let Ok(named) = std::env::var("KCODE_NAMED_PROVIDER_PROFILE") {
+            let display_name = if let Ok(named) = std::env::var("NEURA_NAMED_PROVIDER_PROFILE") {
                 named
             } else {
                 let resolved = resolve_openai_compatible_profile(profile);
@@ -1117,10 +1117,10 @@ async fn init_provider_with_options(
                 display_name
             ));
             lock_model_provider("openrouter");
-            if std::env::var_os("KCODE_PROVIDER_PROFILE_ACTIVE").is_some()
-                || std::env::var_os("KCODE_NAMED_PROVIDER_PROFILE").is_some()
+            if std::env::var_os("NEURA_PROVIDER_PROFILE_ACTIVE").is_some()
+                || std::env::var_os("NEURA_NAMED_PROVIDER_PROFILE").is_some()
             {
-                let profile_name = std::env::var("KCODE_NAMED_PROVIDER_PROFILE")?;
+                let profile_name = std::env::var("NEURA_NAMED_PROVIDER_PROFILE")?;
                 let cfg = crate::config::config();
                 let profile = cfg.providers.get(&profile_name).ok_or_else(|| {
                     anyhow::anyhow!("Unknown provider profile '{}'", profile_name)
@@ -1140,7 +1140,7 @@ async fn init_provider_with_options(
             ensure_antigravity_auth_allowed_for_explicit_choice()?;
             init_notice("Using Antigravity CLI provider (experimental)");
             unlock_model_provider();
-            crate::env::set_var("KCODE_ACTIVE_PROVIDER", "antigravity");
+            crate::env::set_var("NEURA_ACTIVE_PROVIDER", "antigravity");
             Arc::new(provider::antigravity::AntigravityCliProvider::new())
         }
         ProviderChoice::Google => {
@@ -1148,7 +1148,7 @@ async fn init_provider_with_options(
             init_notice(
                 "Note: Google/Gmail is not a model provider. Using auto-detect for model provider.",
             );
-            init_notice("Gmail tool is available if you've run `kcode login google`.");
+            init_notice("Gmail tool is available if you've run `neura login google`.");
             unlock_model_provider();
             Arc::new(provider::MultiProvider::new_fast())
         }
@@ -1282,13 +1282,13 @@ async fn init_provider_with_options(
                     "Using {} (use /model to switch models)",
                     multi.name()
                 ));
-                crate::env::set_var("KCODE_ACTIVE_PROVIDER", multi.name().to_lowercase());
+                crate::env::set_var("NEURA_ACTIVE_PROVIDER", multi.name().to_lowercase());
                 Arc::new(multi)
             } else {
-                let non_interactive = std::env::var("KCODE_NON_INTERACTIVE").is_ok();
+                let non_interactive = std::env::var("NEURA_NON_INTERACTIVE").is_ok();
                 if non_interactive {
                     anyhow::bail!(
-                        "No credentials configured. Run 'kcode login' or set ANTHROPIC_API_KEY to authenticate."
+                        "No credentials configured. Run 'neura login' or set ANTHROPIC_API_KEY to authenticate."
                     );
                 }
 
@@ -1307,8 +1307,8 @@ async fn init_provider_with_options(
         }
     };
 
-    if std::env::var_os("KCODE_PROVIDER_PROFILE_ACTIVE").is_none()
-        && std::env::var_os("KCODE_NAMED_PROVIDER_PROFILE").is_none()
+    if std::env::var_os("NEURA_PROVIDER_PROFILE_ACTIVE").is_none()
+        && std::env::var_os("NEURA_NAMED_PROVIDER_PROFILE").is_none()
         && model.is_none()
         && let Some(profile) = profile_for_choice(choice)
         && let Some(default_model) = resolved_profile_default_model(profile)

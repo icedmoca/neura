@@ -30,7 +30,7 @@ by_commit={}
 for r in coding['results']:
     by_commit.setdefault((r['mode'],r['commit']),[]).append(r)
 long_summary={}
-for mode in ['full_context','kcode_path_exact','lexical_rag']:
+for mode in ['full_context','neura_path_exact','lexical_rag']:
     groups=[rows for (m,c),rows in by_commit.items() if m==mode and len(rows)>=2]
     succ=sum(all(row['success'] for row in rows) for rows in groups)
     toks=sum(sum(row['est_prompt_tokens'] for row in rows) for rows in groups)
@@ -60,7 +60,7 @@ report={
  'long_horizon_multifile_proxy':long_summary,
  'messy_workflow_provider_smoke':{'runs':len(provider_runs),'successes':rob_success,'success_rate':rob_success/len(provider_runs) if provider_runs else None,'by_kind':{k: {'runs':sum(1 for r in provider_runs if r['kind']==k),'successes':sum(1 for r in provider_runs if r['kind']==k and r['success'])} for k in sorted({r['kind'] for r in provider_runs})}},
  'latency_perception':{'wall_seconds':latency,'perception_buckets':perception},
- 'embedding_rag_vs_exact_path_at_scale':{'embedding_rag_measured':False,'lexical_path_baseline_tasks':coding['metadata']['tasks'],'exact_path_success_rate':coding['summary']['kcode_path_exact']['success_rate'],'lexical_rag_success_rate':coding['summary']['lexical_rag']['success_rate'],'note':'Production embedding RAG remains UNMEASURED. This report only compares exact path against lexical/path retrieval.'}
+ 'embedding_rag_vs_exact_path_at_scale':{'embedding_rag_measured':False,'lexical_path_baseline_tasks':coding['metadata']['tasks'],'exact_path_success_rate':coding['summary']['neura_path_exact']['success_rate'],'lexical_rag_success_rate':coding['summary']['lexical_rag']['success_rate'],'note':'Production embedding RAG remains UNMEASURED. This report only compares exact path against lexical/path retrieval.'}
 }
 (OUT/'advanced_gap_metrics.json').write_text(json.dumps(report,indent=2))
 (OUT/'advanced_gap_metrics_summary.json').write_text(json.dumps({k:v for k,v in report.items() if k!='metadata'} | {'metadata':report['metadata']},indent=2))

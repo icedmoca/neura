@@ -14,9 +14,9 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 /// - macOS: `$TMPDIR` (per-user, e.g. `/var/folders/xx/.../T/`)
 /// - Fallback: `std::env::temp_dir()`
 ///
-/// Can be overridden with `$KCODE_RUNTIME_DIR`.
+/// Can be overridden with `$NEURA_RUNTIME_DIR`.
 pub fn runtime_dir() -> PathBuf {
-    if let Ok(dir) = std::env::var("KCODE_RUNTIME_DIR") {
+    if let Ok(dir) = std::env::var("NEURA_RUNTIME_DIR") {
         return PathBuf::from(dir);
     }
     if let Ok(dir) = std::env::var("XDG_RUNTIME_DIR") {
@@ -35,7 +35,7 @@ pub fn runtime_dir() -> PathBuf {
 }
 
 fn fallback_runtime_dir() -> PathBuf {
-    std::env::temp_dir().join(format!("kcode-{}", runtime_user_discriminator()))
+    std::env::temp_dir().join(format!("neura-{}", runtime_user_discriminator()))
 }
 
 #[cfg(unix)]
@@ -68,37 +68,37 @@ fn ensure_private_runtime_dir(path: &Path) {
     }
 }
 
-pub fn kcode_dir() -> Result<PathBuf> {
-    if let Ok(path) = std::env::var("KCODE_HOME") {
+pub fn neura_dir() -> Result<PathBuf> {
+    if let Ok(path) = std::env::var("NEURA_HOME") {
         return Ok(PathBuf::from(path));
     }
 
     let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("No home directory"))?;
-    Ok(home.join(".kcode"))
+    Ok(home.join(".neura"))
 }
 
 pub fn logs_dir() -> Result<PathBuf> {
-    Ok(kcode_dir()?.join("logs"))
+    Ok(neura_dir()?.join("logs"))
 }
 
-/// Resolve kcode's app-owned config directory.
+/// Resolve neura's app-owned config directory.
 ///
-/// Default location is the platform config dir + `kcode` (for example
-/// `~/.config/kcode` on Linux). When `KCODE_HOME` is set, sandbox this under
-/// `$KCODE_HOME/config/kcode` so self-dev/tests do not leak into the user's
+/// Default location is the platform config dir + `neura` (for example
+/// `~/.config/neura` on Linux). When `NEURA_HOME` is set, sandbox this under
+/// `$NEURA_HOME/config/neura` so self-dev/tests do not leak into the user's
 /// real config directory.
 pub fn app_config_dir() -> Result<PathBuf> {
-    if let Ok(path) = std::env::var("KCODE_HOME") {
-        return Ok(PathBuf::from(path).join("config").join("kcode"));
+    if let Ok(path) = std::env::var("NEURA_HOME") {
+        return Ok(PathBuf::from(path).join("config").join("neura"));
     }
 
     let config_dir =
         dirs::config_dir().ok_or_else(|| anyhow::anyhow!("No config directory found"))?;
-    Ok(config_dir.join("kcode"))
+    Ok(config_dir.join("neura"))
 }
 
 /// Resolve a path under the user's home directory, but sandbox it under
-/// `$KCODE_HOME/external/` when `KCODE_HOME` is set.
+/// `$NEURA_HOME/external/` when `NEURA_HOME` is set.
 ///
 /// This keeps external provider auth files isolated during tests and sandboxed
 /// runs without changing default on-disk locations for normal users.
@@ -111,7 +111,7 @@ pub fn user_home_path(relative: impl AsRef<Path>) -> Result<PathBuf> {
         );
     }
 
-    if let Ok(path) = std::env::var("KCODE_HOME") {
+    if let Ok(path) = std::env::var("NEURA_HOME") {
         return Ok(PathBuf::from(path).join("external").join(relative));
     }
 
@@ -125,16 +125,16 @@ pub fn user_home_path(relative: impl AsRef<Path>) -> Result<PathBuf> {
 /// filesystems, but it narrows exposure on typical Unix systems.
 pub fn harden_user_config_permissions() {
     if let Some(config_dir) = dirs::config_dir() {
-        let kcode_config_dir = config_dir.join("kcode");
-        if kcode_config_dir.exists() {
-            let _ = crate::platform::set_directory_permissions_owner_only(&kcode_config_dir);
+        let neura_config_dir = config_dir.join("neura");
+        if neura_config_dir.exists() {
+            let _ = crate::platform::set_directory_permissions_owner_only(&neura_config_dir);
         }
     }
 
-    if let Ok(kcode_home) = kcode_dir()
-        && kcode_home.exists()
+    if let Ok(neura_home) = neura_dir()
+        && neura_home.exists()
     {
-        let _ = crate::platform::set_directory_permissions_owner_only(&kcode_home);
+        let _ = crate::platform::set_directory_permissions_owner_only(&neura_home);
     }
 }
 
@@ -153,7 +153,7 @@ pub fn harden_secret_file_permissions(path: &Path) {
 
 /// Validate an external auth file managed by another tool before reading it.
 ///
-/// kcode intentionally avoids mutating these files. We also reject obvious risky
+/// neura intentionally avoids mutating these files. We also reject obvious risky
 /// cases like symlinks so a remembered trust decision stays bound to a real file
 /// path rather than an arbitrary redirect.
 pub fn validate_external_auth_file(path: &Path) -> Result<PathBuf> {

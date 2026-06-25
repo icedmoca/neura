@@ -1,4 +1,4 @@
-//! Local sidecar model integration for Kcode internals.
+//! Local sidecar model integration for Neura internals.
 //!
 //! The sidecar is intentionally optional: memory/context systems can ask it for
 //! cheap local summarization/classification, but must always fall back when it is
@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::time::Duration;
 
-const DEFAULT_KCODE_SIDECAR_URL: &str = "http://127.0.0.1:8080/v1";
-const DEFAULT_KCODE_SIDECAR_MODEL: &str = "gpt-oss-20b-mxfp4_moe";
+const DEFAULT_NEURA_SIDECAR_URL: &str = "http://127.0.0.1:8080/v1";
+const DEFAULT_NEURA_SIDECAR_MODEL: &str = "gpt-oss-20b-mxfp4_moe";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SidecarKind {
@@ -37,11 +37,11 @@ pub struct SidecarHealth {
     pub message: String,
 }
 
-fn discover_kcode_model_name() -> Option<String> {
+fn discover_neura_model_name() -> Option<String> {
     let home = env::var("HOME").ok()?;
-    let dir = std::path::Path::new(&home).join(".kcode/models/gguf");
+    let dir = std::path::Path::new(&home).join(".neura/models/gguf");
     let preferred = [
-        "kcode-oss-20b-mxfp4.gguf",
+        "neura-oss-20b-mxfp4.gguf",
         "gpt-oss-20b-mxfp4_moe.gguf",
         "jcode-gpt-oss-20b.gguf",
         "deepseek-coder-6.7b-instruct.Q4_K_M.gguf",
@@ -65,16 +65,16 @@ fn discover_kcode_model_name() -> Option<String> {
 
 impl SidecarConfig {
     pub fn from_env() -> Self {
-        let url = env::var("KCODE_SIDECAR_URL")
-            .or_else(|_| env::var("KCODE_LOCAL_MODEL_BASE_URL"))
-            .unwrap_or_else(|_| DEFAULT_KCODE_SIDECAR_URL.to_string());
-        let model = env::var("KCODE_SIDECAR_MODEL")
-            .or_else(|_| env::var("KCODE_LOCAL_MODEL"))
+        let url = env::var("NEURA_SIDECAR_URL")
+            .or_else(|_| env::var("NEURA_LOCAL_MODEL_BASE_URL"))
+            .unwrap_or_else(|_| DEFAULT_NEURA_SIDECAR_URL.to_string());
+        let model = env::var("NEURA_SIDECAR_MODEL")
+            .or_else(|_| env::var("NEURA_LOCAL_MODEL"))
             .unwrap_or_else(|_| {
-                discover_kcode_model_name()
-                    .unwrap_or_else(|| DEFAULT_KCODE_SIDECAR_MODEL.to_string())
+                discover_neura_model_name()
+                    .unwrap_or_else(|| DEFAULT_NEURA_SIDECAR_MODEL.to_string())
             });
-        let kind = match env::var("KCODE_SIDECAR_KIND")
+        let kind = match env::var("NEURA_SIDECAR_KIND")
             .unwrap_or_else(|_| "openai-compatible".to_string())
             .to_lowercase()
             .as_str()
@@ -83,10 +83,10 @@ impl SidecarConfig {
             "ollama" => SidecarKind::Ollama,
             _ => SidecarKind::OpenAiCompatible,
         };
-        let enabled = env::var("KCODE_SIDECAR_ENABLED")
+        let enabled = env::var("NEURA_SIDECAR_ENABLED")
             .map(|v| !matches!(v.as_str(), "0" | "false" | "FALSE" | "off" | "OFF"))
             .unwrap_or(true);
-        let timeout_ms = env::var("KCODE_SIDECAR_TIMEOUT_MS")
+        let timeout_ms = env::var("NEURA_SIDECAR_TIMEOUT_MS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(2500);
@@ -126,7 +126,7 @@ impl SidecarClient {
                 url: self.cfg.url.clone(),
                 model: self.cfg.model.clone(),
                 kind: self.cfg.kind.clone(),
-                message: "disabled by KCODE_SIDECAR_ENABLED".to_string(),
+                message: "disabled by NEURA_SIDECAR_ENABLED".to_string(),
             };
         }
         let result = match self.cfg.kind {
@@ -169,7 +169,7 @@ impl SidecarClient {
             return Err(anyhow!("sidecar disabled"));
         }
         let prompt = format!(
-            "Summarize this Kcode memory/context note in one concise technical sentence. Preserve paths, commands, errors, and decisions.\n\n{}",
+            "Summarize this Neura memory/context note in one concise technical sentence. Preserve paths, commands, errors, and decisions.\n\n{}",
             text
         );
         match self.cfg.kind {
@@ -321,7 +321,7 @@ impl<'a> IntoIterator for &'a MemoryExtractionResult {
     }
 }
 
-/// Compatibility facade used by Kcode memory/context internals.
+/// Compatibility facade used by Neura memory/context internals.
 #[derive(Clone)]
 pub struct Sidecar {
     cfg: SidecarConfig,
@@ -385,7 +385,7 @@ impl Sidecar {
         tokio::task::spawn_blocking(move || {
             let client = SidecarClient::new(cfg)?;
             if !client.health().ok { return Ok((true, "sidecar unavailable; kept by fallback".to_string())); }
-            let prompt = format!("Is this Kcode memory relevant to this current context? Reply only yes or no.\nMemory: {memory}\nContext: {context}");
+            let prompt = format!("Is this Neura memory relevant to this current context? Reply only yes or no.\nMemory: {memory}\nContext: {context}");
             let answer = match client.cfg.kind {
                 SidecarKind::Ollama => client.generate_ollama(&prompt)?,
                 SidecarKind::OpenAiCompatible => client.generate_openai_compatible(&prompt)?,
@@ -405,7 +405,7 @@ impl Sidecar {
         tokio::task::spawn_blocking(move || {
             let client = SidecarClient::new(cfg)?;
             if !client.health().ok { return Ok((false, "sidecar unavailable; no contradiction assumed".to_string())); }
-            let prompt = format!("Do these two Kcode memories contradict each other? Reply yes or no, then a short reason.\nExisting: {existing}\nCandidate: {candidate}");
+            let prompt = format!("Do these two Neura memories contradict each other? Reply yes or no, then a short reason.\nExisting: {existing}\nCandidate: {candidate}");
             let answer = match client.cfg.kind {
                 SidecarKind::Ollama => client.generate_ollama(&prompt)?,
                 SidecarKind::OpenAiCompatible => client.generate_openai_compatible(&prompt)?,
@@ -457,7 +457,7 @@ fn extract_memories_blocking(
         existing.join("\n- ")
     };
     let prompt = format!(
-        "You are Kcode's local memory sidecar. Extract only durable, user-relevant memories from this session. Avoid duplicates of existing memories. Return strict JSON: {{\"extracted\":[{{\"content\":\"...\",\"kind\":\"preference|project|workflow|fact|decision\",\"confidence\":0.0}}]}}. Keep content concise and technical.\nExisting memories:\n- {existing_text}\n\nTranscript:\n{transcript}"
+        "You are Neura's local memory sidecar. Extract only durable, user-relevant memories from this session. Avoid duplicates of existing memories. Return strict JSON: {{\"extracted\":[{{\"content\":\"...\",\"kind\":\"preference|project|workflow|fact|decision\",\"confidence\":0.0}}]}}. Keep content concise and technical.\nExisting memories:\n- {existing_text}\n\nTranscript:\n{transcript}"
     );
     let raw = match client.cfg.kind {
         SidecarKind::Ollama => client.generate_ollama(&prompt)?,

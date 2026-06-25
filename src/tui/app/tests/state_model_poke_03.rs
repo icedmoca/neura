@@ -109,7 +109,7 @@ impl Provider for CountingModelRoutesProvider {
 
 #[test]
 fn test_model_picker_reuses_cached_entries_until_invalidated() {
-    ensure_test_kcode_home_if_unset();
+    ensure_test_neura_home_if_unset();
     clear_persisted_test_ui_state();
     crate::tui::ui::clear_test_render_state_for_tests();
 
@@ -150,7 +150,7 @@ fn test_model_picker_reuses_cached_entries_until_invalidated() {
 
 #[test]
 fn test_model_picker_opens_loading_state_before_async_routes_complete() {
-    ensure_test_kcode_home_if_unset();
+    ensure_test_neura_home_if_unset();
     clear_persisted_test_ui_state();
     crate::tui::ui::clear_test_render_state_for_tests();
 
@@ -191,7 +191,7 @@ fn test_model_picker_opens_loading_state_before_async_routes_complete() {
 
 #[test]
 fn test_model_picker_does_not_cache_single_model_fallback() {
-    ensure_test_kcode_home_if_unset();
+    ensure_test_neura_home_if_unset();
     clear_persisted_test_ui_state();
     crate::tui::ui::clear_test_render_state_for_tests();
 
@@ -251,7 +251,7 @@ fn test_local_model_picker_selection_failure_keeps_picker_open_and_shows_next_st
 
 #[test]
 fn test_login_completed_spawns_auth_refresh_when_runtime_is_available() {
-    ensure_test_kcode_home_if_unset();
+    ensure_test_neura_home_if_unset();
     clear_persisted_test_ui_state();
     crate::tui::ui::clear_test_render_state_for_tests();
 
@@ -592,7 +592,7 @@ fn test_autojudge_command_toggles_session_preference() {
 
 #[test]
 fn test_poke_arms_auto_poke_until_todos_are_done() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         crate::todo::save_todos(
             &app.session.id,
@@ -620,7 +620,7 @@ fn test_poke_arms_auto_poke_until_todos_are_done() {
 
 #[test]
 fn test_poke_status_reports_current_state() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         crate::todo::save_todos(
             &app.session.id,
@@ -666,7 +666,7 @@ fn test_poke_status_reports_current_state() {
 
 #[test]
 fn test_poke_off_disarms_and_clears_queued_followup() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         crate::todo::save_todos(
             &app.session.id,
@@ -706,7 +706,7 @@ fn test_poke_off_disarms_and_clears_queued_followup() {
 
 #[test]
 fn test_poke_queues_when_turn_is_in_progress() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         crate::todo::save_todos(
             &app.session.id,
@@ -774,7 +774,7 @@ fn test_poke_queues_when_turn_is_in_progress() {
 
 #[test]
 fn test_finish_turn_auto_pokes_again_when_todos_remain() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         crate::todo::save_todos(
             &app.session.id,
@@ -801,7 +801,7 @@ fn test_finish_turn_auto_pokes_again_when_todos_remain() {
 
 #[test]
 fn test_finish_turn_auto_poke_preserves_visible_turn_started() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         crate::todo::save_todos(
             &app.session.id,

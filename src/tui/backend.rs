@@ -222,7 +222,7 @@ pub struct BackendInfo {
     pub skills: Vec<String>,
 }
 
-/// Remote connection to kcode server
+/// Remote connection to neura server
 pub struct RemoteConnection {
     reader: BufReader<crate::transport::ReadHalf>,
     writer: Arc<Mutex<WriteHalf>>,

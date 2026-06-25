@@ -71,9 +71,9 @@ pub fn estimate_tokens(chars: usize) -> u64 {
 fn tokenizer() -> Option<&'static (PathBuf, Tokenizer)> {
     TOKENIZER
         .get_or_init(|| {
-            let path = std::env::var_os("KCODE_TOKENIZER_JSON")
+            let path = std::env::var_os("NEURA_TOKENIZER_JSON")
                 .map(PathBuf::from)
-                .or_else(|| std::env::var_os("KCODE_SIDECAR_TOKENIZER_JSON").map(PathBuf::from));
+                .or_else(|| std::env::var_os("NEURA_SIDECAR_TOKENIZER_JSON").map(PathBuf::from));
             let path = path?;
             Tokenizer::from_file(&path).ok().map(|tok| (path, tok))
         })

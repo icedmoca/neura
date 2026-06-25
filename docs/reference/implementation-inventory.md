@@ -5,7 +5,7 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 ## Binaries
 
 - `harness`: `src/bin/harness.rs`
-- `kcode-bench`: `src/bin/kcode_bench.rs`
+- `neura-bench`: `src/bin/neura_bench.rs`
 - `mermaid-side-panel-probe`: `src/bin/mermaid_side_panel_probe.rs`
 - `session-memory-bench`: `src/bin/session_memory_bench.rs`
 - `test-api`: `src/bin/test_api.rs`
@@ -37,7 +37,7 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `/effort`: Show/change reasoning effort (Alt+left/right) (`src/tui/app/state_ui_input_helpers.rs`)
 - `/exit`: Exit immediately like confirmed Ctrl+C (`src/tui/app/state_ui_input_helpers.rs`)
 - `/fast`: Toggle OpenAI/Codex fast mode (`src/tui/app/state_ui_input_helpers.rs`)
-- `/feedback`: Send feedback about kcode (`src/tui/app/state_ui_input_helpers.rs`)
+- `/feedback`: Send feedback about neura (`src/tui/app/state_ui_input_helpers.rs`)
 - `/fix`: Recover when the model cannot continue (`src/tui/app/state_ui_input_helpers.rs`)
 - `/git`: Show git status for the session working directory (`src/tui/app/state_ui_input_helpers.rs`)
 - `/goals`: Open goals overview / resume tracked goals (`src/tui/app/state_ui_input_helpers.rs`)
@@ -45,88 +45,88 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `/improve`: Autonomously improve the repository (`src/tui/app/state_ui_input_helpers.rs`)
 - `/info`: Show session info and tokens (`src/tui/app/state_ui_input_helpers.rs`)
 - `/judge`: Launch a one-shot headed judge session (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-cognition`: Inspect adaptive .kcode cognition memory substrate (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-cognitive-integration debt`: Inspect deferred context debt and recall traces. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-cognitive-integration mesh`: Inspect cross-layer cognitive integration nodes, edges, and coherence. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-collapse decomposition`: Inspect complexity subproblem decomposition and dependencies. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-collapse opportunities`: Inspect representation-collapse opportunities and decisions. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-complexity entropy`: Inspect complexity entropy and reducibility signals. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-complexity factors`: Inspect formal, empirical, heuristic, and structural complexity factors. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-complexity routes`: Inspect complexity-aware solver routes and selected route confidence. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-complexity status`: Inspect adaptive complexity analysis and calibrated hardness. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-context-economy allocations`: Inspect include, compress, defer, and drop allocation decisions. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-context-economy bids`: Inspect context market bids and utility-per-token scores. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-context-economy compression`: Inspect salience-weighted compression plans and saved tokens. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-context-economy status`: Inspect adaptive context economy budget, utility allocation, and token efficiency. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-convergence status`: Inspect substrate convergence, entropy, equilibrium, noise, oscillation, and stability. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-convergence vectors`: Inspect convergence vectors and deltas against stabilization targets. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-deliberate`: Inspect bounded internal deliberation, traces, dissent, consensus, and adversarial review. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-deliberate dissent`: Show persisted unresolved deliberation dissent. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-deliberate trace`: Show recent deliberation trace frames. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-emergent-quality interventions`: Inspect quality interventions and regulation policy actions. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-emergent-quality signals`: Inspect emergent behavior signals and quality deltas. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-emergent-quality status`: Inspect emergent cognition quality metrics, debt, interventions, and trends. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-epistemic-context-governance quarantine`: Inspect quarantined or evidence-gated high-risk context activations. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-epistemic-context-governance status`: Inspect epistemic context decisions, contamination signals, and scope boundaries. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-epistemic-governance actions`: Inspect institutional decisions and epistemic governance actions. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-epistemic-governance status`: Inspect cybernetic epistemic governor stability and control signals. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-epistemology`: Inspect operational epistemology claim/evidence state (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-hierarchical-context routing`: Inspect direct, compressed, evidence-first, and deferred context routes. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-hierarchical-context status`: Inspect hierarchical cognition activation depth, retained branches, and routed tokens. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-hierarchical-context tree`: Inspect activation tree nodes, edges, and pruning decisions. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-lmstudio status`: Inspect LM Studio OpenAI-compatible endpoint configuration and reachability. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-lmstudio wsl`: Show Windows/WSL LM Studio networking diagnostics and endpoint hints. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-local-model route`: Inspect whether Kcode should use local model, remote fallback, or block execution. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-local-model status`: Inspect local model provider routing, LM Studio health, and fallback decision. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-long-horizon breaks`: Inspect coherence break candidates and mitigation plans. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-long-horizon status`: Inspect long-horizon operational coherence, drift, and continuity threads. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-operational-complexity status`: Inspect operational complexity mode, cost reduction, and policy adjustments. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-operational-intelligence doctrine`: Inspect reversible operational doctrine updates and maturity/stability. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-operational-intelligence insights`: Inspect synthesized strategic, tactical, epistemic, execution, and governance insights. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-operational-intelligence judgement`: Inspect dominant operational judgement and calibrated confidence. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-operational-intelligence status`: Inspect high-level operational synthesis, actionability, confidence, and residual risk. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-reality`: Inspect reality-coupled verification telemetry (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-representation optimize`: Inspect representation quality metrics and optimization gains. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-representation rewrites`: Inspect graph/representation rewrite proposals and expected gain/risk. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-representation-evolution candidates`: Inspect proposed representation variants and mutation kinds. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-representation-evolution promotions`: Inspect bounded representation promotions and rollback governance. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-representation-evolution status`: Inspect active representation evolution candidates, trials, promotions, and gain. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-representation-evolution trials`: Inspect sandbox trial predicted/observed gains and calibration error. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-science causal`: Inspect causal candidates, confounder risk, and accepted edges. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-science experiments`: Inspect safe experiment and evidence acquisition plans. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-science hypotheses`: Inspect operational hypotheses and lifecycle states. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-science models`: Inspect competing model scores and selection. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-science status`: Show scientific cognition status, uncertainty, calibration, and information gain. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-science uncertainty`: Inspect uncertainty priorities and evidence gaps. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-stabilization actions`: Inspect autonomous cognitive stabilization actions and bounded intensities. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-stabilization continuity`: Inspect continuity stabilization threads and equilibrium restoration. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-stabilization noise`: Inspect noise suppression and retrieval optimization signals. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-strategic-search governance`: Inspect exploration budget, exploitation bias, and strategy decisions. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-strategy candidates`: Inspect generated strategy candidates and expected gain/risk/transferability. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-strategy counterexamples`: Inspect counterexamples and mitigations before strategy promotion. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-strategy portfolio`: Inspect balanced strategy portfolio diversity and expected value. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-strategy status`: Inspect emergent strategy discovery candidates, tournaments, portfolio, and governance pressure. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-strategy tournaments`: Inspect strategy tournament scores, winners, and evidence. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-structure invariants`: Inspect representation invariants and support/violation state. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-structure patterns`: Inspect discovered motifs, invariants, bridges, redundancies, and compression opportunities. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-structure status`: Inspect latent structure discovery, invariants, motifs, and representation score. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-substrate attractors`: Inspect emergent cognitive attractors and stabilized behaviors. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-substrate field`: Inspect cross-layer cognitive field nodes and couplings. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-substrate optimize`: Inspect bounded substrate optimization and damping actions. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-substrate repair`: Inspect substrate repair debt and repair actions. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-substrate status`: Inspect cognitive substrate field resonance, instability, density, and repair debt. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-synthetic-science dissent`: Inspect productive dissent ecology and self-challenge cycles. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-synthetic-science experiments`: Inspect synthetic experiments, observations, and replication records. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-synthetic-science proposals`: Inspect synthetic research proposals and expected information gain. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-synthetic-science status`: Inspect synthetic scientific cognition ecosystem status and bounded cycles. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/kcode-topology retrieval`: Inspect topology-aware retrieval centrality, bridge scores, and retrieval weights. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-cognition`: Inspect adaptive .neura cognition memory substrate (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-cognitive-integration debt`: Inspect deferred context debt and recall traces. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-cognitive-integration mesh`: Inspect cross-layer cognitive integration nodes, edges, and coherence. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-collapse decomposition`: Inspect complexity subproblem decomposition and dependencies. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-collapse opportunities`: Inspect representation-collapse opportunities and decisions. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-complexity entropy`: Inspect complexity entropy and reducibility signals. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-complexity factors`: Inspect formal, empirical, heuristic, and structural complexity factors. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-complexity routes`: Inspect complexity-aware solver routes and selected route confidence. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-complexity status`: Inspect adaptive complexity analysis and calibrated hardness. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-context-economy allocations`: Inspect include, compress, defer, and drop allocation decisions. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-context-economy bids`: Inspect context market bids and utility-per-token scores. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-context-economy compression`: Inspect salience-weighted compression plans and saved tokens. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-context-economy status`: Inspect adaptive context economy budget, utility allocation, and token efficiency. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-convergence status`: Inspect substrate convergence, entropy, equilibrium, noise, oscillation, and stability. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-convergence vectors`: Inspect convergence vectors and deltas against stabilization targets. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-deliberate`: Inspect bounded internal deliberation, traces, dissent, consensus, and adversarial review. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-deliberate dissent`: Show persisted unresolved deliberation dissent. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-deliberate trace`: Show recent deliberation trace frames. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-emergent-quality interventions`: Inspect quality interventions and regulation policy actions. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-emergent-quality signals`: Inspect emergent behavior signals and quality deltas. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-emergent-quality status`: Inspect emergent cognition quality metrics, debt, interventions, and trends. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-epistemic-context-governance quarantine`: Inspect quarantined or evidence-gated high-risk context activations. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-epistemic-context-governance status`: Inspect epistemic context decisions, contamination signals, and scope boundaries. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-epistemic-governance actions`: Inspect institutional decisions and epistemic governance actions. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-epistemic-governance status`: Inspect cybernetic epistemic governor stability and control signals. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-epistemology`: Inspect operational epistemology claim/evidence state (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-hierarchical-context routing`: Inspect direct, compressed, evidence-first, and deferred context routes. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-hierarchical-context status`: Inspect hierarchical cognition activation depth, retained branches, and routed tokens. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-hierarchical-context tree`: Inspect activation tree nodes, edges, and pruning decisions. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-lmstudio status`: Inspect LM Studio OpenAI-compatible endpoint configuration and reachability. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-lmstudio wsl`: Show Windows/WSL LM Studio networking diagnostics and endpoint hints. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-local-model route`: Inspect whether Neura should use local model, remote fallback, or block execution. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-local-model status`: Inspect local model provider routing, LM Studio health, and fallback decision. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-long-horizon breaks`: Inspect coherence break candidates and mitigation plans. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-long-horizon status`: Inspect long-horizon operational coherence, drift, and continuity threads. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-operational-complexity status`: Inspect operational complexity mode, cost reduction, and policy adjustments. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-operational-intelligence doctrine`: Inspect reversible operational doctrine updates and maturity/stability. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-operational-intelligence insights`: Inspect synthesized strategic, tactical, epistemic, execution, and governance insights. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-operational-intelligence judgement`: Inspect dominant operational judgement and calibrated confidence. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-operational-intelligence status`: Inspect high-level operational synthesis, actionability, confidence, and residual risk. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-reality`: Inspect reality-coupled verification telemetry (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-representation optimize`: Inspect representation quality metrics and optimization gains. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-representation rewrites`: Inspect graph/representation rewrite proposals and expected gain/risk. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-representation-evolution candidates`: Inspect proposed representation variants and mutation kinds. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-representation-evolution promotions`: Inspect bounded representation promotions and rollback governance. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-representation-evolution status`: Inspect active representation evolution candidates, trials, promotions, and gain. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-representation-evolution trials`: Inspect sandbox trial predicted/observed gains and calibration error. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-science causal`: Inspect causal candidates, confounder risk, and accepted edges. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-science experiments`: Inspect safe experiment and evidence acquisition plans. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-science hypotheses`: Inspect operational hypotheses and lifecycle states. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-science models`: Inspect competing model scores and selection. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-science status`: Show scientific cognition status, uncertainty, calibration, and information gain. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-science uncertainty`: Inspect uncertainty priorities and evidence gaps. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-stabilization actions`: Inspect autonomous cognitive stabilization actions and bounded intensities. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-stabilization continuity`: Inspect continuity stabilization threads and equilibrium restoration. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-stabilization noise`: Inspect noise suppression and retrieval optimization signals. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-strategic-search governance`: Inspect exploration budget, exploitation bias, and strategy decisions. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-strategy candidates`: Inspect generated strategy candidates and expected gain/risk/transferability. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-strategy counterexamples`: Inspect counterexamples and mitigations before strategy promotion. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-strategy portfolio`: Inspect balanced strategy portfolio diversity and expected value. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-strategy status`: Inspect emergent strategy discovery candidates, tournaments, portfolio, and governance pressure. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-strategy tournaments`: Inspect strategy tournament scores, winners, and evidence. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-structure invariants`: Inspect representation invariants and support/violation state. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-structure patterns`: Inspect discovered motifs, invariants, bridges, redundancies, and compression opportunities. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-structure status`: Inspect latent structure discovery, invariants, motifs, and representation score. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-substrate attractors`: Inspect emergent cognitive attractors and stabilized behaviors. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-substrate field`: Inspect cross-layer cognitive field nodes and couplings. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-substrate optimize`: Inspect bounded substrate optimization and damping actions. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-substrate repair`: Inspect substrate repair debt and repair actions. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-substrate status`: Inspect cognitive substrate field resonance, instability, density, and repair debt. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-synthetic-science dissent`: Inspect productive dissent ecology and self-challenge cycles. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-synthetic-science experiments`: Inspect synthetic experiments, observations, and replication records. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-synthetic-science proposals`: Inspect synthetic research proposals and expected information gain. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-synthetic-science status`: Inspect synthetic scientific cognition ecosystem status and bounded cycles. (`src/tui/app/state_ui_input_helpers.rs`)
+- `/neura-topology retrieval`: Inspect topology-aware retrieval centrality, bridge scores, and retrieval weights. (`src/tui/app/state_ui_input_helpers.rs`)
 - `/login`: Login to a provider (`src/tui/app/state_ui_input_helpers.rs`)
 - `/memory`: Toggle memory feature (`src/tui/app/state_ui_input_helpers.rs`)
 - `/model`: List or switch models (`src/tui/app/state_ui_input_helpers.rs`)
 - `/models`: Alias for /model (`src/tui/app/state_ui_input_helpers.rs`)
 - `/observe`: Show the latest tool context in the side panel (`src/tui/app/state_ui_input_helpers.rs`)
 - `/poke`: Poke model to resume with incomplete todos (`src/tui/app/state_ui_input_helpers.rs`)
-- `/quit`: Exit kcode (`src/tui/app/state_ui_input_helpers.rs`)
+- `/quit`: Exit neura (`src/tui/app/state_ui_input_helpers.rs`)
 - `/rebuild`: Background rebuild and auto reload (`src/tui/app/state_ui_input_helpers.rs`)
 - `/record`: Record a demo capture (`src/tui/app/state_ui_input_helpers.rs`)
 - `/refactor`: Run a safe refactor loop (`src/tui/app/state_ui_input_helpers.rs`)
@@ -139,14 +139,14 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `/save`: Bookmark session for easy access (`src/tui/app/state_ui_input_helpers.rs`)
 - `/screenshot`: Capture a screenshot debug state (`src/tui/app/state_ui_input_helpers.rs`)
 - `/screenshot-mode`: Toggle screenshot capture mode (`src/tui/app/state_ui_input_helpers.rs`)
-- `/selfdev`: Open a new self-dev kcode session (`src/tui/app/state_ui_input_helpers.rs`)
+- `/selfdev`: Open a new self-dev neura session (`src/tui/app/state_ui_input_helpers.rs`)
 - `/sessions`: Alias for /resume (`src/tui/app/state_ui_input_helpers.rs`)
 - `/split`: Split session into a new window (`src/tui/app/state_ui_input_helpers.rs`)
 - `/split-view`: Alias for /splitview (`src/tui/app/state_ui_input_helpers.rs`)
 - `/splitview`: Mirror the current chat in the side panel (`src/tui/app/state_ui_input_helpers.rs`)
 - `/subagent`: Launch a subagent manually (`src/tui/app/state_ui_input_helpers.rs`)
 - `/subagent-model`: Show/change subagent model policy (`src/tui/app/state_ui_input_helpers.rs`)
-- `/subscription`: Show kcode subscription status (`src/tui/app/state_ui_input_helpers.rs`)
+- `/subscription`: Show neura subscription status (`src/tui/app/state_ui_input_helpers.rs`)
 - `/swarm`: Toggle swarm feature (`src/tui/app/state_ui_input_helpers.rs`)
 - `/todos`: Show the current session todo list in the side panel (`src/tui/app/state_ui_input_helpers.rs`)
 - `/transfer`: Compact context into a fresh handoff session (`src/tui/app/state_ui_input_helpers.rs`)
@@ -176,7 +176,7 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `failover`: `src/provider/failover.rs`
 - `gemini`: `src/provider/gemini.rs`
 - `gemini_tests`: `src/provider/gemini_tests.rs`
-- `kcode`: `src/provider/kcode.rs`
+- `neura`: `src/provider/neura.rs`
 - `mod`: `src/provider/mod.rs`
 - `models`: `src/provider/models.rs`
 - `models_catalog`: `src/provider/models_catalog.rs`
@@ -200,12 +200,12 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 
 ## Public modules
 
-- `protocol` from `crates/kcode-mobile-core/src/lib.rs`
-- `gpu_preview` from `crates/kcode-mobile-sim/src/lib.rs`
-- `openai_schema` from `crates/kcode-provider-core/src/lib.rs`
-- `color_support` from `crates/kcode-tui-workspace/src/lib.rs`
-- `workspace_map` from `crates/kcode-tui-workspace/src/lib.rs`
-- `workspace_map_widget` from `crates/kcode-tui-workspace/src/lib.rs`
+- `protocol` from `crates/neura-mobile-core/src/lib.rs`
+- `gpu_preview` from `crates/neura-mobile-sim/src/lib.rs`
+- `openai_schema` from `crates/neura-provider-core/src/lib.rs`
+- `color_support` from `crates/neura-tui-workspace/src/lib.rs`
+- `workspace_map` from `crates/neura-tui-workspace/src/lib.rs`
+- `workspace_map_widget` from `crates/neura-tui-workspace/src/lib.rs`
 - `runner` from `src/ambient.rs`
 - `scheduler` from `src/ambient.rs`
 - `account_store` from `src/auth/mod.rs`
@@ -264,7 +264,7 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `id` from `src/lib.rs`
 - `import` from `src/lib.rs`
 - `interlang` from `src/lib.rs`
-- `kcode_memory` from `src/lib.rs`
+- `neura_memory` from `src/lib.rs`
 - `local_model` from `src/lib.rs`
 - `logging` from `src/lib.rs`
 - `login_qr` from `src/lib.rs`
@@ -321,7 +321,7 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `copilot` from `src/provider/mod.rs`
 - `cursor` from `src/provider/mod.rs`
 - `gemini` from `src/provider/mod.rs`
-- `kcode` from `src/provider/mod.rs`
+- `neura` from `src/provider/mod.rs`
 - `models` from `src/provider/mod.rs`
 - `openai` from `src/provider/mod.rs`
 - `openrouter` from `src/provider/mod.rs`

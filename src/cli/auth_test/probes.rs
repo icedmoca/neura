@@ -6,8 +6,8 @@ fn generic_credential_paths_for_provider(
     };
 
     match provider.target {
-        crate::provider_catalog::LoginProviderTarget::Kcode => {
-            vec![config_dir.join(crate::subscription_catalog::KCODE_ENV_FILE)]
+        crate::provider_catalog::LoginProviderTarget::Neura => {
+            vec![config_dir.join(crate::subscription_catalog::NEURA_ENV_FILE)]
         }
         crate::provider_catalog::LoginProviderTarget::OpenRouter => {
             vec![config_dir.join("openrouter.env")]
@@ -53,7 +53,7 @@ fn probe_generic_provider_auth(
     report.push_step(
         "refresh_probe",
         true,
-        "Skipped: provider does not expose a dedicated refresh probe in kcode today.".to_string(),
+        "Skipped: provider does not expose a dedicated refresh probe in neura today.".to_string(),
     );
 }
 
@@ -250,7 +250,7 @@ async fn probe_cursor_auth(report: &mut AuthTestProviderReport) {
     report.push_step(
         "refresh_probe",
         true,
-        "Skipped: Cursor provider does not expose a native refresh-token probe in kcode today."
+        "Skipped: Cursor provider does not expose a native refresh-token probe in neura today."
             .to_string(),
     );
 }

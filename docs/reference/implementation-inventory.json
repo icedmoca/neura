@@ -1,27 +1,27 @@
 {
   "modules": [
     {
-      "file": "crates/kcode-mobile-core/src/lib.rs",
+      "file": "crates/neura-mobile-core/src/lib.rs",
       "module": "protocol"
     },
     {
-      "file": "crates/kcode-mobile-sim/src/lib.rs",
+      "file": "crates/neura-mobile-sim/src/lib.rs",
       "module": "gpu_preview"
     },
     {
-      "file": "crates/kcode-provider-core/src/lib.rs",
+      "file": "crates/neura-provider-core/src/lib.rs",
       "module": "openai_schema"
     },
     {
-      "file": "crates/kcode-tui-workspace/src/lib.rs",
+      "file": "crates/neura-tui-workspace/src/lib.rs",
       "module": "color_support"
     },
     {
-      "file": "crates/kcode-tui-workspace/src/lib.rs",
+      "file": "crates/neura-tui-workspace/src/lib.rs",
       "module": "workspace_map"
     },
     {
-      "file": "crates/kcode-tui-workspace/src/lib.rs",
+      "file": "crates/neura-tui-workspace/src/lib.rs",
       "module": "workspace_map_widget"
     },
     {
@@ -258,7 +258,7 @@
     },
     {
       "file": "src/lib.rs",
-      "module": "kcode_memory"
+      "module": "neura_memory"
     },
     {
       "file": "src/lib.rs",
@@ -486,7 +486,7 @@
     },
     {
       "file": "src/provider/mod.rs",
-      "module": "kcode"
+      "module": "neura"
     },
     {
       "file": "src/provider/mod.rs",
@@ -696,7 +696,7 @@
     },
     {
       "command": "/feedback",
-      "description": "Send feedback about kcode",
+      "description": "Send feedback about neura",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
@@ -735,377 +735,377 @@
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-cognition",
-      "description": "Inspect adaptive .kcode cognition memory substrate",
+      "command": "/neura-cognition",
+      "description": "Inspect adaptive .neura cognition memory substrate",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-cognitive-integration debt",
+      "command": "/neura-cognitive-integration debt",
       "description": "Inspect deferred context debt and recall traces.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-cognitive-integration mesh",
+      "command": "/neura-cognitive-integration mesh",
       "description": "Inspect cross-layer cognitive integration nodes, edges, and coherence.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-collapse decomposition",
+      "command": "/neura-collapse decomposition",
       "description": "Inspect complexity subproblem decomposition and dependencies.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-collapse opportunities",
+      "command": "/neura-collapse opportunities",
       "description": "Inspect representation-collapse opportunities and decisions.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-complexity entropy",
+      "command": "/neura-complexity entropy",
       "description": "Inspect complexity entropy and reducibility signals.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-complexity factors",
+      "command": "/neura-complexity factors",
       "description": "Inspect formal, empirical, heuristic, and structural complexity factors.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-complexity routes",
+      "command": "/neura-complexity routes",
       "description": "Inspect complexity-aware solver routes and selected route confidence.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-complexity status",
+      "command": "/neura-complexity status",
       "description": "Inspect adaptive complexity analysis and calibrated hardness.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-context-economy allocations",
+      "command": "/neura-context-economy allocations",
       "description": "Inspect include, compress, defer, and drop allocation decisions.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-context-economy bids",
+      "command": "/neura-context-economy bids",
       "description": "Inspect context market bids and utility-per-token scores.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-context-economy compression",
+      "command": "/neura-context-economy compression",
       "description": "Inspect salience-weighted compression plans and saved tokens.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-context-economy status",
+      "command": "/neura-context-economy status",
       "description": "Inspect adaptive context economy budget, utility allocation, and token efficiency.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-convergence status",
+      "command": "/neura-convergence status",
       "description": "Inspect substrate convergence, entropy, equilibrium, noise, oscillation, and stability.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-convergence vectors",
+      "command": "/neura-convergence vectors",
       "description": "Inspect convergence vectors and deltas against stabilization targets.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-deliberate",
+      "command": "/neura-deliberate",
       "description": "Inspect bounded internal deliberation, traces, dissent, consensus, and adversarial review.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-deliberate dissent",
+      "command": "/neura-deliberate dissent",
       "description": "Show persisted unresolved deliberation dissent.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-deliberate trace",
+      "command": "/neura-deliberate trace",
       "description": "Show recent deliberation trace frames.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-emergent-quality interventions",
+      "command": "/neura-emergent-quality interventions",
       "description": "Inspect quality interventions and regulation policy actions.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-emergent-quality signals",
+      "command": "/neura-emergent-quality signals",
       "description": "Inspect emergent behavior signals and quality deltas.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-emergent-quality status",
+      "command": "/neura-emergent-quality status",
       "description": "Inspect emergent cognition quality metrics, debt, interventions, and trends.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-epistemic-context-governance quarantine",
+      "command": "/neura-epistemic-context-governance quarantine",
       "description": "Inspect quarantined or evidence-gated high-risk context activations.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-epistemic-context-governance status",
+      "command": "/neura-epistemic-context-governance status",
       "description": "Inspect epistemic context decisions, contamination signals, and scope boundaries.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-epistemic-governance actions",
+      "command": "/neura-epistemic-governance actions",
       "description": "Inspect institutional decisions and epistemic governance actions.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-epistemic-governance status",
+      "command": "/neura-epistemic-governance status",
       "description": "Inspect cybernetic epistemic governor stability and control signals.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-epistemology",
+      "command": "/neura-epistemology",
       "description": "Inspect operational epistemology claim/evidence state",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-hierarchical-context routing",
+      "command": "/neura-hierarchical-context routing",
       "description": "Inspect direct, compressed, evidence-first, and deferred context routes.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-hierarchical-context status",
+      "command": "/neura-hierarchical-context status",
       "description": "Inspect hierarchical cognition activation depth, retained branches, and routed tokens.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-hierarchical-context tree",
+      "command": "/neura-hierarchical-context tree",
       "description": "Inspect activation tree nodes, edges, and pruning decisions.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-lmstudio status",
+      "command": "/neura-lmstudio status",
       "description": "Inspect LM Studio OpenAI-compatible endpoint configuration and reachability.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-lmstudio wsl",
+      "command": "/neura-lmstudio wsl",
       "description": "Show Windows/WSL LM Studio networking diagnostics and endpoint hints.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-local-model route",
-      "description": "Inspect whether Kcode should use local model, remote fallback, or block execution.",
+      "command": "/neura-local-model route",
+      "description": "Inspect whether Neura should use local model, remote fallback, or block execution.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-local-model status",
+      "command": "/neura-local-model status",
       "description": "Inspect local model provider routing, LM Studio health, and fallback decision.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-long-horizon breaks",
+      "command": "/neura-long-horizon breaks",
       "description": "Inspect coherence break candidates and mitigation plans.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-long-horizon status",
+      "command": "/neura-long-horizon status",
       "description": "Inspect long-horizon operational coherence, drift, and continuity threads.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-operational-complexity status",
+      "command": "/neura-operational-complexity status",
       "description": "Inspect operational complexity mode, cost reduction, and policy adjustments.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-operational-intelligence doctrine",
+      "command": "/neura-operational-intelligence doctrine",
       "description": "Inspect reversible operational doctrine updates and maturity/stability.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-operational-intelligence insights",
+      "command": "/neura-operational-intelligence insights",
       "description": "Inspect synthesized strategic, tactical, epistemic, execution, and governance insights.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-operational-intelligence judgement",
+      "command": "/neura-operational-intelligence judgement",
       "description": "Inspect dominant operational judgement and calibrated confidence.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-operational-intelligence status",
+      "command": "/neura-operational-intelligence status",
       "description": "Inspect high-level operational synthesis, actionability, confidence, and residual risk.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-reality",
+      "command": "/neura-reality",
       "description": "Inspect reality-coupled verification telemetry",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-representation optimize",
+      "command": "/neura-representation optimize",
       "description": "Inspect representation quality metrics and optimization gains.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-representation rewrites",
+      "command": "/neura-representation rewrites",
       "description": "Inspect graph/representation rewrite proposals and expected gain/risk.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-representation-evolution candidates",
+      "command": "/neura-representation-evolution candidates",
       "description": "Inspect proposed representation variants and mutation kinds.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-representation-evolution promotions",
+      "command": "/neura-representation-evolution promotions",
       "description": "Inspect bounded representation promotions and rollback governance.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-representation-evolution status",
+      "command": "/neura-representation-evolution status",
       "description": "Inspect active representation evolution candidates, trials, promotions, and gain.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-representation-evolution trials",
+      "command": "/neura-representation-evolution trials",
       "description": "Inspect sandbox trial predicted/observed gains and calibration error.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-science causal",
+      "command": "/neura-science causal",
       "description": "Inspect causal candidates, confounder risk, and accepted edges.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-science experiments",
+      "command": "/neura-science experiments",
       "description": "Inspect safe experiment and evidence acquisition plans.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-science hypotheses",
+      "command": "/neura-science hypotheses",
       "description": "Inspect operational hypotheses and lifecycle states.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-science models",
+      "command": "/neura-science models",
       "description": "Inspect competing model scores and selection.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-science status",
+      "command": "/neura-science status",
       "description": "Show scientific cognition status, uncertainty, calibration, and information gain.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-science uncertainty",
+      "command": "/neura-science uncertainty",
       "description": "Inspect uncertainty priorities and evidence gaps.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-stabilization actions",
+      "command": "/neura-stabilization actions",
       "description": "Inspect autonomous cognitive stabilization actions and bounded intensities.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-stabilization continuity",
+      "command": "/neura-stabilization continuity",
       "description": "Inspect continuity stabilization threads and equilibrium restoration.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-stabilization noise",
+      "command": "/neura-stabilization noise",
       "description": "Inspect noise suppression and retrieval optimization signals.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-strategic-search governance",
+      "command": "/neura-strategic-search governance",
       "description": "Inspect exploration budget, exploitation bias, and strategy decisions.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-strategy candidates",
+      "command": "/neura-strategy candidates",
       "description": "Inspect generated strategy candidates and expected gain/risk/transferability.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-strategy counterexamples",
+      "command": "/neura-strategy counterexamples",
       "description": "Inspect counterexamples and mitigations before strategy promotion.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-strategy portfolio",
+      "command": "/neura-strategy portfolio",
       "description": "Inspect balanced strategy portfolio diversity and expected value.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-strategy status",
+      "command": "/neura-strategy status",
       "description": "Inspect emergent strategy discovery candidates, tournaments, portfolio, and governance pressure.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-strategy tournaments",
+      "command": "/neura-strategy tournaments",
       "description": "Inspect strategy tournament scores, winners, and evidence.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-structure invariants",
+      "command": "/neura-structure invariants",
       "description": "Inspect representation invariants and support/violation state.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-structure patterns",
+      "command": "/neura-structure patterns",
       "description": "Inspect discovered motifs, invariants, bridges, redundancies, and compression opportunities.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-structure status",
+      "command": "/neura-structure status",
       "description": "Inspect latent structure discovery, invariants, motifs, and representation score.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-substrate attractors",
+      "command": "/neura-substrate attractors",
       "description": "Inspect emergent cognitive attractors and stabilized behaviors.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-substrate field",
+      "command": "/neura-substrate field",
       "description": "Inspect cross-layer cognitive field nodes and couplings.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-substrate optimize",
+      "command": "/neura-substrate optimize",
       "description": "Inspect bounded substrate optimization and damping actions.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-substrate repair",
+      "command": "/neura-substrate repair",
       "description": "Inspect substrate repair debt and repair actions.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-substrate status",
+      "command": "/neura-substrate status",
       "description": "Inspect cognitive substrate field resonance, instability, density, and repair debt.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-synthetic-science dissent",
+      "command": "/neura-synthetic-science dissent",
       "description": "Inspect productive dissent ecology and self-challenge cycles.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-synthetic-science experiments",
+      "command": "/neura-synthetic-science experiments",
       "description": "Inspect synthetic experiments, observations, and replication records.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-synthetic-science proposals",
+      "command": "/neura-synthetic-science proposals",
       "description": "Inspect synthetic research proposals and expected information gain.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-synthetic-science status",
+      "command": "/neura-synthetic-science status",
       "description": "Inspect synthetic scientific cognition ecosystem status and bounded cycles.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/kcode-topology retrieval",
+      "command": "/neura-topology retrieval",
       "description": "Inspect topology-aware retrieval centrality, bridge scores, and retrieval weights.",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
@@ -1141,7 +1141,7 @@
     },
     {
       "command": "/quit",
-      "description": "Exit kcode",
+      "description": "Exit neura",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
@@ -1206,7 +1206,7 @@
     },
     {
       "command": "/selfdev",
-      "description": "Open a new self-dev kcode session",
+      "description": "Open a new self-dev neura session",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
@@ -1241,7 +1241,7 @@
     },
     {
       "command": "/subscription",
-      "description": "Show kcode subscription status",
+      "description": "Show neura subscription status",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
@@ -1296,8 +1296,8 @@
       "file": "src/bin/harness.rs"
     },
     {
-      "binary": "kcode-bench",
-      "file": "src/bin/kcode_bench.rs"
+      "binary": "neura-bench",
+      "file": "src/bin/neura_bench.rs"
     },
     {
       "binary": "mermaid-side-panel-probe",
@@ -1386,8 +1386,8 @@
       "provider_file": "src/provider/gemini_tests.rs"
     },
     {
-      "name": "kcode",
-      "provider_file": "src/provider/kcode.rs"
+      "name": "neura",
+      "provider_file": "src/provider/neura.rs"
     },
     {
       "name": "mod",

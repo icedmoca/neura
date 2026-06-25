@@ -59,8 +59,8 @@ fn merge_cursor_models_deduplicates_dynamic_entries() {
 fn available_models_display_seeds_from_persisted_catalog() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let path = CursorCliProvider::persisted_catalog_path().expect("catalog path");
     crate::storage::write_json(
@@ -80,9 +80,9 @@ fn available_models_display_seeds_from_persisted_catalog() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 

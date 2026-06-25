@@ -52,7 +52,7 @@ fn main() -> Result<()> {
     let path = path.ok_or_else(|| anyhow!("missing mermaid file path\n{}", usage()))?;
     let content = std::fs::read_to_string(&path)
         .with_context(|| format!("failed to read mermaid file: {path}"))?;
-    let probe = kcode::tui::debug_probe_side_panel_mermaid(
+    let probe = neura::tui::debug_probe_side_panel_mermaid(
         &content,
         pane_width,
         pane_height,

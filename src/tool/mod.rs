@@ -40,7 +40,7 @@ use crate::provider::Provider;
 use crate::skill::SkillRegistry;
 use anyhow::Result;
 use async_trait::async_trait;
-use kcode_agent_runtime::InterruptSignal;
+use neura_agent_runtime::InterruptSignal;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};

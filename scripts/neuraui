@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PORT="${NEURA_UI_PORT:-8768}"
+python3 "$ROOT/scripts/neura-ui-server.py" --port "$PORT"

@@ -445,7 +445,7 @@ fn test_transfer_command_queues_pause_while_processing_locally() {
 
 #[test]
 fn test_create_transfer_session_from_parent_copies_todos_and_uses_compacted_context_only() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         app.session.working_dir = Some("/tmp".to_string());
         app.session.model = Some("test-model".to_string());

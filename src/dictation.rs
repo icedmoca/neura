@@ -5,7 +5,7 @@ use std::process::{Command, Stdio};
 use std::sync::{Mutex, OnceLock};
 use tokio::time::{Duration, timeout};
 
-const CLIENT_TITLE_PREFIXES: &[&str] = &["kcode:d:", "kcode:c:"];
+const CLIENT_TITLE_PREFIXES: &[&str] = &["neura:d:", "neura:c:"];
 
 #[derive(Debug, Clone)]
 pub struct DictationRun {
@@ -18,7 +18,7 @@ pub async fn run_configured() -> Result<DictationRun> {
     let command = cfg.command.trim();
     if command.is_empty() {
         anyhow::bail!(
-            "Dictation is not configured. Set `[dictation].command` in `~/.kcode/config.toml`."
+            "Dictation is not configured. Set `[dictation].command` in `~/.neura/config.toml`."
         );
     }
 
@@ -89,7 +89,7 @@ pub fn remember_last_focused_session(session_id: &str) -> Result<()> {
     if let Some(parent) = path.parent() {
         crate::storage::ensure_dir(parent)?;
     }
-    std::fs::write(&path, session_id).context("failed to persist last focused kcode session")?;
+    std::fs::write(&path, session_id).context("failed to persist last focused neura session")?;
 
     if let Ok(mut cache) = last_focused_session_write_cache().lock() {
         *cache = Some(session_id.to_string());
@@ -103,7 +103,7 @@ pub fn last_focused_session() -> Result<Option<String>> {
     let session_id = match std::fs::read_to_string(path) {
         Ok(text) => text.trim().to_string(),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(err) => return Err(err).context("failed to read last focused kcode session"),
+        Err(err) => return Err(err).context("failed to read last focused neura session"),
     };
     if session_id.is_empty() {
         return Ok(None);
@@ -131,7 +131,7 @@ pub fn type_text(text: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn focused_kcode_session() -> Result<Option<String>> {
+pub fn focused_neura_session() -> Result<Option<String>> {
     let Some(window) = focused_window_niri()? else {
         return Ok(None);
     };
@@ -215,8 +215,8 @@ fn resolve_session_from_window_title(title: &str) -> Option<String> {
 
 fn extract_session_short_name_from_window_title(title: &str) -> Option<String> {
     let (_, rest) = title
-        .split_once("kcode/")
-        .or_else(|| title.split_once("kcode "))?;
+        .split_once("neura/")
+        .or_else(|| title.split_once("neura "))?;
     let candidate = rest.split('[').next().unwrap_or(rest).trim();
     let token = candidate.split_whitespace().next_back()?;
     normalize_session_short_name(token)
@@ -368,7 +368,7 @@ fn shell_command(command: &str) -> tokio::process::Command {
 }
 
 fn last_focused_session_path() -> Result<std::path::PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("last_focused_client_session"))
+    Ok(crate::storage::neura_dir()?.join("last_focused_client_session"))
 }
 
 #[cfg(test)]

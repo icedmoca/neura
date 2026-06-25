@@ -73,7 +73,7 @@ pub fn show_crash_resume_hint() {
 
     if crashed.len() == 1 {
         eprintln!(
-            "\x1b[33m💥 Session \x1b[1m{}\x1b[0m\x1b[33m crashed. Resume with:\x1b[0m  kcode --resume {}",
+            "\x1b[33m💥 Session \x1b[1m{}\x1b[0m\x1b[33m crashed. Resume with:\x1b[0m  neura --resume {}",
             session_label, id
         );
     } else {
@@ -82,17 +82,17 @@ pub fn show_crash_resume_hint() {
             crashed.len(),
             session_label
         );
-        eprintln!("\x1b[33m   Resume with:\x1b[0m  kcode --resume {}", id);
-        eprintln!("\x1b[33m   List all:\x1b[0m     kcode --resume");
+        eprintln!("\x1b[33m   Resume with:\x1b[0m  neura --resume {}", id);
+        eprintln!("\x1b[33m   List all:\x1b[0m     neura --resume");
     }
     eprintln!();
 }
 
 fn init_tui_terminal() -> Result<ratatui::DefaultTerminal> {
     if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
-        anyhow::bail!("kcode TUI requires an interactive terminal (stdin/stdout must be a TTY)");
+        anyhow::bail!("neura TUI requires an interactive terminal (stdin/stdout must be a TTY)");
     }
-    let is_resuming = std::env::var("KCODE_RESUMING").is_ok();
+    let is_resuming = std::env::var("NEURA_RESUMING").is_ok();
     if is_resuming {
         init_tui_terminal_resume()
     } else {
@@ -173,7 +173,7 @@ pub fn print_session_resume_hint(session_id: &str) {
         "\x1b[33mSession \x1b[1m{}\x1b[0m\x1b[33m - to resume:\x1b[0m",
         session_name
     );
-    eprintln!("  kcode --resume {}", session_id);
+    eprintln!("  neura --resume {}", session_id);
     eprintln!();
 }
 
@@ -301,8 +301,8 @@ mod tests {
         set_current_session(test_session);
 
         if let Some(session_id) = get_current_session() {
-            let expected_cmd = format!("kcode --resume {}", session_id);
-            assert!(expected_cmd.starts_with("kcode --resume "));
+            let expected_cmd = format!("neura --resume {}", session_id);
+            assert!(expected_cmd.starts_with("neura --resume "));
             assert!(!session_id.is_empty());
         } else {
             panic!("Session ID should be set");

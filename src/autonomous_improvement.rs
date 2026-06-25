@@ -71,7 +71,7 @@ fn now_ms() -> u128 {
 pub fn self_improvement_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("self_improvement_report.json")
 }
 
@@ -189,8 +189,8 @@ fn is_safe_action(action: &str) -> bool {
 fn run_internal_validations() -> Vec<ValidationResult> {
     vec![
         run_validation(
-            "cargo check --bin kcode",
-            &["cargo", "check", "--bin", "kcode"],
+            "cargo check --bin neura",
+            &["cargo", "check", "--bin", "neura"],
         ),
         run_validation(
             "operational eval smoke",
@@ -267,7 +267,7 @@ pub fn load_or_run_self_improvement_report() -> Result<SelfImprovementReport> {
 
 pub fn render_self_improvement_report(report: &SelfImprovementReport) -> String {
     let mut out = String::new();
-    out.push_str("# Kcode Autonomous Self-Improvement Report\n\n");
+    out.push_str("# Neura Autonomous Self-Improvement Report\n\n");
     out.push_str(&format!("- Passed: `{}`\n", report.passed));
     out.push_str(&format!("- Summary: `{}`\n", report.summary));
     out.push_str(&format!("- Dry run: `{}`\n", report.config.dry_run));
@@ -365,7 +365,7 @@ pub struct EvidenceRankedTaskReport {
 pub fn evidence_ranked_tasks_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("evidence_ranked_self_improvement_tasks.json")
 }
 
@@ -585,7 +585,7 @@ pub fn load_or_synthesize_evidence_tasks() -> Result<EvidenceRankedTaskReport> {
 
 pub fn render_evidence_ranked_tasks(report: &EvidenceRankedTaskReport) -> String {
     let mut out = String::new();
-    out.push_str("# Kcode Evidence-Ranked Self-Improvement Tasks\n\n");
+    out.push_str("# Neura Evidence-Ranked Self-Improvement Tasks\n\n");
     out.push_str(&format!(
         "- Mutation enabled: `{}`\n",
         report.mutation_enabled

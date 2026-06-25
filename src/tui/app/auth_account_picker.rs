@@ -551,7 +551,7 @@ impl App {
         let openai_platform_detail = if openai_has_stored && openai_env_key.is_some() {
             "stored key in openai-auth.json + OPENAI_API_KEY".to_string()
         } else if openai_has_stored {
-            "stored in ~/.kcode/openai-auth.json".to_string()
+            "stored in ~/.neura/openai-auth.json".to_string()
         } else if openai_env_key.is_some() {
             "OPENAI_API_KEY (environment)".to_string()
         } else {
@@ -939,7 +939,7 @@ impl App {
         let platform_detail = if has_stored && env_key.is_some() {
             "stored key in openai-auth.json + OPENAI_API_KEY".to_string()
         } else if has_stored {
-            "stored in ~/.kcode/openai-auth.json".to_string()
+            "stored in ~/.neura/openai-auth.json".to_string()
         } else if env_key.is_some() {
             "OPENAI_API_KEY (environment)".to_string()
         } else {

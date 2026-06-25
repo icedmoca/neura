@@ -20,7 +20,7 @@ fn compile_static_regex(pattern: &str) -> Option<Regex> {
     match Regex::new(pattern) {
         Ok(regex) => Some(regex),
         Err(err) => {
-            eprintln!("kcode: failed to compile static regex: {err}");
+            eprintln!("neura: failed to compile static regex: {err}");
             None
         }
     }
@@ -103,7 +103,7 @@ pub enum ContentBlock {
         data: String,
     },
     /// Hidden OpenAI Responses compaction item used to preserve native
-    /// compaction state across turns/saves when kcode explicitly triggers it.
+    /// compaction state across turns/saves when neura explicitly triggers it.
     OpenAICompaction {
         encrypted_content: String,
     },
@@ -482,8 +482,8 @@ pub fn redact_secrets(text: &str) -> String {
 
     // Also redact custom API key variable names configured at runtime.
     for source in [
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
     ] {
         let Some(key_name) = std::env::var(source)
             .ok()
@@ -539,7 +539,7 @@ impl ToolDefinition {
 
     /// Approximate prompt-token cost of this tool's top-level description.
     ///
-    /// This uses kcode's standard chars/4 heuristic, matching other token
+    /// This uses neura's standard chars/4 heuristic, matching other token
     /// budget estimates in the codebase.
     pub fn description_token_estimate(&self) -> usize {
         crate::util::estimate_tokens(&self.description)
@@ -721,7 +721,7 @@ pub enum StreamEvent {
     },
     /// Upstream provider info (e.g., which provider OpenRouter routed to)
     UpstreamProvider { provider: String },
-    /// Native tool call from a provider bridge that needs execution by kcode
+    /// Native tool call from a provider bridge that needs execution by neura
     NativeToolCall {
         request_id: String,
         tool_name: String,

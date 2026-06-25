@@ -268,20 +268,20 @@ async fn auth_test_choice_plan_leaves_non_compat_provider_unchanged() {
 async fn auth_test_choice_plan_discovers_model_for_local_custom_compat_endpoint() {
     let _env_guard = crate::storage::lock_test_env();
     let _saved = SavedEnv::capture(&[
-        "KCODE_OPENAI_COMPAT_API_BASE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_DEFAULT_MODEL",
-        "KCODE_OPENAI_COMPAT_LOCAL_ENABLED",
-        "KCODE_OPENROUTER_API_BASE",
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENROUTER_ALLOW_NO_AUTH",
+        "NEURA_OPENAI_COMPAT_API_BASE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_DEFAULT_MODEL",
+        "NEURA_OPENAI_COMPAT_LOCAL_ENABLED",
+        "NEURA_OPENROUTER_API_BASE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENROUTER_ALLOW_NO_AUTH",
     ]);
     let api_base = spawn_single_response_http_server(200, r#"{"data":[{"id":"llama3.2"}]}"#);
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_BASE", &api_base);
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_DEFAULT_MODEL");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_LOCAL_ENABLED");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_BASE", &api_base);
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_DEFAULT_MODEL");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_LOCAL_ENABLED");
     crate::provider_catalog::apply_openai_compatible_profile_env(None);
 
     let plan = auth_test_choice_plan(
@@ -301,15 +301,15 @@ async fn auth_test_choice_plan_discovers_model_for_local_custom_compat_endpoint(
 async fn auth_test_choice_plan_discovers_model_for_hosted_custom_compat_endpoint_with_api_key() {
     let _env_guard = crate::storage::lock_test_env();
     let _saved = SavedEnv::capture(&[
-        "KCODE_OPENAI_COMPAT_API_BASE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_DEFAULT_MODEL",
-        "KCODE_OPENAI_COMPAT_LOCAL_ENABLED",
-        "KCODE_OPENROUTER_API_BASE",
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENROUTER_ALLOW_NO_AUTH",
+        "NEURA_OPENAI_COMPAT_API_BASE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_DEFAULT_MODEL",
+        "NEURA_OPENAI_COMPAT_LOCAL_ENABLED",
+        "NEURA_OPENROUTER_API_BASE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENROUTER_ALLOW_NO_AUTH",
         "OPENAI_COMPAT_API_KEY",
         "NO_PROXY",
         "no_proxy",
@@ -322,12 +322,12 @@ async fn auth_test_choice_plan_discovers_model_for_hosted_custom_compat_endpoint
         200,
         r#"{"data":[{"id":"hosted-compatible-model"}]}"#,
     );
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_BASE", &api_base);
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_BASE", &api_base);
     crate::env::set_var("OPENAI_COMPAT_API_KEY", "test-key");
     crate::env::set_var("NO_PROXY", "0.0.0.0,127.0.0.1,localhost");
     crate::env::set_var("no_proxy", "0.0.0.0,127.0.0.1,localhost");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_DEFAULT_MODEL");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_LOCAL_ENABLED");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_DEFAULT_MODEL");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_LOCAL_ENABLED");
     crate::provider_catalog::apply_openai_compatible_profile_env(None);
 
     let resolved = crate::provider_catalog::resolve_openai_compatible_profile(
@@ -354,20 +354,20 @@ async fn auth_test_choice_plan_discovers_model_for_hosted_custom_compat_endpoint
 async fn auth_test_choice_plan_skips_local_custom_compat_endpoint_without_models() {
     let _env_guard = crate::storage::lock_test_env();
     let _saved = SavedEnv::capture(&[
-        "KCODE_OPENAI_COMPAT_API_BASE",
-        "KCODE_OPENAI_COMPAT_API_KEY_NAME",
-        "KCODE_OPENAI_COMPAT_ENV_FILE",
-        "KCODE_OPENAI_COMPAT_DEFAULT_MODEL",
-        "KCODE_OPENAI_COMPAT_LOCAL_ENABLED",
-        "KCODE_OPENROUTER_API_BASE",
-        "KCODE_OPENROUTER_API_KEY_NAME",
-        "KCODE_OPENROUTER_ENV_FILE",
-        "KCODE_OPENROUTER_ALLOW_NO_AUTH",
+        "NEURA_OPENAI_COMPAT_API_BASE",
+        "NEURA_OPENAI_COMPAT_API_KEY_NAME",
+        "NEURA_OPENAI_COMPAT_ENV_FILE",
+        "NEURA_OPENAI_COMPAT_DEFAULT_MODEL",
+        "NEURA_OPENAI_COMPAT_LOCAL_ENABLED",
+        "NEURA_OPENROUTER_API_BASE",
+        "NEURA_OPENROUTER_API_KEY_NAME",
+        "NEURA_OPENROUTER_ENV_FILE",
+        "NEURA_OPENROUTER_ALLOW_NO_AUTH",
     ]);
     let api_base = spawn_single_response_http_server(200, r#"{"data":[]}"#);
-    crate::env::set_var("KCODE_OPENAI_COMPAT_API_BASE", &api_base);
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_DEFAULT_MODEL");
-    crate::env::remove_var("KCODE_OPENAI_COMPAT_LOCAL_ENABLED");
+    crate::env::set_var("NEURA_OPENAI_COMPAT_API_BASE", &api_base);
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_DEFAULT_MODEL");
+    crate::env::remove_var("NEURA_OPENAI_COMPAT_LOCAL_ENABLED");
     crate::provider_catalog::apply_openai_compatible_profile_env(None);
 
     let plan = auth_test_choice_plan(

@@ -364,7 +364,7 @@ const RETRY_BASE_DELAY_MS: u64 = 1000;
 
 /// Default max output tokens for Anthropic models.
 /// Set to 32k to avoid truncating long tool calls (e.g. writing large files).
-/// Override with KCODE_ANTHROPIC_MAX_TOKENS env var.
+/// Override with NEURA_ANTHROPIC_MAX_TOKENS env var.
 const DEFAULT_MAX_TOKENS: u32 = 32_768;
 
 /// Available models
@@ -405,7 +405,7 @@ impl AnthropicProvider {
     }
 
     pub fn new() -> Self {
-        let model = std::env::var("KCODE_ANTHROPIC_MODEL").unwrap_or_else(|_| {
+        let model = std::env::var("NEURA_ANTHROPIC_MODEL").unwrap_or_else(|_| {
             if Self::is_usage_exhausted() {
                 "claude-sonnet-4-6".to_string()
             } else {
@@ -420,7 +420,7 @@ impl AnthropicProvider {
             })
         });
 
-        let max_tokens = std::env::var("KCODE_ANTHROPIC_MAX_TOKENS")
+        let max_tokens = std::env::var("NEURA_ANTHROPIC_MAX_TOKENS")
             .ok()
             .and_then(|v| v.trim().parse::<u32>().ok())
             .unwrap_or(DEFAULT_MAX_TOKENS);
@@ -827,7 +827,7 @@ impl AnthropicProvider {
                 },
             ];
             // Map caller-passed tool names into the OAuth identity list
-            // (case-insensitively, since locked Kcode tools are lowercase but
+            // (case-insensitively, since locked Neura tools are lowercase but
             // the OAuth identity list uses TitleCase). When the caller passes
             // a strict subset we filter; otherwise return the full list (legacy
             // behaviour) so tool-heavy turns keep working unchanged.
@@ -839,7 +839,7 @@ impl AnthropicProvider {
                 .collect();
             // Fall back to the full hardcoded list when the caller's set is
             // either (a) empty (already handled above) or (b) doesn't overlap
-            // at all — that's a v1 path passing the locked Kcode tool list,
+            // at all — that's a v1 path passing the locked Neura tool list,
             // none of whose names match TitleCase identity tools. Keep legacy
             // behaviour there: rebuild the full hardcoded list since the
             // filter above consumed the original.
@@ -1300,7 +1300,7 @@ async fn run_stream_with_retries(
                         Err(refresh_err) => {
                             let _ = tx
                                 .send(Err(anyhow::anyhow!(
-                                    "{}\n\nAutomatic Claude OAuth refresh failed: {}\nRun `kcode login --provider claude` (preferred) or `claude`, then retry.",
+                                    "{}\n\nAutomatic Claude OAuth refresh failed: {}\nRun `neura login --provider claude` (preferred) or `claude`, then retry.",
                                     e,
                                     refresh_err
                                 )))
@@ -1321,7 +1321,7 @@ async fn run_stream_with_retries(
                 if is_oauth && is_oauth_auth_error(&error_str) {
                     let _ = tx
                         .send(Err(anyhow::anyhow!(
-                            "{}\n\nClaude OAuth authentication failed. Run `kcode login --provider claude` (preferred) or `claude`, then retry.",
+                            "{}\n\nClaude OAuth authentication failed. Run `neura login --provider claude` (preferred) or `claude`, then retry.",
                             e
                         )))
                         .await;
@@ -1396,7 +1396,7 @@ async fn stream_response(
     oauth_session_id: &str,
 ) -> Result<()> {
     use crate::message::ConnectionPhase;
-    if std::env::var("KCODE_ANTHROPIC_DEBUG")
+    if std::env::var("NEURA_ANTHROPIC_DEBUG")
         .map(|v| v == "1")
         .unwrap_or(false)
         && let Ok(json) = serde_json::to_string_pretty(&request)

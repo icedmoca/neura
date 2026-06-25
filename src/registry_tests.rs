@@ -38,8 +38,8 @@ fn test_registry_find_by_name() {
 fn find_server_by_socket_sync_returns_matching_server() {
     let _guard = lock_test_env();
     let temp_home = tempfile::tempdir().expect("temp home");
-    let prev_home: Option<OsString> = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp_home.path());
+    let prev_home: Option<OsString> = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp_home.path());
 
     let socket = PathBuf::from("/tmp/blazing.sock");
     let mut registry = ServerRegistry::default();
@@ -58,9 +58,9 @@ fn find_server_by_socket_sync_returns_matching_server() {
     assert_eq!(found.icon, info.icon);
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -69,12 +69,12 @@ fn find_server_by_socket_sync_returns_matching_server() {
 async fn cleanup_stale_preserves_live_socket_paths() {
     let _guard = lock_test_env();
     let temp_home = tempfile::tempdir().expect("temp home");
-    let prev_home: Option<OsString> = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp_home.path());
+    let prev_home: Option<OsString> = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp_home.path());
 
     let temp_runtime = tempfile::tempdir().expect("temp runtime");
-    let socket = temp_runtime.path().join("kcode.sock");
-    let debug_socket = temp_runtime.path().join("kcode-debug.sock");
+    let socket = temp_runtime.path().join("neura.sock");
+    let debug_socket = temp_runtime.path().join("neura-debug.sock");
     let _listener = Listener::bind(&socket).expect("bind live socket");
     let _debug_listener = Listener::bind(&debug_socket).expect("bind live debug socket");
     let dead_pid = {
@@ -113,8 +113,8 @@ async fn cleanup_stale_preserves_live_socket_paths() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }

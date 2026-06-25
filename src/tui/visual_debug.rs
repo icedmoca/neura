@@ -335,7 +335,7 @@ pub fn record_frame(frame: FrameCapture) {
 fn debug_path() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("kcode")
+        .join("neura")
         .join("visual-debug.txt")
 }
 
@@ -353,7 +353,7 @@ pub fn dump_to_file() -> std::io::Result<PathBuf> {
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let mut file = File::create(&path)?;
 
-    writeln!(file, "=== KCODE VISUAL DEBUG DUMP ===")?;
+    writeln!(file, "=== NEURA VISUAL DEBUG DUMP ===")?;
     writeln!(file, "Generated: {:?}", std::time::SystemTime::now())?;
     writeln!(file, "Total frames captured: {}", buffer.next_frame_id)?;
     writeln!(file, "Frames in buffer: {}", buffer.frames.len())?;

@@ -5,7 +5,7 @@ use std::process::Command;
 use super::Agent;
 
 pub(super) fn trace_enabled() -> bool {
-    match std::env::var("KCODE_TRACE") {
+    match std::env::var("NEURA_TRACE") {
         Ok(value) => {
             let value = value.trim();
             !value.is_empty() && value != "0" && value.to_lowercase() != "false"

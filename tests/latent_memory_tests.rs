@@ -1,21 +1,21 @@
-use kcode::latent_learning_background::{
+use neura::latent_learning_background::{
     command_event, ingest_runtime_event, run_background_cycle,
 };
-use kcode::latent_memory::{LatentMemoryBank, latent_memory_path};
+use neura::latent_memory::{LatentMemoryBank, latent_memory_path};
 use tempfile::TempDir;
 
 fn isolate(dir: &TempDir) {
-    unsafe { std::env::set_var("KCODE_LATENT_LEARNING_DIR", dir.path().join("learning")) };
-    unsafe { std::env::set_var("KCODE_LATENT_STATE", dir.path().join("latent.json")) };
+    unsafe { std::env::set_var("NEURA_LATENT_LEARNING_DIR", dir.path().join("learning")) };
+    unsafe { std::env::set_var("NEURA_LATENT_STATE", dir.path().join("latent.json")) };
     unsafe {
         std::env::set_var(
-            "KCODE_LATENT_LEARNING_STATE",
+            "NEURA_LATENT_LEARNING_STATE",
             dir.path().join("learning.json"),
         )
     };
     unsafe {
         std::env::set_var(
-            "KCODE_LATENT_MEMORY_STATE",
+            "NEURA_LATENT_MEMORY_STATE",
             dir.path().join("latent-memory.json"),
         )
     };

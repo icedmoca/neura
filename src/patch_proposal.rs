@@ -71,7 +71,7 @@ fn now_ms() -> u128 {
 pub fn patch_proposal_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("patch_proposal_report.json")
 }
 
@@ -164,8 +164,8 @@ pub fn dry_run_patch(task_selector: Option<&str>) -> Result<PatchProposal> {
 pub fn validate_patch(proposal: &PatchProposal) -> PatchValidation {
     let checks = vec![
         validation_check(
-            "cargo check --bin kcode",
-            &["cargo", "check", "--bin", "kcode"],
+            "cargo check --bin neura",
+            &["cargo", "check", "--bin", "neura"],
         ),
         validation_check(
             "evidence replay tests",
@@ -297,7 +297,7 @@ pub fn build_patch_report(
 
 pub fn render_patch_report(report: &PatchProposalReport) -> String {
     let mut out = String::new();
-    out.push_str("# Kcode Replay-Gated Patch Proposal Report\n\n");
+    out.push_str("# Neura Replay-Gated Patch Proposal Report\n\n");
     out.push_str(&format!("- Summary: `{}`\n", report.summary));
     out.push_str(&format!("- Proposal: `{}`\n", report.proposal.id));
     out.push_str(&format!("- Task: `{}`\n", report.proposal.task_id));
@@ -390,7 +390,7 @@ pub struct PatchPipelineRun {
 pub fn patch_pipeline_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("self_improve_patch_pipeline.json")
 }
 
@@ -500,7 +500,7 @@ fn rollback_plan_for(proposal: &PatchProposal, gate: &PatchPromotionGate) -> Pat
 
 pub fn render_patch_pipeline(run: &PatchPipelineRun) -> String {
     let mut out = String::new();
-    out.push_str("# Kcode Replay-Scored Self-Improvement Patch Pipeline\n\n");
+    out.push_str("# Neura Replay-Scored Self-Improvement Patch Pipeline\n\n");
     out.push_str(&format!("- Summary: `{}`\n", run.summary));
     out.push_str(&format!("- Pipeline: `{}`\n", run.id));
     out.push_str(&format!("- Task selector: `{}`\n", run.task_selector));

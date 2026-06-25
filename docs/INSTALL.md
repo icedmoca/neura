@@ -1,10 +1,10 @@
-# Install Kcode: source, environment, and local model setup
+# Install Neura: source, environment, and local model setup
 
-This guide covers installing Kcode from source, preparing the development environment, configuring PATH, validating the checkout, and setting up optional LM Studio/local OpenAI-compatible model support.
+This guide covers installing Neura from source, preparing the development environment, configuring PATH, validating the checkout, and setting up optional LM Studio/local OpenAI-compatible model support.
 
 ## 1. Requirements
 
-Kcode is a Rust project. You need:
+Neura is a Rust project. You need:
 
 - Git;
 - Rust stable toolchain;
@@ -33,8 +33,8 @@ cargo --version
 ## 3. Clone and build
 
 ```bash
-git clone https://github.com/icedmoca/kcode.git
-cd kcode
+git clone https://github.com/icedmoca/neura.git
+cd neura
 cargo build --release
 ```
 
@@ -48,7 +48,7 @@ cargo run
 Release binary path:
 
 ```bash
-target/release/kcode
+target/release/neura
 ```
 
 ## 4. PATH configuration
@@ -62,7 +62,7 @@ export PATH="$PWD/target/release:$PATH"
 For persistent shell use, add the absolute path to your shell profile:
 
 ```bash
-export PATH="/absolute/path/to/kcode/target/release:$PATH"
+export PATH="/absolute/path/to/neura/target/release:$PATH"
 ```
 
 Then reload:
@@ -76,16 +76,16 @@ exec "$SHELL" -l
 From a remote checkout path:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/icedmoca/neura/main/install.sh | bash
 exec "$SHELL" -l
-kcode
+neura
 ```
 
 From a local clone:
 
 ```bash
 ./install.sh
-kcode
+neura
 ```
 
 Inspect `install.sh` before running it if you are operating in a constrained or security-sensitive environment.
@@ -145,7 +145,7 @@ Provider-specific credentials are adapter-dependent. General rules:
 
 ## 9. LM Studio and local OpenAI-compatible models
 
-Kcode includes local model diagnostics for LM Studio and other OpenAI-compatible local servers.
+Neura includes local model diagnostics for LM Studio and other OpenAI-compatible local servers.
 
 ### 9.1 Start LM Studio
 
@@ -159,12 +159,12 @@ Kcode includes local model diagnostics for LM Studio and other OpenAI-compatible
 http://127.0.0.1:1234/v1
 ```
 
-### 9.2 Check from Kcode
+### 9.2 Check from Neura
 
 Inside the TUI:
 
 ```text
-/kcode-local-model
+/neura-local-model
 ```
 
 The command checks `/v1/models` and `/v1/chat/completions`, then reports endpoint health, model availability, and a small completion smoke test.
@@ -172,7 +172,7 @@ The command checks `/v1/models` and `/v1/chat/completions`, then reports endpoin
 ### 9.3 Benchmark local model behavior
 
 ```bash
-cargo run --bin kcode-bench -- \
+cargo run --bin neura-bench -- \
   --local-provider lmstudio \
   --local-url http://127.0.0.1:1234/v1 \
   --local-model '<model-id-from-lm-studio>'
@@ -202,7 +202,7 @@ A smaller fast model can be better as a sidecar than a huge slow model because t
 
 ## 10. WSL networking for LM Studio
 
-If Kcode runs in WSL and LM Studio runs on Windows, `127.0.0.1` may not always point where you expect. Try:
+If Neura runs in WSL and LM Studio runs on Windows, `127.0.0.1` may not always point where you expect. Try:
 
 ```bash
 cat /etc/resolv.conf

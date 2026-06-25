@@ -1,4 +1,4 @@
-//! Adaptive cognition substrate for persistent `.kcode` memory evolution.
+//! Adaptive cognition substrate for persistent `.neura` memory evolution.
 //!
 //! This module stores memory as versioned, scored graph nodes rather than flat
 //! prompt snippets. It is intentionally deterministic and local-first so it can
@@ -191,16 +191,16 @@ pub struct UpsertNode {
 }
 
 pub fn store_path() -> PathBuf {
-    kcode_home()
+    neura_home()
         .join("self_memory")
         .join("adaptive_cognition.json")
 }
 
-pub fn kcode_home() -> PathBuf {
-    std::env::var_os("KCODE_HOME")
+pub fn neura_home() -> PathBuf {
+    std::env::var_os("NEURA_HOME")
         .map(PathBuf::from)
-        .or_else(|| dirs::home_dir().map(|home| home.join(".kcode")))
-        .unwrap_or_else(|| PathBuf::from(".kcode"))
+        .or_else(|| dirs::home_dir().map(|home| home.join(".neura")))
+        .unwrap_or_else(|| PathBuf::from(".neura"))
 }
 
 pub fn load_store() -> io::Result<CognitiveStore> {
@@ -268,7 +268,7 @@ pub fn inspector_markdown(limit: usize) -> io::Result<String> {
     evolve_store(&mut store);
     let ranked = retrieve_from_store(
         &store,
-        ".kcode memory cognition",
+        ".neura memory cognition",
         MAX_CONTEXT_TOKENS_DEFAULT,
     );
     let mut lines = vec![
@@ -2098,7 +2098,7 @@ fn render_frame(
             }
         }
         ObservationLayer::Summary => {
-            let top = retrieve_from_store(store, ".kcode cognition memory", 900);
+            let top = retrieve_from_store(store, ".neura cognition memory", 900);
             for scored in top.into_iter().take(8) {
                 node_ids.push(scored.id.clone());
                 if let Some(node) = store.nodes.get(&scored.id) {
@@ -3841,7 +3841,7 @@ fn seed_doctrine_ecosystem(store: &mut CognitiveStore) {
         (
             "doctrine-memory-evolution",
             DoctrineKind::MemoryEvolution,
-            ".kcode directives evolve through reinforcement, contradiction, outcomes, and retrieval attribution.",
+            ".neura directives evolve through reinforcement, contradiction, outcomes, and retrieval attribution.",
             0.9,
         ),
         (
@@ -3937,12 +3937,12 @@ fn update_federation_and_identity(store: &mut CognitiveStore) {
     }
     let identity = [
         (
-            "identity-kcode",
-            "Kcode is a proactive coding agent with persistent adaptive memory.",
+            "identity-neura",
+            "Neura is a proactive coding agent with persistent adaptive memory.",
         ),
         (
             "identity-user-intent",
-            "User wants .kcode instructions to recursively improve future behavior.",
+            "User wants .neura instructions to recursively improve future behavior.",
         ),
         (
             "identity-safety",
@@ -4284,7 +4284,7 @@ fn seed_governance_laws(store: &mut CognitiveStore) {
         (
             "law-memory",
             "Adaptive memory",
-            ".kcode directives are adaptive weighted memory, not immutable hidden law.",
+            ".neura directives are adaptive weighted memory, not immutable hidden law.",
             0.9,
         ),
         (
@@ -4398,13 +4398,13 @@ fn continuity_plans(store: &CognitiveStore) -> Vec<ContinuityPlan> {
         ContinuityPlan {
             id: "cont-refresh".to_string(),
             trigger: "/refresh or runtime restart".to_string(),
-            recovery_action: "Load ~/.kcode self_memory adaptive cognition store".to_string(),
+            recovery_action: "Load ~/.neura self_memory adaptive cognition store".to_string(),
             readiness: 0.9,
         },
         ContinuityPlan {
             id: "cont-build".to_string(),
             trigger: "new committed build".to_string(),
-            recovery_action: "Install to ~/.kcode/bin/kcode and builds/stable/kcode".to_string(),
+            recovery_action: "Install to ~/.neura/bin/neura and builds/stable/neura".to_string(),
             readiness: 0.85,
         },
         ContinuityPlan {
@@ -4595,7 +4595,7 @@ fn seed_sovereign_invariants(store: &mut CognitiveStore, os: &CivilizationOsRepo
         (
             "inv-memory",
             SovereignDomain::Law,
-            ".kcode memory evolves adaptively with provenance",
+            ".neura memory evolves adaptively with provenance",
             0.9,
         ),
         (
@@ -4773,7 +4773,7 @@ fn update_mythos_frames(store: &mut CognitiveStore, reason: &str) {
     let frames = [
         (
             "mythos-proactive-builder",
-            "Kcode improves itself through tested, reversible, user-aligned iterations.",
+            "Neura improves itself through tested, reversible, user-aligned iterations.",
             0.85,
             true,
         ),
@@ -11207,7 +11207,7 @@ mod tests {
             kind: CognitiveNodeKind::Directive,
             scope: CognitiveScope::Project,
             content: content.to_string(),
-            tags: vec![".kcode".to_string(), "memory".to_string()],
+            tags: vec![".neura".to_string(), "memory".to_string()],
             source: "test".to_string(),
             provenance: BTreeMap::new(),
         }
@@ -11216,8 +11216,8 @@ mod tests {
     #[test]
     fn upsert_reinforces_duplicate_nodes() {
         let mut store = CognitiveStore::default();
-        let id = upsert_node_in_store(&mut store, upsert("remember .kcode memory"));
-        let id2 = upsert_node_in_store(&mut store, upsert("remember .kcode memory"));
+        let id = upsert_node_in_store(&mut store, upsert("remember .neura memory"));
+        let id2 = upsert_node_in_store(&mut store, upsert("remember .neura memory"));
         assert_eq!(id, id2);
         assert_eq!(store.nodes.len(), 1);
         assert!(store.nodes[&id].weights.reinforcement > 1.0);
@@ -11226,8 +11226,8 @@ mod tests {
     #[test]
     fn evolution_links_related_and_contradictory_nodes() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert("always remember .kcode graph memory"));
-        upsert_node_in_store(&mut store, upsert("never remember .kcode graph memory"));
+        upsert_node_in_store(&mut store, upsert("always remember .neura graph memory"));
+        upsert_node_in_store(&mut store, upsert("never remember .neura graph memory"));
         evolve_store(&mut store);
         assert!(
             store
@@ -11247,10 +11247,10 @@ mod tests {
     fn retrieval_respects_token_budget_and_query_relevance() {
         let mut store = CognitiveStore::default();
         let graph_id =
-            upsert_node_in_store(&mut store, upsert(".kcode graph traversal scoring memory"));
+            upsert_node_in_store(&mut store, upsert(".neura graph traversal scoring memory"));
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode unrelated preference about colors"),
+            upsert(".neura unrelated preference about colors"),
         );
         evolve_store(&mut store);
         let selected = retrieve_from_store(&store, "graph traversal", 30);
@@ -11261,7 +11261,7 @@ mod tests {
     #[test]
     fn execution_outcomes_change_scores() {
         let mut store = CognitiveStore::default();
-        let id = upsert_node_in_store(&mut store, upsert(".kcode execution outcome linkage"));
+        let id = upsert_node_in_store(&mut store, upsert(".neura execution outcome linkage"));
         evolve_store(&mut store);
         let before = retrieve_from_store(&store, "execution", 100)[0].score;
         store.execution_signals.push(ExecutionSignal {
@@ -11282,11 +11282,11 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode observable cognition graph rendering"),
+            upsert(".neura observable cognition graph rendering"),
         );
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode observable cognition replay export"),
+            upsert(".neura observable cognition replay export"),
         );
         evolve_store(&mut store);
         let snapshot = observable_snapshot_from_store(
@@ -11311,7 +11311,7 @@ mod tests {
     #[test]
     fn sideband_render_is_ctx_like_and_bounded() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode sideband observable cognition"));
+        upsert_node_in_store(&mut store, upsert(".neura sideband observable cognition"));
         evolve_store(&mut store);
         let snapshot = observable_snapshot_from_store(&store, RenderOptions::default());
         let md = render_snapshot_markdown(&snapshot);
@@ -11330,7 +11330,7 @@ mod tests {
         store.operational_state.policy.max_tasks_per_cycle = 4;
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode operational cognition runtime scheduling"),
+            upsert(".neura operational cognition runtime scheduling"),
         );
         evolve_store(&mut store);
         let report = run_operational_cycle_in_store(&mut store, "test cycle".to_string());
@@ -11346,11 +11346,11 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert("always remember .kcode operational memory"),
+            upsert("always remember .neura operational memory"),
         );
         upsert_node_in_store(
             &mut store,
-            upsert("never remember .kcode operational memory"),
+            upsert("never remember .neura operational memory"),
         );
         evolve_store(&mut store);
         store.operational_state.policy.stability_floor = 0.99;
@@ -11368,7 +11368,7 @@ mod tests {
     #[test]
     fn operational_json_export_shape_is_serializable() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode runtime export serialization"));
+        upsert_node_in_store(&mut store, upsert(".neura runtime export serialization"));
         let report = run_operational_cycle_in_store(&mut store, "json test".to_string());
         let json = serde_json::to_string(&report).unwrap();
         assert!(json.contains("entropy"));
@@ -11380,7 +11380,7 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode execution governor adaptive planning"),
+            upsert(".neura execution governor adaptive planning"),
         );
         evolve_store(&mut store);
         let report = run_execution_governor_in_store(&mut store, "test governor".to_string());
@@ -11395,11 +11395,11 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert("always remember .kcode execution governor"),
+            upsert("always remember .neura execution governor"),
         );
         upsert_node_in_store(
             &mut store,
-            upsert("never remember .kcode execution governor"),
+            upsert("never remember .neura execution governor"),
         );
         evolve_store(&mut store);
         store.operational_state.policy.stability_floor = 0.99;
@@ -11417,7 +11417,7 @@ mod tests {
     #[test]
     fn execution_plan_blocks_actions_over_risk_budget() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode risk budget execution governor"));
+        upsert_node_in_store(&mut store, upsert(".neura risk budget execution governor"));
         evolve_store(&mut store);
         let mut plan = build_execution_plan(&store, "risk");
         plan.risk_budget = 0.01;
@@ -11431,11 +11431,11 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode procedural intelligence runtime memory"),
+            upsert(".neura procedural intelligence runtime memory"),
         );
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode procedural intelligence runtime testing"),
+            upsert(".neura procedural intelligence runtime testing"),
         );
         evolve_store(&mut store);
         let report =
@@ -11455,7 +11455,7 @@ mod tests {
     #[test]
     fn procedural_runtime_quarantines_failing_procedures() {
         let mut store = CognitiveStore::default();
-        let id = upsert_node_in_store(&mut store, upsert(".kcode failing procedure lineage"));
+        let id = upsert_node_in_store(&mut store, upsert(".neura failing procedure lineage"));
         evolve_store(&mut store);
         run_procedural_runtime_in_store(&mut store, "failing procedure".to_string());
         for _ in 0..4 {
@@ -11483,7 +11483,7 @@ mod tests {
     #[test]
     fn procedural_safety_notes_enforce_doctrine() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode safe procedural runtime"));
+        upsert_node_in_store(&mut store, upsert(".neura safe procedural runtime"));
         let report =
             run_procedural_runtime_in_store(&mut store, "safe procedural runtime".to_string());
         assert!(
@@ -11505,7 +11505,7 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode cognitive fabric environment subsystem"),
+            upsert(".neura cognitive fabric environment subsystem"),
         );
         run_procedural_runtime_in_store(&mut store, "fabric setup".to_string());
         let report = run_cognitive_fabric_in_store(&mut store, "fabric".to_string());
@@ -11521,11 +11521,11 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert("always remember .kcode fabric contradiction"),
+            upsert("always remember .neura fabric contradiction"),
         );
         upsert_node_in_store(
             &mut store,
-            upsert("never remember .kcode fabric contradiction"),
+            upsert("never remember .neura fabric contradiction"),
         );
         evolve_store(&mut store);
         let report = run_cognitive_fabric_in_store(&mut store, "fabric contradiction".to_string());
@@ -11541,7 +11541,7 @@ mod tests {
     #[test]
     fn cognitive_fabric_arbitration_has_rationale() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode fabric arbitration doctrine"));
+        upsert_node_in_store(&mut store, upsert(".neura fabric arbitration doctrine"));
         let report = run_cognitive_fabric_in_store(&mut store, "arbitrate".to_string());
         assert!(report.arbitration.rationale.contains("top_latent"));
         assert!(report.summary.contains("fabric stability"));
@@ -11552,7 +11552,7 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode distributed fabric consensus routing"),
+            upsert(".neura distributed fabric consensus routing"),
         );
         let report = run_distributed_fabric_in_store(&mut store, "distributed fabric".to_string());
         assert!(report.nodes.len() >= 6);
@@ -11610,7 +11610,7 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode strategic civilization doctrine resource"),
+            upsert(".neura strategic civilization doctrine resource"),
         );
         run_distributed_fabric_in_store(&mut store, "seed fabric".to_string());
         let report =
@@ -11630,7 +11630,7 @@ mod tests {
         let report =
             run_strategic_civilization_runtime_in_store(&mut store, "identity".to_string());
         assert!(!report.federation.is_empty());
-        assert!(report.identity.iter().any(|i| i.id == "identity-kcode"));
+        assert!(report.identity.iter().any(|i| i.id == "identity-neura"));
     }
 
     #[test]
@@ -11645,7 +11645,7 @@ mod tests {
     #[test]
     fn civilization_os_builds_governance_and_continuity() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode civilization os governance"));
+        upsert_node_in_store(&mut store, upsert(".neura civilization os governance"));
         run_distributed_fabric_in_store(&mut store, "fabric".to_string());
         let report = run_civilization_os_in_store(&mut store, "civilization os".to_string());
         assert!(report.institutions.len() >= 6);
@@ -11682,7 +11682,7 @@ mod tests {
         let mut store = CognitiveStore::default();
         upsert_node_in_store(
             &mut store,
-            upsert(".kcode sovereign ecosystem constitution economy"),
+            upsert(".neura sovereign ecosystem constitution economy"),
         );
         let report = run_sovereign_ecosystem_in_store(&mut store, "sovereign".to_string());
         assert!(report.invariants.len() >= 5);
@@ -11713,7 +11713,7 @@ mod tests {
     #[test]
     fn hardening_runtime_collects_anchors_and_pulse() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode hardening runtime anchors"));
+        upsert_node_in_store(&mut store, upsert(".neura hardening runtime anchors"));
         run_sovereign_ecosystem_in_store(&mut store, "seed".to_string());
         let report = run_hardening_runtime_in_store(&mut store, "hardening".to_string());
         assert!(!report.reality_anchors.is_empty());
@@ -11724,7 +11724,7 @@ mod tests {
     #[test]
     fn hardening_runtime_deactivates_bad_nodes() {
         let mut store = CognitiveStore::default();
-        let id = upsert_node_in_store(&mut store, upsert(".kcode bad contradicted node"));
+        let id = upsert_node_in_store(&mut store, upsert(".neura bad contradicted node"));
         if let Some(node) = store.nodes.get_mut(&id) {
             node.weights.contradiction = 0.95;
             node.weights.confidence = 0.1;
@@ -11750,7 +11750,7 @@ mod tests {
     #[test]
     fn reality_coupling_collects_telemetry_claims_and_world_state() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode reality coupling verification"));
+        upsert_node_in_store(&mut store, upsert(".neura reality coupling verification"));
         let report = run_reality_coupling_in_store(&mut store, "reality".to_string());
         assert!(!report.telemetry.is_empty());
         assert!(!report.claims.is_empty());
@@ -11797,7 +11797,7 @@ mod tests {
     #[test]
     fn epistemology_builds_claims_evidence_and_health() {
         let mut store = CognitiveStore::default();
-        upsert_node_in_store(&mut store, upsert(".kcode epistemology claim evidence"));
+        upsert_node_in_store(&mut store, upsert(".neura epistemology claim evidence"));
         let report = run_epistemology_in_store(&mut store, "epistemology".to_string());
         assert!(!report.claims.is_empty());
         assert!(!report.evidence.is_empty());

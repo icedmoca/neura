@@ -14,7 +14,7 @@ use crate::storage;
 // ---------------------------------------------------------------------------
 
 /// Context passed from the ambient runner to a visible TUI cycle.
-/// Saved to `~/.kcode/ambient/visible_cycle.json`.
+/// Saved to `~/.neura/ambient/visible_cycle.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VisibleCycleContext {
     pub system_prompt: String,
@@ -23,7 +23,7 @@ pub struct VisibleCycleContext {
 
 impl VisibleCycleContext {
     pub fn context_path() -> Result<PathBuf> {
-        Ok(storage::kcode_dir()?
+        Ok(storage::neura_dir()?
             .join("ambient")
             .join("visible_cycle.json"))
     }
@@ -42,7 +42,7 @@ impl VisibleCycleContext {
     }
 
     pub fn result_path() -> Result<PathBuf> {
-        Ok(storage::kcode_dir()?
+        Ok(storage::neura_dir()?
             .join("ambient")
             .join("cycle_result.json"))
     }
@@ -178,7 +178,7 @@ pub struct ScheduleRequest {
 // ---------------------------------------------------------------------------
 
 fn ambient_dir() -> Result<PathBuf> {
-    let dir = storage::kcode_dir()?.join("ambient");
+    let dir = storage::neura_dir()?.join("ambient");
     storage::ensure_dir(&dir)?;
     Ok(dir)
 }
@@ -677,7 +677,7 @@ pub fn gather_feedback_memories(memory_manager: &crate::memory::MemoryManager) -
     let mut feedback = Vec::new();
 
     // --- Source 1: Recent ambient transcripts ---
-    let transcripts_dir = match crate::storage::kcode_dir() {
+    let transcripts_dir = match crate::storage::neura_dir() {
         Ok(d) => d.join("ambient").join("transcripts"),
         Err(_) => return feedback,
     };
@@ -735,7 +735,7 @@ pub fn gather_feedback_memories(memory_manager: &crate::memory::MemoryManager) -
 
 /// Gather recent sessions since a given timestamp.
 pub fn gather_recent_sessions(since: Option<DateTime<Utc>>) -> Vec<RecentSessionInfo> {
-    let sessions_dir = match crate::storage::kcode_dir() {
+    let sessions_dir = match crate::storage::neura_dir() {
         Ok(d) => d.join("sessions"),
         Err(_) => return Vec::new(),
     };
@@ -808,7 +808,7 @@ pub fn build_ambient_system_prompt(
     let mut prompt = String::with_capacity(4096);
 
     prompt.push_str(
-        "You are the ambient agent for kcode. You operate autonomously without \
+        "You are the ambient agent for neura. You operate autonomously without \
          user prompting. Your job is to maintain and improve the user's \
          development environment.\n\n",
     );
@@ -1025,7 +1025,7 @@ pub fn build_ambient_system_prompt(
          about what you're doing. Send a brief message when you start a cycle \
          and when you finish significant work. Keep messages short and useful — \
          the user should be able to glance at their messages and know what's happening \
-         without opening kcode. You can optionally target a specific channel \
+         without opening neura. You can optionally target a specific channel \
          (e.g. telegram, discord) or omit channel to send to all.\n",
     );
 

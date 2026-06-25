@@ -110,8 +110,8 @@ impl App {
         {
             return;
         }
-        if let Ok(kcode_dir) = crate::storage::kcode_dir() {
-            let path = kcode_dir.join(format!("client-input-{}", session_id));
+        if let Ok(neura_dir) = crate::storage::neura_dir() {
+            let path = neura_dir.join(format!("client-input-{}", session_id));
             let rate_limit_reset_in_ms = if resume_prompt.is_some() {
                 None
             } else {
@@ -176,8 +176,8 @@ impl App {
         if message.trim().is_empty() {
             return;
         }
-        if let Ok(kcode_dir) = crate::storage::kcode_dir() {
-            let path = kcode_dir.join(format!("client-input-{}", session_id));
+        if let Ok(neura_dir) = crate::storage::neura_dir() {
+            let path = neura_dir.join(format!("client-input-{}", session_id));
             let inferred_hints = infer_spawned_session_startup_hints(&message);
             let data = serde_json::json!({
                 "cursor": 0,
@@ -212,8 +212,8 @@ impl App {
         if input.trim().is_empty() && pending_images.is_empty() {
             return;
         }
-        if let Ok(kcode_dir) = crate::storage::kcode_dir() {
-            let path = kcode_dir.join(format!("client-input-{}", session_id));
+        if let Ok(neura_dir) = crate::storage::neura_dir() {
+            let path = neura_dir.join(format!("client-input-{}", session_id));
             let data = serde_json::json!({
                 "cursor": input.len(),
                 "input": input,
@@ -243,8 +243,8 @@ impl App {
     }
 
     pub(super) fn restore_input_for_reload(session_id: &str) -> Option<RestoredReloadInput> {
-        let kcode_dir = crate::storage::kcode_dir().ok()?;
-        let path = kcode_dir.join(format!("client-input-{}", session_id));
+        let neura_dir = crate::storage::neura_dir().ok()?;
+        let path = neura_dir.join(format!("client-input-{}", session_id));
         if !path.exists() {
             return None;
         }
@@ -776,13 +776,13 @@ impl App {
 
     /// Get the debug socket path
     pub fn debug_socket_path() -> std::path::PathBuf {
-        crate::storage::runtime_dir().join("kcode-debug.sock")
+        crate::storage::runtime_dir().join("neura-debug.sock")
     }
 }
 
 pub(super) fn handle_info_command(app: &mut App, trimmed: &str) -> bool {
     if trimmed == "/version" {
-        let version = env!("KCODE_VERSION");
+        let version = env!("NEURA_VERSION");
         let is_canary = if app.session.is_canary {
             " (canary/self-dev)"
         } else {
@@ -790,7 +790,7 @@ pub(super) fn handle_info_command(app: &mut App, trimmed: &str) -> bool {
         };
         app.push_display_message(DisplayMessage {
             role: "system".to_string(),
-            content: format!("kcode {}{}", version, is_canary),
+            content: format!("neura {}{}", version, is_canary),
             tool_calls: vec![],
             duration_secs: None,
             title: None,
@@ -841,7 +841,7 @@ pub(super) fn handle_info_command(app: &mut App, trimmed: &str) -> bool {
     }
 
     if trimmed == "/info" {
-        let version = env!("KCODE_VERSION");
+        let version = env!("NEURA_VERSION");
         let terminal_size = crossterm::terminal::size()
             .map(|(w, h)| format!("{}x{}", w, h))
             .unwrap_or_else(|_| "unknown".to_string());
@@ -986,9 +986,9 @@ pub(super) fn handle_info_command(app: &mut App, trimmed: &str) -> bool {
                     None => "none",
                 };
                 format!(
-                    "- supported: yes\n- mode: {}\n- kcode-managed: {}\n- active summary: {} ({})\n- compacted messages: {}\n- active messages: {}\n- summary chars: {}\n- estimated tokens: {}\n- effective tokens: {}\n- observed tokens: {}\n- usage: {:.1}%\n- compacting now: {}\n- budget: {}",
+                    "- supported: yes\n- mode: {}\n- neura-managed: {}\n- active summary: {} ({})\n- compacted messages: {}\n- active messages: {}\n- summary chars: {}\n- estimated tokens: {}\n- effective tokens: {}\n- observed tokens: {}\n- usage: {:.1}%\n- compacting now: {}\n- budget: {}",
                     mode,
-                    if app.provider.uses_kcode_compaction() {
+                    if app.provider.uses_neura_compaction() {
                         "yes"
                     } else {
                         "no"

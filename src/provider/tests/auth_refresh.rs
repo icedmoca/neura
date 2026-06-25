@@ -194,7 +194,7 @@ fn test_anthropic_model_routes_keep_plain_4_6_available_without_extra_usage() {
 fn test_on_auth_changed_hot_initializes_openrouter_and_marks_routes_available() {
     with_clean_provider_test_env(|| {
         with_env_var("OPENROUTER_API_KEY", "test-openrouter-key", || {
-            with_env_var("KCODE_OPENROUTER_MODEL_CATALOG", "0", || {
+            with_env_var("NEURA_OPENROUTER_MODEL_CATALOG", "0", || {
                 let runtime = enter_test_runtime();
                 let _enter = runtime.enter();
 

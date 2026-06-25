@@ -12,15 +12,15 @@ fn set_or_clear_env(key: &str, value: Option<std::ffi::OsString>) {
 fn scriptable_resume_command_matches_input_kind() {
     assert_eq!(
         scriptable_resume_command("openai", "callback_url"),
-        "kcode login --provider openai --callback-url '<url-or-query>'"
+        "neura login --provider openai --callback-url '<url-or-query>'"
     );
     assert_eq!(
         scriptable_resume_command("gemini", "auth_code"),
-        "kcode login --provider gemini --auth-code '<code>'"
+        "neura login --provider gemini --auth-code '<code>'"
     );
     assert_eq!(
         scriptable_resume_command("copilot", "complete"),
-        "kcode login --provider copilot --complete"
+        "neura login --provider copilot --complete"
     );
 }
 
@@ -28,8 +28,8 @@ fn scriptable_resume_command_matches_input_kind() {
 fn load_pending_login_removes_expired_record() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("temp dir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let path = pending_login_path("openai").expect("pending path");
     let record = PendingScriptableLoginRecord {
@@ -47,15 +47,15 @@ fn load_pending_login_removes_expired_record() {
     assert!(err.to_string().contains("expired"));
     assert!(!path.exists(), "expired pending login should be removed");
 
-    set_or_clear_env("KCODE_HOME", prev_home);
+    set_or_clear_env("NEURA_HOME", prev_home);
 }
 
 #[test]
 fn load_pending_login_accepts_legacy_format() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("temp dir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let path = pending_login_path("gemini").expect("pending path");
     let legacy = PendingScriptableLogin::Gemini {
@@ -76,7 +76,7 @@ fn load_pending_login_accepts_legacy_format() {
         other => panic!("unexpected login variant: {:?}", other),
     }
 
-    set_or_clear_env("KCODE_HOME", prev_home);
+    set_or_clear_env("NEURA_HOME", prev_home);
 }
 
 #[test]

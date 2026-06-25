@@ -1,9 +1,9 @@
-//! Neura-agent inspired memory utilities ported into Kcode.
+//! Neura-agent inspired memory utilities ported into Neura.
 //!
 //! This module intentionally keeps only deterministic, local, low-risk pieces
 //! from `~/neura-agent`: sensitive-memory detection and keyword overlap scoring.
 //! The larger Python graph/vector stack is experimental and overlaps with
-//! Kcode's existing memory graph, embeddings, and confidence model.
+//! Neura's existing memory graph, embeddings, and confidence model.
 
 use crate::memory::MemoryEntry;
 use std::collections::HashSet;
@@ -135,7 +135,7 @@ pub(crate) fn keyword_terms(text: &str) -> HashSet<String> {
 
 /// Neura-inspired lexical overlap bonus layered onto embedding similarity.
 /// This helps exact project names, filenames, feature names, and uncommon terms
-/// survive embedding noise without replacing Kcode's embedding search.
+/// survive embedding noise without replacing Neura's embedding search.
 pub(crate) fn keyword_overlap_bonus(entry: &MemoryEntry, query_text: &str) -> f32 {
     let query_terms = keyword_terms(query_text);
     if query_terms.is_empty() {
@@ -277,14 +277,14 @@ mod tests {
     fn keyword_overlap_bonus_rewards_uncommon_terms() {
         let entry = MemoryEntry::new(
             MemoryCategory::Fact,
-            "Kcode interlang ultra exacttok tokenizer context vault",
+            "Neura interlang ultra exacttok tokenizer context vault",
         );
         assert!(keyword_overlap_bonus(&entry, "interlang tokenizer vault") > 0.1);
     }
 
     #[test]
     fn relation_extraction_tags_preferences() {
-        let tags = extract_relation_tags("I prefer Kcode and the project depends on tokenizers");
+        let tags = extract_relation_tags("I prefer Neura and the project depends on tokenizers");
         assert!(tags.contains(&"rel:prefers".to_string()));
         assert!(tags.contains(&"rel:depends_on".to_string()));
     }

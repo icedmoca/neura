@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Deterministic local context-strategy benchmark for Kcode docs.
+"""Deterministic local context-strategy benchmark for Neura docs.
 
 Compares three retrieval/context strategies without calling a remote model:
 - full_context: pays for all blocks, always has the answer if present.
-- kcode_exact: compact context IDs plus exact lookup by ID/alias/query.
+- neura_exact: compact context IDs plus exact lookup by ID/alias/query.
 - lexical_rag: simple bag-of-words retrieval over block text.
 
 The benchmark measures the context layer: token/char cost, recall, citation correctness,
@@ -51,11 +51,11 @@ class Result:
 FACTS = [
     ("deploy target", "staging-blue"),
     ("database host", "db13.internal"),
-    ("feature flag", "kcode_dynamic_tool_pruning"),
+    ("feature flag", "neura_dynamic_tool_pruning"),
     ("release owner", "Mira"),
-    ("rollback command", "kubectl rollout undo deploy/kcode-api"),
+    ("rollback command", "kubectl rollout undo deploy/neura-api"),
     ("cache namespace", "kc_ctx_v3"),
-    ("support inbox", "support@kcode.local"),
+    ("support inbox", "support@neura.local"),
     ("model route", "openai/gpt-5.5"),
     ("metrics port", "9197"),
     ("canary percent", "7"),
@@ -77,7 +77,7 @@ def make_blocks(repetitions: int = 14) -> list[Block]:
             blocks.append(Block(f"ctx:noise-{r}-{i}", f"Noise block {r}-{i}. {line}"))
         for i, (name, value) in enumerate(FACTS):
             text = (
-                f"Authoritative Kcode fact {i}. The {name} is {value}. "
+                f"Authoritative Neura fact {i}. The {name} is {value}. "
                 f"Use context id ctx:fact-{i} when citing this fact. "
                 f"Distractor tokens: benchmark context recall exact vault rag full-context."
             )
@@ -117,7 +117,7 @@ def full_context(blocks: list[Block], q: Query) -> tuple[list[Block], int]:
     return blocks, cost_chars(blocks)
 
 
-def kcode_exact(blocks: list[Block], q: Query) -> tuple[list[Block], int]:
+def neura_exact(blocks: list[Block], q: Query) -> tuple[list[Block], int]:
     # Simulates compact refs plus exact rehydration for an intended fact query.
     ref_cost = sum(len(f'<ctx id="{b.id}" n={len(b.text)} s="..."/>') for b in blocks)
     if q.target_id:
@@ -139,7 +139,7 @@ def lexical_rag(blocks: list[Block], q: Query, k: int = 3) -> tuple[list[Block],
 
 def answer(strategy: str, q: Query, retrieved: list[Block]) -> tuple[str, str | None]:
     if q.kind == "absent":
-        # Full context and Kcode exact can say absent. Lexical RAG may retrieve distractors and over-answer.
+        # Full context and Neura exact can say absent. Lexical RAG may retrieve distractors and over-answer.
         if strategy == "lexical_rag" and retrieved:
             return f"Unsupported guess from {retrieved[0].id}: unknown", retrieved[0].id
         return "Not found in provided context.", None
@@ -156,7 +156,7 @@ def run() -> dict:
     queries = make_queries()
     strategies: dict[str, Callable[[list[Block], Query], tuple[list[Block], int]]] = {
         "full_context": full_context,
-        "kcode_exact": kcode_exact,
+        "neura_exact": neura_exact,
         "lexical_rag": lexical_rag,
     }
     results: list[Result] = []

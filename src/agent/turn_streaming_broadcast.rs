@@ -774,7 +774,7 @@ impl Agent {
 
             // If provider handles tools internally, only run native tools locally
             if self.provider.handles_tools_internally() {
-                tool_calls.retain(|tc| KCODE_NATIVE_TOOLS.contains(&tc.name.as_str()));
+                tool_calls.retain(|tc| NEURA_NATIVE_TOOLS.contains(&tc.name.as_str()));
                 if tool_calls.is_empty() {
                     // === INJECTION POINT D: After provider-handled tools, before next API call ===
                     let injected = self.inject_soft_interrupts();
@@ -837,7 +837,7 @@ impl Agent {
                     .clone()
                     .unwrap_or_else(|| self.session.id.clone());
 
-                let is_native_tool = KCODE_NATIVE_TOOLS.contains(&tc.name.as_str());
+                let is_native_tool = NEURA_NATIVE_TOOLS.contains(&tc.name.as_str());
 
                 // Check if SDK already executed this tool
                 if let Some((sdk_content, sdk_is_error)) = sdk_tool_results.remove(&tc.id) {

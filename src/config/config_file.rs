@@ -1,11 +1,11 @@
 use super::*;
-use crate::storage::kcode_dir;
+use crate::storage::neura_dir;
 use std::path::PathBuf;
 
 impl Config {
     /// Get the config file path
     pub fn path() -> Option<PathBuf> {
-        kcode_dir().ok().map(|d| d.join("config.toml"))
+        neura_dir().ok().map(|d| d.join("config.toml"))
     }
 
     /// Load config from file, with environment variable overrides

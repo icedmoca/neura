@@ -82,10 +82,10 @@ fn oauth_tokens_without_id_token() -> Result<()> {
 }
 
 #[test]
-fn save_openai_tokens_uses_kcode_home_sandbox() -> Result<()> {
+fn save_openai_tokens_uses_neura_home_sandbox() -> Result<()> {
     let _lock = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp.path());
 
     let tokens = OAuthTokens {
         access_token: "at_sandbox".to_string(),

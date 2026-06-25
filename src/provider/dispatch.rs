@@ -88,7 +88,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "OpenAI credentials not available. Run `kcode login --provider openai` to log in."
+                        "OpenAI credentials not available. Run `neura login --provider openai` to log in."
                     ))
                 }
             }
@@ -104,7 +104,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "GitHub Copilot is not available. Run `kcode login --provider copilot`."
+                        "GitHub Copilot is not available. Run `neura login --provider copilot`."
                     ))
                 }
             }
@@ -116,7 +116,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "Antigravity is not available. Run `kcode login --provider antigravity`."
+                        "Antigravity is not available. Run `neura login --provider antigravity`."
                     ))
                 }
             }
@@ -132,7 +132,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "Gemini is not available. Run `kcode login --provider gemini`."
+                        "Gemini is not available. Run `neura login --provider gemini`."
                     ))
                 }
             }
@@ -148,7 +148,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "Cursor is not available. Run `kcode login --provider cursor`."
+                        "Cursor is not available. Run `neura login --provider cursor`."
                     ))
                 }
             }
@@ -225,7 +225,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "OpenAI credentials not available. Run `kcode login --provider openai` to log in."
+                        "OpenAI credentials not available. Run `neura login --provider openai` to log in."
                     ))
                 }
             }
@@ -247,7 +247,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "GitHub Copilot is not available. Run `kcode login --provider copilot`."
+                        "GitHub Copilot is not available. Run `neura login --provider copilot`."
                     ))
                 }
             }
@@ -265,7 +265,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "Antigravity is not available. Run `kcode login --provider antigravity`."
+                        "Antigravity is not available. Run `neura login --provider antigravity`."
                     ))
                 }
             }
@@ -287,7 +287,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "Gemini is not available. Run `kcode login --provider gemini`."
+                        "Gemini is not available. Run `neura login --provider gemini`."
                     ))
                 }
             }
@@ -309,7 +309,7 @@ impl MultiProvider {
                         .await
                 } else {
                     Err(anyhow::anyhow!(
-                        "Cursor is not available. Run `kcode login --provider cursor`."
+                        "Cursor is not available. Run `neura login --provider cursor`."
                     ))
                 }
             }

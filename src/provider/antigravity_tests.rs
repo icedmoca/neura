@@ -76,8 +76,8 @@ fn available_models_display_includes_dynamic_cache_and_current_override() {
 fn available_models_display_seeds_from_persisted_catalog() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("temp dir");
-    let previous = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let previous = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let path = AntigravityCliProvider::persisted_catalog_path().expect("catalog path");
     crate::storage::write_json(
@@ -108,9 +108,9 @@ fn available_models_display_seeds_from_persisted_catalog() {
     );
 
     if let Some(previous) = previous {
-        crate::env::set_var("KCODE_HOME", previous);
+        crate::env::set_var("NEURA_HOME", previous);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 

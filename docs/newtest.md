@@ -1,13 +1,13 @@
-# Kcode Message Flow Test
+# Neura Message Flow Test
 
-This diagram captures the current high-level flow when a user sends a message to Kcode, plus a technical suggestion for making responses feel even more immediate.
+This diagram captures the current high-level flow when a user sends a message to Neura, plus a technical suggestion for making responses feel even more immediate.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User
     participant UI as Cockpit UI<br/>ui/src/App.tsx
-    participant API as Desktop HTTP API<br/>crates/kcode-desktop/src/main.rs
+    participant API as Desktop HTTP API<br/>crates/neura-desktop/src/main.rs
     participant Session as Session Manager<br/>single_session/session_data
     participant Agent as Codex Agent Runtime
     participant Store as Chat/Session State

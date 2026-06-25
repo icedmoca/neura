@@ -21,7 +21,7 @@ fn main() {
     };
 
     let git_hash = env_or_metadata_or_git(
-        "KCODE_BUILD_GIT_HASH",
+        "NEURA_BUILD_GIT_HASH",
         "git_hash",
         ["rev-parse", "--short", "HEAD"],
     )
@@ -30,14 +30,14 @@ fn main() {
 
     // Get git commit date (full datetime with timezone for accurate age calculation)
     let git_date = env_or_metadata_or_git(
-        "KCODE_BUILD_GIT_DATE",
+        "NEURA_BUILD_GIT_DATE",
         "git_date",
         ["log", "-1", "--format=%ci"],
     )
     .filter(|value| !value.is_empty())
     .unwrap_or_else(|| "unknown".to_string());
 
-    let dirty = match std::env::var("KCODE_BUILD_GIT_DIRTY") {
+    let dirty = match std::env::var("NEURA_BUILD_GIT_DIRTY") {
         Ok(value) => matches!(
             value.trim().to_ascii_lowercase().as_str(),
             "1" | "true" | "yes" | "dirty"
@@ -55,7 +55,7 @@ fn main() {
 
     // Get git tag (e.g., "v0.1.2" if HEAD is tagged, or "v0.1.2-3-gabc1234" if ahead)
     let git_tag = env_or_metadata_or_git(
-        "KCODE_BUILD_GIT_TAG",
+        "NEURA_BUILD_GIT_TAG",
         "git_tag",
         ["describe", "--tags", "--always"],
     )
@@ -64,7 +64,7 @@ fn main() {
     // Get recent commit messages with commit timestamps and version tag decorations.
     // Format: "hash|timestamp|decorations|subject" per line.
     // We embed a deeper window so /changelog can cover many more releases.
-    let raw_log = std::env::var("KCODE_BUILD_CHANGELOG_RAW")
+    let raw_log = std::env::var("NEURA_BUILD_CHANGELOG_RAW")
         .ok()
         .or_else(|| metadata_value("changelog_raw"))
         .or_else(|| git_output(["log", "-700", "--format=%h|%ct|%D|%s"]))
@@ -99,7 +99,7 @@ fn main() {
     //   Release: v0.2.17 (abc1234)
     //   Dev:     v0.2.17-dev (abc1234)
     //   Dirty:   v0.2.17-dev (abc1234, dirty)
-    let is_release = std::env::var("KCODE_RELEASE_BUILD").is_ok();
+    let is_release = std::env::var("NEURA_RELEASE_BUILD").is_ok();
     let version = if is_release {
         format!("v{}.{}.{} ({})", major, minor, patch, git_hash)
     } else if dirty {
@@ -109,26 +109,26 @@ fn main() {
     };
 
     // Set environment variables for compilation
-    println!("cargo:rustc-env=KCODE_GIT_HASH={}", git_hash);
-    println!("cargo:rustc-env=KCODE_GIT_DATE={}", git_date);
-    println!("cargo:rustc-env=KCODE_VERSION={}", version);
-    println!("cargo:rustc-env=KCODE_SEMVER={}", build_semver);
-    println!("cargo:rustc-env=KCODE_BASE_SEMVER={}", base_semver);
-    println!("cargo:rustc-env=KCODE_UPDATE_SEMVER={}", update_semver);
-    println!("cargo:rustc-env=KCODE_GIT_TAG={}", git_tag);
-    println!("cargo:rustc-env=KCODE_CHANGELOG={}", changelog);
+    println!("cargo:rustc-env=NEURA_GIT_HASH={}", git_hash);
+    println!("cargo:rustc-env=NEURA_GIT_DATE={}", git_date);
+    println!("cargo:rustc-env=NEURA_VERSION={}", version);
+    println!("cargo:rustc-env=NEURA_SEMVER={}", build_semver);
+    println!("cargo:rustc-env=NEURA_BASE_SEMVER={}", base_semver);
+    println!("cargo:rustc-env=NEURA_UPDATE_SEMVER={}", update_semver);
+    println!("cargo:rustc-env=NEURA_GIT_TAG={}", git_tag);
+    println!("cargo:rustc-env=NEURA_CHANGELOG={}", changelog);
 
-    // Forward KCODE_RELEASE_BUILD env var if set (CI sets this for release binaries)
-    if std::env::var("KCODE_RELEASE_BUILD").is_ok() {
-        println!("cargo:rustc-env=KCODE_RELEASE_BUILD=1");
+    // Forward NEURA_RELEASE_BUILD env var if set (CI sets this for release binaries)
+    if std::env::var("NEURA_RELEASE_BUILD").is_ok() {
+        println!("cargo:rustc-env=NEURA_RELEASE_BUILD=1");
     }
 
     // Re-run if git HEAD changes
     println!("cargo:rerun-if-changed=.git/HEAD");
     println!("cargo:rerun-if-changed=.git/index");
     println!("cargo:rerun-if-changed=Cargo.toml");
-    println!("cargo:rerun-if-env-changed=KCODE_RELEASE_BUILD");
-    println!("cargo:rerun-if-env-changed=KCODE_BUILD_SEMVER");
+    println!("cargo:rerun-if-env-changed=NEURA_RELEASE_BUILD");
+    println!("cargo:rerun-if-env-changed=NEURA_BUILD_SEMVER");
     let rerun_stamp = build_rerun_stamp_file();
     touch_build_stamp(&rerun_stamp)
         .unwrap_or_else(|err| eprintln!("cargo:warning=failed to update build rerun stamp: {err}"));
@@ -145,7 +145,7 @@ fn parse_semver(value: &str) -> Option<(u32, u32, u32)> {
 }
 
 fn explicit_build_semver_override() -> Option<String> {
-    std::env::var("KCODE_BUILD_SEMVER")
+    std::env::var("NEURA_BUILD_SEMVER")
         .ok()
         .map(|value| value.trim().trim_start_matches('v').to_string())
         .filter(|value| parse_semver(value).is_some())
@@ -186,7 +186,7 @@ fn next_build_patch(base_version: (u32, u32, u32)) -> Result<u32, String> {
 
 fn build_counter_file() -> PathBuf {
     if let Some(target_root) = target_root_from_out_dir() {
-        return target_root.join("kcode-build").join("patch-counters.txt");
+        return target_root.join("neura-build").join("patch-counters.txt");
     }
 
     std::env::var("CARGO_MANIFEST_DIR")
@@ -194,7 +194,7 @@ fn build_counter_file() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))
         .join("target")
-        .join("kcode-build")
+        .join("neura-build")
         .join("patch-counters.txt")
 }
 
@@ -343,7 +343,7 @@ fn git_output<const N: usize>(args: [&str; N]) -> Option<String> {
 }
 
 fn metadata_value(key: &str) -> Option<String> {
-    let path = std::env::var("KCODE_BUILD_METADATA_FILE").ok()?;
+    let path = std::env::var("NEURA_BUILD_METADATA_FILE").ok()?;
     let data = fs::read_to_string(path).ok()?;
     data.lines().find_map(|line| {
         let (entry_key, entry_value) = line.split_once('=')?;

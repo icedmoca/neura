@@ -165,14 +165,14 @@ pub async fn run_login(
         ProviderChoice::Auto => {
             if options.uses_scriptable_flow()? {
                 anyhow::bail!(
-                    "Scriptable login flags require an explicit provider. Use `kcode login --provider <provider> ...`."
+                    "Scriptable login flags require an explicit provider. Use `neura login --provider <provider> ...`."
                 );
             }
             crate::telemetry::record_setup_step_once("login_picker_opened");
             let providers = crate::provider_catalog::cli_login_providers();
             if !io::stdin().is_terminal() {
                 anyhow::bail!(
-                    "`kcode login --provider auto` requires an interactive terminal. Use `kcode login --provider <provider>` in non-interactive mode."
+                    "`neura login --provider auto` requires an interactive terminal. Use `neura login --provider <provider>` in non-interactive mode."
                 );
             }
             if let Some(imported) =
@@ -266,7 +266,7 @@ pub async fn run_login_provider(
                 eprintln!("Imported {} existing auth source(s).", imported);
                 Ok(LoginFlowOutcome::Completed)
             }
-            LoginProviderTarget::Kcode => login_kcode_flow().map(|_| LoginFlowOutcome::Completed),
+            LoginProviderTarget::Neura => login_neura_flow().map(|_| LoginFlowOutcome::Completed),
             LoginProviderTarget::Claude => login_claude_flow(account_label, options.no_browser)
                 .await
                 .map(|_| LoginFlowOutcome::Completed),
@@ -336,12 +336,12 @@ pub async fn run_login_provider(
     Ok(())
 }
 
-fn login_kcode_flow() -> Result<()> {
-    eprintln!("Setting up Kcode subscription access...");
+fn login_neura_flow() -> Result<()> {
+    eprintln!("Setting up Neura subscription access...");
     eprintln!(
-        "Paste the kcode subscription API key from your account portal. This key is used for your curated kcode router access.\n"
+        "Paste the neura subscription API key from your account portal. This key is used for your curated neura router access.\n"
     );
-    eprint!("Paste your Kcode API key: ");
+    eprint!("Paste your Neura API key: ");
     io::stdout().flush()?;
 
     let key = read_secret_line()?;
@@ -355,33 +355,33 @@ fn login_kcode_flow() -> Result<()> {
 
     let mut content = format!(
         "{}={}\n",
-        crate::subscription_catalog::KCODE_API_KEY_ENV,
+        crate::subscription_catalog::NEURA_API_KEY_ENV,
         key
     );
     if !api_base.trim().is_empty() {
         content.push_str(&format!(
             "{}={}\n",
-            crate::subscription_catalog::KCODE_API_BASE_ENV,
+            crate::subscription_catalog::NEURA_API_BASE_ENV,
             api_base.trim()
         ));
     }
 
     let config_dir = crate::storage::app_config_dir()?;
-    let file_path = config_dir.join(crate::subscription_catalog::KCODE_ENV_FILE);
+    let file_path = config_dir.join(crate::subscription_catalog::NEURA_ENV_FILE);
     crate::storage::write_text_secret(&file_path, &content)?;
 
-    crate::env::set_var(crate::subscription_catalog::KCODE_API_KEY_ENV, key);
+    crate::env::set_var(crate::subscription_catalog::NEURA_API_KEY_ENV, key);
     if !api_base.trim().is_empty() {
         crate::env::set_var(
-            crate::subscription_catalog::KCODE_API_BASE_ENV,
+            crate::subscription_catalog::NEURA_API_BASE_ENV,
             api_base.trim(),
         );
     }
 
-    eprintln!("\nSuccessfully saved Kcode subscription credentials!");
+    eprintln!("\nSuccessfully saved Neura subscription credentials!");
     eprintln!(
-        "Stored at ~/.config/kcode/{}",
-        crate::subscription_catalog::KCODE_ENV_FILE
+        "Stored at ~/.config/neura/{}",
+        crate::subscription_catalog::NEURA_ENV_FILE
     );
     eprintln!(
         "Curated models available now: {}",
@@ -391,7 +391,7 @@ fn login_kcode_flow() -> Result<()> {
             .collect::<Vec<_>>()
             .join(", ")
     );
-    crate::telemetry::record_auth_success("kcode", "api_key");
+    crate::telemetry::record_auth_success("neura", "api_key");
     Ok(())
 }
 
@@ -415,7 +415,7 @@ async fn login_claude_flow(requested_label: Option<&str>, no_browser: bool) -> R
     eprintln!(
         "Account '{}' stored at {}",
         label,
-        auth::claude::kcode_path()?.display()
+        auth::claude::neura_path()?.display()
     );
     if let Some(email) = profile_email {
         eprintln!("Profile email: {}", email);
@@ -432,7 +432,7 @@ async fn login_openai_flow(requested_label: Option<&str>, no_browser: bool) -> R
     eprintln!(
         "Successfully logged in to OpenAI! Account '{}' saved to {}",
         label,
-        crate::storage::kcode_dir()?
+        crate::storage::neura_dir()?
             .join("openai-auth.json")
             .display()
     );
@@ -458,7 +458,7 @@ fn login_openrouter_flow() -> Result<()> {
 
     save_named_api_key("openrouter.env", "OPENROUTER_API_KEY", &key)?;
     eprintln!("\nSuccessfully saved OpenRouter API key!");
-    eprintln!("Stored at ~/.config/kcode/openrouter.env");
+    eprintln!("Stored at ~/.config/neura/openrouter.env");
     crate::telemetry::record_auth_success("openrouter", "api_key");
     Ok(())
 }
@@ -468,7 +468,7 @@ fn login_azure_flow() -> Result<()> {
 
     eprintln!("Setting up Azure OpenAI...");
     eprintln!(
-        "Reference: OpenCode supports Azure OpenAI with Entra credentials. kcode uses Azure OpenAI's newer `/openai/v1` API with either Microsoft Entra ID or an API key.\n"
+        "Reference: OpenCode supports Azure OpenAI with Entra credentials. neura uses Azure OpenAI's newer `/openai/v1` API with either Microsoft Entra ID or an API key.\n"
     );
 
     let endpoint_raw = read_line_trimmed(
@@ -513,7 +513,7 @@ fn login_azure_flow() -> Result<()> {
         eprintln!();
         eprintln!("Using Microsoft Entra ID via Azure's DefaultAzureCredential chain.");
         eprintln!(
-            "That means kcode can authenticate via `az login`, managed identity, or Azure environment credentials."
+            "That means neura can authenticate via `az login`, managed identity, or Azure environment credentials."
         );
     } else {
         eprint!("Paste your Azure OpenAI API key: ");
@@ -529,7 +529,7 @@ fn login_azure_flow() -> Result<()> {
     azure::apply_runtime_env()?;
 
     eprintln!("\nSuccessfully saved Azure OpenAI configuration!");
-    eprintln!("Stored at ~/.config/kcode/{}", azure::ENV_FILE);
+    eprintln!("Stored at ~/.config/neura/{}", azure::ENV_FILE);
     eprintln!("Base URL: {}", azure::load_endpoint().unwrap_or_default());
     if let Some(model) = azure::load_model() {
         eprintln!("Default deployment/model: {}", model);
@@ -563,7 +563,7 @@ fn login_openai_compatible_flow(profile: &OpenAiCompatibleProfile) -> Result<()>
                     )
                 })?;
             crate::provider_catalog::save_env_value_to_env_file(
-                "KCODE_OPENAI_COMPAT_API_BASE",
+                "NEURA_OPENAI_COMPAT_API_BASE",
                 crate::provider_catalog::OPENAI_COMPAT_PROFILE.env_file,
                 Some(&normalized),
             )?;
@@ -627,7 +627,7 @@ fn login_openai_compatible_flow(profile: &OpenAiCompatibleProfile) -> Result<()>
         }
     };
 
-    eprintln!("Stored at ~/.config/kcode/{}", resolved.env_file);
+    eprintln!("Stored at ~/.config/neura/{}", resolved.env_file);
     if let Some(default_model) = resolved.default_model {
         eprintln!("Default model hint: {}", default_model);
     }
@@ -753,8 +753,8 @@ fn login_cursor_flow() -> Result<()> {
     save_named_api_key("cursor.env", "CURSOR_API_KEY", &key)?;
     crate::auth::AuthStatus::invalidate_cache();
     eprintln!("\nSuccessfully saved Cursor API key!");
-    eprintln!("Stored at ~/.config/kcode/cursor.env");
-    eprintln!("kcode will pass it to `cursor-agent` automatically.");
+    eprintln!("Stored at ~/.config/neura/cursor.env");
+    eprintln!("neura will pass it to `cursor-agent` automatically.");
     if !crate::auth::cursor::has_cursor_agent_cli() {
         eprintln!("Install Cursor Agent to use the Cursor provider:");
         eprintln!("  - macOS/Linux/WSL: curl https://cursor.com/install -fsS | bash");
@@ -816,10 +816,10 @@ async fn login_copilot_device_flow(no_browser: bool) -> Result<()> {
 async fn login_antigravity_flow(no_browser: bool) -> Result<()> {
     eprintln!("Starting native Antigravity login...");
     eprintln!(
-        "kcode will authenticate directly with Google Antigravity; the Antigravity desktop app is not required."
+        "neura will authenticate directly with Google Antigravity; the Antigravity desktop app is not required."
     );
     eprintln!(
-        "If browser launch fails, or you pass `--no-browser`, kcode will prompt for the callback URL instead."
+        "If browser launch fails, or you pass `--no-browser`, neura will prompt for the callback URL instead."
     );
     eprintln!(
         "If the browser later shows a loopback/callback error page, copy the full URL from the address bar and re-run with `--no-browser`."
@@ -849,7 +849,7 @@ async fn login_gemini_flow(no_browser: bool) -> Result<()> {
         "If your student/education plan is attached to your Google account, use that account in the browser flow."
     );
     eprintln!(
-        "If browser launch fails, or you pass `--no-browser`, kcode will prompt for the manual authorization code."
+        "If browser launch fails, or you pass `--no-browser`, neura will prompt for the manual authorization code."
     );
     eprintln!(
         "Note: school / Workspace Google accounts may also require GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION for Code Assist entitlement checks."
@@ -1002,7 +1002,7 @@ async fn login_google_flow(no_browser: bool) -> Result<()> {
                         no_browser,
                     );
                     eprintln!("   - Choose 'External' user type");
-                    eprintln!("   - Fill in app name (e.g. 'kcode') and your email");
+                    eprintln!("   - Fill in app name (e.g. 'neura') and your email");
                     eprintln!("   - Skip scopes (we'll request them during login)");
                     eprintln!("   - Add your email as a test user");
                     eprintln!("   - Save and continue through all steps");
@@ -1018,7 +1018,7 @@ async fn login_google_flow(no_browser: bool) -> Result<()> {
                     );
                     eprintln!("   - Click '+ Create Credentials' > 'OAuth client ID'");
                     eprintln!("   - Application type: 'Desktop app'");
-                    eprintln!("   - Name: 'kcode'");
+                    eprintln!("   - Name: 'neura'");
                     eprintln!("   - Click 'Create'\n");
                     eprintln!("   A dialog will show your Client ID and Client Secret.\n");
 

@@ -1,4 +1,4 @@
-use kcode::operational_eval::{
+use neura::operational_eval::{
     enforce_operational_eval_gate, render_operational_eval_report, run_operational_eval_suite,
 };
 

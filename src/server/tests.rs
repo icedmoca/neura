@@ -76,19 +76,19 @@ fn file_activity_scope_label_classifies_overlap() {
 impl Drop for EnvGuard {
     fn drop(&mut self) {
         if let Some(value) = &self.prev_home {
-            crate::env::set_var("KCODE_HOME", value);
+            crate::env::set_var("NEURA_HOME", value);
         } else {
-            crate::env::remove_var("KCODE_HOME");
+            crate::env::remove_var("NEURA_HOME");
         }
         if let Some(value) = &self.prev_runtime_dir {
-            crate::env::set_var("KCODE_RUNTIME_DIR", value);
+            crate::env::set_var("NEURA_RUNTIME_DIR", value);
         } else {
-            crate::env::remove_var("KCODE_RUNTIME_DIR");
+            crate::env::remove_var("NEURA_RUNTIME_DIR");
         }
         if let Some(value) = &self.prev_socket {
-            crate::env::set_var("KCODE_SOCKET", value);
+            crate::env::set_var("NEURA_SOCKET", value);
         } else {
-            crate::env::remove_var("KCODE_SOCKET");
+            crate::env::remove_var("NEURA_SOCKET");
         }
     }
 }
@@ -112,16 +112,16 @@ impl Drop for ScopedEnvVar {
 }
 
 fn configure_test_env(root: &tempfile::TempDir) -> EnvGuard {
-    let prev_home = std::env::var_os("KCODE_HOME");
-    let prev_runtime_dir = std::env::var_os("KCODE_RUNTIME_DIR");
-    let prev_socket = std::env::var_os("KCODE_SOCKET");
+    let prev_home = std::env::var_os("NEURA_HOME");
+    let prev_runtime_dir = std::env::var_os("NEURA_RUNTIME_DIR");
+    let prev_socket = std::env::var_os("NEURA_SOCKET");
     let home_dir = root.path().join("home");
     let runtime_dir = root.path().join("runtime");
     std::fs::create_dir_all(&home_dir).expect("create home dir");
     std::fs::create_dir_all(&runtime_dir).expect("create runtime dir");
-    crate::env::set_var("KCODE_HOME", &home_dir);
-    crate::env::set_var("KCODE_RUNTIME_DIR", &runtime_dir);
-    crate::env::remove_var("KCODE_SOCKET");
+    crate::env::set_var("NEURA_HOME", &home_dir);
+    crate::env::set_var("NEURA_RUNTIME_DIR", &runtime_dir);
+    crate::env::remove_var("NEURA_SOCKET");
     EnvGuard {
         prev_home,
         prev_runtime_dir,
@@ -420,7 +420,7 @@ async fn background_task_progress_notifies_attached_clients() {
 #[tokio::test]
 #[allow(
     clippy::await_holding_lock,
-    reason = "test intentionally serializes process-wide KCODE_HOME/env state across async recovery assertions"
+    reason = "test intentionally serializes process-wide NEURA_HOME/env state across async recovery assertions"
 )]
 async fn startup_recovery_resumes_interrupted_headless_sessions_after_reload() -> Result<()> {
     let _storage_guard = crate::storage::lock_test_env();
@@ -555,7 +555,7 @@ async fn startup_recovery_resumes_interrupted_headless_sessions_after_reload() -
 #[tokio::test]
 #[allow(
     clippy::await_holding_lock,
-    reason = "test intentionally serializes process-wide KCODE_HOME/env state across async recovery assertions"
+    reason = "test intentionally serializes process-wide NEURA_HOME/env state across async recovery assertions"
 )]
 async fn startup_recovery_preserves_headed_session_reload_context_for_later_reconnect() -> Result<()>
 {
@@ -658,7 +658,7 @@ async fn startup_recovery_preserves_headed_session_reload_context_for_later_reco
 #[tokio::test]
 #[allow(
     clippy::await_holding_lock,
-    reason = "test intentionally serializes process-wide KCODE_HOME/env state across async startup assertions"
+    reason = "test intentionally serializes process-wide NEURA_HOME/env state across async startup assertions"
 )]
 async fn startup_ready_signal_is_not_blocked_by_headless_recovery_delay() -> Result<()> {
     use std::os::unix::io::FromRawFd;
@@ -667,7 +667,7 @@ async fn startup_ready_signal_is_not_blocked_by_headless_recovery_delay() -> Res
     let _storage_guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new()?;
     let _env = configure_test_env(&temp);
-    let _delay_guard = ScopedEnvVar::set("KCODE_TEST_HEADLESS_STARTUP_RECOVERY_DELAY_MS", "500");
+    let _delay_guard = ScopedEnvVar::set("NEURA_TEST_HEADLESS_STARTUP_RECOVERY_DELAY_MS", "500");
 
     let mut headless =
         crate::session::Session::create(None, Some("headless-ready-delay".to_string()));
@@ -694,7 +694,7 @@ async fn startup_ready_signal_is_not_blocked_by_headless_recovery_delay() -> Res
     assert_eq!(pipe_rc, 0, "pipe() should succeed");
     let read_fd = ready_fds[0];
     let write_fd = ready_fds[1];
-    let _ready_fd_guard = ScopedEnvVar::set("KCODE_READY_FD", write_fd.to_string());
+    let _ready_fd_guard = ScopedEnvVar::set("NEURA_READY_FD", write_fd.to_string());
 
     let main_listener = crate::transport::Listener::bind(&server.socket_path)?;
     let debug_listener = crate::transport::Listener::bind(&server.debug_socket_path)?;

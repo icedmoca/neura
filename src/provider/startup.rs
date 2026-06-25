@@ -57,18 +57,18 @@ impl MultiProvider {
         let has_cursor_creds = matches!(auth_status.cursor, auth::AuthState::Available);
         let has_openrouter_creds = openrouter::OpenRouterProvider::has_credentials();
 
-        let use_claude_cli = std::env::var("KCODE_USE_CLAUDE_CLI")
+        let use_claude_cli = std::env::var("NEURA_USE_CLAUDE_CLI")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
         if use_claude_cli {
             crate::logging::warn(
-                "KCODE_USE_CLAUDE_CLI is deprecated and will be removed. Direct Anthropic API transport is the default.",
+                "NEURA_USE_CLAUDE_CLI is deprecated and will be removed. Direct Anthropic API transport is the default.",
             );
         }
 
         let claude = if has_claude_creds && use_claude_cli {
             crate::logging::info(
-                "Using deprecated Claude CLI provider (forced by KCODE_USE_CLAUDE_CLI=1)",
+                "Using deprecated Claude CLI provider (forced by NEURA_USE_CLAUDE_CLI=1)",
             );
             Some(Arc::new(claude::ClaudeProvider::new()))
         } else {
@@ -152,7 +152,7 @@ impl MultiProvider {
         };
 
         let copilot_premium_zero = matches!(
-            std::env::var("KCODE_COPILOT_PREMIUM").ok().as_deref(),
+            std::env::var("NEURA_COPILOT_PREMIUM").ok().as_deref(),
             Some("0")
         );
         let availability = ProviderAvailability {

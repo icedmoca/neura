@@ -269,7 +269,7 @@ impl McpClient {
             protocol_version: "2024-11-05".to_string(),
             capabilities: ClientCapabilities::default(),
             client_info: ClientInfo {
-                name: "kcode".to_string(),
+                name: "neura".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
             },
         };

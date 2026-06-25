@@ -293,7 +293,7 @@ impl App {
                 "samples": if include_samples { serde_json::to_value(&samples).unwrap_or(serde_json::Value::Null) } else { serde_json::Value::Null },
                 "notes": [
                     "This is a headless end-to-end app benchmark: injected side-panel mouse scroll event -> event classification -> redraw scheduling -> offscreen frame update.",
-                    "It does not include terminal emulator/compositor/image protocol wall-clock paint latency outside kcode."
+                    "It does not include terminal emulator/compositor/image protocol wall-clock paint latency outside neura."
                 ]
             }))
         })();

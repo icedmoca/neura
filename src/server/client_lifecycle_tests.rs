@@ -13,8 +13,8 @@ struct IsolatedRuntimeDir {
 impl IsolatedRuntimeDir {
     fn new() -> Self {
         let temp = tempfile::TempDir::new().expect("runtime dir");
-        let prev_runtime = std::env::var_os("KCODE_RUNTIME_DIR");
-        crate::env::set_var("KCODE_RUNTIME_DIR", temp.path());
+        let prev_runtime = std::env::var_os("NEURA_RUNTIME_DIR");
+        crate::env::set_var("NEURA_RUNTIME_DIR", temp.path());
         crate::server::clear_reload_marker();
         Self {
             _prev_runtime: prev_runtime,
@@ -27,9 +27,9 @@ impl Drop for IsolatedRuntimeDir {
     fn drop(&mut self) {
         crate::server::clear_reload_marker();
         if let Some(prev_runtime) = self._prev_runtime.take() {
-            crate::env::set_var("KCODE_RUNTIME_DIR", prev_runtime);
+            crate::env::set_var("NEURA_RUNTIME_DIR", prev_runtime);
         } else {
-            crate::env::remove_var("KCODE_RUNTIME_DIR");
+            crate::env::remove_var("NEURA_RUNTIME_DIR");
         }
     }
 }
@@ -337,7 +337,7 @@ async fn lightweight_comm_request_skips_full_session_initialization() {
         event_history,
         event_counter,
         swarm_event_tx,
-        "kcode-test".to_string(),
+        "neura-test".to_string(),
         "🧪".to_string(),
         mcp_pool,
         shutdown_signals,

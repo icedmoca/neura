@@ -1,4 +1,4 @@
-//! End-to-end tests for kcode using a mock provider
+//! End-to-end tests for neura using a mock provider
 //!
 //! These tests verify the full flow from user input to response
 //! without making actual API calls.
@@ -7,13 +7,13 @@ pub(crate) use crate::mock_provider::MockProvider;
 pub(crate) use anyhow::{Context, Result};
 pub(crate) use async_trait::async_trait;
 pub(crate) use futures::{SinkExt, StreamExt, stream};
-pub(crate) use kcode::agent::Agent;
-pub(crate) use kcode::message::{ContentBlock, Message, Role, StreamEvent, ToolDefinition};
-pub(crate) use kcode::protocol::{Request, ServerEvent};
-pub(crate) use kcode::provider::{EventStream, Provider};
-pub(crate) use kcode::server;
-pub(crate) use kcode::session::{Session, StoredCompactionState};
-pub(crate) use kcode::tool::Registry;
+pub(crate) use neura::agent::Agent;
+pub(crate) use neura::message::{ContentBlock, Message, Role, StreamEvent, ToolDefinition};
+pub(crate) use neura::protocol::{Request, ServerEvent};
+pub(crate) use neura::provider::{EventStream, Provider};
+pub(crate) use neura::server;
+pub(crate) use neura::session::{Session, StoredCompactionState};
+pub(crate) use neura::tool::Registry;
 pub(crate) use std::ffi::OsString;
 pub(crate) use std::io::Read;
 pub(crate) use std::net::TcpListener as StdTcpListener;
@@ -31,10 +31,10 @@ pub(crate) use tokio_tungstenite::connect_async;
 pub(crate) use tokio_tungstenite::tungstenite::Message as WsMessage;
 pub(crate) use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 
-static KCODE_HOME_LOCK: std::sync::OnceLock<Mutex<()>> = std::sync::OnceLock::new();
+static NEURA_HOME_LOCK: std::sync::OnceLock<Mutex<()>> = std::sync::OnceLock::new();
 
-fn lock_kcode_home() -> std::sync::MutexGuard<'static, ()> {
-    let mutex = KCODE_HOME_LOCK.get_or_init(|| Mutex::new(()));
+fn lock_neura_home() -> std::sync::MutexGuard<'static, ()> {
+    let mutex = NEURA_HOME_LOCK.get_or_init(|| Mutex::new(()));
     // Recover from poisoned state if a previous test panicked
     match mutex.lock() {
         Ok(guard) => guard,
@@ -53,21 +53,21 @@ pub(crate) struct TestEnvGuard {
 
 impl TestEnvGuard {
     pub(crate) fn new() -> Result<Self> {
-        let lock = lock_kcode_home();
+        let lock = lock_neura_home();
         let temp_home = tempfile::Builder::new()
-            .prefix("kcode-e2e-home-")
+            .prefix("neura-e2e-home-")
             .tempdir()?;
-        let prev_home = std::env::var_os("KCODE_HOME");
-        let prev_runtime_dir = std::env::var_os("KCODE_RUNTIME_DIR");
-        let prev_test_session = std::env::var_os("KCODE_TEST_SESSION");
-        let prev_debug_control = std::env::var_os("KCODE_DEBUG_CONTROL");
+        let prev_home = std::env::var_os("NEURA_HOME");
+        let prev_runtime_dir = std::env::var_os("NEURA_RUNTIME_DIR");
+        let prev_test_session = std::env::var_os("NEURA_TEST_SESSION");
+        let prev_debug_control = std::env::var_os("NEURA_DEBUG_CONTROL");
         let runtime_dir = temp_home.path().join("runtime");
         std::fs::create_dir_all(&runtime_dir)?;
 
-        kcode::env::set_var("KCODE_HOME", temp_home.path());
-        kcode::env::set_var("KCODE_RUNTIME_DIR", &runtime_dir);
-        kcode::env::set_var("KCODE_TEST_SESSION", "1");
-        kcode::env::set_var("KCODE_DEBUG_CONTROL", "1");
+        neura::env::set_var("NEURA_HOME", temp_home.path());
+        neura::env::set_var("NEURA_RUNTIME_DIR", &runtime_dir);
+        neura::env::set_var("NEURA_TEST_SESSION", "1");
+        neura::env::set_var("NEURA_DEBUG_CONTROL", "1");
 
         Ok(Self {
             _lock: lock,
@@ -83,27 +83,27 @@ impl TestEnvGuard {
 impl Drop for TestEnvGuard {
     fn drop(&mut self) {
         if let Some(prev_home) = &self.prev_home {
-            kcode::env::set_var("KCODE_HOME", prev_home);
+            neura::env::set_var("NEURA_HOME", prev_home);
         } else {
-            kcode::env::remove_var("KCODE_HOME");
+            neura::env::remove_var("NEURA_HOME");
         }
 
         if let Some(prev_runtime_dir) = &self.prev_runtime_dir {
-            kcode::env::set_var("KCODE_RUNTIME_DIR", prev_runtime_dir);
+            neura::env::set_var("NEURA_RUNTIME_DIR", prev_runtime_dir);
         } else {
-            kcode::env::remove_var("KCODE_RUNTIME_DIR");
+            neura::env::remove_var("NEURA_RUNTIME_DIR");
         }
 
         if let Some(prev_test_session) = &self.prev_test_session {
-            kcode::env::set_var("KCODE_TEST_SESSION", prev_test_session);
+            neura::env::set_var("NEURA_TEST_SESSION", prev_test_session);
         } else {
-            kcode::env::remove_var("KCODE_TEST_SESSION");
+            neura::env::remove_var("NEURA_TEST_SESSION");
         }
 
         if let Some(prev_debug_control) = &self.prev_debug_control {
-            kcode::env::set_var("KCODE_DEBUG_CONTROL", prev_debug_control);
+            neura::env::set_var("NEURA_DEBUG_CONTROL", prev_debug_control);
         } else {
-            kcode::env::remove_var("KCODE_DEBUG_CONTROL");
+            neura::env::remove_var("NEURA_DEBUG_CONTROL");
         }
     }
 }
@@ -120,7 +120,7 @@ pub(crate) struct EnvVarGuard {
 impl EnvVarGuard {
     pub(crate) fn set(name: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self {
         let prev = std::env::var_os(name);
-        kcode::env::set_var(name, value);
+        neura::env::set_var(name, value);
         Self { name, prev }
     }
 }
@@ -128,9 +128,9 @@ impl EnvVarGuard {
 impl Drop for EnvVarGuard {
     fn drop(&mut self) {
         if let Some(prev) = &self.prev {
-            kcode::env::set_var(self.name, prev);
+            neura::env::set_var(self.name, prev);
         } else {
-            kcode::env::remove_var(self.name);
+            neura::env::remove_var(self.name);
         }
     }
 }
@@ -199,14 +199,14 @@ pub(crate) async fn wait_for_tcp_port(port: u16) -> Result<()> {
 }
 
 fn pair_test_device(token: &str) -> Result<()> {
-    let mut registry = kcode::gateway::DeviceRegistry::load();
+    let mut registry = neura::gateway::DeviceRegistry::load();
     let now = chrono::Utc::now().to_rfc3339();
     let mut hasher = sha2::Sha256::new();
     use sha2::Digest;
     hasher.update(token.as_bytes());
     let token_hash = format!("sha256:{}", hex::encode(hasher.finalize()));
     registry.devices.retain(|d| d.id != "test-device-ws");
-    registry.devices.push(kcode::gateway::PairedDevice {
+    registry.devices.push(neura::gateway::PairedDevice {
         id: "test-device-ws".to_string(),
         name: "WS Test Device".to_string(),
         token_hash,
@@ -486,15 +486,15 @@ pub(crate) struct TransportScenarioResult {
 
 pub(crate) async fn run_unix_transport_scenario() -> Result<TransportScenarioResult> {
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-ws-e2e-unix-{}",
+        "neura-ws-e2e-unix-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos()
     ));
     std::fs::create_dir_all(&runtime_dir)?;
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let provider = MockProvider::new();
     provider.queue_response(vec![
@@ -508,7 +508,7 @@ pub(crate) async fn run_unix_transport_scenario() -> Result<TransportScenarioRes
         StreamEvent::SessionId("provider-session-1".to_string()),
     ]);
 
-    let provider: Arc<dyn kcode::provider::Provider> = Arc::new(provider);
+    let provider: Arc<dyn neura::provider::Provider> = Arc::new(provider);
     let server_instance =
         server::Server::new_with_paths(provider, socket_path.clone(), debug_socket_path.clone());
     let server_handle = tokio::spawn(async move { server_instance.run().await });
@@ -553,7 +553,7 @@ pub(crate) async fn run_unix_transport_scenario() -> Result<TransportScenarioRes
                 let state = debug_run_command(debug_socket_path.clone(), "state", None)
                     .await
                     .unwrap_or_else(|e| format!("<state error: {e}>"));
-                let logs = std::env::var_os("KCODE_HOME")
+                let logs = std::env::var_os("NEURA_HOME")
                     .and_then(|home| latest_log_excerpt(std::path::Path::new(&home)));
                 let seen = message_events
                     .iter()
@@ -584,15 +584,15 @@ pub(crate) async fn run_unix_transport_scenario() -> Result<TransportScenarioRes
 
 pub(crate) async fn run_websocket_transport_scenario() -> Result<TransportScenarioResult> {
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-ws-e2e-websocket-{}",
+        "neura-ws-e2e-websocket-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos()
     ));
     std::fs::create_dir_all(&runtime_dir)?;
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
     let gateway_port = reserve_tcp_port()?;
     let ws_token = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     pair_test_device(ws_token)?;
@@ -609,10 +609,10 @@ pub(crate) async fn run_websocket_transport_scenario() -> Result<TransportScenar
         StreamEvent::SessionId("provider-session-1".to_string()),
     ]);
 
-    let provider: Arc<dyn kcode::provider::Provider> = Arc::new(provider);
+    let provider: Arc<dyn neura::provider::Provider> = Arc::new(provider);
     let server_instance =
         server::Server::new_with_paths(provider, socket_path.clone(), debug_socket_path.clone())
-            .with_gateway_config(kcode::gateway::GatewayConfig {
+            .with_gateway_config(neura::gateway::GatewayConfig {
                 port: gateway_port,
                 bind_addr: "127.0.0.1".to_string(),
                 enabled: true,
@@ -1046,7 +1046,7 @@ pub(crate) async fn wait_for_selfdev_reload_cycle(
     let mut stable_since: Option<Instant> = None;
 
     while Instant::now() < deadline {
-        let marker_active = kcode::server::reload_marker_active(Duration::from_secs(30));
+        let marker_active = neura::server::reload_marker_active(Duration::from_secs(30));
         let server_info = match tokio::time::timeout(
             Duration::from_millis(750),
             debug_run_command(debug_socket_path.to_path_buf(), "server:info", None),

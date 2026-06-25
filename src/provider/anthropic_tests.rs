@@ -757,7 +757,7 @@ mod oauth_tool_filter_tests {
 
     #[test]
     fn oauth_v1_locked_list_falls_back_to_full_hardcoded_set() {
-        // v1 path: caller passes the locked Kcode tool list, lowercase
+        // v1 path: caller passes the locked Neura tool list, lowercase
         // names that don't TitleCase-match (e.g. agentgrep, multiedit).
         // Filter is empty → return full hardcoded list (legacy behaviour).
         let provider = AnthropicProvider::new();

@@ -68,7 +68,7 @@ fn collect_recent_session_stems_expands_candidate_window_past_recent_empty_stubs
 fn load_sessions_includes_claude_code_sessions_from_external_home() {
     let _env_lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("temp dir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let project_dir = temp.path().join("external/.claude/projects/demo-project");
     std::fs::create_dir_all(&project_dir).expect("create project dir");
@@ -126,7 +126,7 @@ fn load_sessions_includes_claude_code_sessions_from_external_home() {
 fn load_claude_code_preview_reads_transcript_messages() {
     let _env_lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("temp dir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let project_dir = temp.path().join("external/.claude/projects/demo-project");
     std::fs::create_dir_all(&project_dir).expect("create project dir");
@@ -171,7 +171,7 @@ fn load_claude_code_preview_reads_transcript_messages() {
 fn load_sessions_includes_modern_codex_sessions() {
     let _env_lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("temp dir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let codex_dir = temp.path().join("external/.codex/sessions/2026/04/05");
     std::fs::create_dir_all(&codex_dir).expect("create codex dir");
@@ -232,10 +232,10 @@ fn load_codex_preview_preserves_blank_line_between_tool_transcript_and_followup_
 }
 
 #[test]
-fn session_matches_query_searches_kcode_transcript_contents() {
+fn session_matches_query_searches_neura_transcript_contents() {
     let _env_lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("temp dir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let mut session = Session::create_with_id(
         "session_transcript_search".to_string(),
@@ -273,7 +273,7 @@ fn session_matches_query_searches_kcode_transcript_contents() {
 fn session_matches_query_searches_external_codex_transcript_contents() {
     let _env_lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("temp dir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let codex_dir = temp.path().join("external/.codex/sessions/2026/04/19");
     std::fs::create_dir_all(&codex_dir).expect("create codex dir");
@@ -304,7 +304,7 @@ fn session_matches_query_searches_external_codex_transcript_contents() {
 fn benchmark_resume_loading_reports_timings() {
     let _env_lock = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("temp dir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let sessions_dir = temp.path().join("sessions");
     std::fs::create_dir_all(&sessions_dir).expect("create sessions dir");

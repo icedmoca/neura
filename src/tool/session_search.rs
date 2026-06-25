@@ -133,7 +133,7 @@ impl Tool for SessionSearchTool {
             return Ok(ToolOutput::new("Query cannot be empty."));
         }
 
-        let sessions_dir = storage::kcode_dir()?.join("sessions");
+        let sessions_dir = storage::neura_dir()?.join("sessions");
         if !sessions_dir.exists() {
             return Ok(ToolOutput::new("No past sessions found."));
         }

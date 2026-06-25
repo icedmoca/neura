@@ -23,7 +23,7 @@ pub enum ApproxTokenSeverity {
     Danger,
 }
 
-/// Estimate token count using kcode's existing chars-per-token heuristic.
+/// Estimate token count using neura's existing chars-per-token heuristic.
 pub fn estimate_tokens(s: &str) -> usize {
     s.len() / APPROX_CHARS_PER_TOKEN
 }

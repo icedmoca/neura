@@ -15,11 +15,11 @@ impl TestHomeGuard {
     fn new() -> Self {
         let lock = lock_env();
         let temp_home = tempfile::Builder::new()
-            .prefix("kcode-server-debug-testers-home-")
+            .prefix("neura-server-debug-testers-home-")
             .tempdir()
             .expect("create temp home");
-        let prev_home = std::env::var_os("KCODE_HOME");
-        crate::env::set_var("KCODE_HOME", temp_home.path());
+        let prev_home = std::env::var_os("NEURA_HOME");
+        crate::env::set_var("NEURA_HOME", temp_home.path());
         Self {
             _lock: lock,
             prev_home,
@@ -31,9 +31,9 @@ impl TestHomeGuard {
 impl Drop for TestHomeGuard {
     fn drop(&mut self) {
         if let Some(prev_home) = &self.prev_home {
-            crate::env::set_var("KCODE_HOME", prev_home);
+            crate::env::set_var("NEURA_HOME", prev_home);
         } else {
-            crate::env::remove_var("KCODE_HOME");
+            crate::env::remove_var("NEURA_HOME");
         }
     }
 }
@@ -65,8 +65,8 @@ fn load_testers_returns_empty_for_missing_or_empty_manifest() {
             .is_empty()
     );
 
-    let manifest_path = crate::storage::kcode_dir()
-        .expect("kcode dir")
+    let manifest_path = crate::storage::neura_dir()
+        .expect("neura dir")
         .join("testers.json");
     std::fs::write(&manifest_path, "").expect("write empty manifest");
     assert!(

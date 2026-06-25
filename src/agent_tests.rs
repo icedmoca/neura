@@ -76,7 +76,7 @@ impl Provider for NativeAutoCompactionProvider {
         true
     }
 
-    fn uses_kcode_compaction(&self) -> bool {
+    fn uses_neura_compaction(&self) -> bool {
         false
     }
 
@@ -526,8 +526,8 @@ async fn build_memory_prompt_nonblocking_defers_pending_memory_during_tool_loop(
 async fn mark_closed_persists_soft_interrupts_for_restore_after_reload() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("temp dir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let provider: Arc<dyn Provider> = Arc::new(NativeAutoCompactionProvider);
     let registry = Registry::new(provider.clone()).await;
@@ -556,9 +556,9 @@ async fn mark_closed_persists_soft_interrupts_for_restore_after_reload() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -571,8 +571,8 @@ async fn env_snapshot_detail_is_minimal_for_empty_sessions_and_full_after_histor
 
     assert_eq!(agent.env_snapshot_detail(), EnvSnapshotDetail::Minimal);
     let minimal = agent.build_env_snapshot("create", agent.env_snapshot_detail());
-    assert!(minimal.kcode_git_hash.is_none());
-    assert!(minimal.kcode_git_dirty.is_none());
+    assert!(minimal.neura_git_hash.is_none());
+    assert!(minimal.neura_git_dirty.is_none());
     assert!(minimal.working_git.is_none());
 
     agent

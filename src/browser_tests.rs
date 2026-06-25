@@ -24,7 +24,7 @@ fn test_rewrite_command_with_full_path() {
     // If binary exists, it rewrites; if not, returns unchanged
     if browser_binary_path().exists() {
         assert!(result.contains("ping"));
-        assert!(result.contains(".kcode/browser"));
+        assert!(result.contains(".neura/browser"));
     } else {
         assert_eq!(result, cmd);
     }
@@ -33,7 +33,7 @@ fn test_rewrite_command_with_full_path() {
 #[test]
 fn test_paths() {
     let bdir = browser_dir();
-    assert!(bdir.to_string_lossy().contains(".kcode"));
+    assert!(bdir.to_string_lossy().contains(".neura"));
     assert!(bdir.to_string_lossy().ends_with("browser"));
 
     let bin = browser_binary_path();
@@ -101,9 +101,9 @@ fn ensure_browser_session_fails_fast_when_session_process_exits_immediately() {
     use std::time::{Duration, Instant};
 
     let _guard = crate::storage::lock_test_env();
-    let prev_home = std::env::var_os("KCODE_HOME");
+    let prev_home = std::env::var_os("NEURA_HOME");
     let temp = tempfile::TempDir::new().expect("create temp dir");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let browser_dir = temp.path().join("browser");
     std::fs::create_dir_all(&browser_dir).expect("create browser dir");
@@ -127,8 +127,8 @@ fn ensure_browser_session_fails_fast_when_session_process_exits_immediately() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }

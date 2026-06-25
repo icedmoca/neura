@@ -566,7 +566,7 @@ fn dotool_button_name(button: u8) -> Result<&'static str> {
 
 fn temp_screenshot_path() -> PathBuf {
     std::env::temp_dir().join(format!(
-        "kcode-mouse-screenshot-{}-{}.png",
+        "neura-mouse-screenshot-{}-{}.png",
         std::process::id(),
         chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
     ))

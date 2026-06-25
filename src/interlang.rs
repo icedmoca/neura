@@ -13,14 +13,14 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokenizers::Tokenizer;
 
-const ENV_ENABLE: &str = "KCODE_INTERLANG_COMPACT";
-const ENV_MODE: &str = "KCODE_INTERLANG_MODE";
-const ENV_TOKENIZER_JSON: &str = "KCODE_INTERLANG_TOKENIZER_JSON";
-const ENV_CONTEXT_DIET: &str = "KCODE_CONTEXT_DIET";
-const ENV_CONTEXT_DIET_TRIGGER_TOKENS: &str = "KCODE_CONTEXT_DIET_TRIGGER_TOKENS";
-const ENV_CONTEXT_DIET_RECENT_MESSAGES: &str = "KCODE_CONTEXT_DIET_RECENT_MESSAGES";
-const ENV_CONTEXT_DIET_MIN_BLOCK_CHARS: &str = "KCODE_CONTEXT_DIET_MIN_BLOCK_CHARS";
-const DEFAULT_TOKENIZER_JSON: &str = "/home/dad/.kcode/models/all-MiniLM-L6-v2/tokenizer.json";
+const ENV_ENABLE: &str = "NEURA_INTERLANG_COMPACT";
+const ENV_MODE: &str = "NEURA_INTERLANG_MODE";
+const ENV_TOKENIZER_JSON: &str = "NEURA_INTERLANG_TOKENIZER_JSON";
+const ENV_CONTEXT_DIET: &str = "NEURA_CONTEXT_DIET";
+const ENV_CONTEXT_DIET_TRIGGER_TOKENS: &str = "NEURA_CONTEXT_DIET_TRIGGER_TOKENS";
+const ENV_CONTEXT_DIET_RECENT_MESSAGES: &str = "NEURA_CONTEXT_DIET_RECENT_MESSAGES";
+const ENV_CONTEXT_DIET_MIN_BLOCK_CHARS: &str = "NEURA_CONTEXT_DIET_MIN_BLOCK_CHARS";
+const DEFAULT_TOKENIZER_JSON: &str = "/home/dad/.neura/models/all-MiniLM-L6-v2/tokenizer.json";
 const MIN_TEXT_CHARS: usize = 900;
 const MIN_SAVED_CHARS: usize = 240;
 const MIN_SEEN_REF_CHARS: usize = 2_400;
@@ -31,7 +31,7 @@ const DEFAULT_CONTEXT_DIET_MIN_BLOCK_CHARS: usize = 300;
 const APPROX_CHARS_PER_TOKEN: usize = 4;
 const AUTO_REHYDRATE_CONFIDENCE_THRESHOLD: f32 = 0.56;
 const AUTO_REHYDRATE_MAX_BLOCKS: usize = 1;
-const AUTO_REHYDRATE_DEBUG_ENV: &str = "KCODE_CTX_REHYDRATE_DEBUG";
+const AUTO_REHYDRATE_DEBUG_ENV: &str = "NEURA_CTX_REHYDRATE_DEBUG";
 
 #[derive(Debug, Clone)]
 struct SeenBlock {
@@ -273,9 +273,9 @@ pub fn enabled() -> bool {
 
 pub fn decoder_prompt() -> String {
     match mode() {
-        InterlangMode::Ultra => "\n\n<system-reminder>\nKcode ctx vault active. Decode <il:v1>. <ctx>/<il:seen> are refs to local exact text; don't invent hidden details. Need exact: `.ctx_get id=<id> reason=<why>`. Attrs: c=confidence,p=priority,ar=auto,t=topics,s=summary.\n</system-reminder>".to_string(),
-        InterlangMode::Verified | InterlangMode::Aggressive => "\n\n<system-reminder>\nKcode interlang active. Decode <il:v1>. <il:seen> means exact text was shown before; request `. err need_ref <hash>` if needed. Don't guess hidden refs.\n</system-reminder>".to_string(),
-        InterlangMode::Safe => "\n\n<system-reminder>\nKcode interlang safe: decode <il:v1> line/path refs before reasoning.\n</system-reminder>".to_string(),
+        InterlangMode::Ultra => "\n\n<system-reminder>\nNeura ctx vault active. Decode <il:v1>. <ctx>/<il:seen> are refs to local exact text; don't invent hidden details. Need exact: `.ctx_get id=<id> reason=<why>`. Attrs: c=confidence,p=priority,ar=auto,t=topics,s=summary.\n</system-reminder>".to_string(),
+        InterlangMode::Verified | InterlangMode::Aggressive => "\n\n<system-reminder>\nNeura interlang active. Decode <il:v1>. <il:seen> means exact text was shown before; request `. err need_ref <hash>` if needed. Don't guess hidden refs.\n</system-reminder>".to_string(),
+        InterlangMode::Safe => "\n\n<system-reminder>\nNeura interlang safe: decode <il:v1> line/path refs before reasoning.\n</system-reminder>".to_string(),
         InterlangMode::Off => String::new(),
     }
 }
@@ -295,7 +295,7 @@ pub fn realtime_stats_prompt(latest: InterlangStats) -> String {
     let latest_raw_avoided = latest.raw_context_avoided_tokens_estimate();
     let mode = status.get("mode").and_then(|v| v.as_str()).unwrap_or("off");
     format!(
-        "\n\n<system-reminder>\nKcode ctx stats: mode={mode}, saved={total_saved}, latest={latest_saved}, blocks={}, avoided={latest_raw_avoided}, diet={}.\n</system-reminder>",
+        "\n\n<system-reminder>\nNeura ctx stats: mode={mode}, saved={total_saved}, latest={latest_saved}, blocks={}, avoided={latest_raw_avoided}, diet={}.\n</system-reminder>",
         latest.blocks_encoded, latest.diet_blocks
     )
 }
@@ -423,7 +423,7 @@ pub fn record_stats(stats: InterlangStats) {
     let Some(home) = std::env::var_os("HOME") else {
         return;
     };
-    let path = std::path::Path::new(&home).join(".kcode/interlang-stats.jsonl");
+    let path = std::path::Path::new(&home).join(".neura/interlang-stats.jsonl");
     let timestamp_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis())
@@ -465,7 +465,7 @@ pub fn record_stats(stats: InterlangStats) {
 
 pub fn stats_path() -> Option<std::path::PathBuf> {
     std::env::var_os("HOME")
-        .map(|home| std::path::Path::new(&home).join(".kcode/interlang-stats.jsonl"))
+        .map(|home| std::path::Path::new(&home).join(".neura/interlang-stats.jsonl"))
 }
 
 pub fn status_json() -> serde_json::Value {
@@ -778,7 +778,7 @@ fn maybe_context_diet_messages(messages: &[Message]) -> (Vec<Message>, Interlang
                             let serialized = input.to_string();
                             let encoded =
                                 encode_context_diet_ref(&serialized, "old-tool-input", &mut stats);
-                            *input = serde_json::json!({"_kcode_ctx_ref": encoded});
+                            *input = serde_json::json!({"_neura_ctx_ref": encoded});
                             changed = true;
                         }
                     }
@@ -805,7 +805,7 @@ fn should_diet_tool_input(input: &serde_json::Value) -> bool {
     // Avoid double-encoding wrappers we previously emitted, and only diet
     // genuinely large payloads that would bloat the wire.
     if let Some(map) = input.as_object() {
-        if map.contains_key("_kcode_ctx_ref") {
+        if map.contains_key("_neura_ctx_ref") {
             return false;
         }
     }
@@ -814,7 +814,7 @@ fn should_diet_tool_input(input: &serde_json::Value) -> bool {
 }
 
 fn diet_tool_input_enabled() -> bool {
-    std::env::var("KCODE_INTERLANG_DIET_TOOL_INPUT")
+    std::env::var("NEURA_INTERLANG_DIET_TOOL_INPUT")
         .map(|v| {
             matches!(
                 v.trim().to_ascii_lowercase().as_str(),
@@ -834,7 +834,7 @@ fn context_diet_recent_byte_budget() -> Option<usize> {
     {
         return Some(bytes.max(1_000));
     }
-    let raw = std::env::var("KCODE_CONTEXT_DIET_RECENT_BYTES").ok()?;
+    let raw = std::env::var("NEURA_CONTEXT_DIET_RECENT_BYTES").ok()?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return None;
@@ -879,7 +879,7 @@ fn should_diet_recent_tool_result(content: &str) -> bool {
 
 fn context_diet_recent_tool_result_chars() -> usize {
     env_usize(
-        "KCODE_CONTEXT_DIET_RECENT_TOOL_RESULT_CHARS",
+        "NEURA_CONTEXT_DIET_RECENT_TOOL_RESULT_CHARS",
         2_000,
         800,
         24_000,
@@ -942,7 +942,7 @@ fn encode_context_diet_ref(text: &str, kind: &str, stats: &mut InterlangStats) -
             .encoded_refs
             .entry(kind_tag)
             .or_insert_with(|| encoded.clone());
-        // Best-effort persistence so a later Kcode process can still rehydrate
+        // Best-effort persistence so a later Neura process can still rehydrate
         // exact text behind a `<ctx>` reference. Sensitive blocks are skipped.
         ctx_vault::maybe_persist(entry);
     }
@@ -1378,7 +1378,7 @@ fn smart_auto_rehydrate_turn_allowed(latest_user: &str) -> bool {
 }
 
 fn auto_rehydrate_enabled() -> bool {
-    std::env::var("KCODE_CTX_AUTO_REHYDRATE")
+    std::env::var("NEURA_CTX_AUTO_REHYDRATE")
         .map(|v| {
             matches!(
                 v.trim().to_ascii_lowercase().as_str(),
@@ -1809,7 +1809,7 @@ pub fn maybe_rehydrate_context_search(text: &str) -> Option<String> {
             .join("\n")
     };
     Some(format!(
-        "<system-reminder>\nKcode ctx_search results for query={:?} reason={}. Use `.ctx_get id=<id> reason=<why>` if exact text is required; do not invent hidden content from summaries alone.\n\n{}\n</system-reminder>",
+        "<system-reminder>\nNeura ctx_search results for query={:?} reason={}. Use `.ctx_get id=<id> reason=<why>` if exact text is required; do not invent hidden content from summaries alone.\n\n{}\n</system-reminder>",
         req.query,
         req.reason.as_deref().unwrap_or("unspecified"),
         body
@@ -1823,7 +1823,7 @@ pub fn exact_for_request(req: &ExactRequest) -> Option<(String, &'static str)> {
         }
     }
     // Phase 1.C — fall back to the persistent vault. Lets `.ctx_get` succeed
-    // for `<ctx>` references emitted by a prior Kcode process. Sensitive
+    // for `<ctx>` references emitted by a prior Neura process. Sensitive
     // blocks are never written to disk so this never reveals credentials.
     if let Some(restored) = ctx_vault::load_into_seen_blocks(&req.hash) {
         return Some((restored, "persistent_vault"));
@@ -1843,7 +1843,7 @@ pub fn maybe_rehydrate_response(text: &str) -> Option<String> {
             chars: 0,
         });
         return Some(format!(
-            "<system-reminder>\nKcode ctx_get failed for id={} reason={}. The exact context was not found in the in-memory cache or persistent vault. Do not invent hidden content. Use `.ctx_search query=<terms> reason=<why>` or inspect current files/tools directly.\n</system-reminder>",
+            "<system-reminder>\nNeura ctx_get failed for id={} reason={}. The exact context was not found in the in-memory cache or persistent vault. Do not invent hidden content. Use `.ctx_search query=<terms> reason=<why>` or inspect current files/tools directly.\n</system-reminder>",
             req.id,
             req.reason.as_deref().unwrap_or("unspecified")
         ));
@@ -1858,7 +1858,7 @@ pub fn maybe_rehydrate_response(text: &str) -> Option<String> {
             chars: 0,
         });
         return Some(format!(
-            "<system-reminder>\nKcode ctx_get for id={} was suppressed: {}. Do not invent hidden content; narrow the request or inspect files/tools directly.\n</system-reminder>",
+            "<system-reminder>\nNeura ctx_get for id={} was suppressed: {}. Do not invent hidden content; narrow the request or inspect files/tools directly.\n</system-reminder>",
             req.id, reason
         ));
     }
@@ -1871,7 +1871,7 @@ pub fn maybe_rehydrate_response(text: &str) -> Option<String> {
         chars: exact.len(),
     });
     Some(format!(
-        "<system-reminder>\nKcode ctx_get rehydration fulfilled for id={} hash={} source={} reason={}. Exact original content follows. Treat it as authoritative historical context and continue the task using this exact content. If it is a file excerpt, verify current file state before editing.\n\n<ctx_exact id=\"{}\" hash=\"{}\" source=\"{}\" original_chars={}>\n{}\n</ctx_exact>\n</system-reminder>",
+        "<system-reminder>\nNeura ctx_get rehydration fulfilled for id={} hash={} source={} reason={}. Exact original content follows. Treat it as authoritative historical context and continue the task using this exact content. If it is a file excerpt, verify current file state before editing.\n\n<ctx_exact id=\"{}\" hash=\"{}\" source=\"{}\" original_chars={}>\n{}\n</ctx_exact>\n</system-reminder>",
         req.id,
         req.hash,
         source,
@@ -2068,17 +2068,17 @@ fn encode_repeated_lines(text: &str) -> Option<String> {
 }
 
 /// Persistent context vault: writes non-sensitive `SeenBlock`s to disk so
-/// later Kcode processes can still rehydrate exact text behind `<ctx>` refs.
+/// later Neura processes can still rehydrate exact text behind `<ctx>` refs.
 ///
-/// Layout: `~/.kcode/ctx-vault/<hash[..2]>/<hash>.json` (sharded for fs perf).
+/// Layout: `~/.neura/ctx-vault/<hash[..2]>/<hash>.json` (sharded for fs perf).
 /// Sensitive blocks (per `looks_sensitive`) are never persisted, so credentials
 /// and bearer tokens cannot leak into the vault. Disabled via
-/// `KCODE_CTX_VAULT_PERSIST=0`.
+/// `NEURA_CTX_VAULT_PERSIST=0`.
 mod ctx_vault {
     use super::*;
     use serde::{Deserialize, Serialize};
 
-    pub const ENV_DISABLE: &str = "KCODE_CTX_VAULT_PERSIST";
+    pub const ENV_DISABLE: &str = "NEURA_CTX_VAULT_PERSIST";
 
     #[derive(Serialize, Deserialize)]
     struct PersistedBlock {
@@ -2105,7 +2105,7 @@ mod ctx_vault {
 
     fn vault_dir() -> Option<std::path::PathBuf> {
         let home = std::env::var_os("HOME")?;
-        Some(std::path::Path::new(&home).join(".kcode").join("ctx-vault"))
+        Some(std::path::Path::new(&home).join(".neura").join("ctx-vault"))
     }
 
     fn block_path(dir: &std::path::Path, hash: &str) -> Option<std::path::PathBuf> {
@@ -2175,7 +2175,7 @@ mod ctx_vault {
     /// Load a vault block (if any) into the in-process `seen_blocks` map and
     /// return its exact text. Used as a fallback when `.ctx_get` references
     /// a hash that isn't in the current process's seen map (e.g., after a
-    /// Kcode restart).
+    /// Neura restart).
     pub fn load_into_seen_blocks(hash: &str) -> Option<String> {
         let persisted = load_block(hash)?;
         let exact = persisted.exact.clone();
@@ -2239,7 +2239,7 @@ pub(crate) mod tests {
 
     #[test]
     fn path_prefix_encoding_saves_space() {
-        let prefix = "/home/dad/Projects/kcode-current-src/src/agent";
+        let prefix = "/home/dad/Projects/neura-current-src/src/agent";
         let text = (0..40)
             .map(|idx| {
                 format!(
@@ -2271,7 +2271,7 @@ pub(crate) mod tests {
         let text = (0..80)
             .map(|idx| {
                 format!(
-                    "/tmp/kcode-interlang-seen-ref/file.rs:{}: WARN deterministic repeated seen-ref test line with enough length",
+                    "/tmp/neura-interlang-seen-ref/file.rs:{}: WARN deterministic repeated seen-ref test line with enough length",
                     idx
                 )
             })
@@ -2296,7 +2296,7 @@ pub(crate) mod tests {
         let text = (0..160)
             .map(|idx| {
                 format!(
-                    "/tmp/kcode-ultra-vault/src/file.rs:{}: ERROR deterministic ultra vault test line with enough repeated path context",
+                    "/tmp/neura-ultra-vault/src/file.rs:{}: ERROR deterministic ultra vault test line with enough repeated path context",
                     idx
                 )
             })
@@ -2461,7 +2461,7 @@ pub(crate) mod tests {
         assert!(stats.low_confidence_blocks > 0);
 
         let mut messages = vec![Message::user(
-            "Please audit Kcode token efficiency and context compression strategy.",
+            "Please audit Neura token efficiency and context compression strategy.",
         )];
         maybe_append_auto_rehydration(&mut messages, &mut stats);
         assert_eq!(
@@ -2773,9 +2773,9 @@ pub(crate) mod tests {
             return;
         }
         let _guard = seen_test_lock();
-        let prev_flag = std::env::var_os("KCODE_INTERLANG_DIET_TOOL_INPUT");
+        let prev_flag = std::env::var_os("NEURA_INTERLANG_DIET_TOOL_INPUT");
         unsafe {
-            std::env::remove_var("KCODE_INTERLANG_DIET_TOOL_INPUT");
+            std::env::remove_var("NEURA_INTERLANG_DIET_TOOL_INPUT");
         }
         if let Ok(mut seen) = seen_blocks().lock() {
             seen.clear();
@@ -2814,7 +2814,7 @@ pub(crate) mod tests {
 
         unsafe {
             if let Some(prev) = prev_flag {
-                std::env::set_var("KCODE_INTERLANG_DIET_TOOL_INPUT", prev);
+                std::env::set_var("NEURA_INTERLANG_DIET_TOOL_INPUT", prev);
             }
         }
     }
@@ -2825,10 +2825,10 @@ pub(crate) mod tests {
             return;
         }
         let _guard = seen_test_lock();
-        let prev_flag = std::env::var_os("KCODE_INTERLANG_DIET_TOOL_INPUT");
+        let prev_flag = std::env::var_os("NEURA_INTERLANG_DIET_TOOL_INPUT");
         unsafe {
-            std::env::set_var("KCODE_INTERLANG_DIET_TOOL_INPUT", "1");
-            std::env::remove_var("KCODE_CONTEXT_DIET_RECENT_BYTES");
+            std::env::set_var("NEURA_INTERLANG_DIET_TOOL_INPUT", "1");
+            std::env::remove_var("NEURA_CONTEXT_DIET_RECENT_BYTES");
         }
         if let Ok(mut seen) = seen_blocks().lock() {
             seen.clear();
@@ -2868,7 +2868,7 @@ pub(crate) mod tests {
             m.content.iter().any(|b| match b {
                 ContentBlock::ToolUse { input, .. } => input
                     .as_object()
-                    .and_then(|map| map.get("_kcode_ctx_ref"))
+                    .and_then(|map| map.get("_neura_ctx_ref"))
                     .is_some(),
                 _ => false,
             })
@@ -2880,9 +2880,9 @@ pub(crate) mod tests {
 
         unsafe {
             if let Some(prev) = prev_flag {
-                std::env::set_var("KCODE_INTERLANG_DIET_TOOL_INPUT", prev);
+                std::env::set_var("NEURA_INTERLANG_DIET_TOOL_INPUT", prev);
             } else {
-                std::env::remove_var("KCODE_INTERLANG_DIET_TOOL_INPUT");
+                std::env::remove_var("NEURA_INTERLANG_DIET_TOOL_INPUT");
             }
         }
     }
@@ -2893,9 +2893,9 @@ pub(crate) mod tests {
             return;
         }
         let _guard = seen_test_lock();
-        let prev_budget = std::env::var_os("KCODE_CONTEXT_DIET_RECENT_BYTES");
+        let prev_budget = std::env::var_os("NEURA_CONTEXT_DIET_RECENT_BYTES");
         unsafe {
-            std::env::set_var("KCODE_CONTEXT_DIET_RECENT_BYTES", "5000");
+            std::env::set_var("NEURA_CONTEXT_DIET_RECENT_BYTES", "5000");
         }
         if let Ok(mut seen) = seen_blocks().lock() {
             seen.clear();
@@ -2924,9 +2924,9 @@ pub(crate) mod tests {
 
         unsafe {
             if let Some(prev) = prev_budget {
-                std::env::set_var("KCODE_CONTEXT_DIET_RECENT_BYTES", prev);
+                std::env::set_var("NEURA_CONTEXT_DIET_RECENT_BYTES", prev);
             } else {
-                std::env::remove_var("KCODE_CONTEXT_DIET_RECENT_BYTES");
+                std::env::remove_var("NEURA_CONTEXT_DIET_RECENT_BYTES");
             }
         }
     }

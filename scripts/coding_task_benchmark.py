@@ -4,7 +4,7 @@
 Mines coding tasks from git history and compares whether three context strategies
 retrieve the files changed by the commit:
 - full_context: all repo files in prompt context,
-- kcode_path_exact: path-aware exact retrieval using changed-file/path mentions,
+- neura_path_exact: path-aware exact retrieval using changed-file/path mentions,
 - lexical_rag: bag-of-words retrieval over file paths and file text.
 
 This is not a remote model execution benchmark. It measures context availability,
@@ -23,7 +23,7 @@ MAX_TASKS = 75
 TOP_K = 8
 TOKEN_CHARS = 4
 INCLUDE_EXT = {'.rs', '.toml', '.md', '.json', '.yml', '.yaml', '.sh', '.py', '.ts', '.tsx', '.js', '.jsx', '.html', '.css'}
-EXCLUDE_PARTS = {'.git', 'target', 'node_modules', '.kcode', '.jcode'}
+EXCLUDE_PARTS = {'.git', 'target', 'node_modules', '.neura', '.jcode'}
 
 @dataclass
 class FileDoc:
@@ -116,7 +116,7 @@ def full_context(docs: list[FileDoc], task: Task) -> tuple[list[FileDoc], int]:
     return docs, cost(docs)
 
 
-def kcode_path_exact(docs: list[FileDoc], task: Task) -> tuple[list[FileDoc], int]:
+def neura_path_exact(docs: list[FileDoc], task: Task) -> tuple[list[FileDoc], int]:
     by_path = {d.path: d for d in docs}
     refs = sum(len(f'<ctx id="file:{d.path}" n={len(d.text)} s="..."/>') for d in docs)
     selected = [by_path[f] for f in task.files if f in by_path]
@@ -152,7 +152,7 @@ def evaluate(mode: str, docs: list[FileDoc], task: Task, retrieved: list[FileDoc
 def main() -> None:
     docs = load_docs()
     tasks = mine_tasks()
-    modes = {'full_context': full_context, 'kcode_path_exact': kcode_path_exact, 'lexical_rag': lexical_rag}
+    modes = {'full_context': full_context, 'neura_path_exact': neura_path_exact, 'lexical_rag': lexical_rag}
     results = []
     for task in tasks:
         for name, fn in modes.items():

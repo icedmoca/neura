@@ -235,11 +235,11 @@ pub fn build_self_improvement_prompt(request: &SelfImprovementRequest) -> String
     let mut prompt = String::new();
     if plan_only {
         prompt.push_str(
-            "Plan a concrete Kcode code-quality improvement. Do not modify files yet.\n\n",
+            "Plan a concrete Neura code-quality improvement. Do not modify files yet.\n\n",
         );
     } else {
         prompt.push_str(
-            "Improve Kcode autonomously with one focused, high-impact code-quality change.\n\n",
+            "Improve Neura autonomously with one focused, high-impact code-quality change.\n\n",
         );
     }
     if let SelfImprovementTrigger::Autonomous(reason) = &request.trigger {

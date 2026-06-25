@@ -71,7 +71,7 @@ pub struct SessionInfo {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SessionSource {
-    Kcode,
+    Neura,
     ClaudeCode,
     Codex,
     Pi,
@@ -81,7 +81,7 @@ pub enum SessionSource {
 impl SessionSource {
     pub fn badge(self) -> Option<&'static str> {
         match self {
-            Self::Kcode => None,
+            Self::Neura => None,
             Self::ClaudeCode => Some("🧵 Claude Code"),
             Self::Codex => Some("🧠 Codex"),
             Self::Pi => Some("π Pi"),
@@ -92,7 +92,7 @@ impl SessionSource {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ResumeTarget {
-    KcodeSession {
+    NeuraSession {
         session_id: String,
     },
     ClaudeCodeSession {
@@ -115,7 +115,7 @@ pub enum ResumeTarget {
 impl ResumeTarget {
     pub fn stable_id(&self) -> &str {
         match self {
-            Self::KcodeSession { session_id } => session_id,
+            Self::NeuraSession { session_id } => session_id,
             Self::ClaudeCodeSession { session_id, .. } => session_id,
             Self::CodexSession { session_id, .. } => session_id,
             Self::PiSession { session_path } => session_path,
@@ -607,7 +607,7 @@ impl SessionPicker {
                 (
                     s.resume_target.clone(),
                     match &s.resume_target {
-                        ResumeTarget::KcodeSession { session_id } => Some(session_id.clone()),
+                        ResumeTarget::NeuraSession { session_id } => Some(session_id.clone()),
                         ResumeTarget::ClaudeCodeSession { session_id, .. } => {
                             Some(session_id.clone())
                         }
@@ -628,7 +628,7 @@ impl SessionPicker {
         };
 
         let preview = match resume_target {
-            ResumeTarget::KcodeSession { .. } => {
+            ResumeTarget::NeuraSession { .. } => {
                 let Ok(session) = Session::load(&session_id) else {
                     return;
                 };

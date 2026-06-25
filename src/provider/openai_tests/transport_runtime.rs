@@ -51,12 +51,12 @@ async fn live_openai_gpt_5_4_and_fast_requests_succeed() -> Result<()> {
     crate::provider::populate_context_limits(catalog.context_limits.clone());
     crate::provider::populate_account_models(catalog.available_models.clone());
 
-    let Some(plain_response) = live_openai_smoke("gpt-5.4", "KCODE_GPT54_OK").await? else {
+    let Some(plain_response) = live_openai_smoke("gpt-5.4", "NEURA_GPT54_OK").await? else {
         eprintln!("skipping live OpenAI response test: no real OAuth credentials");
         return Ok(());
     };
     assert!(
-        plain_response.contains("KCODE_GPT54_OK"),
+        plain_response.contains("NEURA_GPT54_OK"),
         "unexpected GPT-5.4 response: {}",
         plain_response
     );
@@ -67,13 +67,13 @@ async fn live_openai_gpt_5_4_and_fast_requests_succeed() -> Result<()> {
         .any(|model| model == "gpt-5.3-codex-spark")
     {
         let Some(fast_response) =
-            live_openai_smoke("gpt-5.3-codex-spark", "KCODE_GPT53_SPARK_OK").await?
+            live_openai_smoke("gpt-5.3-codex-spark", "NEURA_GPT53_SPARK_OK").await?
         else {
             eprintln!("skipping live OpenAI fast-model test: no real OAuth credentials");
             return Ok(());
         };
         assert!(
-            fast_response.contains("KCODE_GPT53_SPARK_OK"),
+            fast_response.contains("NEURA_GPT53_SPARK_OK"),
             "unexpected gpt-5.3-codex-spark response: {}",
             fast_response
         );
@@ -84,13 +84,13 @@ async fn live_openai_gpt_5_4_and_fast_requests_succeed() -> Result<()> {
         .any(|model| model == "gpt-5.4[1m]")
     {
         let Some(long_context_response) =
-            live_openai_smoke("gpt-5.4[1m]", "KCODE_GPT54_1M_OK").await?
+            live_openai_smoke("gpt-5.4[1m]", "NEURA_GPT54_1M_OK").await?
         else {
             eprintln!("skipping live OpenAI 1m test: no real OAuth credentials");
             return Ok(());
         };
         assert!(
-            long_context_response.contains("KCODE_GPT54_1M_OK"),
+            long_context_response.contains("NEURA_GPT54_1M_OK"),
             "unexpected GPT-5.4[1m] response: {}",
             long_context_response
         );

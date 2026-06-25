@@ -433,7 +433,7 @@ async fn ensure_firefox_ready() -> Result<Option<String>> {
     }
 
     let mut message = String::from(
-        "Browser automation is not ready yet. Use the browser tool with action='status' to confirm current state. Only run action='setup' or `kcode browser setup` for first-time install or repair when the bridge is not already ready.\n",
+        "Browser automation is not ready yet. Use the browser tool with action='status' to confirm current state. Only run action='setup' or `neura browser setup` for first-time install or repair when the bridge is not already ready.\n",
     );
     if !status.binary_installed {
         message.push_str("Browser bridge binary is not installed yet.\n");
@@ -773,7 +773,7 @@ async fn firefox_run_bridge_command(
         };
         if details.contains("Unknown action:") {
             anyhow::bail!(
-                "The connected Firefox browser bridge is missing required support for action '{}'. This usually means the installed extension is older than the browser CLI expected by kcode. Use browser action='status' to confirm, then action='setup' to repair or update the extension.\n\nOriginal bridge error: {}",
+                "The connected Firefox browser bridge is missing required support for action '{}'. This usually means the installed extension is older than the browser CLI expected by neura. Use browser action='status' to confirm, then action='setup' to repair or update the extension.\n\nOriginal bridge error: {}",
                 action,
                 details
             );
@@ -833,7 +833,7 @@ fn temp_screenshot_path() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis())
         .unwrap_or(0);
-    std::env::temp_dir().join(format!("kcode-browser-{}.png", ts))
+    std::env::temp_dir().join(format!("neura-browser-{}.png", ts))
 }
 
 fn render_browser_output(action: &str, title: String, result: Value) -> ToolOutput {

@@ -1,6 +1,6 @@
 #[test]
 fn test_improve_mode_persists_in_session_file() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut session = crate::session::Session::create(None, None);
         session.improve_mode = Some(crate::session::SessionImproveMode::ImprovePlan);
         let session_id = session.id.clone();
@@ -75,7 +75,7 @@ fn test_refactor_plan_command_is_plan_only_and_accepts_focus() {
 
 #[test]
 fn test_refactor_status_summarizes_current_todos() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         crate::todo::save_todos(
             &app.session.id,
@@ -119,7 +119,7 @@ fn test_refactor_status_summarizes_current_todos() {
 
 #[test]
 fn test_refactor_resume_uses_saved_mode_and_current_todos() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         app.session.improve_mode = Some(crate::session::SessionImproveMode::RefactorRun);
         app.session.save().expect("save session");

@@ -2,5 +2,5 @@
 
 You have access to `selfdev` in all sessions.
 
-- Use `selfdev enter` when the task is to work on kcode itself.
+- Use `selfdev enter` when the task is to work on neura itself.
 - Outside self-dev mode, advanced self-dev actions and debug socket access are unavailable.

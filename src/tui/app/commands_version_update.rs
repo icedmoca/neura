@@ -1,7 +1,7 @@
 use super::{App, DisplayMessage};
 use crate::build::{BuildManifest, read_current_version};
 
-pub(super) const UPDATE_REMOTE: &str = "https://github.com/icedmoca/kcode.git";
+pub(super) const UPDATE_REMOTE: &str = "https://github.com/icedmoca/neura.git";
 pub(super) const UPDATE_BRANCH: &str = "main";
 
 pub(super) fn handle_version_command(app: &mut App) {
@@ -48,7 +48,7 @@ pub(super) fn version_message() -> String {
         })
         .unwrap_or_else(|| "none".to_string());
     format!(
-        "Kcode {}\nBinary: {}\nReload candidate: {}",
+        "Neura {}\nBinary: {}\nReload candidate: {}",
         read_current_version()
             .ok()
             .flatten()
@@ -71,14 +71,14 @@ mod tests {
 
     #[test]
     fn update_points_at_requested_remote_and_branch() {
-        assert_eq!(UPDATE_REMOTE, "https://github.com/icedmoca/kcode.git");
+        assert_eq!(UPDATE_REMOTE, "https://github.com/icedmoca/neura.git");
         assert_eq!(UPDATE_BRANCH, "main");
     }
 
     #[test]
     fn version_message_mentions_reload_candidate() {
         let msg = version_message();
-        assert!(msg.contains("Kcode"));
+        assert!(msg.contains("Neura"));
         assert!(msg.contains("Reload candidate"));
     }
 }

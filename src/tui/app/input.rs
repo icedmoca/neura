@@ -1676,7 +1676,7 @@ impl App {
             || super::debug::handle_debug_command(self, trimmed)
             || super::model_context::handle_model_command(self, trimmed)
             || super::commands::handle_usage_command(self, trimmed)
-            || super::commands::handle_kcodeui_command(self, trimmed)
+            || super::commands::handle_neuraui_command(self, trimmed)
             || super::commands::handle_feedback_command(self, trimmed)
             || super::state_ui::handle_info_command(self, trimmed)
             || super::auth::handle_auth_command(self, trimmed)
@@ -1701,7 +1701,7 @@ impl App {
 
             if self.is_remote {
                 self.push_display_message(DisplayMessage::system(
-                    "Input-line `!` shell commands are only available in a local kcode TUI session.",
+                    "Input-line `!` shell commands are only available in a local neura TUI session.",
                 ));
                 self.set_status_notice("Local shell unavailable in remote mode");
                 return;
@@ -1732,14 +1732,14 @@ impl App {
                     title: None,
                     tool_data: None,
                 });
-            } else if skill_name == "kcodeui" {
-                let content = crate::kcode_ui::launch();
+            } else if skill_name == "neuraui" {
+                let content = crate::neura_ui::launch();
                 self.push_display_message(DisplayMessage {
                     role: "system".to_string(),
                     content,
                     tool_calls: vec![],
                     duration_secs: None,
-                    title: Some("Kcode UI".to_string()),
+                    title: Some("Neura UI".to_string()),
                     tool_data: None,
                 });
             } else {

@@ -56,7 +56,7 @@ fn create_repo_fixture() -> tempfile::TempDir {
     std::fs::create_dir_all(temp.path().join(".git")).expect("git dir");
     std::fs::write(
         temp.path().join("Cargo.toml"),
-        "[package]\nname = \"kcode\"\nversion = \"0.1.0\"\n",
+        "[package]\nname = \"neura\"\nversion = \"0.1.0\"\n",
     )
     .expect("cargo toml");
     temp
@@ -132,7 +132,7 @@ fn test_reload_context_save_and_load_for_session_uses_session_scoped_file() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
 
     let ctx = ReloadContext {
         task_context: Some("Testing scoped reload context".to_string()),
@@ -222,7 +222,7 @@ fn test_recovery_directive_returns_none_when_no_reload_recovery_needed() {
 fn reload_timeout_secs_defaults_to_15() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
-    let _guard = EnvVarGuard::remove("KCODE_SELFDEV_RELOAD_TIMEOUT_SECS");
+    let _guard = EnvVarGuard::remove("NEURA_SELFDEV_RELOAD_TIMEOUT_SECS");
     assert_eq!(SelfDevTool::reload_timeout_secs(), 15);
 }
 
@@ -230,7 +230,7 @@ fn reload_timeout_secs_defaults_to_15() {
 fn reload_timeout_secs_honors_valid_env_override() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
-    let _guard = EnvVarGuard::set("KCODE_SELFDEV_RELOAD_TIMEOUT_SECS", "27");
+    let _guard = EnvVarGuard::set("NEURA_SELFDEV_RELOAD_TIMEOUT_SECS", "27");
     assert_eq!(SelfDevTool::reload_timeout_secs(), 27);
 }
 
@@ -238,15 +238,15 @@ fn reload_timeout_secs_honors_valid_env_override() {
 fn reload_timeout_secs_ignores_empty_invalid_and_zero_values() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
-    let _guard = EnvVarGuard::set("KCODE_SELFDEV_RELOAD_TIMEOUT_SECS", "   ");
+    let _guard = EnvVarGuard::set("NEURA_SELFDEV_RELOAD_TIMEOUT_SECS", "   ");
     assert_eq!(SelfDevTool::reload_timeout_secs(), 15);
     drop(_guard);
 
-    let _guard = EnvVarGuard::set("KCODE_SELFDEV_RELOAD_TIMEOUT_SECS", "abc");
+    let _guard = EnvVarGuard::set("NEURA_SELFDEV_RELOAD_TIMEOUT_SECS", "abc");
     assert_eq!(SelfDevTool::reload_timeout_secs(), 15);
     drop(_guard);
 
-    let _guard = EnvVarGuard::set("KCODE_SELFDEV_RELOAD_TIMEOUT_SECS", "0");
+    let _guard = EnvVarGuard::set("NEURA_SELFDEV_RELOAD_TIMEOUT_SECS", "0");
     assert_eq!(SelfDevTool::reload_timeout_secs(), 15);
 }
 
@@ -303,8 +303,8 @@ async fn enter_creates_selfdev_session_in_test_mode() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
-    let _test_guard = EnvVarGuard::set("KCODE_TEST_SESSION", "1");
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
+    let _test_guard = EnvVarGuard::set("NEURA_TEST_SESSION", "1");
     let repo = create_repo_fixture();
 
     let mut parent = session::Session::create(None, Some("Origin Session".to_string()));
@@ -333,7 +333,7 @@ async fn enter_creates_selfdev_session_in_test_mode() {
     let ctx = create_test_context(&parent.id, Some(repo.path().to_path_buf()));
     let output = tool
         .execute(
-            json!({"action": "enter", "prompt": "Work on kcode itself"}),
+            json!({"action": "enter", "prompt": "Work on neura itself"}),
             ctx,
         )
         .await
@@ -380,8 +380,8 @@ async fn enter_falls_back_to_fresh_session_when_parent_missing() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
-    let _test_guard = EnvVarGuard::set("KCODE_TEST_SESSION", "1");
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
+    let _test_guard = EnvVarGuard::set("NEURA_TEST_SESSION", "1");
     let repo = create_repo_fixture();
 
     let tool = SelfDevTool::new();
@@ -411,7 +411,7 @@ async fn reload_requires_selfdev_session() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
 
     let mut session = session::Session::create(None, Some("Normal Session".to_string()));
     session.save().expect("save session");
@@ -436,8 +436,8 @@ async fn build_requires_reason() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
-    let _test_guard = EnvVarGuard::set("KCODE_TEST_SESSION", "1");
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
+    let _test_guard = EnvVarGuard::set("NEURA_TEST_SESSION", "1");
     let repo = create_repo_fixture();
 
     let tool = SelfDevTool::new();
@@ -455,8 +455,8 @@ async fn build_queues_background_tasks_and_reports_queue_status() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
-    let _test_guard = EnvVarGuard::set("KCODE_TEST_SESSION", "1");
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
+    let _test_guard = EnvVarGuard::set("NEURA_TEST_SESSION", "1");
     let repo = create_repo_fixture();
 
     let mut session_one = session::Session::create(None, Some("First build session".to_string()));
@@ -531,8 +531,8 @@ async fn build_dedupes_identical_reason_and_version_with_attached_watcher() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
-    let _test_guard = EnvVarGuard::set("KCODE_TEST_SESSION", "1");
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
+    let _test_guard = EnvVarGuard::set("NEURA_TEST_SESSION", "1");
     let repo = create_repo_fixture();
 
     let mut session_one = session::Session::create(None, Some("Build A".to_string()));
@@ -592,8 +592,8 @@ async fn cancel_build_marks_request_cancelled_and_removes_it_from_queue() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
-    let _test_guard = EnvVarGuard::set("KCODE_TEST_SESSION", "1");
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
+    let _test_guard = EnvVarGuard::set("NEURA_TEST_SESSION", "1");
     let repo = create_repo_fixture();
 
     let mut session_one = session::Session::create(None, Some("Build A".to_string()));
@@ -656,14 +656,14 @@ fn status_output_prunes_stale_pending_requests() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
 
     let mut session = session::Session::create(None, Some("Stale Build".to_string()));
     session.short_name = Some("ghost".to_string());
     session.save().expect("save session");
 
     let stale_status_path = temp_home.path().join("missing-selfdev.status.json");
-    let source = test_source_state(std::path::Path::new("/tmp/kcode"));
+    let source = test_source_state(std::path::Path::new("/tmp/neura"));
     let request = BuildRequest {
         request_id: "stale-request".to_string(),
         background_task_id: Some("missing-task".to_string()),
@@ -671,10 +671,10 @@ fn status_output_prunes_stale_pending_requests() {
         session_short_name: session.short_name.clone(),
         session_title: Some("Stale Build".to_string()),
         reason: "stale reason".to_string(),
-        repo_dir: "/tmp/kcode".to_string(),
+        repo_dir: "/tmp/neura".to_string(),
         repo_scope: source.repo_scope.clone(),
         worktree_scope: source.worktree_scope.clone(),
-        command: "scripts/dev_cargo.sh build --profile selfdev -p kcode --bin kcode".to_string(),
+        command: "scripts/dev_cargo.sh build --profile selfdev -p neura --bin neura".to_string(),
         requested_at: Utc::now().to_rfc3339(),
         started_at: Some(Utc::now().to_rfc3339()),
         completed_at: None,
@@ -718,8 +718,8 @@ async fn build_ignores_stale_pending_requests_when_computing_queue_position() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
-    let _test_guard = EnvVarGuard::set("KCODE_TEST_SESSION", "1");
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
+    let _test_guard = EnvVarGuard::set("NEURA_TEST_SESSION", "1");
     let repo = create_repo_fixture();
 
     let mut stale_session = session::Session::create(None, Some("Stale Build".to_string()));
@@ -761,7 +761,7 @@ async fn build_ignores_stale_pending_requests_when_computing_queue_position() {
         repo_dir: repo.path().display().to_string(),
         repo_scope: source.repo_scope.clone(),
         worktree_scope: source.worktree_scope.clone(),
-        command: "scripts/dev_cargo.sh build --profile selfdev -p kcode --bin kcode".to_string(),
+        command: "scripts/dev_cargo.sh build --profile selfdev -p neura --bin neura".to_string(),
         requested_at: Utc::now().to_rfc3339(),
         started_at: Some(Utc::now().to_rfc3339()),
         completed_at: None,
@@ -815,7 +815,7 @@ fn reconcile_pending_state_maps_superseded_background_status() {
     let _storage_guard = crate::storage::lock_test_env();
     let _lock = lock_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    let _home_guard = EnvVarGuard::set("KCODE_HOME", temp_home.path());
+    let _home_guard = EnvVarGuard::set("NEURA_HOME", temp_home.path());
 
     let mut session = session::Session::create(None, Some("Superseded Build".to_string()));
     session.short_name = Some("alpha".to_string());
@@ -845,7 +845,7 @@ fn reconcile_pending_state_maps_superseded_background_status() {
     )
     .expect("write superseded status file");
 
-    let source = test_source_state(std::path::Path::new("/tmp/kcode"));
+    let source = test_source_state(std::path::Path::new("/tmp/neura"));
     let request = BuildRequest {
         request_id: "superseded-request".to_string(),
         background_task_id: Some("superseded-task".to_string()),
@@ -853,10 +853,10 @@ fn reconcile_pending_state_maps_superseded_background_status() {
         session_short_name: session.short_name.clone(),
         session_title: Some("Superseded Build".to_string()),
         reason: "superseded reason".to_string(),
-        repo_dir: "/tmp/kcode".to_string(),
+        repo_dir: "/tmp/neura".to_string(),
         repo_scope: source.repo_scope.clone(),
         worktree_scope: source.worktree_scope.clone(),
-        command: "scripts/dev_cargo.sh build --profile selfdev -p kcode --bin kcode".to_string(),
+        command: "scripts/dev_cargo.sh build --profile selfdev -p neura --bin neura".to_string(),
         requested_at: Utc::now().to_rfc3339(),
         started_at: Some(Utc::now().to_rfc3339()),
         completed_at: None,

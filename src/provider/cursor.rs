@@ -114,7 +114,7 @@ fn runtime_cursor_api_key() -> Option<String> {
 }
 
 fn use_native_transport() -> bool {
-    match std::env::var("KCODE_CURSOR_TRANSPORT") {
+    match std::env::var("NEURA_CURSOR_TRANSPORT") {
         Ok(raw) => match raw.trim().to_ascii_lowercase().as_str() {
             "cli" => false,
             "native" | "direct" | "http" | "https" | "connect" => true,
@@ -173,8 +173,8 @@ impl CursorCliProvider {
 
     pub fn new() -> Self {
         let cli_path =
-            std::env::var("KCODE_CURSOR_CLI_PATH").unwrap_or_else(|_| "cursor-agent".to_string());
-        let model = std::env::var("KCODE_CURSOR_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.into());
+            std::env::var("NEURA_CURSOR_CLI_PATH").unwrap_or_else(|_| "cursor-agent".to_string());
+        let model = std::env::var("NEURA_CURSOR_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.into());
         let provider = Self {
             cli_path,
             client: crate::provider::shared_http_client(),
@@ -408,7 +408,7 @@ async fn run_native_text_command_via_curl(
     let client_key = cursor_auth::client_key_for_access_token(access_token);
     let client_version = cursor_auth::cursor_direct_client_version();
 
-    let body_path = std::env::temp_dir().join(format!("kcode-cursor-{}.bin", Uuid::new_v4()));
+    let body_path = std::env::temp_dir().join(format!("neura-cursor-{}.bin", Uuid::new_v4()));
     std::fs::write(&body_path, &body).context("Failed writing Cursor request body temp file")?;
     let body_path_str = body_path.to_string_lossy().to_string();
 
@@ -659,7 +659,7 @@ fn encode_metadata() -> Vec<u8> {
         2,
         std::env::consts::ARCH.as_bytes().to_vec(),
     ));
-    bytes.extend(encode_field(4, 2, b"kcode".to_vec()));
+    bytes.extend(encode_field(4, 2, b"neura".to_vec()));
     bytes.extend(encode_field(
         5,
         2,

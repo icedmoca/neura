@@ -1,6 +1,6 @@
 #![cfg_attr(test, allow(clippy::await_holding_lock))]
 
-//! Self-development tool - manage canary builds when working on kcode itself
+//! Self-development tool - manage canary builds when working on neura itself
 
 use crate::background::{self, TaskResult};
 use crate::build;
@@ -141,7 +141,7 @@ struct BuildRequest {
 
 impl BuildRequest {
     fn requests_dir() -> Result<PathBuf> {
-        let dir = storage::kcode_dir()?.join("selfdev-build-requests");
+        let dir = storage::neura_dir()?.join("selfdev-build-requests");
         storage::ensure_dir(&dir)?;
         Ok(dir)
     }
@@ -255,7 +255,7 @@ impl BuildRequest {
         self.status_file.as_ref().map(PathBuf::from).or_else(|| {
             self.background_task_id.as_ref().map(|task_id| {
                 std::env::temp_dir()
-                    .join("kcode-bg-tasks")
+                    .join("neura-bg-tasks")
                     .join(format!("{}.status.json", task_id))
             })
         })
@@ -455,7 +455,7 @@ impl Tool for SelfDevTool {
 
 impl SelfDevTool {
     fn is_test_session() -> bool {
-        std::env::var("KCODE_TEST_SESSION")
+        std::env::var("NEURA_TEST_SESSION")
             .map(|value| {
                 let trimmed = value.trim();
                 !trimmed.is_empty() && trimmed != "0" && !trimmed.eq_ignore_ascii_case("false")
@@ -464,7 +464,7 @@ impl SelfDevTool {
     }
 
     fn reload_timeout_secs() -> u64 {
-        std::env::var("KCODE_SELFDEV_RELOAD_TIMEOUT_SECS")
+        std::env::var("NEURA_SELFDEV_RELOAD_TIMEOUT_SECS")
             .ok()
             .and_then(|raw| raw.trim().parse::<u64>().ok())
             .filter(|secs| *secs > 0)
@@ -480,7 +480,7 @@ impl SelfDevTool {
     fn resolve_repo_dir(working_dir: Option<&std::path::Path>) -> Option<std::path::PathBuf> {
         if let Some(dir) = working_dir {
             for ancestor in dir.ancestors() {
-                if build::is_kcode_repo(ancestor) {
+                if build::is_neura_repo(ancestor) {
                     return Some(ancestor.to_path_buf());
                 }
             }
@@ -493,7 +493,7 @@ impl SelfDevTool {
         build::client_update_candidate(true)
             .map(|(path, _label)| path)
             .or_else(|| std::env::current_exe().ok())
-            .ok_or_else(|| anyhow::anyhow!("Could not resolve kcode executable to launch"))
+            .ok_or_else(|| anyhow::anyhow!("Could not resolve neura executable to launch"))
     }
 
     fn build_command(repo_dir: &Path) -> SelfDevBuildCommand {
@@ -501,7 +501,7 @@ impl SelfDevTool {
     }
 
     fn build_lock_path(worktree_scope: &str) -> Result<PathBuf> {
-        let dir = storage::kcode_dir()?.join("selfdev-build-locks");
+        let dir = storage::neura_dir()?.join("selfdev-build-locks");
         storage::ensure_dir(&dir)?;
         Ok(dir.join(format!("{}.lock", worktree_scope)))
     }

@@ -3,12 +3,12 @@ use super::*;
 /// Extract semantic version for UI display/grouping.
 pub(super) fn semver() -> &'static str {
     static SEMVER: OnceLock<String> = OnceLock::new();
-    SEMVER.get_or_init(|| format!("v{}", env!("KCODE_SEMVER")))
+    SEMVER.get_or_init(|| format!("v{}", env!("NEURA_SEMVER")))
 }
 
 /// True when this process is running from the stable release binary path.
-/// Only matches the explicit ~/.kcode/builds/stable/kcode path, NOT
-/// ~/.local/bin/kcode launcher path (which now points to current).
+/// Only matches the explicit ~/.neura/builds/stable/neura path, NOT
+/// ~/.local/bin/neura launcher path (which now points to current).
 pub(super) fn is_running_stable_release() -> bool {
     static IS_STABLE: OnceLock<bool> = OnceLock::new();
     *IS_STABLE.get_or_init(|| {
@@ -83,7 +83,7 @@ pub(super) fn format_age(secs: i64) -> String {
 }
 
 pub(super) fn binary_age() -> Option<String> {
-    let git_date = env!("KCODE_GIT_DATE");
+    let git_date = env!("NEURA_GIT_DATE");
 
     let now = chrono::Utc::now();
 

@@ -201,7 +201,7 @@ impl LatentOperationalState {
                 event: event.clone(),
                 latent: encoded,
                 provenance: ProvenanceRecord {
-                    source: "kcode-latent-observe".to_string(),
+                    source: "neura-latent-observe".to_string(),
                     captured_at_ms: now_ms(),
                     evidence: event.tags.clone(),
                 },
@@ -227,13 +227,13 @@ impl LatentOperationalState {
 }
 
 pub fn state_path() -> PathBuf {
-    std::env::var_os("KCODE_LATENT_STATE")
+    std::env::var_os("NEURA_LATENT_STATE")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let home = std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("."));
-            home.join(".kcode").join("latent_operational_state.json")
+            home.join(".neura").join("latent_operational_state.json")
         })
 }
 
@@ -469,7 +469,7 @@ Invariants: `{}`\n\n\
 - recommendation: {}\n\n\
 ## Current vector\n\n```json\n{}\n```\n\n\
 ## Purpose\n\n\
-This layer gives Kcode an inspectable, deterministic latent state for operational recurrence. It does not replace model reasoning. It summarizes recurring operational conditions, translates invariants into canonical policy signals, tracks temporal provenance, gates low-value influence, and reports drift.\n",
+This layer gives Neura an inspectable, deterministic latent state for operational recurrence. It does not replace model reasoning. It summarizes recurring operational conditions, translates invariants into canonical policy signals, tracks temporal provenance, gates low-value influence, and reports drift.\n",
         state.schema_version,
         state.events_seen,
         state.vector.magnitude(),

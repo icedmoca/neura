@@ -25,7 +25,7 @@ use crate::session::Session;
 use crate::tool;
 use crate::tool::ambient as ambient_tools;
 use chrono::Utc;
-use kcode_agent_runtime::{SoftInterruptMessage, SoftInterruptQueue, SoftInterruptSource};
+use neura_agent_runtime::{SoftInterruptMessage, SoftInterruptQueue, SoftInterruptSource};
 use std::sync::Arc;
 use tokio::sync::{Notify, RwLock};
 
@@ -323,7 +323,7 @@ impl AmbientRunnerHandle {
 
     /// Get recent transcript log summaries.
     pub async fn log_json(&self) -> String {
-        let transcripts_dir = match crate::storage::kcode_dir() {
+        let transcripts_dir = match crate::storage::neura_dir() {
             Ok(d) => d.join("ambient").join("transcripts"),
             Err(e) => return format!("{{\"error\": \"{}\"}}", e),
         };
@@ -1017,18 +1017,18 @@ impl AmbientRunnerHandle {
             let _ = std::fs::remove_file(&result_path);
         }
 
-        // Find the kcode binary
-        let kcode_bin =
-            std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("kcode"));
+        // Find the neura binary
+        let neura_bin =
+            std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("neura"));
 
-        // Spawn kitty with `kcode ambient run-visible`
-        logging::info("Ambient visible: spawning kitty with kcode TUI");
+        // Spawn kitty with `neura ambient run-visible`
+        logging::info("Ambient visible: spawning kitty with neura TUI");
         let child = std::process::Command::new("kitty")
             .args([
                 "--title",
-                "🤖 kcode ambient cycle",
+                "🤖 neura ambient cycle",
                 "-e",
-                &kcode_bin.to_string_lossy(),
+                &neura_bin.to_string_lossy(),
                 "ambient",
                 "run-visible",
             ])

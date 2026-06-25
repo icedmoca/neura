@@ -86,14 +86,14 @@ impl App {
             self.session.is_canary
         };
         let suffix = if is_canary { " [self-dev]" } else { "" };
-        let server_name = self.remote_server_short_name.as_deref().unwrap_or("kcode");
+        let server_name = self.remote_server_short_name.as_deref().unwrap_or("neura");
         let icon = connection_type_icon(self.connection_type.as_deref()).unwrap_or(session_icon);
-        let server_label = if server_name.eq_ignore_ascii_case("kcode") {
-            "kcode".to_string()
+        let server_label = if server_name.eq_ignore_ascii_case("neura") {
+            "neura".to_string()
         } else {
-            format!("kcode/{}", server_name.to_lowercase())
+            format!("neura/{}", server_name.to_lowercase())
         };
-        if server_name.eq_ignore_ascii_case("kcode") {
+        if server_name.eq_ignore_ascii_case("neura") {
             crate::process_title::set_client_display_title(&session_name, is_canary);
         } else {
             crate::process_title::set_client_remote_display_title(
@@ -476,7 +476,7 @@ pub(super) fn handle_dev_command(app: &mut App, trimmed: &str) -> bool {
     if trimmed == "/restart" {
         app.push_display_message(DisplayMessage {
             role: "system".to_string(),
-            content: "Restarting kcode (same binary, session preserved)...".to_string(),
+            content: "Restarting neura (same binary, session preserved)...".to_string(),
             tool_calls: vec![],
             duration_secs: None,
             title: None,
@@ -515,14 +515,14 @@ pub(super) fn handle_dev_command(app: &mut App, trimmed: &str) -> bool {
                 PremiumMode::OnePerSession => "one premium per session",
                 PremiumMode::Zero => "zero premium requests",
             };
-            let env = std::env::var("KCODE_COPILOT_PREMIUM").ok();
+            let env = std::env::var("NEURA_COPILOT_PREMIUM").ok();
             let env_label = match env.as_deref() {
                 Some("0") => "0 (zero)",
                 Some("1") => "1 (one per session)",
                 _ => "unset (normal)",
             };
             app.push_display_message(DisplayMessage::system(format!(
-                "Premium mode: **{}**\nEnv KCODE_COPILOT_PREMIUM: {}",
+                "Premium mode: **{}**\nEnv NEURA_COPILOT_PREMIUM: {}",
                 label, env_label,
             )));
             return true;

@@ -1,21 +1,21 @@
 use crate::provider_catalog;
 
-pub const KCODE_API_KEY_ENV: &str = "KCODE_API_KEY";
-pub const KCODE_API_BASE_ENV: &str = "KCODE_API_BASE";
-pub const KCODE_ENV_FILE: &str = "kcode-subscription.env";
-pub const KCODE_CACHE_NAMESPACE: &str = "kcode-subscription";
-pub const KCODE_SUBSCRIPTION_ACTIVE_ENV: &str = "KCODE_SUBSCRIPTION_ACTIVE";
-pub const DEFAULT_KCODE_API_BASE: &str = "https://subscription.kcode.invalid/v1";
+pub const NEURA_API_KEY_ENV: &str = "NEURA_API_KEY";
+pub const NEURA_API_BASE_ENV: &str = "NEURA_API_BASE";
+pub const NEURA_ENV_FILE: &str = "neura-subscription.env";
+pub const NEURA_CACHE_NAMESPACE: &str = "neura-subscription";
+pub const NEURA_SUBSCRIPTION_ACTIVE_ENV: &str = "NEURA_SUBSCRIPTION_ACTIVE";
+pub const DEFAULT_NEURA_API_BASE: &str = "https://subscription.neura.invalid/v1";
 
 const HEALER_ALPHA_PROVIDERS: &[&str] = &["Stealth"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum KcodeTier {
+pub enum NeuraTier {
     Starter20,
     Pro100,
 }
 
-impl KcodeTier {
+impl NeuraTier {
     pub fn retail_price_usd(self) -> u32 {
         match self {
             Self::Starter20 => 20,
@@ -134,21 +134,21 @@ pub fn is_curated_model(model: &str) -> bool {
 pub fn routing_policy_detail(model: &CuratedModel) -> String {
     match model.routing_policy {
         UpstreamRoutingPolicy::CacheCapableOnly => {
-            "kcode subscription routing · cache-capable upstreams only".to_string()
+            "neura subscription routing · cache-capable upstreams only".to_string()
         }
         UpstreamRoutingPolicy::ProviderAllowlist(providers) => format!(
-            "kcode subscription routing · curated upstream: {}",
+            "neura subscription routing · curated upstream: {}",
             providers.join(", ")
         ),
     }
 }
 
 pub fn configured_api_key() -> Option<String> {
-    provider_catalog::load_env_value_from_env_or_config(KCODE_API_KEY_ENV, KCODE_ENV_FILE)
+    provider_catalog::load_env_value_from_env_or_config(NEURA_API_KEY_ENV, NEURA_ENV_FILE)
 }
 
 pub fn configured_api_base() -> Option<String> {
-    provider_catalog::load_env_value_from_env_or_config(KCODE_API_BASE_ENV, KCODE_ENV_FILE)
+    provider_catalog::load_env_value_from_env_or_config(NEURA_API_BASE_ENV, NEURA_ENV_FILE)
 }
 
 pub fn has_credentials() -> bool {
@@ -160,7 +160,7 @@ pub fn has_router_base() -> bool {
 }
 
 pub fn is_runtime_mode_enabled() -> bool {
-    std::env::var(KCODE_SUBSCRIPTION_ACTIVE_ENV)
+    std::env::var(NEURA_SUBSCRIPTION_ACTIVE_ENV)
         .ok()
         .map(|value| {
             matches!(
@@ -172,30 +172,30 @@ pub fn is_runtime_mode_enabled() -> bool {
 }
 
 pub fn apply_runtime_env() {
-    crate::env::set_var(KCODE_SUBSCRIPTION_ACTIVE_ENV, "1");
+    crate::env::set_var(NEURA_SUBSCRIPTION_ACTIVE_ENV, "1");
     crate::env::set_var(
-        "KCODE_OPENROUTER_API_BASE",
-        configured_api_base().unwrap_or_else(|| DEFAULT_KCODE_API_BASE.to_string()),
+        "NEURA_OPENROUTER_API_BASE",
+        configured_api_base().unwrap_or_else(|| DEFAULT_NEURA_API_BASE.to_string()),
     );
-    crate::env::set_var("KCODE_OPENROUTER_API_KEY_NAME", KCODE_API_KEY_ENV);
-    crate::env::set_var("KCODE_OPENROUTER_ENV_FILE", KCODE_ENV_FILE);
-    crate::env::set_var("KCODE_OPENROUTER_CACHE_NAMESPACE", KCODE_CACHE_NAMESPACE);
-    crate::env::set_var("KCODE_OPENROUTER_PROVIDER_FEATURES", "0");
-    crate::env::remove_var("KCODE_OPENROUTER_ALLOW_NO_AUTH");
-    crate::env::remove_var("KCODE_OPENROUTER_PROVIDER");
-    crate::env::remove_var("KCODE_OPENROUTER_NO_FALLBACK");
+    crate::env::set_var("NEURA_OPENROUTER_API_KEY_NAME", NEURA_API_KEY_ENV);
+    crate::env::set_var("NEURA_OPENROUTER_ENV_FILE", NEURA_ENV_FILE);
+    crate::env::set_var("NEURA_OPENROUTER_CACHE_NAMESPACE", NEURA_CACHE_NAMESPACE);
+    crate::env::set_var("NEURA_OPENROUTER_PROVIDER_FEATURES", "0");
+    crate::env::remove_var("NEURA_OPENROUTER_ALLOW_NO_AUTH");
+    crate::env::remove_var("NEURA_OPENROUTER_PROVIDER");
+    crate::env::remove_var("NEURA_OPENROUTER_NO_FALLBACK");
 }
 
 pub fn clear_runtime_env() {
-    crate::env::remove_var(KCODE_SUBSCRIPTION_ACTIVE_ENV);
-    crate::env::remove_var("KCODE_OPENROUTER_API_BASE");
-    crate::env::remove_var("KCODE_OPENROUTER_API_KEY_NAME");
-    crate::env::remove_var("KCODE_OPENROUTER_ENV_FILE");
-    crate::env::remove_var("KCODE_OPENROUTER_CACHE_NAMESPACE");
-    crate::env::remove_var("KCODE_OPENROUTER_PROVIDER_FEATURES");
-    crate::env::remove_var("KCODE_OPENROUTER_ALLOW_NO_AUTH");
-    crate::env::remove_var("KCODE_OPENROUTER_PROVIDER");
-    crate::env::remove_var("KCODE_OPENROUTER_NO_FALLBACK");
+    crate::env::remove_var(NEURA_SUBSCRIPTION_ACTIVE_ENV);
+    crate::env::remove_var("NEURA_OPENROUTER_API_BASE");
+    crate::env::remove_var("NEURA_OPENROUTER_API_KEY_NAME");
+    crate::env::remove_var("NEURA_OPENROUTER_ENV_FILE");
+    crate::env::remove_var("NEURA_OPENROUTER_CACHE_NAMESPACE");
+    crate::env::remove_var("NEURA_OPENROUTER_PROVIDER_FEATURES");
+    crate::env::remove_var("NEURA_OPENROUTER_ALLOW_NO_AUTH");
+    crate::env::remove_var("NEURA_OPENROUTER_PROVIDER");
+    crate::env::remove_var("NEURA_OPENROUTER_NO_FALLBACK");
 }
 
 #[cfg(test)]

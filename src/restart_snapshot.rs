@@ -39,7 +39,7 @@ pub struct RestoreSnapshotResult {
 }
 
 pub fn snapshot_path() -> Result<PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("restart-snapshot.json"))
+    Ok(crate::storage::neura_dir()?.join("restart-snapshot.json"))
 }
 
 pub fn save_current_snapshot() -> Result<RestartSnapshot> {

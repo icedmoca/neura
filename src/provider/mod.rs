@@ -10,7 +10,7 @@ pub mod cursor;
 mod dispatch;
 mod failover;
 pub mod gemini;
-pub mod kcode;
+pub mod neura;
 pub mod models;
 mod multi_provider;
 pub mod openai;
@@ -43,7 +43,7 @@ use std::sync::{Arc, RwLock};
 pub use catalog_refresh::{ModelCatalogRefreshSummary, summarize_model_catalog_refresh};
 pub use claude::{NativeToolResult, NativeToolResultSender};
 pub(crate) use failover::{ProviderFailoverPrompt, parse_failover_prompt_message};
-pub use kcode_provider_core::{
+pub use neura_provider_core::{
     CHEAPNESS_REFERENCE_INPUT_TOKENS, CHEAPNESS_REFERENCE_OUTPUT_TOKENS, ModelRoute,
     NativeCompactionResult, RouteBillingKind, RouteCheapnessEstimate, RouteCostConfidence,
     RouteCostSource, shared_http_client,
@@ -246,7 +246,7 @@ pub trait Provider: Send + Sync {
     }
 
     /// Returns true if the provider executes tools internally (e.g., Claude Code CLI).
-    /// When true, kcode should NOT execute tools locally - just record the tool calls.
+    /// When true, neura should NOT execute tools locally - just record the tool calls.
     fn handles_tools_internally(&self) -> bool {
         false
     }
@@ -267,24 +267,24 @@ pub trait Provider: Send + Sync {
         copilot::PremiumMode::Normal
     }
 
-    /// Returns true if kcode should use its own compaction for this provider.
+    /// Returns true if neura should use its own compaction for this provider.
     fn supports_compaction(&self) -> bool {
         false
     }
 
-    /// Returns true if kcode should proactively run its own summary-based
+    /// Returns true if neura should proactively run its own summary-based
     /// compaction for this provider during normal operation.
     ///
     /// Providers can override this to prefer a native/server-side compaction
     /// mechanism while still keeping local hard-compaction available as an
     /// emergency recovery path.
-    fn uses_kcode_compaction(&self) -> bool {
+    fn uses_neura_compaction(&self) -> bool {
         self.supports_compaction()
     }
 
     /// Ask the provider to produce a native compaction artifact for the supplied
     /// messages. Providers that do not support native compaction should return
-    /// an error so callers can fall back to kcode's local summary compaction.
+    /// an error so callers can fall back to neura's local summary compaction.
     async fn native_compact(
         &self,
         _messages: &[Message],
@@ -713,7 +713,7 @@ impl MultiProvider {
                     claude.set_model(&model)?;
                 } else {
                     anyhow::bail!(
-                        "Claude credentials not available. Run `kcode login --provider claude` first."
+                        "Claude credentials not available. Run `neura login --provider claude` first."
                     );
                 }
                 self.set_active_provider(ActiveProvider::Claude);
@@ -722,7 +722,7 @@ impl MultiProvider {
             ActiveProvider::OpenAI => {
                 let Some(openai) = self.openai_provider() else {
                     anyhow::bail!(
-                        "OpenAI credentials not available. Run `kcode login --provider openai` first."
+                        "OpenAI credentials not available. Run `neura login --provider openai` first."
                     );
                 };
                 openai.set_model(model)?;
@@ -732,7 +732,7 @@ impl MultiProvider {
             ActiveProvider::Copilot => {
                 let Some(copilot) = self.copilot_provider() else {
                     anyhow::bail!(
-                        "GitHub Copilot credentials not available. Run `kcode login --provider copilot` first."
+                        "GitHub Copilot credentials not available. Run `neura login --provider copilot` first."
                     );
                 };
                 copilot.set_model(model)?;
@@ -742,7 +742,7 @@ impl MultiProvider {
             ActiveProvider::Antigravity => {
                 let Some(antigravity) = self.antigravity_provider() else {
                     anyhow::bail!(
-                        "Antigravity credentials not available. Run `kcode login --provider antigravity` first."
+                        "Antigravity credentials not available. Run `neura login --provider antigravity` first."
                     );
                 };
                 antigravity.set_model(model)?;
@@ -752,7 +752,7 @@ impl MultiProvider {
             ActiveProvider::Gemini => {
                 let Some(gemini) = self.gemini_provider() else {
                     anyhow::bail!(
-                        "Gemini credentials not available. Run `kcode login --provider gemini` first."
+                        "Gemini credentials not available. Run `neura login --provider gemini` first."
                     );
                 };
                 gemini.set_model(model)?;
@@ -762,7 +762,7 @@ impl MultiProvider {
             ActiveProvider::Cursor => {
                 let Some(cursor) = self.cursor_provider() else {
                     anyhow::bail!(
-                        "Cursor credentials not available. Run `kcode login --provider cursor` first."
+                        "Cursor credentials not available. Run `neura login --provider cursor` first."
                     );
                 };
                 cursor.set_model(model)?;
@@ -772,7 +772,7 @@ impl MultiProvider {
             ActiveProvider::OpenRouter => {
                 let Some(openrouter) = self.openrouter_provider() else {
                     anyhow::bail!(
-                        "OpenRouter/OpenAI-compatible credentials not available. Set the configured API key or run `kcode login --provider openrouter` first."
+                        "OpenRouter/OpenAI-compatible credentials not available. Set the configured API key or run `neura login --provider openrouter` first."
                     );
                 };
                 openrouter.set_model(model)?;
@@ -1368,7 +1368,7 @@ impl Provider for MultiProvider {
         }
 
         let total_ms = routes_started.elapsed().as_millis();
-        if total_ms >= 250 || std::env::var("KCODE_LOG_MODEL_PICKER_TIMING").is_ok() {
+        if total_ms >= 250 || std::env::var("NEURA_LOG_MODEL_PICKER_TIMING").is_ok() {
             crate::logging::info(&format!(
                 "[TIMING] model_routes: routes={}, openrouter_configured={}, openrouter_models={}, openrouter_endpoint_cache_hits={}, openrouter_endpoint_routes={}, openrouter_scheduled_endpoint_refreshes={}, total={}ms",
                 routes.len(),
@@ -1583,7 +1583,7 @@ impl Provider for MultiProvider {
         match self.active_provider() {
             ActiveProvider::Local => false,
             ActiveProvider::Claude => {
-                // Direct API does NOT handle tools internally - kcode executes them
+                // Direct API does NOT handle tools internally - neura executes them
                 if self.anthropic_provider().is_some() {
                     false
                 } else {
@@ -1606,7 +1606,7 @@ impl Provider for MultiProvider {
                 .cursor_provider()
                 .map(|o| o.handles_tools_internally())
                 .unwrap_or(false),
-            ActiveProvider::OpenRouter => false, // kcode executes tools
+            ActiveProvider::OpenRouter => false, // neura executes tools
         }
     }
 
@@ -1770,7 +1770,7 @@ impl Provider for MultiProvider {
         }
     }
 
-    fn uses_kcode_compaction(&self) -> bool {
+    fn uses_neura_compaction(&self) -> bool {
         match self.active_provider() {
             ActiveProvider::Local => true,
             ActiveProvider::Claude => {
@@ -1778,33 +1778,33 @@ impl Provider for MultiProvider {
                     true
                 } else {
                     self.claude_provider()
-                        .map(|c| c.uses_kcode_compaction())
+                        .map(|c| c.uses_neura_compaction())
                         .unwrap_or(false)
                 }
             }
             ActiveProvider::OpenAI => self
                 .openai_provider()
-                .map(|o| o.uses_kcode_compaction())
+                .map(|o| o.uses_neura_compaction())
                 .unwrap_or(false),
             ActiveProvider::Copilot => self
                 .copilot_provider()
-                .map(|o| o.uses_kcode_compaction())
+                .map(|o| o.uses_neura_compaction())
                 .unwrap_or(false),
             ActiveProvider::Antigravity => self
                 .antigravity_provider()
-                .map(|o| o.uses_kcode_compaction())
+                .map(|o| o.uses_neura_compaction())
                 .unwrap_or(false),
             ActiveProvider::Gemini => self
                 .gemini_provider()
-                .map(|o| o.uses_kcode_compaction())
+                .map(|o| o.uses_neura_compaction())
                 .unwrap_or(false),
             ActiveProvider::Cursor => self
                 .cursor_provider()
-                .map(|o| o.uses_kcode_compaction())
+                .map(|o| o.uses_neura_compaction())
                 .unwrap_or(false),
             ActiveProvider::OpenRouter => self
                 .openrouter_provider()
-                .map(|o| o.uses_kcode_compaction())
+                .map(|o| o.uses_neura_compaction())
                 .unwrap_or(false),
         }
     }

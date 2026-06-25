@@ -199,7 +199,7 @@ fn spawn_bridge_thread(
     commands_tx: UnboundedSender<HostToApp>,
 ) {
     if let Err(err) = thread::Builder::new()
-        .name("kcode-handterm-scroll".to_string())
+        .name("neura-handterm-scroll".to_string())
         .spawn(move || {
             let _ = bridge_thread(socket_path, updates_rx, commands_tx);
         })

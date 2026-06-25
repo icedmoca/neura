@@ -47,7 +47,7 @@ use crate::tool::Registry;
 use crate::transport::Stream;
 use anyhow::Result;
 use futures::FutureExt;
-use kcode_agent_runtime::{InterruptSignal, SoftInterruptQueue, SoftInterruptSource, StreamError};
+use neura_agent_runtime::{InterruptSignal, SoftInterruptQueue, SoftInterruptSource, StreamError};
 use serde_json;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;

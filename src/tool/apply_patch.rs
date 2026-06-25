@@ -58,7 +58,7 @@ impl Tool for ApplyPatchTool {
     }
 
     fn description(&self) -> &str {
-        "Apply a Codex-style patch using *** Begin Patch / *** End Patch blocks. Prefer this over patch for Kcode/Codex patches."
+        "Apply a Codex-style patch using *** Begin Patch / *** End Patch blocks. Prefer this over patch for Neura/Codex patches."
     }
 
     fn parameters_schema(&self) -> Value {

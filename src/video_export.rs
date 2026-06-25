@@ -258,7 +258,7 @@ async fn render_svg_pipeline(
     let img_w = cell_w * width as u32;
     let img_h = cell_h * height as u32;
 
-    let tmp_dir = std::env::temp_dir().join(format!("kcode_video_{}", std::process::id()));
+    let tmp_dir = std::env::temp_dir().join(format!("neura_video_{}", std::process::id()));
     if tmp_dir.exists() {
         let _ = std::fs::remove_dir_all(&tmp_dir);
     }

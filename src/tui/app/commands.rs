@@ -344,7 +344,7 @@ pub(super) fn poll_local_transfer_prepare(app: &mut App) -> bool {
                         .filter(|path| path.is_dir())
                         .or_else(|| std::env::current_dir().ok())
                         .unwrap_or_else(|| std::path::PathBuf::from("."));
-                    let socket = std::env::var("KCODE_SOCKET").ok();
+                    let socket = std::env::var("NEURA_SOCKET").ok();
                     match super::spawn_in_new_terminal(
                         &exe,
                         &prepared.session_id,
@@ -360,14 +360,14 @@ pub(super) fn poll_local_transfer_prepare(app: &mut App) -> bool {
                         }
                         Ok(false) => {
                             app.push_display_message(DisplayMessage::system(format!(
-                                "↗ Transfer session **{}** created.\n\nNo terminal was opened automatically. Resume manually:\n```\nkcode --resume {}\n```",
+                                "↗ Transfer session **{}** created.\n\nNo terminal was opened automatically. Resume manually:\n```\nneura --resume {}\n```",
                                 prepared.session_name, prepared.session_id
                             )));
                             app.set_status_notice("Transfer session created");
                         }
                         Err(error) => {
                             app.push_display_message(DisplayMessage::error(format!(
-                                "Transfer session **{}** was created but failed to open a window: {}\n\nResume manually: `kcode --resume {}`",
+                                "Transfer session **{}** was created but failed to open a window: {}\n\nResume manually: `neura --resume {}`",
                                 prepared.session_name, error, prepared.session_id
                             )));
                             app.set_status_notice("Transfer open failed");
@@ -651,7 +651,7 @@ fn handle_subagent_model_command(app: &mut App, trimmed: &str) -> bool {
 
     if app.is_remote {
         app.push_display_message(DisplayMessage::error(
-            "`/subagent-model` requires a live kcode server connection in remote mode.".to_string(),
+            "`/subagent-model` requires a live neura server connection in remote mode.".to_string(),
         ));
         return true;
     }
@@ -697,7 +697,7 @@ fn handle_subagent_command(app: &mut App, trimmed: &str) -> bool {
 
     if app.is_remote {
         app.push_display_message(DisplayMessage::error(
-            "`/subagent` requires a live kcode server connection in remote mode.".to_string(),
+            "`/subagent` requires a live neura server connection in remote mode.".to_string(),
         ));
         return true;
     }
@@ -942,7 +942,7 @@ fn git_command_repo_dir(app: &App) -> Result<PathBuf, String> {
         }
 
         return Err(format!(
-            "Unable to run `/git`: session working directory `{}` is not accessible from this kcode client.",
+            "Unable to run `/git`: session working directory `{}` is not accessible from this neura client.",
             path.display()
         ));
     }
@@ -1384,7 +1384,7 @@ fn handle_selfdev_command(app: &mut App, trimmed: &str) -> bool {
 
     if rest == "help" {
         app.push_display_message(DisplayMessage::system(
-            "`/selfdev`\nSpawn a new self-dev kcode session in a separate terminal.\n\n`/selfdev <prompt>`\nSpawn a new self-dev session and auto-deliver the prompt to it.\n\n`/selfdev status`\nShow current self-dev/build status."
+            "`/selfdev`\nSpawn a new self-dev neura session in a separate terminal.\n\n`/selfdev <prompt>`\nSpawn a new self-dev session and auto-deliver the prompt to it.\n\n`/selfdev status`\nShow current self-dev/build status."
                 .to_string(),
         ));
         return true;
@@ -1421,7 +1421,7 @@ fn handle_selfdev_command(app: &mut App, trimmed: &str) -> bool {
                     "Created self-dev session `{}` but could not auto-open a supported terminal.\n\nRun manually:\n`{}`",
                     launch.session_id,
                     launch.command_preview().unwrap_or_else(|| format!(
-                        "kcode --resume {} self-dev",
+                        "neura --resume {} self-dev",
                         launch.session_id
                     ))
                 )
@@ -1592,7 +1592,7 @@ pub(super) fn handle_dictation_command(app: &mut App, trimmed: &str) -> bool {
 
     if trimmed.starts_with("/dictate ") || trimmed.starts_with("/dictation ") {
         app.push_display_message(DisplayMessage::error(
-            "Usage: `/dictate`\nConfigure `[dictation]` in `~/.kcode/config.toml` to customize command, mode, hotkey, and timeout."
+            "Usage: `/dictate`\nConfigure `[dictation]` in `~/.neura/config.toml` to customize command, mode, hotkey, and timeout."
                 .to_string(),
         ));
         return true;
@@ -1845,7 +1845,7 @@ pub(super) fn handle_config_command(app: &mut App, trimmed: &str) -> bool {
     }
 
     if trimmed == "/subscription" || trimmed == "/subscription status" {
-        app.show_kcode_subscription_status();
+        app.show_neura_subscription_status();
         return true;
     }
 
@@ -1913,7 +1913,7 @@ pub(super) fn handle_config_command(app: &mut App, trimmed: &str) -> bool {
             app.push_display_message(DisplayMessage {
                 role: "system".to_string(),
                 content: format!(
-                    "Opening config in editor...\n`{} {}`\n\n*Restart kcode after editing for changes to take effect.*",
+                    "Opening config in editor...\n`{} {}`\n\n*Restart neura after editing for changes to take effect.*",
                     editor,
                     path.display()
                 ),
@@ -1967,19 +1967,19 @@ pub(super) fn handle_usage_command(app: &mut App, trimmed: &str) -> bool {
     true
 }
 
-pub(super) fn handle_kcodeui_command(app: &mut App, trimmed: &str) -> bool {
-    if trimmed != "/kcodeui" && trimmed != "kcodeui" {
+pub(super) fn handle_neuraui_command(app: &mut App, trimmed: &str) -> bool {
+    if trimmed != "/neuraui" && trimmed != "neuraui" {
         return false;
     }
 
-    let content = crate::kcode_ui::launch();
+    let content = crate::neura_ui::launch();
 
     app.display_messages.push(DisplayMessage {
         role: "system".to_string(),
         content,
         tool_calls: Vec::new(),
         duration_secs: None,
-        title: Some("Kcode UI".to_string()),
+        title: Some("Neura UI".to_string()),
         tool_data: None,
     });
     true

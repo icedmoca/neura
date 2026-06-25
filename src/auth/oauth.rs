@@ -83,7 +83,7 @@ const CALLBACK_READ_TIMEOUT_SECS: u64 = 5;
 
 fn bad_request_response(message: &str) -> String {
     let body = format!(
-        "<html><body><h1>Authentication not completed</h1><p>{}</p><p>You can close this tab and return to kcode.</p></body></html>",
+        "<html><body><h1>Authentication not completed</h1><p>{}</p><p>You can close this tab and return to neura.</p></body></html>",
         message
     );
     format!(
@@ -370,7 +370,7 @@ pub async fn wait_for_callback_async_on_listener(
             continue;
         }
 
-        let body = "<html><body><h1>Success!</h1><p>You can close this window and return to kcode.</p></body></html>";
+        let body = "<html><body><h1>Success!</h1><p>You can close this window and return to neura.</p></body></html>";
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
             body.len(),
@@ -385,10 +385,10 @@ pub async fn wait_for_callback_async_on_listener(
 /// Perform OAuth login for Claude
 pub async fn login_claude(no_browser: bool) -> Result<OAuthTokens> {
     let (verifier, challenge) = generate_pkce();
-    if let Ok(code) = std::env::var("KCODE_CLAUDE_AUTH_CODE") {
+    if let Ok(code) = std::env::var("NEURA_CLAUDE_AUTH_CODE") {
         let trimmed = code.trim();
         if trimmed.is_empty() {
-            anyhow::bail!("KCODE_CLAUDE_AUTH_CODE is set but empty");
+            anyhow::bail!("NEURA_CLAUDE_AUTH_CODE is set but empty");
         }
         eprintln!("Exchanging code for tokens...");
         return exchange_claude_code(&verifier, trimmed, claude::REDIRECT_URI).await;
@@ -396,7 +396,7 @@ pub async fn login_claude(no_browser: bool) -> Result<OAuthTokens> {
 
     if !std::io::stdin().is_terminal() {
         anyhow::bail!(
-            "Claude login needs an authorization code from stdin. Re-run in an interactive terminal, or set KCODE_CLAUDE_AUTH_CODE."
+            "Claude login needs an authorization code from stdin. Re-run in an interactive terminal, or set NEURA_CLAUDE_AUTH_CODE."
         );
     }
 
@@ -579,7 +579,7 @@ pub fn parse_callback_input_with_state(input: &str) -> Result<(String, String)> 
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| {
             anyhow::anyhow!(
-                "Please paste the full callback URL or query string so kcode can verify the login state."
+                "Please paste the full callback URL or query string so neura can verify the login state."
             )
         })?;
     Ok((code, state))
@@ -826,7 +826,7 @@ pub async fn login_openai(no_browser: bool) -> Result<OAuthTokens> {
     exchange_openai_callback_input(&verifier, trimmed, &state, &redirect_uri).await
 }
 
-/// Save Claude tokens to kcode's credentials file (active account or first numbered account).
+/// Save Claude tokens to neura's credentials file (active account or first numbered account).
 pub fn save_claude_tokens(tokens: &OAuthTokens) -> Result<()> {
     let label = claude_auth::login_target_label(None)?;
     save_claude_tokens_for_account(tokens, &label)
@@ -891,7 +891,7 @@ pub async fn update_claude_account_profile(
     Ok(email)
 }
 
-/// Load Claude tokens from kcode's credentials file (active account).
+/// Load Claude tokens from neura's credentials file (active account).
 pub fn load_claude_tokens() -> Result<OAuthTokens> {
     if let Ok(creds) = claude_auth::load_credentials() {
         return Ok(OAuthTokens {
@@ -902,7 +902,7 @@ pub fn load_claude_tokens() -> Result<OAuthTokens> {
         });
     }
 
-    anyhow::bail!("No Claude Max OAuth credentials found. Run 'kcode login --provider claude'.");
+    anyhow::bail!("No Claude Max OAuth credentials found. Run 'neura login --provider claude'.");
 }
 
 /// Load Claude tokens for a specific stored account label.
@@ -1109,7 +1109,7 @@ async fn refresh_openai_tokens_inner(
             save_openai_tokens_for_account(&oauth_tokens, label)?;
         } else {
             crate::logging::info(
-                "Refreshed OpenAI/Codex tokens from an external source without storing them in kcode auth",
+                "Refreshed OpenAI/Codex tokens from an external source without storing them in neura auth",
             );
         }
         Ok(oauth_tokens)

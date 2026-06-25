@@ -119,7 +119,7 @@ async fn run_ambient_visible() -> Result<()> {
 
     let _ = crossterm::execute!(
         std::io::stdout(),
-        crossterm::terminal::SetTitle("🤖 kcode ambient cycle")
+        crossterm::terminal::SetTitle("🤖 neura ambient cycle")
     );
 
     let result = app.run(terminal).await;
@@ -379,7 +379,7 @@ pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
         }
 
         MemorySubcommand::ClearTest => {
-            let test_dir = storage::kcode_dir()?.join("memory").join("test");
+            let test_dir = storage::neura_dir()?.join("memory").join("test");
             if test_dir.exists() {
                 let count = std::fs::read_dir(&test_dir)?.count();
                 std::fs::remove_dir_all(&test_dir)?;
@@ -462,22 +462,22 @@ pub fn run_pair_command(list: bool, revoke: Option<String>) -> Result<()> {
     let gw_config = &crate::config::config().gateway;
 
     if !gw_config.enabled {
-        eprintln!("\x1b[33m⚠\x1b[0m  Gateway is disabled. Enable it in ~/.kcode/config.toml:\n");
+        eprintln!("\x1b[33m⚠\x1b[0m  Gateway is disabled. Enable it in ~/.neura/config.toml:\n");
         eprintln!("    \x1b[2m[gateway]\x1b[0m");
         eprintln!("    \x1b[2menabled = true\x1b[0m");
         eprintln!("    \x1b[2mport = {}\x1b[0m\n", gw_config.port);
-        eprintln!("  Then restart the kcode server.\n");
+        eprintln!("  Then restart the neura server.\n");
     }
 
     let code = registry.generate_pairing_code();
     let connect_host = resolve_connect_host(&gw_config.bind_addr);
     let pair_uri = format!(
-        "kcode://pair?host={}&port={}&code={}",
+        "neura://pair?host={}&port={}&code={}",
         connect_host, gw_config.port, code
     );
 
     eprintln!();
-    eprintln!("  \x1b[1mScan with the kcode iOS app:\x1b[0m\n");
+    eprintln!("  \x1b[1mScan with the neura iOS app:\x1b[0m\n");
     if qr2term::print_qr(&pair_uri).is_err() {
         eprintln!("  \x1b[33m(QR code generation failed)\x1b[0m\n");
     }
@@ -496,7 +496,7 @@ pub fn run_pair_command(list: bool, revoke: Option<String>) -> Result<()> {
 
     if connect_host == "<your-mac-hostname>" {
         eprintln!(
-            "\n  \x1b[33mTip:\x1b[0m set KCODE_GATEWAY_HOST to your reachable Tailscale hostname."
+            "\n  \x1b[33mTip:\x1b[0m set NEURA_GATEWAY_HOST to your reachable Tailscale hostname."
         );
     }
 
@@ -518,7 +518,7 @@ pub fn run_pair_command(list: bool, revoke: Option<String>) -> Result<()> {
 
 pub fn resolve_connect_host(bind_addr: &str) -> String {
     if bind_addr == "0.0.0.0" || bind_addr == "::" {
-        if let Some(host) = std::env::var("KCODE_GATEWAY_HOST")
+        if let Some(host) = std::env::var("NEURA_GATEWAY_HOST")
             .ok()
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
@@ -617,10 +617,10 @@ pub async fn run_browser(action: &str) -> Result<()> {
                 println!("\nBuilt-in browser tool is ready.");
             } else if status.responding && !status.compatible {
                 println!(
-                    "\nThe browser bridge is connected, but the installed Firefox extension is out of date for this kcode build. Run `kcode browser setup` to repair or update it."
+                    "\nThe browser bridge is connected, but the installed Firefox extension is out of date for this neura build. Run `neura browser setup` to repair or update it."
                 );
             } else {
-                println!("\nRun `kcode browser setup` to install or repair it.");
+                println!("\nRun `neura browser setup` to install or repair it.");
             }
         }
         other => {

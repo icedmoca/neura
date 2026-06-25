@@ -2,10 +2,10 @@ use std::sync::Mutex;
 
 static TEST_LOCK: Mutex<()> = Mutex::new(());
 
-use kcode::adversarial_eval::{
+use neura::adversarial_eval::{
     enforce_adversarial_eval_gate, render_adversarial_eval_report, run_adversarial_eval_suite,
 };
-use kcode::operational_eval::enforce_operational_eval_gate;
+use neura::operational_eval::enforce_operational_eval_gate;
 
 #[test]
 fn adversarial_eval_runs_and_renders() {

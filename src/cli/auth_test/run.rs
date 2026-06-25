@@ -73,7 +73,7 @@ pub(crate) async fn run_post_login_validation(
 ) -> Result<()> {
     let Some(choice) = super::provider_init::choice_for_login_provider(provider) else {
         eprintln!(
-            "\nSkipping automatic runtime validation for {}. Auto Import can add multiple providers; run `kcode auth-test --all-configured` to validate them.",
+            "\nSkipping automatic runtime validation for {}. Auto Import can add multiple providers; run `neura auth-test --all-configured` to validate them.",
             provider.display_name
         );
         return Ok(());
@@ -121,13 +121,13 @@ pub(crate) async fn run_post_login_validation(
         Ok(())
     } else if AuthTestTarget::from_provider_choice(&choice).is_some() {
         anyhow::bail!(
-            "Post-login validation failed for {}. Credentials were saved, but kcode could not verify runtime readiness. Re-run `kcode auth-test --provider {}` for details.",
+            "Post-login validation failed for {}. Credentials were saved, but neura could not verify runtime readiness. Re-run `neura auth-test --provider {}` for details.",
             provider.display_name,
             choice.as_arg_value()
         )
     } else {
         anyhow::bail!(
-            "Post-login validation failed for {}. Credentials were saved, but kcode could not verify runtime readiness. Re-test with `kcode --provider {} run \"Reply with exactly AUTH_TEST_OK and nothing else.\"` after fixing the provider/runtime.",
+            "Post-login validation failed for {}. Credentials were saved, but neura could not verify runtime readiness. Re-test with `neura --provider {} run \"Reply with exactly AUTH_TEST_OK and nothing else.\"` after fixing the provider/runtime.",
             provider.display_name,
             choice.as_arg_value()
         )
@@ -233,7 +233,7 @@ pub(crate) fn resolve_auth_test_targets(
         let targets = configured_auth_test_targets(&status);
         if targets.is_empty() {
             anyhow::bail!(
-                "No configured supported auth providers found. Run `kcode login --provider <provider>` first, or choose an explicit --provider."
+                "No configured supported auth providers found. Run `neura login --provider <provider>` first, or choose an explicit --provider."
             );
         }
         return Ok(targets);
@@ -243,7 +243,7 @@ pub(crate) fn resolve_auth_test_targets(
         .map(|target| vec![target])
         .ok_or_else(|| {
             anyhow::anyhow!(
-                "Provider '{}' is not yet supported by `kcode auth-test`.",
+                "Provider '{}' is not yet supported by `neura auth-test`.",
                 choice.as_arg_value()
             )
         })

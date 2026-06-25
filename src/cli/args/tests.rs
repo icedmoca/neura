@@ -3,33 +3,33 @@ use crate::cli::provider_init::ProviderChoice;
 
 #[test]
 fn test_provider_choice_aliases_parse() {
-    let args = Args::try_parse_from(["kcode", "--provider", "z.ai", "run", "smoke"]).unwrap();
+    let args = Args::try_parse_from(["neura", "--provider", "z.ai", "run", "smoke"]).unwrap();
     assert_eq!(args.provider, ProviderChoice::Zai);
 
     let args =
-        Args::try_parse_from(["kcode", "--provider", "kimi-for-coding", "run", "smoke"]).unwrap();
+        Args::try_parse_from(["neura", "--provider", "kimi-for-coding", "run", "smoke"]).unwrap();
     assert_eq!(args.provider, ProviderChoice::Kimi);
 
     let args =
-        Args::try_parse_from(["kcode", "--provider", "cerebrascode", "run", "smoke"]).unwrap();
+        Args::try_parse_from(["neura", "--provider", "cerebrascode", "run", "smoke"]).unwrap();
     assert_eq!(args.provider, ProviderChoice::Cerebras);
 
-    let args = Args::try_parse_from(["kcode", "--provider", "compat", "run", "smoke"]).unwrap();
+    let args = Args::try_parse_from(["neura", "--provider", "compat", "run", "smoke"]).unwrap();
     assert_eq!(args.provider, ProviderChoice::OpenaiCompatible);
 
-    let args = Args::try_parse_from(["kcode", "--provider", "bailian", "run", "smoke"]).unwrap();
+    let args = Args::try_parse_from(["neura", "--provider", "bailian", "run", "smoke"]).unwrap();
     assert_eq!(args.provider, ProviderChoice::AlibabaCodingPlan);
 
-    let args = Args::try_parse_from(["kcode", "--provider", "together", "run", "smoke"]).unwrap();
+    let args = Args::try_parse_from(["neura", "--provider", "together", "run", "smoke"]).unwrap();
     assert_eq!(args.provider, ProviderChoice::TogetherAi);
 
-    let args = Args::try_parse_from(["kcode", "--provider", "grok", "run", "smoke"]).unwrap();
+    let args = Args::try_parse_from(["neura", "--provider", "grok", "run", "smoke"]).unwrap();
     assert_eq!(args.provider, ProviderChoice::Xai);
 }
 
 #[test]
 fn model_list_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "model", "list", "--json", "--verbose"]).unwrap();
+    let args = Args::try_parse_from(["neura", "model", "list", "--json", "--verbose"]).unwrap();
     match args.command {
         Some(Command::Model(ModelCommand::List { json, verbose })) => {
             assert!(json);
@@ -41,7 +41,7 @@ fn model_list_subcommand_parses() {
 
 #[test]
 fn login_no_browser_flag_parses() {
-    let args = Args::try_parse_from(["kcode", "login", "--no-browser"]).unwrap();
+    let args = Args::try_parse_from(["neura", "login", "--no-browser"]).unwrap();
     match args.command {
         Some(Command::Login {
             account,
@@ -65,7 +65,7 @@ fn login_no_browser_flag_parses() {
         other => panic!("unexpected command: {:?}", other),
     }
 
-    let args = Args::try_parse_from(["kcode", "login", "--headless"]).unwrap();
+    let args = Args::try_parse_from(["neura", "login", "--headless"]).unwrap();
     match args.command {
         Some(Command::Login { no_browser, .. }) => assert!(no_browser),
         other => panic!("unexpected command: {:?}", other),
@@ -74,7 +74,7 @@ fn login_no_browser_flag_parses() {
 
 #[test]
 fn login_scriptable_flags_parse() {
-    let args = Args::try_parse_from(["kcode", "login", "--print-auth-url", "--json"]).unwrap();
+    let args = Args::try_parse_from(["neura", "login", "--print-auth-url", "--json"]).unwrap();
     match args.command {
         Some(Command::Login {
             print_auth_url,
@@ -96,7 +96,7 @@ fn login_scriptable_flags_parse() {
     }
 
     let args = Args::try_parse_from([
-        "kcode",
+        "neura",
         "login",
         "--callback-url",
         "http://localhost:1455/auth/callback?code=x&state=y",
@@ -112,7 +112,7 @@ fn login_scriptable_flags_parse() {
         other => panic!("unexpected command: {:?}", other),
     }
 
-    let args = Args::try_parse_from(["kcode", "login", "--auth-code", "abc123"]).unwrap();
+    let args = Args::try_parse_from(["neura", "login", "--auth-code", "abc123"]).unwrap();
     match args.command {
         Some(Command::Login { auth_code, .. }) => {
             assert_eq!(auth_code.as_deref(), Some("abc123"));
@@ -121,7 +121,7 @@ fn login_scriptable_flags_parse() {
     }
 
     let args = Args::try_parse_from([
-        "kcode",
+        "neura",
         "login",
         "--complete",
         "--google-access-tier",
@@ -143,13 +143,13 @@ fn login_scriptable_flags_parse() {
 
 #[test]
 fn quiet_global_flag_parses() {
-    let args = Args::try_parse_from(["kcode", "--quiet", "model", "list"]).unwrap();
+    let args = Args::try_parse_from(["neura", "--quiet", "model", "list"]).unwrap();
     assert!(args.quiet);
 }
 
 #[test]
 fn run_json_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "run", "--json", "hello"]).unwrap();
+    let args = Args::try_parse_from(["neura", "run", "--json", "hello"]).unwrap();
     match args.command {
         Some(Command::Run {
             json,
@@ -166,7 +166,7 @@ fn run_json_subcommand_parses() {
 
 #[test]
 fn run_ndjson_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "run", "--ndjson", "hello"]).unwrap();
+    let args = Args::try_parse_from(["neura", "run", "--ndjson", "hello"]).unwrap();
     match args.command {
         Some(Command::Run {
             json,
@@ -183,7 +183,7 @@ fn run_ndjson_subcommand_parses() {
 
 #[test]
 fn version_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "version", "--json"]).unwrap();
+    let args = Args::try_parse_from(["neura", "version", "--json"]).unwrap();
     match args.command {
         Some(Command::Version { json }) => assert!(json),
         other => panic!("unexpected command: {:?}", other),
@@ -192,7 +192,7 @@ fn version_subcommand_parses() {
 
 #[test]
 fn usage_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "usage", "--json"]).unwrap();
+    let args = Args::try_parse_from(["neura", "usage", "--json"]).unwrap();
     match args.command {
         Some(Command::Usage { json }) => assert!(json),
         other => panic!("unexpected command: {:?}", other),
@@ -201,7 +201,7 @@ fn usage_subcommand_parses() {
 
 #[test]
 fn auth_status_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "auth", "status", "--json"]).unwrap();
+    let args = Args::try_parse_from(["neura", "auth", "status", "--json"]).unwrap();
     match args.command {
         Some(Command::Auth(AuthCommand::Status { json })) => assert!(json),
         other => panic!("unexpected command: {:?}", other),
@@ -210,7 +210,7 @@ fn auth_status_subcommand_parses() {
 
 #[test]
 fn auth_doctor_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "auth", "doctor", "openai", "--validate", "--json"])
+    let args = Args::try_parse_from(["neura", "auth", "doctor", "openai", "--validate", "--json"])
         .unwrap();
     match args.command {
         Some(Command::Auth(AuthCommand::Doctor {
@@ -228,7 +228,7 @@ fn auth_doctor_subcommand_parses() {
 
 #[test]
 fn provider_list_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "provider", "list", "--json"]).unwrap();
+    let args = Args::try_parse_from(["neura", "provider", "list", "--json"]).unwrap();
     match args.command {
         Some(Command::Provider(ProviderCommand::List { json })) => assert!(json),
         other => panic!("unexpected command: {:?}", other),
@@ -237,7 +237,7 @@ fn provider_list_subcommand_parses() {
 
 #[test]
 fn provider_current_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "provider", "current", "--json"]).unwrap();
+    let args = Args::try_parse_from(["neura", "provider", "current", "--json"]).unwrap();
     match args.command {
         Some(Command::Provider(ProviderCommand::Current { json })) => assert!(json),
         other => panic!("unexpected command: {:?}", other),
@@ -246,7 +246,7 @@ fn provider_current_subcommand_parses() {
 
 #[test]
 fn restart_save_subcommand_parses() {
-    let args = Args::try_parse_from(["kcode", "restart", "save"]).unwrap();
+    let args = Args::try_parse_from(["neura", "restart", "save"]).unwrap();
     match args.command {
         Some(Command::Restart {
             action: RestartCommand::Save {
@@ -259,7 +259,7 @@ fn restart_save_subcommand_parses() {
 
 #[test]
 fn restart_save_auto_restore_flag_parses() {
-    let args = Args::try_parse_from(["kcode", "restart", "save", "--auto-restore"]).unwrap();
+    let args = Args::try_parse_from(["neura", "restart", "save", "--auto-restore"]).unwrap();
     match args.command {
         Some(Command::Restart {
             action: RestartCommand::Save { auto_restore: true },

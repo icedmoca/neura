@@ -17,7 +17,7 @@
         "none": 75
       }
     },
-    "kcode_path_exact": {
+    "neura_path_exact": {
       "tasks": 75,
       "successes": 75,
       "success_rate": 1.0,

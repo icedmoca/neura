@@ -1112,7 +1112,7 @@ pub(in crate::tui::app) fn handle_server_event(
                 .filter(|path| path.is_dir())
                 .or_else(|| std::env::current_dir().ok())
                 .unwrap_or_else(|| std::path::PathBuf::from("."));
-            let socket = std::env::var("KCODE_SOCKET").ok();
+            let socket = std::env::var("NEURA_SOCKET").ok();
             match spawn_in_new_terminal(&exe, &new_session_id, &cwd, socket.as_deref()) {
                 Ok(true) => {
                     if let Some(label) = split_label.as_deref() {
@@ -1132,13 +1132,13 @@ pub(in crate::tui::app) fn handle_server_event(
                 Ok(false) => {
                     if let Some(label) = split_label.as_deref() {
                         app.push_display_message(DisplayMessage::system(format!(
-                            "🔍 {} session **{}** created.\n\nNo terminal found. Resume manually:\n```\nkcode --resume {}\n```",
+                            "🔍 {} session **{}** created.\n\nNo terminal found. Resume manually:\n```\nneura --resume {}\n```",
                             label, new_session_name, new_session_id,
                         )));
                         app.set_status_notice(format!("{} session created", label));
                     } else {
                         app.push_display_message(DisplayMessage::system(format!(
-                            "✂ Split → **{}**\n\nNo terminal found. Resume manually:\n```\nkcode --resume {}\n```",
+                            "✂ Split → **{}**\n\nNo terminal found. Resume manually:\n```\nneura --resume {}\n```",
                             new_session_name, new_session_id,
                         )));
                     }
@@ -1146,13 +1146,13 @@ pub(in crate::tui::app) fn handle_server_event(
                 Err(e) => {
                     if let Some(label) = split_label.as_deref() {
                         app.push_display_message(DisplayMessage::error(format!(
-                            "{} session **{}** was created but failed to open a window: {}\n\nResume manually: `kcode --resume {}`",
+                            "{} session **{}** was created but failed to open a window: {}\n\nResume manually: `neura --resume {}`",
                             label, new_session_name, e, new_session_id,
                         )));
                         app.set_status_notice(format!("{} open failed", label));
                     } else {
                         app.push_display_message(DisplayMessage::error(format!(
-                            "Split created **{}** but failed to open window: {}\n\nResume manually: `kcode --resume {}`",
+                            "Split created **{}** but failed to open window: {}\n\nResume manually: `neura --resume {}`",
                             new_session_name, e, new_session_id,
                         )));
                     }

@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant, SystemTime};
 
-const GITHUB_REPO: &str = "1jehuang/kcode";
+const GITHUB_REPO: &str = "1jehuang/neura";
 const UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(60); // minimum gap between checks
 const UPDATE_CHECK_TIMEOUT: Duration = Duration::from_secs(5);
 const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(120);
@@ -71,11 +71,11 @@ fn unicode_display_width(s: &str) -> usize {
 }
 
 pub fn is_release_build() -> bool {
-    option_env!("KCODE_RELEASE_BUILD").is_some()
+    option_env!("NEURA_RELEASE_BUILD").is_some()
 }
 
 fn current_update_semver() -> &'static str {
-    env!("KCODE_UPDATE_SEMVER")
+    env!("NEURA_UPDATE_SEMVER")
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -154,15 +154,15 @@ impl UpdateMetadata {
 }
 
 fn metadata_path() -> Result<PathBuf> {
-    Ok(storage::kcode_dir()?.join("update_metadata.json"))
+    Ok(storage::neura_dir()?.join("update_metadata.json"))
 }
 
 fn source_build_root() -> Result<PathBuf> {
-    Ok(storage::kcode_dir()?.join("builds").join("source"))
+    Ok(storage::neura_dir()?.join("builds").join("source"))
 }
 
 fn source_build_repo_dir() -> Result<PathBuf> {
-    Ok(source_build_root()?.join("kcode"))
+    Ok(source_build_root()?.join("neura"))
 }
 
 fn record_release_update_duration(duration: Duration) {
@@ -241,27 +241,27 @@ fn update_estimate(summary: String, duration: Duration) -> UpdateEstimate {
 fn get_asset_name() -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     {
-        "kcode-linux-x86_64"
+        "neura-linux-x86_64"
     }
     #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
     {
-        "kcode-linux-aarch64"
+        "neura-linux-aarch64"
     }
     #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
     {
-        "kcode-macos-x86_64"
+        "neura-macos-x86_64"
     }
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     {
-        "kcode-macos-aarch64"
+        "neura-macos-aarch64"
     }
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     {
-        "kcode-windows-x86_64.exe"
+        "neura-windows-x86_64.exe"
     }
     #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
     {
-        "kcode-windows-aarch64.exe"
+        "neura-windows-aarch64.exe"
     }
     #[cfg(not(any(
         all(target_os = "linux", target_arch = "x86_64"),
@@ -272,12 +272,12 @@ fn get_asset_name() -> &'static str {
         all(target_os = "windows", target_arch = "aarch64"),
     )))]
     {
-        "kcode-unknown"
+        "neura-unknown"
     }
 }
 
 pub fn should_auto_update() -> bool {
-    if std::env::var("KCODE_NO_AUTO_UPDATE").is_ok() {
+    if std::env::var("NEURA_NO_AUTO_UPDATE").is_ok() {
         return false;
     }
 
@@ -368,7 +368,7 @@ pub fn fetch_latest_release_blocking() -> Result<GitHubRelease> {
 
     let client = reqwest::blocking::Client::builder()
         .timeout(UPDATE_CHECK_TIMEOUT)
-        .user_agent("kcode-updater")
+        .user_agent("neura-updater")
         .build()?;
 
     let response = client
@@ -393,7 +393,7 @@ fn latest_main_sha_blocking() -> Result<String> {
     let url = format!("https://api.github.com/repos/{}/commits/main", GITHUB_REPO);
     let client = reqwest::blocking::Client::builder()
         .timeout(UPDATE_CHECK_TIMEOUT)
-        .user_agent("kcode-updater")
+        .user_agent("neura-updater")
         .build()?;
 
     let response = client
@@ -457,7 +457,7 @@ fn install_main_source_update_blocking(latest_sha: &str) -> Result<PathBuf> {
 }
 
 fn prepare_stable_update_blocking() -> Result<PreparedUpdate> {
-    let current_version = env!("KCODE_VERSION");
+    let current_version = env!("NEURA_VERSION");
     let current_update_version = current_update_semver();
     let release = fetch_latest_release_blocking()?;
     let release_version = release.tag_name.trim_start_matches('v');
@@ -501,11 +501,11 @@ fn prepare_stable_update_blocking() -> Result<PreparedUpdate> {
 }
 
 fn prepare_main_update_blocking() -> Result<PreparedUpdate> {
-    let current_hash = env!("KCODE_GIT_HASH");
+    let current_hash = env!("NEURA_GIT_HASH");
     if current_hash.is_empty() || current_hash == "unknown" {
         crate::logging::info("Main channel: no git hash in binary, skipping update check");
         return Ok(PreparedUpdate::None {
-            current: env!("KCODE_VERSION").to_string(),
+            current: env!("NEURA_VERSION").to_string(),
         });
     }
 
@@ -578,7 +578,7 @@ pub fn prepare_update_blocking() -> Result<PreparedUpdate> {
     }
 }
 
-pub const SOURCE_UPDATE_REMOTE: &str = "https://github.com/icedmoca/kcode.git";
+pub const SOURCE_UPDATE_REMOTE: &str = "https://github.com/icedmoca/neura.git";
 pub const SOURCE_UPDATE_BRANCH: &str = "main";
 
 pub fn run_source_update(repo: &Path) -> Result<String> {
@@ -598,10 +598,10 @@ pub fn run_source_update(repo: &Path) -> Result<String> {
         .arg("build")
         .arg("--release")
         .arg("--bin")
-        .arg("kcode")
+        .arg("neura")
         .current_dir(repo)
         .status()?;
-    anyhow::ensure!(status.success(), "cargo build --release --bin kcode failed");
+    anyhow::ensure!(status.success(), "cargo build --release --bin neura failed");
 
     let path = build::publish_local_current_build(repo)?;
     Ok(format!(
@@ -690,7 +690,7 @@ fn check_for_stable_update_blocking() -> Result<Option<GitHubRelease>> {
 ///   - Tries to build from source if cargo is available
 ///   - Falls back to latest GitHub Release if not
 fn check_for_main_update_blocking() -> Result<Option<GitHubRelease>> {
-    let current_hash = env!("KCODE_GIT_HASH");
+    let current_hash = env!("NEURA_GIT_HASH");
     if current_hash.is_empty() || current_hash == "unknown" {
         crate::logging::info("Main channel: no git hash in binary, skipping update check");
         return Ok(None);
@@ -763,13 +763,13 @@ fn has_cargo() -> bool {
         .unwrap_or(false)
 }
 
-/// Build kcode from source by cloning/pulling the repo and running cargo build
+/// Build neura from source by cloning/pulling the repo and running cargo build
 fn build_from_source() -> Result<PathBuf> {
     let started = Instant::now();
     let build_dir = source_build_root()?;
     fs::create_dir_all(&build_dir)?;
 
-    let repo_dir = build_dir.join("kcode");
+    let repo_dir = build_dir.join("neura");
 
     if repo_dir.join(".git").exists() {
         // Pull latest
@@ -813,7 +813,7 @@ fn build_from_source() -> Result<PathBuf> {
         let clone_url = format!("https://github.com/{}.git", GITHUB_REPO);
         let output = std::process::Command::new("git")
             .args([
-                "clone", "--depth", "1", "--branch", "main", &clone_url, "kcode",
+                "clone", "--depth", "1", "--branch", "main", &clone_url, "neura",
             ])
             .current_dir(&build_dir)
             .output()
@@ -832,7 +832,7 @@ fn build_from_source() -> Result<PathBuf> {
     let output = std::process::Command::new("cargo")
         .args(["build", "--release"])
         .current_dir(&repo_dir)
-        .env("KCODE_RELEASE_BUILD", "1")
+        .env("NEURA_RELEASE_BUILD", "1")
         .output()
         .context("Failed to run cargo build")?;
 
@@ -880,11 +880,11 @@ pub fn download_and_install_blocking(release: &GitHubRelease) -> Result<PathBuf>
     let download_url = asset.browser_download_url.clone();
 
     let temp_dir = std::env::temp_dir();
-    let temp_path = temp_dir.join(format!("kcode-update-{}", std::process::id()));
+    let temp_path = temp_dir.join(format!("neura-update-{}", std::process::id()));
 
     let client = reqwest::blocking::Client::builder()
         .timeout(DOWNLOAD_TIMEOUT)
-        .user_agent("kcode-updater")
+        .user_agent("neura-updater")
         .build()?;
 
     let response = client
@@ -910,14 +910,14 @@ pub fn download_and_install_blocking(release: &GitHubRelease) -> Result<PathBuf>
                 .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
-            if file_name.starts_with("kcode") && !file_name.ends_with(".tar.gz") {
+            if file_name.starts_with("neura") && !file_name.ends_with(".tar.gz") {
                 entry.unpack(&temp_path)?;
                 extracted = true;
                 break;
             }
         }
         if !extracted {
-            anyhow::bail!("Could not find kcode binary inside tar.gz archive");
+            anyhow::bail!("Could not find neura binary inside tar.gz archive");
         }
     } else {
         fs::write(&temp_path, &bytes).context("Failed to write temp file")?;
@@ -973,7 +973,7 @@ pub fn check_and_maybe_update(auto_install: bool) -> UpdateCheckResult {
 
     match check_for_update_blocking() {
         Ok(Some(release)) => {
-            let current = env!("KCODE_VERSION").to_string();
+            let current = env!("NEURA_VERSION").to_string();
             let latest = release.tag_name.clone();
 
             Bus::global().publish(BusEvent::UpdateStatus(UpdateStatus::Available {
@@ -1040,7 +1040,7 @@ mod tests {
     #[test]
     fn test_asset_name() {
         let name = get_asset_name();
-        assert!(name.starts_with("kcode-"));
+        assert!(name.starts_with("neura-"));
     }
 
     #[test]

@@ -34,7 +34,7 @@ const CACHE_DURATION: Duration = Duration::from_secs(300);
 
 /// OpenAI/ChatGPT limits are user-visible in the sidebar and can change after
 /// every model call. Keep this much fresher than Anthropic's cache so the
-/// sidebar updates during an existing Kcode session instead of only after a new
+/// sidebar updates during an existing Neura session instead of only after a new
 /// session starts.
 const OPENAI_CACHE_DURATION: Duration = Duration::from_secs(30);
 

@@ -5,36 +5,36 @@
 /// Test safety system: action classification
 #[test]
 fn test_safety_classification() {
-    use kcode::safety::SafetySystem;
+    use neura::safety::SafetySystem;
 
     let safety = SafetySystem::new();
 
     // Tier 1: auto-allowed
-    assert!(safety.classify("read") == kcode::safety::ActionTier::AutoAllowed);
-    assert!(safety.classify("glob") == kcode::safety::ActionTier::AutoAllowed);
-    assert!(safety.classify("grep") == kcode::safety::ActionTier::AutoAllowed);
-    assert!(safety.classify("memory") == kcode::safety::ActionTier::AutoAllowed);
-    assert!(safety.classify("todoread") == kcode::safety::ActionTier::AutoAllowed);
-    assert!(safety.classify("todowrite") == kcode::safety::ActionTier::AutoAllowed);
+    assert!(safety.classify("read") == neura::safety::ActionTier::AutoAllowed);
+    assert!(safety.classify("glob") == neura::safety::ActionTier::AutoAllowed);
+    assert!(safety.classify("grep") == neura::safety::ActionTier::AutoAllowed);
+    assert!(safety.classify("memory") == neura::safety::ActionTier::AutoAllowed);
+    assert!(safety.classify("todoread") == neura::safety::ActionTier::AutoAllowed);
+    assert!(safety.classify("todowrite") == neura::safety::ActionTier::AutoAllowed);
 
     // Tier 2: requires permission
-    assert!(safety.classify("bash") == kcode::safety::ActionTier::RequiresPermission);
-    assert!(safety.classify("edit") == kcode::safety::ActionTier::RequiresPermission);
-    assert!(safety.classify("write") == kcode::safety::ActionTier::RequiresPermission);
+    assert!(safety.classify("bash") == neura::safety::ActionTier::RequiresPermission);
+    assert!(safety.classify("edit") == neura::safety::ActionTier::RequiresPermission);
+    assert!(safety.classify("write") == neura::safety::ActionTier::RequiresPermission);
     assert!(
-        safety.classify("create_pull_request") == kcode::safety::ActionTier::RequiresPermission
+        safety.classify("create_pull_request") == neura::safety::ActionTier::RequiresPermission
     );
-    assert!(safety.classify("send_email") == kcode::safety::ActionTier::RequiresPermission);
+    assert!(safety.classify("send_email") == neura::safety::ActionTier::RequiresPermission);
 
     // Case insensitive
-    assert!(safety.classify("READ") == kcode::safety::ActionTier::AutoAllowed);
-    assert!(safety.classify("Bash") == kcode::safety::ActionTier::RequiresPermission);
+    assert!(safety.classify("READ") == neura::safety::ActionTier::AutoAllowed);
+    assert!(safety.classify("Bash") == neura::safety::ActionTier::RequiresPermission);
 }
 
 /// Test safety system: permission request queue + decision flow
 #[test]
 fn test_safety_permission_flow() {
-    use kcode::safety::{PermissionRequest, PermissionResult, SafetySystem, Urgency};
+    use neura::safety::{PermissionRequest, PermissionResult, SafetySystem, Urgency};
 
     let safety = SafetySystem::new();
 
@@ -80,7 +80,7 @@ fn test_safety_permission_flow() {
 /// Test safety system: transcript saving
 #[test]
 fn test_safety_transcript() {
-    use kcode::safety::{AmbientTranscript, SafetySystem, TranscriptStatus};
+    use neura::safety::{AmbientTranscript, SafetySystem, TranscriptStatus};
 
     let safety = SafetySystem::new();
 
@@ -107,7 +107,7 @@ fn test_safety_transcript() {
 /// Test safety system: summary generation
 #[test]
 fn test_safety_summary_generation() {
-    use kcode::safety::{ActionLog, ActionTier, SafetySystem};
+    use neura::safety::{ActionLog, ActionTier, SafetySystem};
 
     let safety = SafetySystem::new();
 

@@ -9,7 +9,7 @@ fn same_executable(a: &std::path::Path, b: &std::path::Path) -> bool {
 use crate::server::reload_recovery::ReloadRecoveryRole;
 use crate::server::{SwarmEvent, SwarmEventType, SwarmMember};
 use crate::tool::selfdev::ReloadContext;
-use kcode_agent_runtime::InterruptSignal;
+use neura_agent_runtime::InterruptSignal;
 use std::collections::HashMap;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -24,7 +24,7 @@ fn prepare_server_exec(cmd: &mut std::process::Command, socket_path: &std::path:
     // The replacement daemon must own the published socket paths. Unlink them
     // before exec so we never inherit a stale on-disk endpoint through reload.
     crate::server::cleanup_socket_pair(socket_path);
-    cmd.env_remove("KCODE_READY_FD");
+    cmd.env_remove("NEURA_READY_FD");
 
     // The shared daemon may have inherited stderr from the client process that
     // originally spawned it. Once that client exits, later reload execs can hit
@@ -83,7 +83,7 @@ pub(super) async fn await_reload_signal(
         );
         super::acknowledge_reload_signal(&signal);
 
-        if std::env::var("KCODE_TEST_SESSION")
+        if std::env::var("NEURA_TEST_SESSION")
             .map(|value| {
                 let trimmed = value.trim();
                 !trimmed.is_empty() && trimmed != "0" && !trimmed.eq_ignore_ascii_case("false")
@@ -91,7 +91,7 @@ pub(super) async fn await_reload_signal(
             .unwrap_or(false)
         {
             crate::logging::info(
-                "Server: KCODE_TEST_SESSION set, skipping process exec for reload test",
+                "Server: NEURA_TEST_SESSION set, skipping process exec for reload test",
             );
             continue;
         }

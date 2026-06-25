@@ -70,13 +70,13 @@ impl Default for FabricControl {
 }
 
 pub fn fabric_dir() -> PathBuf {
-    std::env::var_os("KCODE_LIVE_FABRIC_DIR")
+    std::env::var_os("NEURA_LIVE_FABRIC_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let home = std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("."));
-            home.join(".kcode").join("live_operational_fabric")
+            home.join(".neura").join("live_operational_fabric")
         })
 }
 
@@ -302,12 +302,12 @@ fn basic(
     }
 }
 fn enabled() -> bool {
-    std::env::var("KCODE_LIVE_FABRIC")
+    std::env::var("NEURA_LIVE_FABRIC")
         .map(|v| v != "0" && v != "false")
         .unwrap_or(true)
 }
 fn should_auto_cycle() -> bool {
-    std::env::var("KCODE_LIVE_FABRIC_AUTO_CYCLE")
+    std::env::var("NEURA_LIVE_FABRIC_AUTO_CYCLE")
         .map(|v| v != "0" && v != "false")
         .unwrap_or(true)
 }
@@ -374,8 +374,8 @@ mod tests {
     #[test]
     fn emits_status_and_bridges() {
         let d = TempDir::new().unwrap();
-        unsafe { std::env::set_var("KCODE_LIVE_FABRIC_DIR", d.path().join("fabric")) };
-        unsafe { std::env::set_var("KCODE_LATENT_LEARNING_DIR", d.path().join("learning")) };
+        unsafe { std::env::set_var("NEURA_LIVE_FABRIC_DIR", d.path().join("fabric")) };
+        unsafe { std::env::set_var("NEURA_LATENT_LEARNING_DIR", d.path().join("learning")) };
         emit_user_message("test", "hello");
         let s = status().unwrap();
         assert_eq!(s.total_events, 1);

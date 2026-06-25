@@ -81,7 +81,7 @@ use crate::runtime_memory_log::{
 use crate::tool::selfdev::ReloadContext;
 use crate::transport::Listener;
 use anyhow::Result;
-use kcode_agent_runtime::{InterruptSignal, SoftInterruptSource};
+use neura_agent_runtime::{InterruptSignal, SoftInterruptSource};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -443,8 +443,8 @@ impl Server {
             id,
             name,
             icon,
-            git_hash: env!("KCODE_GIT_HASH").to_string(),
-            version: env!("KCODE_VERSION").to_string(),
+            git_hash: env!("NEURA_GIT_HASH").to_string(),
+            version: env!("NEURA_VERSION").to_string(),
         };
         crate::process_title::set_server_title(&identity.name);
 
@@ -1343,7 +1343,7 @@ impl Server {
         let registry_identity = self.identity.display_name();
         tokio::spawn(async move {
             let hash_path = format!("{}.hash", registry_info.socket.display());
-            let _ = std::fs::write(&hash_path, env!("KCODE_GIT_HASH"));
+            let _ = std::fs::write(&hash_path, env!("NEURA_GIT_HASH"));
 
             let mut registry = crate::registry::ServerRegistry::load()
                 .await
@@ -1655,7 +1655,7 @@ impl Server {
 
     /// Start the server (both main and debug sockets)
     pub async fn run(&self) -> Result<()> {
-        // Ensure socket directory exists (for named sockets like /run/user/1000/kcode/)
+        // Ensure socket directory exists (for named sockets like /run/user/1000/neura/)
         if let Some(parent) = self.socket_path.parent() {
             std::fs::create_dir_all(parent)?;
         }

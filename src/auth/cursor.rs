@@ -130,7 +130,7 @@ pub fn trust_external_auth_source(source: ExternalCursorAuthSource) -> Result<()
 
 /// Resolve the advertised client version for native Cursor API requests.
 pub fn cursor_direct_client_version() -> String {
-    std::env::var("KCODE_CURSOR_CLIENT_VERSION")
+    std::env::var("NEURA_CURSOR_CLIENT_VERSION")
         .ok()
         .map(|raw| raw.trim().to_string())
         .filter(|raw| !raw.is_empty())
@@ -139,12 +139,12 @@ pub fn cursor_direct_client_version() -> String {
 
 /// Resolve the Cursor Agent CLI path from the environment or default.
 pub fn cursor_agent_cli_path() -> String {
-    std::env::var("KCODE_CURSOR_CLI_PATH").unwrap_or_else(|_| "cursor-agent".to_string())
+    std::env::var("NEURA_CURSOR_CLI_PATH").unwrap_or_else(|_| "cursor-agent".to_string())
 }
 
 /// Check if `cursor-agent` CLI is available on PATH.
 pub fn has_cursor_agent_cli() -> bool {
-    super::command_available_from_env("KCODE_CURSOR_CLI_PATH", "cursor-agent")
+    super::command_available_from_env("NEURA_CURSOR_CLI_PATH", "cursor-agent")
 }
 
 /// Check whether Cursor Agent reports an authenticated local session.
@@ -257,7 +257,7 @@ fn read_vscdb_key(db_path: &PathBuf, key: &str) -> Result<String> {
 
 /// Load Cursor API key. Checks in order:
 /// 1. `CURSOR_API_KEY` env var
-/// 2. Saved key in `~/.config/kcode/cursor.env`
+/// 2. Saved key in `~/.config/neura/cursor.env`
 pub fn load_api_key() -> Result<String> {
     if let Ok(key) = std::env::var("CURSOR_API_KEY") {
         let trimmed = key.trim().to_string();
@@ -288,7 +288,7 @@ pub fn load_api_key() -> Result<String> {
     )
 }
 
-/// Save a Cursor API key to `~/.config/kcode/cursor.env`.
+/// Save a Cursor API key to `~/.config/neura/cursor.env`.
 pub fn save_api_key(key: &str) -> Result<()> {
     let file_path = config_file_path()?;
     crate::storage::upsert_env_file_value(&file_path, "CURSOR_API_KEY", Some(key))?;

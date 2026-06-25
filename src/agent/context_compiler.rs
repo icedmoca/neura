@@ -1,10 +1,10 @@
 //! Context-compiler scaffold.
 //!
 //! This module is the home for the typed compile-pass model described in the
-//! Kcode upstream-payload-architecture roadmap. The pipeline is intentionally
+//! Neura upstream-payload-architecture roadmap. The pipeline is intentionally
 //! additive: existing turn-loop behaviour is preserved unchanged when the
 //! compiler runs in *shadow* mode (the default). Only when
-//! `KCODE_CONTEXT_COMPILER=v2` does the compiler become the source of truth
+//! `NEURA_CONTEXT_COMPILER=v2` does the compiler become the source of truth
 //! for routing decisions; every change is gated behind feature flags so the
 //! v1 path remains a clean fallback.
 //!
@@ -23,7 +23,7 @@ use crate::agent::turn_loops::TurnAdmission;
 use crate::message::Message;
 
 /// Resource budgets per admission tier. Computed once per turn and fed into
-/// telemetry. When `KCODE_ADMISSION_BUDGETS=enforce` is set, downstream passes
+/// telemetry. When `NEURA_ADMISSION_BUDGETS=enforce` is set, downstream passes
 /// will treat these as hard limits; otherwise they are advisory ("shadow"
 /// mode) and only logged.
 #[derive(Debug, Clone, Copy)]
@@ -111,7 +111,7 @@ impl MemoryPlan {
 }
 
 /// Decide which memory plan to use for the upcoming turn. Falls back to
-/// `Inject` (legacy behaviour) unless `KCODE_MEMORY_ANCHOR` is set.
+/// `Inject` (legacy behaviour) unless `NEURA_MEMORY_ANCHOR` is set.
 pub fn plan_memory(
     admission: TurnAdmission,
     pending_prompt: Option<&str>,
@@ -199,7 +199,7 @@ pub fn plan_tools(
 }
 
 pub fn admission_budgets_mode() -> AdmissionBudgetsMode {
-    match std::env::var("KCODE_ADMISSION_BUDGETS")
+    match std::env::var("NEURA_ADMISSION_BUDGETS")
         .ok()
         .as_deref()
         .map(|v| v.trim().to_ascii_lowercase())
@@ -222,7 +222,7 @@ pub enum AdmissionBudgetsMode {
 }
 
 pub fn memory_anchor_enabled() -> bool {
-    std::env::var("KCODE_MEMORY_ANCHOR")
+    std::env::var("NEURA_MEMORY_ANCHOR")
         .map(|v| {
             matches!(
                 v.trim().to_ascii_lowercase().as_str(),
@@ -232,7 +232,7 @@ pub fn memory_anchor_enabled() -> bool {
         .unwrap_or(false)
 }
 
-/// `KCODE_CONTEXT_COMPILER` modes:
+/// `NEURA_CONTEXT_COMPILER` modes:
 /// * `off` / `v1` (default): compiler runs but only emits shadow telemetry;
 ///   the legacy v1 turn-loop logic owns every decision.
 /// * `shadow`: alias for default; explicit shadow telemetry, no enforcement.
@@ -247,7 +247,7 @@ pub enum CompilerMode {
 }
 
 pub fn compiler_mode() -> CompilerMode {
-    match std::env::var("KCODE_CONTEXT_COMPILER")
+    match std::env::var("NEURA_CONTEXT_COMPILER")
         .ok()
         .as_deref()
         .map(|v| v.trim().to_ascii_lowercase())
@@ -266,8 +266,8 @@ pub fn context_compiler_v2_enabled() -> bool {
     matches!(compiler_mode(), CompilerMode::V2)
 }
 
-/// `KCODE_LOCAL_PREROUTER` modes:
-/// * `log` (default when KCODE_LOCAL_PREROUTER is set or unset): sidecar
+/// `NEURA_LOCAL_PREROUTER` modes:
+/// * `log` (default when NEURA_LOCAL_PREROUTER is set or unset): sidecar
 ///   pre-route classification is recorded but has no behavioural effect.
 /// * `decide`: the pre-route classification is fed into compile_v2 and may
 ///   influence admission tier or memory plan when the model has high
@@ -281,7 +281,7 @@ pub enum SidecarPrerouteMode {
 }
 
 pub fn sidecar_preroute_mode() -> SidecarPrerouteMode {
-    match std::env::var("KCODE_LOCAL_PREROUTER")
+    match std::env::var("NEURA_LOCAL_PREROUTER")
         .ok()
         .as_deref()
         .map(|v| v.trim().to_ascii_lowercase())
@@ -394,7 +394,7 @@ pub fn record_shadow_admission(
 // same inputs the legacy turn loop already builds, producing a `CompiledTurn`
 // description. Today the scaffold returns a description; the legacy turn loop
 // is *not* re-routed through this function. Wiring the scaffold to actually
-// drive `run_turn` is gated behind `KCODE_CONTEXT_COMPILER=v2` and will be
+// drive `run_turn` is gated behind `NEURA_CONTEXT_COMPILER=v2` and will be
 // done in a follow-up patch.
 //
 // The compile passes are kept side-effect free where possible so the same
@@ -540,7 +540,7 @@ pub struct TurnPlan {
     /// no cap (legacy behaviour).
     pub max_interlang_blocks: Option<usize>,
     /// Override for the recent-window byte budget. None means use whatever
-    /// `KCODE_CONTEXT_DIET_RECENT_BYTES` says, falling back to the message-
+    /// `NEURA_CONTEXT_DIET_RECENT_BYTES` says, falling back to the message-
     /// count floor.
     pub recent_window_bytes: Option<usize>,
     /// True when sidecar pre-route should run for this turn.
@@ -777,7 +777,7 @@ mod tests {
     fn plan_memory_injects_when_anchor_disabled() {
         let _g = env_lock();
         unsafe {
-            std::env::remove_var("KCODE_MEMORY_ANCHOR");
+            std::env::remove_var("NEURA_MEMORY_ANCHOR");
         }
         let plan = plan_memory(
             TurnAdmission::Light,
@@ -793,7 +793,7 @@ mod tests {
     fn plan_memory_anchors_when_anchor_enabled_and_no_explicit_recall() {
         let _g = env_lock();
         unsafe {
-            std::env::set_var("KCODE_MEMORY_ANCHOR", "1");
+            std::env::set_var("NEURA_MEMORY_ANCHOR", "1");
         }
         let plan = plan_memory(
             TurnAdmission::Light,
@@ -804,7 +804,7 @@ mod tests {
         );
         assert!(matches!(plan, MemoryPlan::Anchor { count: 3, .. }));
         unsafe {
-            std::env::remove_var("KCODE_MEMORY_ANCHOR");
+            std::env::remove_var("NEURA_MEMORY_ANCHOR");
         }
     }
 
@@ -812,7 +812,7 @@ mod tests {
     fn plan_memory_injects_when_user_explicitly_recalls() {
         let _g = env_lock();
         unsafe {
-            std::env::set_var("KCODE_MEMORY_ANCHOR", "1");
+            std::env::set_var("NEURA_MEMORY_ANCHOR", "1");
         }
         let plan = plan_memory(
             TurnAdmission::Light,
@@ -823,7 +823,7 @@ mod tests {
         );
         assert!(matches!(plan, MemoryPlan::Inject { .. }));
         unsafe {
-            std::env::remove_var("KCODE_MEMORY_ANCHOR");
+            std::env::remove_var("NEURA_MEMORY_ANCHOR");
         }
     }
 
@@ -910,7 +910,7 @@ mod tests {
         };
         let _g = env_lock();
         unsafe {
-            std::env::remove_var("KCODE_MEMORY_ANCHOR");
+            std::env::remove_var("NEURA_MEMORY_ANCHOR");
         }
         let compiled = compile_v2(&inputs);
         assert_eq!(compiled.admission, TurnAdmission::Deep);
@@ -951,12 +951,12 @@ mod tests {
         };
         let _g = env_lock();
         unsafe {
-            std::env::set_var("KCODE_MEMORY_ANCHOR", "1");
+            std::env::set_var("NEURA_MEMORY_ANCHOR", "1");
         }
         let compiled = compile_v2(&inputs);
         assert!(matches!(compiled.memory_plan, MemoryPlan::Anchor { .. }));
         unsafe {
-            std::env::remove_var("KCODE_MEMORY_ANCHOR");
+            std::env::remove_var("NEURA_MEMORY_ANCHOR");
         }
     }
 }

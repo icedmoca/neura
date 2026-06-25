@@ -1,6 +1,6 @@
 # Claude Sidecar TODO
 
-This document tracks a possible Claude-based sidecar workflow for Kcode. The idea is to use a strong teacher model to generate training trajectories, then repeatedly improve smaller/local sidecar behavior through ranking, selection, and retraining.
+This document tracks a possible Claude-based sidecar workflow for Neura. The idea is to use a strong teacher model to generate training trajectories, then repeatedly improve smaller/local sidecar behavior through ranking, selection, and retraining.
 
 ## Core recursive training loop
 
@@ -18,7 +18,7 @@ flowchart TD
 
 ## Goal
 
-Build a sidecar model pipeline that can improve Kcode helper tasks such as:
+Build a sidecar model pipeline that can improve Neura helper tasks such as:
 
 - routing,
 - memory extraction,
@@ -29,13 +29,13 @@ Build a sidecar model pipeline that can improve Kcode helper tasks such as:
 - prompt compression,
 - exact-context rehydration decisions.
 
-The Claude sidecar concept should not replace the main coding model. It should help Kcode make cheaper, faster, more reliable local decisions around the main model.
+The Claude sidecar concept should not replace the main coding model. It should help Neura make cheaper, faster, more reliable local decisions around the main model.
 
 ## Proposed architecture
 
 ```mermaid
 flowchart LR
-    K[Kcode runtime] --> Dataset[Sidecar task dataset]
+    K[Neura runtime] --> Dataset[Sidecar task dataset]
     Dataset --> Teacher[Claude teacher]
     Teacher --> Traj[Token trajectories + rationales]
     Traj --> Train[Student training]
@@ -62,7 +62,7 @@ flowchart LR
 Potential training examples can come from:
 
 - committed benchmark artifacts,
-- Kcode local telemetry,
+- Neura local telemetry,
 - successful provider edit→test traces,
 - adversarial hallucination benchmark traces,
 - context recall benchmark tasks,
@@ -103,15 +103,15 @@ A simple first version can use rule-based graders. A stronger version can use a 
 | M3 | Train/evaluate first routing and memory-extraction student |
 | M4 | Add variant generation and ranking loop |
 | M5 | Add recursive retraining with regression gates |
-| M6 | Integrate best student into Kcode sidecar runtime behind a feature flag |
+| M6 | Integrate best student into Neura sidecar runtime behind a feature flag |
 
 ## Open implementation notes
 
 - Start with routing and memory extraction because they are easy to score.
-- Keep the training loop offline at first; do not make it part of normal Kcode startup.
+- Keep the training loop offline at first; do not make it part of normal Neura startup.
 - Prefer small, reproducible experiments over large opaque training runs.
 - Every recursive training generation should write an artifact manifest.
-- The student should fail closed: if confidence is low, defer to existing Kcode logic.
+- The student should fail closed: if confidence is low, defer to existing Neura logic.
 
 ## TODO checklist
 

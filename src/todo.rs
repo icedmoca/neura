@@ -29,6 +29,6 @@ pub fn save_todos(session_id: &str, todos: &[TodoItem]) -> Result<()> {
 }
 
 fn todo_path(session_id: &str) -> Result<PathBuf> {
-    let base = storage::kcode_dir()?;
+    let base = storage::neura_dir()?;
     Ok(base.join("todos").join(format!("{}.json", session_id)))
 }

@@ -1,4 +1,4 @@
-use kcode::latent_operational_recurrence::{
+use neura::latent_operational_recurrence::{
     LatentOperationalState, OperationalEvent, anti_sludge, default_invariants, encode_event,
     remap_vector, translate_invariants,
 };
@@ -17,7 +17,7 @@ fn latent_state_records_temporal_provenance() {
     assert_eq!(state.temporal_memory.len(), 1);
     assert_eq!(
         state.temporal_memory[0].provenance.source,
-        "kcode-latent-observe"
+        "neura-latent-observe"
     );
 }
 

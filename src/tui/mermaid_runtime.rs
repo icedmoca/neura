@@ -24,7 +24,7 @@ pub(super) fn picker_init_mode_from_probe_env(raw: Option<&str>) -> PickerInitMo
 }
 
 fn picker_init_mode_from_env() -> PickerInitMode {
-    picker_init_mode_from_probe_env(std::env::var("KCODE_MERMAID_PICKER_PROBE").ok().as_deref())
+    picker_init_mode_from_probe_env(std::env::var("NEURA_MERMAID_PICKER_PROBE").ok().as_deref())
 }
 
 pub(super) fn infer_protocol_from_env(
@@ -100,7 +100,7 @@ fn fast_picker() -> Picker {
 fn prewarm_svg_font_db_async() {
     SVG_FONT_DB_PREWARM_STARTED.get_or_init(|| {
         let _ = std::thread::Builder::new()
-            .name("kcode-mermaid-fontdb-prewarm".to_string())
+            .name("neura-mermaid-fontdb-prewarm".to_string())
             .spawn(|| {
                 let _ = &*SVG_FONT_DB;
             });
@@ -109,7 +109,7 @@ fn prewarm_svg_font_db_async() {
 
 /// Initialize the global picker.
 /// By default this uses a fast non-blocking path and avoids terminal probing.
-/// Set KCODE_MERMAID_PICKER_PROBE=1 to force full stdio capability probing.
+/// Set NEURA_MERMAID_PICKER_PROBE=1 to force full stdio capability probing.
 /// Also triggers cache eviction on first call.
 pub fn init_picker() {
     PICKER.get_or_init(|| match picker_init_mode_from_env() {

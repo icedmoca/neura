@@ -1,7 +1,7 @@
 use crate::cli::args::{AmbientCommand, Args, Command};
 
 const LINUX_PROCESS_TITLE_LIMIT: usize = 15;
-const KILLALL_PROCESS_NAME: &str = "kcode";
+const KILLALL_PROCESS_NAME: &str = "neura";
 
 fn compact_process_title(prefix: &str, name: Option<&str>) -> String {
     let mut title = prefix.to_string();
@@ -37,14 +37,14 @@ fn set_killall_process_name() {
 }
 
 pub(crate) fn set_server_title(server_name: &str) {
-    set_title(compact_process_title("kcode:s:", Some(server_name)));
+    set_title(compact_process_title("neura:s:", Some(server_name)));
 }
 
 pub(crate) fn set_client_generic_title(is_selfdev: bool) {
     let prefix = if is_selfdev {
-        "kcode:selfdev"
+        "neura:selfdev"
     } else {
-        "kcode:client"
+        "neura:client"
     };
     set_title(compact_process_title(prefix, None));
 }
@@ -54,7 +54,7 @@ pub(crate) fn set_client_session_title(session_id: &str, is_selfdev: bool) {
 }
 
 pub(crate) fn set_client_display_title(session_name: &str, is_selfdev: bool) {
-    let prefix = if is_selfdev { "kcode:d:" } else { "kcode:c:" };
+    let prefix = if is_selfdev { "neura:d:" } else { "neura:c:" };
     set_title(compact_process_title(prefix, Some(session_name)));
 }
 
@@ -63,66 +63,66 @@ pub(crate) fn set_client_remote_display_title(
     session_name: &str,
     is_selfdev: bool,
 ) {
-    if server_name.is_empty() || server_name.eq_ignore_ascii_case("kcode") {
+    if server_name.is_empty() || server_name.eq_ignore_ascii_case("neura") {
         set_client_display_title(session_name, is_selfdev);
         return;
     }
-    let prefix = if is_selfdev { "kcode:d:" } else { "kcode:c:" };
+    let prefix = if is_selfdev { "neura:d:" } else { "neura:c:" };
     set_title(format!("{prefix}{server_name}/{session_name}"));
 }
 
 pub(crate) fn initial_title(args: &Args) -> String {
     match &args.command {
-        Some(Command::Serve) => "kcode:server".to_string(),
-        Some(Command::Connect) => "kcode:client".to_string(),
-        Some(Command::Run { .. }) => "kcode run".to_string(),
-        Some(Command::Login { .. }) => "kcode login".to_string(),
-        Some(Command::Repl) => "kcode repl".to_string(),
-        Some(Command::Update) => "kcode update".to_string(),
-        Some(Command::Version { .. }) => "kcode version".to_string(),
-        Some(Command::Usage { .. }) => "kcode usage".to_string(),
-        Some(Command::SelfDev { .. }) => "kcode:selfdev".to_string(),
-        Some(Command::Debug { .. }) => "kcode debug".to_string(),
-        Some(Command::Auth(_)) => "kcode auth".to_string(),
-        Some(Command::Provider(_)) => "kcode provider".to_string(),
-        Some(Command::Memory(_)) => "kcode memory".to_string(),
-        Some(Command::Latent(_)) => "kcode latent".to_string(),
-        Some(Command::SelfImprove(_)) => "kcode self-improve".to_string(),
+        Some(Command::Serve) => "neura:server".to_string(),
+        Some(Command::Connect) => "neura:client".to_string(),
+        Some(Command::Run { .. }) => "neura run".to_string(),
+        Some(Command::Login { .. }) => "neura login".to_string(),
+        Some(Command::Repl) => "neura repl".to_string(),
+        Some(Command::Update) => "neura update".to_string(),
+        Some(Command::Version { .. }) => "neura version".to_string(),
+        Some(Command::Usage { .. }) => "neura usage".to_string(),
+        Some(Command::SelfDev { .. }) => "neura:selfdev".to_string(),
+        Some(Command::Debug { .. }) => "neura debug".to_string(),
+        Some(Command::Auth(_)) => "neura auth".to_string(),
+        Some(Command::Provider(_)) => "neura provider".to_string(),
+        Some(Command::Memory(_)) => "neura memory".to_string(),
+        Some(Command::Latent(_)) => "neura latent".to_string(),
+        Some(Command::SelfImprove(_)) => "neura self-improve".to_string(),
         Some(Command::Ambient(subcommand)) => match subcommand {
-            AmbientCommand::RunVisible => "kcode ambient visible".to_string(),
-            _ => "kcode ambient".to_string(),
+            AmbientCommand::RunVisible => "neura ambient visible".to_string(),
+            _ => "neura ambient".to_string(),
         },
-        Some(Command::Pair { .. }) => "kcode pair".to_string(),
-        Some(Command::Permissions) => "kcode permissions".to_string(),
-        Some(Command::Transcript { .. }) => "kcode transcript".to_string(),
-        Some(Command::Dictate { .. }) => "kcode dictate".to_string(),
+        Some(Command::Pair { .. }) => "neura pair".to_string(),
+        Some(Command::Permissions) => "neura permissions".to_string(),
+        Some(Command::Transcript { .. }) => "neura transcript".to_string(),
+        Some(Command::Dictate { .. }) => "neura dictate".to_string(),
         Some(Command::SetupHotkey {
             listen_macos_hotkey,
         }) => {
             if *listen_macos_hotkey {
-                "kcode hotkey listener".to_string()
+                "neura hotkey listener".to_string()
             } else {
-                "kcode hotkey setup".to_string()
+                "neura hotkey setup".to_string()
             }
         }
-        Some(Command::Browser { .. }) => "kcode browser".to_string(),
-        Some(Command::Replay { .. }) => "kcode replay".to_string(),
-        Some(Command::Model(_)) => "kcode model".to_string(),
-        Some(Command::AuthTest { .. }) => "kcode auth-test".to_string(),
-        Some(Command::Restart { .. }) => "kcode restart".to_string(),
-        Some(Command::SetupLauncher) => "kcode setup-launcher".to_string(),
+        Some(Command::Browser { .. }) => "neura browser".to_string(),
+        Some(Command::Replay { .. }) => "neura replay".to_string(),
+        Some(Command::Model(_)) => "neura model".to_string(),
+        Some(Command::AuthTest { .. }) => "neura auth-test".to_string(),
+        Some(Command::Restart { .. }) => "neura restart".to_string(),
+        Some(Command::SetupLauncher) => "neura setup-launcher".to_string(),
         None => {
             if let Some(resume) = args.resume.as_deref().filter(|resume| !resume.is_empty()) {
                 let prefix = if crate::cli::selfdev::client_selfdev_requested() {
-                    "kcode:d:"
+                    "neura:d:"
                 } else {
-                    "kcode:c:"
+                    "neura:c:"
                 };
                 compact_process_title(prefix, Some(&session_name(resume)))
             } else if crate::cli::selfdev::client_selfdev_requested() {
-                "kcode:selfdev".to_string()
+                "neura:selfdev".to_string()
             } else {
-                "kcode:client".to_string()
+                "neura:client".to_string()
             }
         }
     }
@@ -155,24 +155,24 @@ mod tests {
     #[test]
     fn initial_title_labels_server() {
         with_selfdev_env_removed(|| {
-            let args = Args::parse_from(["kcode", "serve"]);
-            assert_eq!(initial_title(&args), "kcode:server");
+            let args = Args::parse_from(["neura", "serve"]);
+            assert_eq!(initial_title(&args), "neura:server");
         });
     }
 
     #[test]
     fn initial_title_labels_resume_client_with_short_name() {
         with_selfdev_env_removed(|| {
-            let args = Args::parse_from(["kcode", "--resume", "session_fox_123"]);
-            assert_eq!(initial_title(&args), "kcode:c:fox");
+            let args = Args::parse_from(["neura", "--resume", "session_fox_123"]);
+            assert_eq!(initial_title(&args), "neura:c:fox");
         });
     }
 
     #[test]
     fn initial_title_labels_selfdev_command() {
         with_selfdev_env_removed(|| {
-            let args = Args::parse_from(["kcode", "self-dev"]);
-            assert_eq!(initial_title(&args), "kcode:selfdev");
+            let args = Args::parse_from(["neura", "self-dev"]);
+            assert_eq!(initial_title(&args), "neura:selfdev");
         });
     }
 }

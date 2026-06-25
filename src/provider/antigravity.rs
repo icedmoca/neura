@@ -27,7 +27,7 @@ const AVAILABLE_MODELS: &[&str] = &[
 ];
 const FETCH_MODELS_API_URL: &str =
     "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels";
-const VERSION_ENV: &str = "KCODE_ANTIGRAVITY_VERSION";
+const VERSION_ENV: &str = "NEURA_ANTIGRAVITY_VERSION";
 const ANTIGRAVITY_VERSION: &str = "1.18.3";
 const X_GOOG_API_CLIENT: &str = "google-cloud-sdk vscode_cloudshelleditor/0.1";
 const CATALOG_REFRESH_TTL_HOURS: i64 = 6;
@@ -415,14 +415,14 @@ impl AntigravityCliProvider {
     }
 
     pub fn new() -> Self {
-        let cli_path = std::env::var("KCODE_ANTIGRAVITY_CLI_PATH")
+        let cli_path = std::env::var("NEURA_ANTIGRAVITY_CLI_PATH")
             .unwrap_or_else(|_| "antigravity".to_string());
         let model =
-            std::env::var("KCODE_ANTIGRAVITY_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.into());
-        let prompt_flag = std::env::var("KCODE_ANTIGRAVITY_PROMPT_FLAG")
+            std::env::var("NEURA_ANTIGRAVITY_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.into());
+        let prompt_flag = std::env::var("NEURA_ANTIGRAVITY_PROMPT_FLAG")
             .ok()
             .or_else(|| Some("-p".to_string()));
-        let model_flag = std::env::var("KCODE_ANTIGRAVITY_MODEL_FLAG")
+        let model_flag = std::env::var("NEURA_ANTIGRAVITY_MODEL_FLAG")
             .ok()
             .or_else(|| Some("--model".to_string()));
 

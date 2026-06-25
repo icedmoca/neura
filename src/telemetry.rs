@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 
-const TELEMETRY_ENDPOINT: &str = "https://kcode-telemetry.jeremyhuang55555.workers.dev/v1/event";
+const TELEMETRY_ENDPOINT: &str = "https://neura-telemetry.jeremyhuang55555.workers.dev/v1/event";
 const ASYNC_SEND_TIMEOUT: Duration = Duration::from_secs(5);
 const BLOCKING_INSTALL_TIMEOUT: Duration = Duration::from_millis(1200);
 const BLOCKING_LIFECYCLE_TIMEOUT: Duration = Duration::from_millis(800);
@@ -660,10 +660,10 @@ impl SessionEndReason {
 }
 
 pub fn is_enabled() -> bool {
-    if std::env::var("KCODE_NO_TELEMETRY").is_ok() || std::env::var("DO_NOT_TRACK").is_ok() {
+    if std::env::var("NEURA_NO_TELEMETRY").is_ok() || std::env::var("DO_NOT_TRACK").is_ok() {
         return false;
     }
-    if let Ok(dir) = storage::kcode_dir()
+    if let Ok(dir) = storage::neura_dir()
         && dir.join("no_telemetry").exists()
     {
         return false;
@@ -844,7 +844,7 @@ fn detect_project_profile() -> ProjectProfile {
     let Some(root) = cwd.as_deref() else {
         return profile;
     };
-    profile.repo_present = root.join(".git").exists() || crate::build::is_kcode_repo(root);
+    profile.repo_present = root.join(".git").exists() || crate::build::is_neura_repo(root);
     let mut scanned_files = 0usize;
     for entry in walkdir::WalkDir::new(root)
         .max_depth(3)
@@ -2031,11 +2031,11 @@ pub enum ErrorCategory {
 
 fn show_first_run_notice() {
     eprintln!("\x1b[90m");
-    eprintln!("  kcode collects anonymous usage statistics (install count, version, OS,");
+    eprintln!("  neura collects anonymous usage statistics (install count, version, OS,");
     eprintln!("  session activity, tool counts, and crash/exit reasons). No code, filenames,");
     eprintln!("  prompts, or personal data is sent.");
-    eprintln!("  To opt out: export KCODE_NO_TELEMETRY=1");
-    eprintln!("  Details: https://github.com/1jehuang/kcode/blob/master/TELEMETRY.md");
+    eprintln!("  To opt out: export NEURA_NO_TELEMETRY=1");
+    eprintln!("  Details: https://github.com/1jehuang/neura/blob/master/TELEMETRY.md");
     eprintln!("\x1b[0m");
 }
 

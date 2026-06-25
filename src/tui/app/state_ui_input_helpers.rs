@@ -72,305 +72,305 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
     RegisteredCommand::public("/improve", "Autonomously improve the repository"),
     RegisteredCommand::public("/refactor", "Run a safe refactor loop"),
     RegisteredCommand::public(
-        "/kcode-epistemology",
+        "/neura-epistemology",
         "Inspect operational epistemology claim/evidence state",
     ),
     RegisteredCommand::public(
-        "/kcode-deliberate",
+        "/neura-deliberate",
         "Inspect bounded internal deliberation, traces, dissent, consensus, and adversarial review.",
     ),
     RegisteredCommand::public(
-        "/kcode-deliberate trace",
+        "/neura-deliberate trace",
         "Show recent deliberation trace frames.",
     ),
     RegisteredCommand::public(
-        "/kcode-deliberate dissent",
+        "/neura-deliberate dissent",
         "Show persisted unresolved deliberation dissent.",
     ),
     RegisteredCommand::public(
-        "/kcode-science status",
+        "/neura-science status",
         "Show scientific cognition status, uncertainty, calibration, and information gain.",
     ),
     RegisteredCommand::public(
-        "/kcode-science hypotheses",
+        "/neura-science hypotheses",
         "Inspect operational hypotheses and lifecycle states.",
     ),
     RegisteredCommand::public(
-        "/kcode-science experiments",
+        "/neura-science experiments",
         "Inspect safe experiment and evidence acquisition plans.",
     ),
     RegisteredCommand::public(
-        "/kcode-science uncertainty",
+        "/neura-science uncertainty",
         "Inspect uncertainty priorities and evidence gaps.",
     ),
     RegisteredCommand::public(
-        "/kcode-science causal",
+        "/neura-science causal",
         "Inspect causal candidates, confounder risk, and accepted edges.",
     ),
     RegisteredCommand::public(
-        "/kcode-science models",
+        "/neura-science models",
         "Inspect competing model scores and selection.",
     ),
     RegisteredCommand::public(
-        "/kcode-synthetic-science status",
+        "/neura-synthetic-science status",
         "Inspect synthetic scientific cognition ecosystem status and bounded cycles.",
     ),
     RegisteredCommand::public(
-        "/kcode-synthetic-science proposals",
+        "/neura-synthetic-science proposals",
         "Inspect synthetic research proposals and expected information gain.",
     ),
     RegisteredCommand::public(
-        "/kcode-synthetic-science experiments",
+        "/neura-synthetic-science experiments",
         "Inspect synthetic experiments, observations, and replication records.",
     ),
     RegisteredCommand::public(
-        "/kcode-synthetic-science dissent",
+        "/neura-synthetic-science dissent",
         "Inspect productive dissent ecology and self-challenge cycles.",
     ),
     RegisteredCommand::public(
-        "/kcode-epistemic-governance status",
+        "/neura-epistemic-governance status",
         "Inspect cybernetic epistemic governor stability and control signals.",
     ),
     RegisteredCommand::public(
-        "/kcode-epistemic-governance actions",
+        "/neura-epistemic-governance actions",
         "Inspect institutional decisions and epistemic governance actions.",
     ),
     RegisteredCommand::public(
-        "/kcode-context-economy status",
+        "/neura-context-economy status",
         "Inspect adaptive context economy budget, utility allocation, and token efficiency.",
     ),
     RegisteredCommand::public(
-        "/kcode-context-economy bids",
+        "/neura-context-economy bids",
         "Inspect context market bids and utility-per-token scores.",
     ),
     RegisteredCommand::public(
-        "/kcode-context-economy allocations",
+        "/neura-context-economy allocations",
         "Inspect include, compress, defer, and drop allocation decisions.",
     ),
     RegisteredCommand::public(
-        "/kcode-context-economy compression",
+        "/neura-context-economy compression",
         "Inspect salience-weighted compression plans and saved tokens.",
     ),
     RegisteredCommand::public(
-        "/kcode-cognitive-integration mesh",
+        "/neura-cognitive-integration mesh",
         "Inspect cross-layer cognitive integration nodes, edges, and coherence.",
     ),
     RegisteredCommand::public(
-        "/kcode-cognitive-integration debt",
+        "/neura-cognitive-integration debt",
         "Inspect deferred context debt and recall traces.",
     ),
     RegisteredCommand::public(
-        "/kcode-hierarchical-context status",
+        "/neura-hierarchical-context status",
         "Inspect hierarchical cognition activation depth, retained branches, and routed tokens.",
     ),
     RegisteredCommand::public(
-        "/kcode-hierarchical-context tree",
+        "/neura-hierarchical-context tree",
         "Inspect activation tree nodes, edges, and pruning decisions.",
     ),
     RegisteredCommand::public(
-        "/kcode-hierarchical-context routing",
+        "/neura-hierarchical-context routing",
         "Inspect direct, compressed, evidence-first, and deferred context routes.",
     ),
     RegisteredCommand::public(
-        "/kcode-epistemic-context-governance status",
+        "/neura-epistemic-context-governance status",
         "Inspect epistemic context decisions, contamination signals, and scope boundaries.",
     ),
     RegisteredCommand::public(
-        "/kcode-epistemic-context-governance quarantine",
+        "/neura-epistemic-context-governance quarantine",
         "Inspect quarantined or evidence-gated high-risk context activations.",
     ),
     RegisteredCommand::public(
-        "/kcode-emergent-quality status",
+        "/neura-emergent-quality status",
         "Inspect emergent cognition quality metrics, debt, interventions, and trends.",
     ),
     RegisteredCommand::public(
-        "/kcode-emergent-quality signals",
+        "/neura-emergent-quality signals",
         "Inspect emergent behavior signals and quality deltas.",
     ),
     RegisteredCommand::public(
-        "/kcode-emergent-quality interventions",
+        "/neura-emergent-quality interventions",
         "Inspect quality interventions and regulation policy actions.",
     ),
     RegisteredCommand::public(
-        "/kcode-long-horizon status",
+        "/neura-long-horizon status",
         "Inspect long-horizon operational coherence, drift, and continuity threads.",
     ),
     RegisteredCommand::public(
-        "/kcode-long-horizon breaks",
+        "/neura-long-horizon breaks",
         "Inspect coherence break candidates and mitigation plans.",
     ),
     RegisteredCommand::public(
-        "/kcode-substrate status",
+        "/neura-substrate status",
         "Inspect cognitive substrate field resonance, instability, density, and repair debt.",
     ),
     RegisteredCommand::public(
-        "/kcode-substrate field",
+        "/neura-substrate field",
         "Inspect cross-layer cognitive field nodes and couplings.",
     ),
     RegisteredCommand::public(
-        "/kcode-substrate attractors",
+        "/neura-substrate attractors",
         "Inspect emergent cognitive attractors and stabilized behaviors.",
     ),
     RegisteredCommand::public(
-        "/kcode-substrate optimize",
+        "/neura-substrate optimize",
         "Inspect bounded substrate optimization and damping actions.",
     ),
     RegisteredCommand::public(
-        "/kcode-substrate repair",
+        "/neura-substrate repair",
         "Inspect substrate repair debt and repair actions.",
     ),
     RegisteredCommand::public(
-        "/kcode-convergence status",
+        "/neura-convergence status",
         "Inspect substrate convergence, entropy, equilibrium, noise, oscillation, and stability.",
     ),
     RegisteredCommand::public(
-        "/kcode-convergence vectors",
+        "/neura-convergence vectors",
         "Inspect convergence vectors and deltas against stabilization targets.",
     ),
     RegisteredCommand::public(
-        "/kcode-stabilization actions",
+        "/neura-stabilization actions",
         "Inspect autonomous cognitive stabilization actions and bounded intensities.",
     ),
     RegisteredCommand::public(
-        "/kcode-stabilization noise",
+        "/neura-stabilization noise",
         "Inspect noise suppression and retrieval optimization signals.",
     ),
     RegisteredCommand::public(
-        "/kcode-stabilization continuity",
+        "/neura-stabilization continuity",
         "Inspect continuity stabilization threads and equilibrium restoration.",
     ),
     RegisteredCommand::public(
-        "/kcode-structure status",
+        "/neura-structure status",
         "Inspect latent structure discovery, invariants, motifs, and representation score.",
     ),
     RegisteredCommand::public(
-        "/kcode-structure patterns",
+        "/neura-structure patterns",
         "Inspect discovered motifs, invariants, bridges, redundancies, and compression opportunities.",
     ),
     RegisteredCommand::public(
-        "/kcode-structure invariants",
+        "/neura-structure invariants",
         "Inspect representation invariants and support/violation state.",
     ),
     RegisteredCommand::public(
-        "/kcode-representation optimize",
+        "/neura-representation optimize",
         "Inspect representation quality metrics and optimization gains.",
     ),
     RegisteredCommand::public(
-        "/kcode-representation rewrites",
+        "/neura-representation rewrites",
         "Inspect graph/representation rewrite proposals and expected gain/risk.",
     ),
     RegisteredCommand::public(
-        "/kcode-topology retrieval",
+        "/neura-topology retrieval",
         "Inspect topology-aware retrieval centrality, bridge scores, and retrieval weights.",
     ),
     RegisteredCommand::public(
-        "/kcode-complexity status",
+        "/neura-complexity status",
         "Inspect adaptive complexity analysis and calibrated hardness.",
     ),
     RegisteredCommand::public(
-        "/kcode-complexity factors",
+        "/neura-complexity factors",
         "Inspect formal, empirical, heuristic, and structural complexity factors.",
     ),
     RegisteredCommand::public(
-        "/kcode-complexity entropy",
+        "/neura-complexity entropy",
         "Inspect complexity entropy and reducibility signals.",
     ),
     RegisteredCommand::public(
-        "/kcode-collapse opportunities",
+        "/neura-collapse opportunities",
         "Inspect representation-collapse opportunities and decisions.",
     ),
     RegisteredCommand::public(
-        "/kcode-collapse decomposition",
+        "/neura-collapse decomposition",
         "Inspect complexity subproblem decomposition and dependencies.",
     ),
     RegisteredCommand::public(
-        "/kcode-complexity routes",
+        "/neura-complexity routes",
         "Inspect complexity-aware solver routes and selected route confidence.",
     ),
     RegisteredCommand::public(
-        "/kcode-representation-evolution status",
+        "/neura-representation-evolution status",
         "Inspect active representation evolution candidates, trials, promotions, and gain.",
     ),
     RegisteredCommand::public(
-        "/kcode-representation-evolution candidates",
+        "/neura-representation-evolution candidates",
         "Inspect proposed representation variants and mutation kinds.",
     ),
     RegisteredCommand::public(
-        "/kcode-representation-evolution trials",
+        "/neura-representation-evolution trials",
         "Inspect sandbox trial predicted/observed gains and calibration error.",
     ),
     RegisteredCommand::public(
-        "/kcode-representation-evolution promotions",
+        "/neura-representation-evolution promotions",
         "Inspect bounded representation promotions and rollback governance.",
     ),
     RegisteredCommand::public(
-        "/kcode-operational-complexity status",
+        "/neura-operational-complexity status",
         "Inspect operational complexity mode, cost reduction, and policy adjustments.",
     ),
     RegisteredCommand::public(
-        "/kcode-strategy status",
+        "/neura-strategy status",
         "Inspect emergent strategy discovery candidates, tournaments, portfolio, and governance pressure.",
     ),
     RegisteredCommand::public(
-        "/kcode-strategy candidates",
+        "/neura-strategy candidates",
         "Inspect generated strategy candidates and expected gain/risk/transferability.",
     ),
     RegisteredCommand::public(
-        "/kcode-strategy tournaments",
+        "/neura-strategy tournaments",
         "Inspect strategy tournament scores, winners, and evidence.",
     ),
     RegisteredCommand::public(
-        "/kcode-strategy counterexamples",
+        "/neura-strategy counterexamples",
         "Inspect counterexamples and mitigations before strategy promotion.",
     ),
     RegisteredCommand::public(
-        "/kcode-strategy portfolio",
+        "/neura-strategy portfolio",
         "Inspect balanced strategy portfolio diversity and expected value.",
     ),
     RegisteredCommand::public(
-        "/kcode-strategic-search governance",
+        "/neura-strategic-search governance",
         "Inspect exploration budget, exploitation bias, and strategy decisions.",
     ),
     RegisteredCommand::public(
-        "/kcode-operational-intelligence status",
+        "/neura-operational-intelligence status",
         "Inspect high-level operational synthesis, actionability, confidence, and residual risk.",
     ),
     RegisteredCommand::public(
-        "/kcode-operational-intelligence insights",
+        "/neura-operational-intelligence insights",
         "Inspect synthesized strategic, tactical, epistemic, execution, and governance insights.",
     ),
     RegisteredCommand::public(
-        "/kcode-operational-intelligence judgement",
+        "/neura-operational-intelligence judgement",
         "Inspect dominant operational judgement and calibrated confidence.",
     ),
     RegisteredCommand::public(
-        "/kcode-operational-intelligence doctrine",
+        "/neura-operational-intelligence doctrine",
         "Inspect reversible operational doctrine updates and maturity/stability.",
     ),
     RegisteredCommand::public(
-        "/kcode-local-model status",
+        "/neura-local-model status",
         "Inspect local model provider routing, LM Studio health, and fallback decision.",
     ),
     RegisteredCommand::public(
-        "/kcode-lmstudio status",
+        "/neura-lmstudio status",
         "Inspect LM Studio OpenAI-compatible endpoint configuration and reachability.",
     ),
     RegisteredCommand::public(
-        "/kcode-lmstudio wsl",
+        "/neura-lmstudio wsl",
         "Show Windows/WSL LM Studio networking diagnostics and endpoint hints.",
     ),
     RegisteredCommand::public(
-        "/kcode-local-model route",
-        "Inspect whether Kcode should use local model, remote fallback, or block execution.",
+        "/neura-local-model route",
+        "Inspect whether Neura should use local model, remote fallback, or block execution.",
     ),
     RegisteredCommand::public(
-        "/kcode-reality",
+        "/neura-reality",
         "Inspect reality-coupled verification telemetry",
     ),
     RegisteredCommand::public("/compact", "Compact context"),
     RegisteredCommand::public(
-        "/kcode-cognition",
-        "Inspect adaptive .kcode cognition memory substrate",
+        "/neura-cognition",
+        "Inspect adaptive .neura cognition memory substrate",
     ),
     RegisteredCommand::public("/fix", "Recover when the model cannot continue"),
     RegisteredCommand::public("/dictate", "Run configured external dictation command"),
@@ -383,13 +383,13 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
     RegisteredCommand::public("/changelog", "Show recent changes in this build"),
     RegisteredCommand::public("/info", "Show session info and tokens"),
     RegisteredCommand::public("/usage", "Show connected provider usage limits"),
-    RegisteredCommand::public("/feedback", "Send feedback about kcode"),
-    RegisteredCommand::public("/subscription", "Show kcode subscription status"),
+    RegisteredCommand::public("/feedback", "Send feedback about neura"),
+    RegisteredCommand::public("/subscription", "Show neura subscription status"),
     RegisteredCommand::public("/config", "Show or edit configuration"),
     RegisteredCommand::public("/reload", "Reload into newest available binary"),
     RegisteredCommand::public("/restart", "Restart with current binary"),
     RegisteredCommand::public("/rebuild", "Background rebuild and auto reload"),
-    RegisteredCommand::public("/selfdev", "Open a new self-dev kcode session"),
+    RegisteredCommand::public("/selfdev", "Open a new self-dev neura session"),
     RegisteredCommand::public("/update", "Background update and auto reload"),
     RegisteredCommand::public("/resume", "Open session picker"),
     RegisteredCommand::public("/sessions", "Alias for /resume"),
@@ -400,7 +400,7 @@ const REGISTERED_COMMANDS: &[RegisteredCommand] = &[
     RegisteredCommand::public("/split", "Split session into a new window"),
     RegisteredCommand::public("/transfer", "Compact context into a fresh handoff session"),
     RegisteredCommand::public("/workspace", "Niri-style session workspace"),
-    RegisteredCommand::public("/quit", "Exit kcode"),
+    RegisteredCommand::public("/quit", "Exit neura"),
     RegisteredCommand::public("/auth", "Show authentication status"),
     RegisteredCommand::public("/login", "Login to a provider"),
     RegisteredCommand::public("/account", "Open the combined account picker"),
@@ -1224,7 +1224,7 @@ impl App {
             return Vec::new();
         }
 
-        let is_new_user = crate::storage::kcode_dir()
+        let is_new_user = crate::storage::neura_dir()
             .ok()
             .and_then(|dir| {
                 let path = dir.join("setup_hints.json");

@@ -9,7 +9,7 @@ use crate::provider::{EventStream, Provider};
 use crate::tool::Registry;
 use anyhow::Result;
 use async_trait::async_trait;
-use kcode_agent_runtime::SoftInterruptSource;
+use neura_agent_runtime::SoftInterruptSource;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
@@ -128,8 +128,8 @@ async fn queue_soft_interrupt_for_session_registers_queue_on_fallback_lookup() {
 async fn queue_soft_interrupt_for_session_persists_when_live_queue_is_unavailable() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("temp dir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let agent = test_agent().await;
     let session_id = {
@@ -178,8 +178,8 @@ async fn queue_soft_interrupt_for_session_persists_when_live_queue_is_unavailabl
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }

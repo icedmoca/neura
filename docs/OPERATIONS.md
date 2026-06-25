@@ -1,17 +1,17 @@
-# Kcode operations manual
+# Neura operations manual
 
-This manual describes how to operate Kcode as a living coding-agent system. It is written for maintainers who need to make changes, diagnose failures, validate behavior, and keep documentation truthful.
+This manual describes how to operate Neura as a living coding-agent system. It is written for maintainers who need to make changes, diagnose failures, validate behavior, and keep documentation truthful.
 
 ## 1. Operational model
 
-Kcode operation has four loops:
+Neura operation has four loops:
 
 1. **Interaction loop**: user enters intent through TUI or CLI.
 2. **Execution loop**: agent runtime selects provider, executes tools, streams results, and mutates workspace when appropriate.
 3. **Validation loop**: focused checks confirm that changes are correct.
 4. **Learning loop**: adaptive cognition and operational repair learning retain compact signals.
 
-A healthy Kcode change should preserve all four loops. If a change improves behavior but cannot be validated or documented, it is incomplete.
+A healthy Neura change should preserve all four loops. If a change improves behavior but cannot be validated or documented, it is incomplete.
 
 ## 2. Daily maintainer workflow
 
@@ -34,7 +34,7 @@ For provider parser changes, run the provider-specific tests if present. For TUI
 
 ## 3. Validation strategy
 
-Kcode uses validation tiers:
+Neura uses validation tiers:
 
 | Tier | When to use | Examples |
 | --- | --- | --- |
@@ -43,7 +43,7 @@ Kcode uses validation tiers:
 | Focused unit | Single subsystem | `cargo test --lib operational_repair_learning` |
 | Integration-ish | Provider/TUI/tool flows | provider parser tests, TUI state tests |
 | Smoke | External endpoint/tool | local model check, provider health prompt |
-| Benchmark | Performance/provider comparison | `kcode-bench`, `tui-bench` |
+| Benchmark | Performance/provider comparison | `neura-bench`, `tui-bench` |
 
 The goal is not to run the biggest possible suite every time. The goal is to select the smallest validation that actually proves the change, then broaden when risk increases.
 
@@ -96,13 +96,13 @@ Risky sidecar tasks:
 ### Local model smoke check
 
 ```text
-/kcode-local-model
+/neura-local-model
 ```
 
 ### Local benchmark example
 
 ```bash
-cargo run --bin kcode-bench -- \
+cargo run --bin neura-bench -- \
   --local-provider lmstudio \
   --local-url http://127.0.0.1:1234/v1 \
   --local-model '<model-id>'
@@ -216,7 +216,7 @@ Before calling a phase complete:
 
 ## 12. Incident response playbook
 
-When Kcode breaks:
+When Neura breaks:
 
 1. Stop making broad changes.
 2. Reproduce with the smallest command/test.

@@ -210,18 +210,18 @@ impl McpConfig {
     }
 
     /// Import MCP servers from Claude Code and Codex CLI on first run.
-    /// Only runs if ~/.kcode/mcp.json doesn't exist yet.
+    /// Only runs if ~/.neura/mcp.json doesn't exist yet.
     #[expect(
         clippy::collapsible_if,
         reason = "Import logic keeps source-specific MCP config handling explicit"
     )]
     fn import_from_external() {
-        let kcode_mcp = match crate::storage::kcode_dir() {
+        let neura_mcp = match crate::storage::neura_dir() {
             Ok(dir) => dir.join("mcp.json"),
             Err(_) => return,
         };
 
-        if kcode_mcp.exists() {
+        if neura_mcp.exists() {
             return; // Not first run
         }
 
@@ -256,7 +256,7 @@ impl McpConfig {
         }
 
         if !imported.servers.is_empty() {
-            if let Err(e) = imported.save_to_file(&kcode_mcp) {
+            if let Err(e) = imported.save_to_file(&neura_mcp) {
                 crate::logging::error(&format!("Failed to save imported MCP config: {}", e));
                 return;
             }
@@ -324,7 +324,7 @@ impl McpConfig {
         Ok(config)
     }
 
-    /// Load from default locations (merges kcode global + local, local overrides)
+    /// Load from default locations (merges neura global + local, local overrides)
     #[expect(
         clippy::collapsible_if,
         reason = "Import logic keeps source-specific MCP config merge order explicit"
@@ -335,20 +335,20 @@ impl McpConfig {
 
         let mut merged = Self::default();
 
-        // Load kcode's own global config (~/.kcode/mcp.json)
-        if let Ok(kcode_dir) = crate::storage::kcode_dir() {
-            let kcode_mcp = kcode_dir.join("mcp.json");
-            if kcode_mcp.exists() {
-                if let Ok(config) = Self::load_from_file(&kcode_mcp) {
+        // Load neura's own global config (~/.neura/mcp.json)
+        if let Ok(neura_dir) = crate::storage::neura_dir() {
+            let neura_mcp = neura_dir.join("mcp.json");
+            if neura_mcp.exists() {
+                if let Ok(config) = Self::load_from_file(&neura_mcp) {
                     merged.servers.extend(config.servers);
                 }
             }
         }
 
-        // Load project-local kcode config (.kcode/mcp.json)
-        let local_kcode = std::path::Path::new(".kcode/mcp.json");
-        if local_kcode.exists() {
-            if let Ok(config) = Self::load_from_file(local_kcode) {
+        // Load project-local neura config (.neura/mcp.json)
+        let local_neura = std::path::Path::new(".neura/mcp.json");
+        if local_neura.exists() {
+            if let Ok(config) = Self::load_from_file(local_neura) {
                 merged.servers.extend(config.servers);
             }
         }

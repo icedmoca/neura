@@ -13,9 +13,9 @@ fn lock_telemetry_test_state() -> std::sync::MutexGuard<'static, ()> {
 #[test]
 fn test_opt_out_env_var() {
     let _guard = lock_test_env();
-    crate::env::set_var("KCODE_NO_TELEMETRY", "1");
+    crate::env::set_var("NEURA_NO_TELEMETRY", "1");
     assert!(!is_enabled());
-    crate::env::remove_var("KCODE_NO_TELEMETRY");
+    crate::env::remove_var("NEURA_NO_TELEMETRY");
 }
 
 #[test]
@@ -255,8 +255,8 @@ fn test_sanitize_telemetry_label_strips_ansi_and_controls() {
 #[test]
 fn test_onboarding_step_milestone_key_includes_provider_and_method() {
     assert_eq!(
-        onboarding_step_milestone_key("auth_success", Some("kcode"), Some("API key")),
-        "auth_success_kcode_api_key"
+        onboarding_step_milestone_key("auth_success", Some("neura"), Some("API key")),
+        "auth_success_neura_api_key"
     );
     assert_eq!(
         onboarding_step_milestone_key("login_picker_opened", None, None),
@@ -267,9 +267,9 @@ fn test_onboarding_step_milestone_key_includes_provider_and_method() {
 #[test]
 fn test_install_marker_tracks_current_telemetry_id() {
     let _guard = lock_test_env();
-    let prev_home = std::env::var_os("KCODE_HOME");
+    let prev_home = std::env::var_os("NEURA_HOME");
     let temp = tempfile::TempDir::new().expect("create temp dir");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     assert!(!install_recorded_for_id("id-a"));
     mark_install_recorded("id-a");
@@ -277,8 +277,8 @@ fn test_install_marker_tracks_current_telemetry_id() {
     assert!(!install_recorded_for_id("id-b"));
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }

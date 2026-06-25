@@ -1,6 +1,6 @@
-use kcode::latent_memory::{LatentMemoryBank, LatentMemoryEntry, LatentMemoryKind};
-use kcode::latent_operational_recurrence::LatentVector;
-use kcode::operational_policy::{
+use neura::latent_memory::{LatentMemoryBank, LatentMemoryEntry, LatentMemoryKind};
+use neura::latent_operational_recurrence::LatentVector;
+use neura::operational_policy::{
     OperationalPolicyState, PolicyAction, PolicyDomain, synthesize_rules_from_latent_memory,
 };
 

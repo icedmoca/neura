@@ -1,7 +1,7 @@
-//! Import Claude Code sessions into kcode
+//! Import Claude Code sessions into neura
 //!
 //! This module handles discovering, parsing, and converting Claude Code sessions
-//! so they can be resumed within kcode.
+//! so they can be resumed within neura.
 
 use crate::message::{ContentBlock, Role};
 use crate::session::{Session, SessionStatus, StoredMessage};
@@ -573,7 +573,7 @@ fn find_session_file(session_id: &str) -> Result<PathBuf> {
     anyhow::bail!("Session {} not found", session_id);
 }
 
-/// Convert Claude Code content blocks to kcode ContentBlocks
+/// Convert Claude Code content blocks to neura ContentBlocks
 fn convert_content_blocks(content: &ClaudeCodeContent) -> Vec<ContentBlock> {
     match content {
         ClaudeCodeContent::Empty => vec![],
@@ -650,7 +650,7 @@ pub fn imported_session_id_for_target(
     target: &crate::tui::session_picker::ResumeTarget,
 ) -> Option<String> {
     match target {
-        crate::tui::session_picker::ResumeTarget::KcodeSession { session_id } => {
+        crate::tui::session_picker::ResumeTarget::NeuraSession { session_id } => {
             Some(session_id.clone())
         }
         crate::tui::session_picker::ResumeTarget::ClaudeCodeSession { session_id, .. } => {
@@ -668,14 +668,14 @@ pub fn imported_session_id_for_target(
     }
 }
 
-pub fn resolve_resume_target_to_kcode(
+pub fn resolve_resume_target_to_neura(
     target: &crate::tui::session_picker::ResumeTarget,
 ) -> Result<crate::tui::session_picker::ResumeTarget> {
     use crate::tui::session_picker::ResumeTarget;
 
     let session_id = match target {
-        ResumeTarget::KcodeSession { session_id } => {
-            return Ok(ResumeTarget::KcodeSession {
+        ResumeTarget::NeuraSession { session_id } => {
+            return Ok(ResumeTarget::NeuraSession {
                 session_id: session_id.clone(),
             });
         }
@@ -706,7 +706,7 @@ pub fn resolve_resume_target_to_kcode(
         }
     };
 
-    Ok(ResumeTarget::KcodeSession { session_id })
+    Ok(ResumeTarget::NeuraSession { session_id })
 }
 
 pub fn import_external_resume_id(resume_id: &str) -> Result<Option<String>> {
@@ -858,9 +858,9 @@ pub fn import_session_from_file(path: &Path, session_id: &str) -> Result<Session
                 .and_then(|s| s.summary.or(Some(s.first_prompt)))
         });
 
-    // Create kcode session
-    let kcode_session_id = imported_claude_code_session_id(session_id);
-    let mut session = Session::create_with_id(kcode_session_id, None, title);
+    // Create neura session
+    let neura_session_id = imported_claude_code_session_id(session_id);
+    let mut session = Session::create_with_id(neura_session_id, None, title);
     session.provider_session_id = Some(session_id.to_string());
     session.provider_key = Some("claude-code".to_string());
     session.working_dir = working_dir;
@@ -1496,7 +1496,7 @@ pub fn print_sessions_table(sessions: &[ClaudeCodeSessionInfo]) {
 
     println!("\nTotal: {} sessions", sessions.len());
     println!("\nTo import a session:");
-    println!("  kcode import session <session-id>");
+    println!("  neura import session <session-id>");
 }
 
 #[cfg(test)]

@@ -4,9 +4,9 @@ Local Chrome/Chromium automation bridge modeled after the Firefox Browser Agent 
 
 ## Files
 
-- Extension directory: `~/.kcode/chromium-agent-bridge/extension`
-- Packaged zip: `~/.kcode/chromium-agent-bridge/chromium-agent-bridge-extension.zip`
-- CLI/server: `~/.kcode/chromium-agent-bridge/chromium-agent-bridge`
+- Extension directory: `~/.neura/chromium-agent-bridge/extension`
+- Packaged zip: `~/.neura/chromium-agent-bridge/chromium-agent-bridge-extension.zip`
+- CLI/server: `~/.neura/chromium-agent-bridge/chromium-agent-bridge`
 - Convenience symlink: `~/.local/bin/chromium-agent-bridge`
 - WebSocket server: `ws://127.0.0.1:8767`
 
@@ -17,7 +17,7 @@ Chrome blocks silent extension install from local tools. Load once manually:
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select `~/.kcode/chromium-agent-bridge/extension`
+4. Select `~/.neura/chromium-agent-bridge/extension`
 
 After that, the extension connects to the local bridge automatically.
 

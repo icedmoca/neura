@@ -88,7 +88,7 @@ async fn register_visible_spawned_member_marks_startup_as_running() {
 fn prepare_visible_spawn_session_persists_startup_before_launch() {
     let _guard = crate::storage::lock_test_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    crate::env::set_var("KCODE_HOME", temp_home.path());
+    crate::env::set_var("NEURA_HOME", temp_home.path());
 
     let worktree = tempfile::TempDir::new().expect("temp worktree");
     let startup = "Please start by auditing prompt delivery.";
@@ -99,8 +99,8 @@ fn prepare_visible_spawn_session_persists_startup_before_launch() {
         false,
         Some(startup),
         |session_id, _cwd: &std::path::Path, _selfdev| {
-            let path = crate::storage::kcode_dir()
-                .expect("kcode dir")
+            let path = crate::storage::neura_dir()
+                .expect("neura dir")
                 .join(format!("client-input-{}", session_id));
             let data = std::fs::read_to_string(&path).expect("startup file should exist");
             assert!(
@@ -117,22 +117,22 @@ fn prepare_visible_spawn_session_persists_startup_before_launch() {
     .expect("visible spawn preparation should succeed");
 
     assert!(launched);
-    let path = crate::storage::kcode_dir()
-        .expect("kcode dir")
+    let path = crate::storage::neura_dir()
+        .expect("neura dir")
         .join(format!("client-input-{}", session_id));
     assert!(
         path.exists(),
         "startup file should remain for launched visible session"
     );
 
-    crate::env::remove_var("KCODE_HOME");
+    crate::env::remove_var("NEURA_HOME");
 }
 
 #[test]
 fn prepare_visible_spawn_session_cleans_startup_when_launch_not_started() {
     let _guard = crate::storage::lock_test_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    crate::env::set_var("KCODE_HOME", temp_home.path());
+    crate::env::set_var("NEURA_HOME", temp_home.path());
 
     let worktree = tempfile::TempDir::new().expect("temp worktree");
 
@@ -146,8 +146,8 @@ fn prepare_visible_spawn_session_cleans_startup_when_launch_not_started() {
     .expect("visible spawn preparation should succeed even when launch is skipped");
 
     assert!(!launched);
-    let path = crate::storage::kcode_dir()
-        .expect("kcode dir")
+    let path = crate::storage::neura_dir()
+        .expect("neura dir")
         .join(format!("client-input-{}", session_id));
     assert!(
         !path.exists(),
@@ -158,14 +158,14 @@ fn prepare_visible_spawn_session_cleans_startup_when_launch_not_started() {
         "prepared session should be cleaned up when visible launch does not start"
     );
 
-    crate::env::remove_var("KCODE_HOME");
+    crate::env::remove_var("NEURA_HOME");
 }
 
 #[test]
 fn prepare_visible_spawn_session_cleans_session_when_launch_errors() {
     let _guard = crate::storage::lock_test_env();
     let temp_home = tempfile::TempDir::new().expect("temp home");
-    crate::env::set_var("KCODE_HOME", temp_home.path());
+    crate::env::set_var("NEURA_HOME", temp_home.path());
 
     let worktree = tempfile::TempDir::new().expect("temp worktree");
 
@@ -179,8 +179,8 @@ fn prepare_visible_spawn_session_cleans_session_when_launch_errors() {
     .expect_err("visible spawn preparation should surface launch error");
 
     assert!(error.to_string().contains("launch failed"));
-    let sessions_dir = crate::storage::kcode_dir()
-        .expect("kcode dir")
+    let sessions_dir = crate::storage::neura_dir()
+        .expect("neura dir")
         .join("sessions");
     let remaining_sessions = std::fs::read_dir(&sessions_dir)
         .map(|entries| entries.count())
@@ -190,7 +190,7 @@ fn prepare_visible_spawn_session_cleans_session_when_launch_errors() {
         "failed visible launch should not leave orphan prepared sessions"
     );
 
-    crate::env::remove_var("KCODE_HOME");
+    crate::env::remove_var("NEURA_HOME");
 }
 
 #[tokio::test]

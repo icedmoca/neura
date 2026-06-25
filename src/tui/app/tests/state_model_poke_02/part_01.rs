@@ -480,7 +480,7 @@ fn test_help_topic_suggestions_include_catchup_topics() {
 
 #[test]
 fn test_context_command_reports_session_context_snapshot() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         app.memory_enabled = true;
         app.swarm_enabled = true;
@@ -591,8 +591,8 @@ fn test_goals_show_suggestions_include_goal_ids() {
     let temp = tempfile::tempdir().expect("tempdir");
     let project = temp.path().join("repo");
     std::fs::create_dir_all(&project).expect("project dir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let goal = crate::goal::create_goal(
         crate::goal::GoalCreateInput {
@@ -615,9 +615,9 @@ fn test_goals_show_suggestions_include_goal_ids() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -751,7 +751,7 @@ fn test_agents_command_suggestions_include_targets() {
 
 #[test]
 fn test_agents_picker_uses_provider_default_when_inherited_model_is_unknown() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         app.open_agents_picker();
 
@@ -776,7 +776,7 @@ fn test_agents_picker_uses_provider_default_when_inherited_model_is_unknown() {
 
 #[test]
 fn test_agent_model_picker_inherit_row_uses_provider_default_when_inherited_model_is_unknown() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         configure_test_remote_models(&mut app);
         app.open_agent_model_picker(crate::tui::AgentModelTarget::Swarm);

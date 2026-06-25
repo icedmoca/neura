@@ -30,7 +30,7 @@ impl MermaidCache {
     pub(super) fn new() -> Self {
         let cache_dir = dirs::cache_dir()
             .unwrap_or_else(std::env::temp_dir)
-            .join("kcode")
+            .join("neura")
             .join("mermaid");
 
         let _ = fs::create_dir_all(&cache_dir);
@@ -264,7 +264,7 @@ fn deferred_render_sender() -> &'static mpsc::Sender<DeferredRenderTask> {
     DEFERRED_RENDER_TX.get_or_init(|| {
         let (tx, rx) = mpsc::channel::<DeferredRenderTask>();
         if let Err(err) = std::thread::Builder::new()
-            .name("kcode-mermaid-deferred".to_string())
+            .name("neura-mermaid-deferred".to_string())
             .spawn(move || deferred_render_worker(rx))
         {
             crate::logging::warn(&format!(

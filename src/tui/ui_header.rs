@@ -292,9 +292,9 @@ fn semver_minor() -> String {
 
 #[cfg(test)]
 fn version_display_candidates() -> Vec<String> {
-    let full = format!("kcode {}", semver());
-    let core = format!("kcode {}", semver_core());
-    let minor = format!("kcode {}", semver_minor());
+    let full = format!("neura {}", semver());
+    let core = format!("neura {}", semver_core());
+    let minor = format!("neura {}", semver_minor());
     let shortest = semver_minor();
     vec![full, core, minor, shortest]
 }
@@ -302,7 +302,7 @@ fn version_display_candidates() -> Vec<String> {
 #[cfg(test)]
 fn configured_auth_count(auth: &AuthStatus) -> usize {
     [
-        auth.kcode,
+        auth.neura,
         auth.anthropic.state,
         auth.openrouter,
         auth.azure,
@@ -407,7 +407,7 @@ pub(super) fn build_persistent_header(app: &dyn TuiState, width: u16) -> Vec<Lin
     );
 
     let version_text = if is_running_stable_release() {
-        let tag = env!("KCODE_GIT_TAG");
+        let tag = env!("NEURA_GIT_TAG");
         if tag.is_empty() || tag.contains('-') {
             let full = format!("{} · release · built {}", semver(), build_info);
             if full.chars().count() <= w {
@@ -733,23 +733,23 @@ mod tests {
         }
     }
 
-    fn ensure_test_kcode_home_if_unset() {
+    fn ensure_test_neura_home_if_unset() {
         static TEST_HOME: OnceLock<std::path::PathBuf> = OnceLock::new();
 
-        if std::env::var_os("KCODE_HOME").is_some() {
+        if std::env::var_os("NEURA_HOME").is_some() {
             return;
         }
 
         let path = TEST_HOME.get_or_init(|| {
-            let path = std::env::temp_dir().join(format!("kcode-test-home-{}", std::process::id()));
+            let path = std::env::temp_dir().join(format!("neura-test-home-{}", std::process::id()));
             let _ = std::fs::create_dir_all(&path);
             path
         });
-        crate::env::set_var("KCODE_HOME", path);
+        crate::env::set_var("NEURA_HOME", path);
     }
 
     fn create_test_app() -> crate::tui::app::App {
-        ensure_test_kcode_home_if_unset();
+        ensure_test_neura_home_if_unset();
 
         let provider: Arc<dyn Provider> = Arc::new(MockProvider);
         let rt = tokio::runtime::Runtime::new().expect("test runtime");
@@ -806,7 +806,7 @@ mod tests {
     #[test]
     fn configured_auth_count_includes_non_model_auth_surfaces() {
         let auth = AuthStatus {
-            kcode: AuthState::Available,
+            neura: AuthState::Available,
             anthropic: ProviderAuth {
                 state: AuthState::Expired,
                 has_oauth: true,
@@ -823,10 +823,10 @@ mod tests {
     #[test]
     fn build_persistent_header_prefers_configured_model_during_remote_connect() {
         let _guard = crate::storage::lock_test_env();
-        let prev_model = std::env::var_os("KCODE_MODEL");
-        let prev_provider = std::env::var_os("KCODE_PROVIDER");
-        crate::env::set_var("KCODE_MODEL", "gpt-5.4");
-        crate::env::set_var("KCODE_PROVIDER", "openai");
+        let prev_model = std::env::var_os("NEURA_MODEL");
+        let prev_provider = std::env::var_os("NEURA_PROVIDER");
+        crate::env::set_var("NEURA_MODEL", "gpt-5.4");
+        crate::env::set_var("NEURA_PROVIDER", "openai");
 
         let app = crate::tui::app::App::new_for_remote(None);
         let lines = build_persistent_header(&app, 80);
@@ -840,14 +840,14 @@ mod tests {
         assert!(!rendered.contains("connecting to server…"));
 
         if let Some(prev_model) = prev_model {
-            crate::env::set_var("KCODE_MODEL", prev_model);
+            crate::env::set_var("NEURA_MODEL", prev_model);
         } else {
-            crate::env::remove_var("KCODE_MODEL");
+            crate::env::remove_var("NEURA_MODEL");
         }
         if let Some(prev_provider) = prev_provider {
-            crate::env::set_var("KCODE_PROVIDER", prev_provider);
+            crate::env::set_var("NEURA_PROVIDER", prev_provider);
         } else {
-            crate::env::remove_var("KCODE_PROVIDER");
+            crate::env::remove_var("NEURA_PROVIDER");
         }
     }
 

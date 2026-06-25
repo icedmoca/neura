@@ -102,7 +102,7 @@ impl Config {
 - Discord replies: {}
 
 *Edit the config file or set environment variables to customize.*
-*Environment variables (e.g., `KCODE_SCROLL_UP_KEY`, `KCODE_GATEWAY_ENABLED`) override file settings.*"#,
+*Environment variables (e.g., `NEURA_SCROLL_UP_KEY`, `NEURA_GATEWAY_ENABLED`) override file settings.*"#,
             path,
             self.keybindings.scroll_up,
             self.keybindings.scroll_down,

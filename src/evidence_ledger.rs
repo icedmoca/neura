@@ -102,7 +102,7 @@ pub struct EvidenceExplanation {
 pub fn ledger_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("evidence_ledger_chain.json")
 }
 
@@ -518,7 +518,7 @@ pub fn verify_ledger() -> Result<LedgerVerification> {
 pub fn render_ledger_report(ledger: &EvidenceLedger) -> String {
     let verification = ledger.verify();
     let mut out = String::new();
-    out.push_str("# Kcode Cognition Evidence Chain\n\n");
+    out.push_str("# Neura Cognition Evidence Chain\n\n");
     out.push_str(&format!("- Valid: `{}`\n", verification.valid));
     out.push_str(&format!("- Blocks: `{}`\n", verification.blocks));
     out.push_str(&format!(

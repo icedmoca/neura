@@ -10,7 +10,7 @@ use super::{
 use crate::agent::Agent;
 use crate::plan::PlanItem;
 use crate::protocol::{NotificationType, ServerEvent};
-use kcode_agent_runtime::SoftInterruptSource;
+use neura_agent_runtime::SoftInterruptSource;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Instant;

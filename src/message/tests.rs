@@ -123,7 +123,7 @@ fn redact_secrets_redacts_env_style_assignments() {
 
 #[test]
 fn redact_secrets_redacts_runtime_key_assignment() {
-    let key_var = "KCODE_OPENAI_COMPAT_API_KEY_NAME";
+    let key_var = "NEURA_OPENAI_COMPAT_API_KEY_NAME";
     let prev = std::env::var(key_var).ok();
     crate::env::set_var(key_var, "GROQ_API_KEY");
 
@@ -321,11 +321,11 @@ fn format_background_task_notification_markdown_highlights_failure_reason() -> R
     let rendered = format_background_task_notification_markdown(&BackgroundTaskCompleted {
         task_id: "build123".to_string(),
         tool_name: "selfdev-build".to_string(),
-        display_name: Some("Build kcode".to_string()),
+        display_name: Some("Build neura".to_string()),
         session_id: "session".to_string(),
         status: BackgroundTaskStatus::Failed,
         exit_code: Some(101),
-        output_preview: "[stderr]    Compiling kcode\nsccache: Compile terminated by signal 15\n[stderr] error: could not compile `kcode` (lib)".to_string(),
+        output_preview: "[stderr]    Compiling neura\nsccache: Compile terminated by signal 15\n[stderr] error: could not compile `neura` (lib)".to_string(),
         output_file: std::path::PathBuf::from("/tmp/output.log"),
         duration_secs: 62.5,
         notify: true,

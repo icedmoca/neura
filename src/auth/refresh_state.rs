@@ -16,7 +16,7 @@ pub struct ProviderRefreshRecord {
 }
 
 pub fn status_path() -> Result<PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join(REFRESH_STATUS_FILE))
+    Ok(crate::storage::neura_dir()?.join(REFRESH_STATUS_FILE))
 }
 
 pub fn load_all() -> BTreeMap<String, ProviderRefreshRecord> {

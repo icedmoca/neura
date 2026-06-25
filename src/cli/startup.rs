@@ -20,7 +20,7 @@ pub async fn run() -> Result<()> {
     startup_profile::mark("logging_init");
     logging::cleanup_old_logs();
     startup_profile::mark("log_cleanup");
-    logging::info("kcode starting");
+    logging::info("neura starting");
     crate::platform::raise_nofile_limit_best_effort(8_192);
     startup_profile::mark("nofile_limit");
 
@@ -57,7 +57,7 @@ fn parse_and_prepare_args() -> Result<Args> {
     }
 
     if args.trace {
-        crate::env::set_var("KCODE_TRACE", "1");
+        crate::env::set_var("NEURA_TRACE", "1");
     }
 
     if let Some(ref socket) = args.socket {
@@ -117,7 +117,7 @@ fn spawn_background_update_check(args: &Args) {
                         ));
                     }
                 } else {
-                    logging::info("Update available! Run `kcode update` or `/reload` to update.");
+                    logging::info("Update available! Run `neura update` or `/reload` to update.");
                 }
             }
             logging::info(&format!(
@@ -153,7 +153,7 @@ fn report_main_error(error: &anyhow::Error) {
     if let Some(session_id) = terminal::get_current_session() {
         output::stderr_blank_line();
         output::stderr_info("\x1b[33mTo restore this session, run:\x1b[0m");
-        output::stderr_info(format!("  kcode --resume {}", session_id));
+        output::stderr_info(format!("  neura --resume {}", session_id));
         output::stderr_blank_line();
     }
 }
@@ -170,26 +170,26 @@ mod tests {
 
     #[test]
     fn auto_install_allowed_without_live_terminal() {
-        let args = parse_args(&["kcode", "login"]);
+        let args = parse_args(&["neura", "login"]);
         assert!(should_auto_install_update(&args, false));
     }
 
     #[test]
     fn auto_install_deferred_when_live_terminal_is_attached() {
-        let args = parse_args(&["kcode", "login"]);
+        let args = parse_args(&["neura", "login"]);
         assert!(!should_auto_install_update(&args, true));
     }
 
     #[test]
     fn auto_install_respects_explicit_disable_even_without_terminal() {
-        let mut args = parse_args(&["kcode", "login"]);
+        let mut args = parse_args(&["neura", "login"]);
         args.auto_update = false;
         assert!(!should_auto_install_update(&args, false));
     }
 
     #[test]
     fn update_command_still_skips_background_check_before_auto_install_logic() {
-        let args = parse_args(&["kcode", "update"]);
+        let args = parse_args(&["neura", "update"]);
         assert!(matches!(args.command, Some(Command::Update)));
         assert!(!should_auto_install_update(&args, true));
         assert!(should_auto_install_update(&args, false));

@@ -184,13 +184,13 @@ pub struct PolicySynthesisReport {
 }
 
 pub fn policy_state_path() -> PathBuf {
-    std::env::var_os("KCODE_OPERATIONAL_POLICY_STATE")
+    std::env::var_os("NEURA_OPERATIONAL_POLICY_STATE")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let home = std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("."));
-            home.join(".kcode").join("operational_policy_state.json")
+            home.join(".neura").join("operational_policy_state.json")
         })
 }
 

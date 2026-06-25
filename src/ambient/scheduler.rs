@@ -79,7 +79,7 @@ impl UsageLog {
     }
 
     fn default_path() -> PathBuf {
-        storage::kcode_dir()
+        storage::neura_dir()
             .unwrap_or_else(|_| std::env::temp_dir())
             .join("ambient")
             .join("usage.json")

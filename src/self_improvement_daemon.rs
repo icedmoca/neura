@@ -132,16 +132,16 @@ fn global_daemon() -> &'static Mutex<SelfImprovementDaemon> {
 
 pub fn config_from_env() -> SelfImprovementDaemonConfig {
     let mut config = SelfImprovementDaemonConfig::default();
-    if let Ok(value) = std::env::var("KCODE_SELF_IMPROVEMENT") {
+    if let Ok(value) = std::env::var("NEURA_SELF_IMPROVEMENT") {
         config.enabled = matches!(value.as_str(), "1" | "true" | "on" | "yes");
     }
-    if let Ok(value) = std::env::var("KCODE_SELF_IMPROVEMENT_DRY_RUN") {
+    if let Ok(value) = std::env::var("NEURA_SELF_IMPROVEMENT_DRY_RUN") {
         config.dry_run = !matches!(value.as_str(), "0" | "false" | "off" | "no");
     }
-    if let Ok(value) = std::env::var("KCODE_SELF_IMPROVEMENT_ALLOW_MUTATION") {
+    if let Ok(value) = std::env::var("NEURA_SELF_IMPROVEMENT_ALLOW_MUTATION") {
         config.allow_mutation = matches!(value.as_str(), "1" | "true" | "on" | "yes");
     }
-    if let Ok(value) = std::env::var("KCODE_SELF_IMPROVEMENT_INTERVAL_SECS")
+    if let Ok(value) = std::env::var("NEURA_SELF_IMPROVEMENT_INTERVAL_SECS")
         && let Ok(seconds) = value.parse::<u64>()
     {
         config.interval_secs = seconds.max(60);

@@ -68,7 +68,7 @@ impl AuthTestTarget {
     fn credential_paths(self) -> Result<Vec<String>> {
         match self {
             Self::Claude => Ok(vec![
-                crate::auth::claude::kcode_path()?.display().to_string(),
+                crate::auth::claude::neura_path()?.display().to_string(),
                 crate::storage::user_home_path(".claude/.credentials.json")?
                     .display()
                     .to_string(),
@@ -80,7 +80,7 @@ impl AuthTestTarget {
                     .to_string(),
             ]),
             Self::Openai => Ok(vec![
-                crate::storage::kcode_dir()?
+                crate::storage::neura_dir()?
                     .join("openai-auth.json")
                     .display()
                     .to_string(),
@@ -143,7 +143,7 @@ impl AuthTestTarget {
             Self::Cursor => Ok(vec![
                 dirs::config_dir()
                     .ok_or_else(|| anyhow::anyhow!("No config directory found"))?
-                    .join("kcode")
+                    .join("neura")
                     .join("cursor.env")
                     .display()
                     .to_string(),

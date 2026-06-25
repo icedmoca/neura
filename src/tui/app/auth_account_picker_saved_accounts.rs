@@ -42,7 +42,7 @@ impl App {
             if has_stored_key && has_env_key {
                 "stored file + `OPENAI_API_KEY` env"
             } else if has_stored_key {
-                "saved in `~/.kcode/openai-auth.json`"
+                "saved in `~/.neura/openai-auth.json`"
             } else if has_env_key {
                 "`OPENAI_API_KEY` environment only"
             } else {
@@ -207,7 +207,7 @@ impl App {
         let platform_sub = if has_stored && has_env {
             "stored in openai-auth.json + OPENAI_API_KEY"
         } else if has_stored {
-            "stored in ~/.kcode/openai-auth.json"
+            "stored in ~/.neura/openai-auth.json"
         } else if has_env {
             "OPENAI_API_KEY in environment"
         } else {

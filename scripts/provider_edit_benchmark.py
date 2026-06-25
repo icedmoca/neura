@@ -22,7 +22,7 @@ def slugify(text):
 from slug import slugify
 class T(unittest.TestCase):
     def test_slugify(self):
-        self.assertEqual(slugify(" Hello, Kcode!! "), "hello-kcode")
+        self.assertEqual(slugify(" Hello, Neura!! "), "hello-neura")
         self.assertEqual(slugify("A  B"), "a-b")
 if __name__ == "__main__": unittest.main()
 ''')},'prompt':'Fix slugify so the tests pass. Edit files as needed and verify with python -m unittest.'},
@@ -103,7 +103,7 @@ if __name__ == "__main__": unittest.main()
 from words import word_count
 class T(unittest.TestCase):
     def test_word_count(self):
-        self.assertEqual(word_count("hello   kcode"), 2)
+        self.assertEqual(word_count("hello   neura"), 2)
         self.assertEqual(word_count(""), 0)
 if __name__ == "__main__": unittest.main()
 ''')},'prompt':'Fix word_count for repeated spaces and empty strings. Run python -m unittest.'},
@@ -123,11 +123,11 @@ def extract_usage(text):
 def main():
     results=[]
     for task in TASKS:
-        with tempfile.TemporaryDirectory(prefix='kcode-edit-bench-') as td:
+        with tempfile.TemporaryDirectory(prefix='neura-edit-bench-') as td:
             wd=pathlib.Path(td)
             for name,content in task['files'].items(): (wd/name).write_text(content)
             before=run_cmd(['python3','-m','unittest'],wd,timeout=30)
-            cmd=['/home/dad/.kcode/builds/current/kcode','run','--json','--trace','--quiet','--no-update','--no-selfdev','--cwd',str(wd),task['prompt']]
+            cmd=['/home/dad/.neura/builds/current/neura','run','--json','--trace','--quiet','--no-update','--no-selfdev','--cwd',str(wd),task['prompt']]
             provider=run_cmd(cmd,wd,timeout=240)
             after=run_cmd(['python3','-m','unittest'],wd,timeout=30)
             usage=extract_usage(provider['stdout']+'\n'+provider['stderr'])

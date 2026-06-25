@@ -21,7 +21,7 @@
     },
     "real_repo_context_tasks": {
       "tasks": 75,
-      "kcode_success_rate": 100.0,
+      "neura_success_rate": 100.0,
       "full_context_success_rate": 100.0,
       "lexical_rag_success_rate": 44.0
     }
@@ -32,10 +32,10 @@
     "measured_hallucinations": 0,
     "hallucination_rate": 0.0,
     "context_layer_lexical_rag_hallucination_rate": 33.33,
-    "kcode_exact_context_hallucination_rate": 0.0
+    "neura_exact_context_hallucination_rate": 0.0
   },
   "context_recall_accuracy": {
-    "kcode_exact": {
+    "neura_exact": {
       "precision": 1.0,
       "recall": 1.0,
       "success_rate": 100.0
@@ -57,7 +57,7 @@
     "p95_blocks": 640,
     "max_blocks": 662,
     "long_bucket_reduction_pct": 92.77,
-    "multi_file_proxy_kcode_success_rate": 100.0
+    "multi_file_proxy_neura_success_rate": 100.0
   },
   "latency_response_time": {
     "provider_runs": 16,
@@ -72,7 +72,7 @@
     "total_provider_output_tokens_known": 1019,
     "successful_provider_runs_known": 16,
     "input_tokens_per_success_known": 5145.69,
-    "kcode_real_context_tokens_per_success": 15423.08,
+    "neura_real_context_tokens_per_success": 15423.08,
     "full_context_tokens_per_success": 2123692.0,
     "rag_tokens_per_success": 38399.0
   },
@@ -131,7 +131,7 @@
       "none": 33,
       "missed_all_changed_files": 42
     },
-    "kcode_real_context_failures": {
+    "neura_real_context_failures": {
       "none": 75
     },
     "provider_edit_failures": 0,

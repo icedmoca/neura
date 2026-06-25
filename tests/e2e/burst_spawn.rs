@@ -172,7 +172,7 @@ async fn run_burst_resume_attach_stress(burst_size: usize) -> Result<()> {
     let _env = setup_test_env()?;
 
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-burst-spawn-test-{}",
+        "neura-burst-spawn-test-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -183,8 +183,8 @@ async fn run_burst_resume_attach_stress(burst_size: usize) -> Result<()> {
         .file_name()
         .and_then(|value| value.to_str())
         .unwrap_or("burst");
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let mut expected_session_ids = Vec::with_capacity(burst_size);
     for idx in 0..burst_size {
@@ -213,7 +213,7 @@ async fn run_burst_resume_attach_stress(burst_size: usize) -> Result<()> {
     }
 
     let provider = Arc::new(MockProvider::with_models(vec!["burst-model"]));
-    let provider_dyn: Arc<dyn kcode::provider::Provider> = provider;
+    let provider_dyn: Arc<dyn neura::provider::Provider> = provider;
     let server_instance = server::Server::new_with_paths(
         provider_dyn,
         socket_path.clone(),
@@ -362,7 +362,7 @@ async fn burst_retry_takeover_without_local_history_keeps_existing_live_clients_
     let _env = setup_test_env()?;
 
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-burst-spawn-live-clients-{}",
+        "neura-burst-spawn-live-clients-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -373,8 +373,8 @@ async fn burst_retry_takeover_without_local_history_keeps_existing_live_clients_
         .file_name()
         .and_then(|value| value.to_str())
         .unwrap_or("burst-live");
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let live_session_count = 10usize;
     let mut live_session_ids = Vec::with_capacity(live_session_count);
@@ -404,7 +404,7 @@ async fn burst_retry_takeover_without_local_history_keeps_existing_live_clients_
     }
 
     let provider = Arc::new(MockProvider::with_models(vec!["burst-model"]));
-    let provider_dyn: Arc<dyn kcode::provider::Provider> = provider;
+    let provider_dyn: Arc<dyn neura::provider::Provider> = provider;
     let server_instance = server::Server::new_with_paths(
         provider_dyn,
         socket_path.clone(),
@@ -477,7 +477,7 @@ async fn burst_attach_detach_reattach_restores_live_clients_cleanly() -> Result<
     let _env = setup_test_env()?;
 
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-burst-spawn-reattach-{}",
+        "neura-burst-spawn-reattach-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -488,8 +488,8 @@ async fn burst_attach_detach_reattach_restores_live_clients_cleanly() -> Result<
         .file_name()
         .and_then(|value| value.to_str())
         .unwrap_or("burst-reattach");
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let burst_size = 6usize;
     let mut session_ids = Vec::with_capacity(burst_size);
@@ -519,7 +519,7 @@ async fn burst_attach_detach_reattach_restores_live_clients_cleanly() -> Result<
     }
 
     let provider = Arc::new(MockProvider::with_models(vec!["burst-model"]));
-    let provider_dyn: Arc<dyn kcode::provider::Provider> = provider;
+    let provider_dyn: Arc<dyn neura::provider::Provider> = provider;
     let server_instance = server::Server::new_with_paths(
         provider_dyn,
         socket_path.clone(),

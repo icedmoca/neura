@@ -249,7 +249,7 @@ fn test_filtered_display_models_respects_curated_subscription_catalog() {
 fn test_subscription_filters_do_not_activate_from_saved_credentials_alone() {
     let _guard = crate::storage::lock_test_env();
     crate::subscription_catalog::clear_runtime_env();
-    crate::env::set_var(crate::subscription_catalog::KCODE_API_KEY_ENV, "test-key");
+    crate::env::set_var(crate::subscription_catalog::NEURA_API_KEY_ENV, "test-key");
 
     assert!(ensure_model_allowed_for_subscription("gpt-5.4").is_ok());
     assert_eq!(
@@ -260,6 +260,6 @@ fn test_subscription_filters_do_not_activate_from_saved_credentials_alone() {
         vec!["gpt-5.4".to_string(), "moonshotai/kimi-k2.5".to_string()]
     );
 
-    crate::env::remove_var(crate::subscription_catalog::KCODE_API_KEY_ENV);
+    crate::env::remove_var(crate::subscription_catalog::NEURA_API_KEY_ENV);
     crate::subscription_catalog::clear_runtime_env();
 }

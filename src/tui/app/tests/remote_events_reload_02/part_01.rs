@@ -1,6 +1,6 @@
 #[test]
 fn test_remote_poke_queues_when_turn_is_in_progress() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();
@@ -81,7 +81,7 @@ fn test_remote_poke_queues_when_turn_is_in_progress() {
 
 #[test]
 fn test_remote_ctrl_p_toggles_auto_poke() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();
@@ -108,7 +108,7 @@ fn test_remote_ctrl_p_toggles_auto_poke() {
 
 #[test]
 fn test_remote_transfer_queues_pause_when_processing() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();
@@ -133,7 +133,7 @@ fn test_remote_transfer_queues_pause_when_processing() {
 
 #[test]
 fn test_remote_interrupted_auto_poke_requeues_after_deferred_poke() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let _guard = rt.enter();
@@ -697,7 +697,7 @@ fn test_background_task_markdown_renders_card_even_if_role_was_lost() {
     app.set_centered(true);
 
     app.push_display_message(DisplayMessage::user(
-        "**Background task** `594967sj63` · `Run kcode library tests afte` (`bash`) · ✗ failed · 1.0s · exit 124\n\n```text\n\n--- Command timed out after 1000ms ---\n```\n\n_Full output:_ `bg action=\"output\" task_id=\"594967sj63\"`",
+        "**Background task** `594967sj63` · `Run neura library tests afte` (`bash`) · ✗ failed · 1.0s · exit 124\n\n```text\n\n--- Command timed out after 1000ms ---\n```\n\n_Full output:_ `bg action=\"output\" task_id=\"594967sj63\"`",
     ));
 
     let backend = ratatui::backend::TestBackend::new(80, 16);
@@ -710,7 +710,7 @@ fn test_background_task_markdown_renders_card_even_if_role_was_lost() {
         text
     );
     assert!(
-        text.contains("✗ bg Run kcode library tests afte failed · 594967sj63"),
+        text.contains("✗ bg Run neura library tests afte failed · 594967sj63"),
         "expected background-task card title, got:\n{}",
         text
     );

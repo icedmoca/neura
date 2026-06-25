@@ -42,7 +42,7 @@ impl App {
     }
 
     fn configured_remote_provider_hint(&self) -> Option<String> {
-        std::env::var("KCODE_PROVIDER")
+        std::env::var("NEURA_PROVIDER")
             .ok()
             .or_else(|| crate::config::config().provider.default_provider.clone())
             .map(|provider| provider.trim().to_string())
@@ -51,7 +51,7 @@ impl App {
 
     fn configured_remote_model_hint(&self) -> Option<String> {
         Self::sanitize_remote_model_hint(
-            std::env::var("KCODE_MODEL")
+            std::env::var("NEURA_MODEL")
                 .ok()
                 .or_else(|| crate::config::config().provider.default_model.clone()),
         )
@@ -670,7 +670,7 @@ impl crate::tui::TuiState for App {
                 }
             }
         } else {
-            let skip = if self.provider.uses_kcode_compaction() {
+            let skip = if self.provider.uses_neura_compaction() {
                 let compaction = self.registry.compaction();
                 let result = compaction
                     .try_read()
@@ -1036,7 +1036,7 @@ impl crate::tui::TuiState for App {
             workspace_animation_tick,
             ambient_info: gather_ambient_info(crate::config::config().ambient.enabled),
             observed_context_tokens: self.current_stream_context_tokens(),
-            is_compacting: if !self.is_remote && self.provider.uses_kcode_compaction() {
+            is_compacting: if !self.is_remote && self.provider.uses_neura_compaction() {
                 let compaction = self.registry.compaction();
                 compaction
                     .try_read()

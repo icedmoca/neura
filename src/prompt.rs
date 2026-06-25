@@ -3,7 +3,7 @@
 use std::path::Path;
 use std::process::Command;
 
-/// Default system prompt for kcode (embedded at compile time)
+/// Default system prompt for neura (embedded at compile time)
 pub const DEFAULT_SYSTEM_PROMPT: &str = include_str!("prompt/system.txt");
 const SELFDEV_HINT_PROMPT: &str = include_str!("prompt/selfdev_hint.txt");
 const SELFDEV_MODE_PROMPT: &str = include_str!("prompt/selfdev_mode.txt");
@@ -231,7 +231,7 @@ pub fn build_system_prompt_full(
     info.has_global_agents_md = md_info.has_global_agents_md;
     info.global_agents_md_chars = md_info.global_agents_md_chars;
 
-    // Add optional prompt overlays from ~/.kcode/ and ./.kcode/
+    // Add optional prompt overlays from ~/.neura/ and ./.neura/
     let (overlay_content, overlay_chars) = load_prompt_overlay_files_from_dir(working_dir);
     if let Some(content) = overlay_content {
         info.prompt_overlay_chars = overlay_chars;
@@ -309,7 +309,7 @@ pub fn build_system_prompt_split(
     info.has_global_agents_md = md_info.has_global_agents_md;
     info.global_agents_md_chars = md_info.global_agents_md_chars;
 
-    // Add optional prompt overlays from ~/.kcode/ and ./.kcode/
+    // Add optional prompt overlays from ~/.neura/ and ./.neura/
     let (overlay_content, overlay_chars) = load_prompt_overlay_files_from_dir(working_dir);
     if let Some(content) = overlay_content {
         info.prompt_overlay_chars = overlay_chars;
@@ -501,7 +501,7 @@ pub fn load_agents_md_files_from_dir(working_dir: Option<&Path>) -> (Option<Stri
     }
 }
 
-/// Load optional prompt overlay markdown from ~/.kcode/ and ./.kcode/
+/// Load optional prompt overlay markdown from ~/.neura/ and ./.neura/
 fn load_prompt_overlay_files_from_dir(working_dir: Option<&Path>) -> (Option<String>, usize) {
     let mut contents = vec![];
     let mut total_chars = 0usize;
@@ -520,17 +520,17 @@ fn load_prompt_overlay_files_from_dir(working_dir: Option<&Path>) -> (Option<Str
 
     let project_dir = working_dir.unwrap_or(Path::new("."));
     if let Some((content, size)) = load_file(
-        &project_dir.join(".kcode").join("prompt-overlay.md"),
-        "Project Prompt Overlay (.kcode/prompt-overlay.md)",
+        &project_dir.join(".neura").join("prompt-overlay.md"),
+        "Project Prompt Overlay (.neura/prompt-overlay.md)",
     ) {
         total_chars += size;
         contents.push(content);
     }
 
-    if let Ok(global_overlay) = crate::storage::kcode_dir().map(|dir| dir.join("prompt-overlay.md"))
+    if let Ok(global_overlay) = crate::storage::neura_dir().map(|dir| dir.join("prompt-overlay.md"))
         && let Some((content, size)) = load_file(
             &global_overlay,
-            "Global Prompt Overlay (~/.kcode/prompt-overlay.md)",
+            "Global Prompt Overlay (~/.neura/prompt-overlay.md)",
         )
     {
         total_chars += size;

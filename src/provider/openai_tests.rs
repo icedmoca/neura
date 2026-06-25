@@ -80,7 +80,7 @@ async fn test_persistent_ws_state() -> (PersistentWsState, tokio::task::JoinHand
 
 struct LiveOpenAITestEnv {
     _lock: MutexGuard<'static, ()>,
-    _kcode_home: EnvVarGuard,
+    _neura_home: EnvVarGuard,
     _transport: EnvVarGuard,
     _temp: tempfile::TempDir,
 }
@@ -93,7 +93,7 @@ impl LiveOpenAITestEnv {
         };
 
         let temp = tempfile::Builder::new()
-            .prefix("kcode-openai-live-")
+            .prefix("neura-openai-live-")
             .tempdir()?;
         let target_auth = temp
             .path()
@@ -107,12 +107,12 @@ impl LiveOpenAITestEnv {
         )?;
         std::fs::copy(source_auth, &target_auth)?;
 
-        let kcode_home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
-        let transport = EnvVarGuard::set("KCODE_OPENAI_TRANSPORT", "https");
+        let neura_home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
+        let transport = EnvVarGuard::set("NEURA_OPENAI_TRANSPORT", "https");
 
         Ok(Some(Self {
             _lock: lock,
-            _kcode_home: kcode_home,
+            _neura_home: neura_home,
             _transport: transport,
             _temp: temp,
         }))

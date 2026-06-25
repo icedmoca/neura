@@ -7,7 +7,7 @@ use crate::{build, logging, session, startup_profile};
 use super::output;
 use super::provider_init::ProviderChoice;
 
-pub const CLIENT_SELFDEV_ENV: &str = "KCODE_CLIENT_SELFDEV_MODE";
+pub const CLIENT_SELFDEV_ENV: &str = "NEURA_CLIENT_SELFDEV_MODE";
 
 pub fn client_selfdev_requested() -> bool {
     std::env::var(CLIENT_SELFDEV_ENV).is_ok()
@@ -40,7 +40,7 @@ pub async fn run_self_dev(should_build: bool, resume_session: Option<String>) ->
     crate::env::set_var(CLIENT_SELFDEV_ENV, "1");
 
     let repo_dir =
-        build::get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find kcode repository"))?;
+        build::get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))?;
 
     startup_profile::mark("selfdev_session_create");
     let is_resume = resume_session.is_some();
@@ -82,7 +82,7 @@ pub async fn run_self_dev(should_build: bool, resume_session: Option<String>) ->
     if !target_binary.exists() {
         anyhow::bail!(
             "No binary found at {:?}\n\
-             Run 'kcode self-dev --build' first, or build with '{}' and then publish current.",
+             Run 'neura self-dev --build' first, or build with '{}' and then publish current.",
             target_binary,
             build::selfdev_build_command(&repo_dir).display,
         );
@@ -98,11 +98,11 @@ pub async fn run_self_dev(should_build: bool, resume_session: Option<String>) ->
     }
 
     if is_resume {
-        crate::env::set_var("KCODE_RESUMING", "1");
+        crate::env::set_var("NEURA_RESUMING", "1");
     }
 
     let mut server_running = super::dispatch::server_is_running().await;
-    if !server_running && std::env::var("KCODE_RESUMING").is_ok() {
+    if !server_running && std::env::var("NEURA_RESUMING").is_ok() {
         if let Some(state) = crate::server::recent_reload_state(std::time::Duration::from_secs(30))
         {
             match state.phase {
@@ -157,7 +157,7 @@ pub async fn run_self_dev(should_build: bool, resume_session: Option<String>) ->
         super::dispatch::spawn_server(&ProviderChoice::Auto, None, None).await?;
     }
 
-    if std::env::var("KCODE_RESUMING").is_err() && server_running {
+    if std::env::var("NEURA_RESUMING").is_err() && server_running {
         output::stderr_info("Connecting to shared server...");
     }
 

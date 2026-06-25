@@ -33,7 +33,7 @@ impl App {
                 "diagram_pane_enabled": self.diagram_pane_enabled,
                 "diagram_pane_position": format!("{:?}", self.diagram_pane_position),
                 "diagram_zoom": self.diagram_zoom,
-                "version": env!("KCODE_VERSION"),
+                "version": env!("NEURA_VERSION"),
             }),
             frame,
             recent_messages,

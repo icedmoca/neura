@@ -6,7 +6,7 @@ use std::time::Duration;
 const RELOAD_HANDOFF_EVENT_POLL_MS: i32 = 100;
 
 pub fn reload_marker_path() -> PathBuf {
-    crate::storage::runtime_dir().join("kcode.reload")
+    crate::storage::runtime_dir().join("neura.reload")
 }
 
 pub fn write_reload_marker() {
@@ -596,7 +596,7 @@ mod tests {
 
     impl EnvGuard {
         fn set_runtime_dir(path: &std::path::Path) -> Self {
-            let key = "KCODE_RUNTIME_DIR";
+            let key = "NEURA_RUNTIME_DIR";
             let old = std::env::var_os(key);
             crate::env::set_var(key, path);
             Self { key, old }
@@ -628,7 +628,7 @@ mod tests {
         );
 
         let status = inspect_reload_wait_status(
-            &temp.path().join("kcode.sock"),
+            &temp.path().join("neura.sock"),
             Duration::from_secs(5),
             None,
         )
@@ -655,7 +655,7 @@ mod tests {
         );
 
         let status = inspect_reload_wait_status(
-            &temp.path().join("kcode.sock"),
+            &temp.path().join("neura.sock"),
             Duration::from_secs(5),
             None,
         )
@@ -708,7 +708,7 @@ mod tests {
         let _lock = crate::storage::lock_test_env();
         let temp = tempfile::tempdir().expect("tempdir");
         let _guard = EnvGuard::set_runtime_dir(temp.path());
-        let socket_path = temp.path().join("kcode.sock");
+        let socket_path = temp.path().join("neura.sock");
 
         for idx in 0..5 {
             write_reload_state(

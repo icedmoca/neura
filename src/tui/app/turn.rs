@@ -11,8 +11,8 @@ fn tui_perf_log(label: &str, elapsed: Duration) {
     if elapsed < Duration::from_millis(5) {
         return;
     }
-    let path = std::env::var("KCODE_TUI_PERF_LOG")
-        .unwrap_or_else(|_| "/tmp/kcode-tui-perf.log".to_string());
+    let path = std::env::var("NEURA_TUI_PERF_LOG")
+        .unwrap_or_else(|_| "/tmp/neura-tui-perf.log".to_string());
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)

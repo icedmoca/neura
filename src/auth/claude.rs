@@ -43,7 +43,7 @@ pub struct ClaudeCredentials {
     pub subscription_type: Option<String>,
 }
 
-/// Represents a named Anthropic OAuth account stored in kcode's auth.json.
+/// Represents a named Anthropic OAuth account stored in neura's auth.json.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnthropicAccount {
     pub label: String,
@@ -56,10 +56,10 @@ pub struct AnthropicAccount {
     pub subscription_type: Option<String>,
 }
 
-/// Multi-account kcode auth.json format.
+/// Multi-account neura auth.json format.
 /// Backwards-compatible: also reads the old single-account `{"anthropic": {...}}` layout.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct KcodeAuthFile {
+pub struct NeuraAuthFile {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub anthropic_accounts: Vec<AnthropicAccount>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -118,7 +118,7 @@ pub fn login_target_label(requested: Option<&str>) -> Result<String> {
     ))
 }
 
-fn relabel_accounts(auth: &mut KcodeAuthFile) -> bool {
+fn relabel_accounts(auth: &mut NeuraAuthFile) -> bool {
     let outcome = crate::auth::account_store::relabel_accounts(
         ACCOUNT_LABEL_PREFIX,
         &mut auth.anthropic_accounts,
@@ -173,23 +173,23 @@ fn opencode_path() -> Result<PathBuf> {
     crate::storage::user_home_path(".local/share/opencode/auth.json")
 }
 
-pub fn kcode_path() -> Result<PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("auth.json"))
+pub fn neura_path() -> Result<PathBuf> {
+    Ok(crate::storage::neura_dir()?.join("auth.json"))
 }
 
 // ---- Multi-account helpers ----
 
-/// Read the kcode auth file, auto-migrating from legacy format if needed.
-pub fn load_auth_file() -> Result<KcodeAuthFile> {
-    let path = kcode_path()?;
+/// Read the neura auth file, auto-migrating from legacy format if needed.
+pub fn load_auth_file() -> Result<NeuraAuthFile> {
+    let path = neura_path()?;
     if !path.exists() {
-        return Ok(KcodeAuthFile::default());
+        return Ok(NeuraAuthFile::default());
     }
 
     crate::storage::harden_secret_file_permissions(&path);
 
-    let mut auth: KcodeAuthFile = crate::storage::read_json(&path)
-        .with_context(|| format!("Could not read kcode credentials from {:?}", path))?;
+    let mut auth: NeuraAuthFile = crate::storage::read_json(&path)
+        .with_context(|| format!("Could not read neura credentials from {:?}", path))?;
 
     if auth.anthropic_accounts.is_empty()
         && let Some(legacy) = auth.anthropic.take()
@@ -218,11 +218,11 @@ pub fn load_auth_file() -> Result<KcodeAuthFile> {
     Ok(auth)
 }
 
-/// Write the kcode auth file (multi-account format).
-pub fn save_auth_file(auth: &KcodeAuthFile) -> Result<()> {
-    let auth_path = kcode_path()?;
+/// Write the neura auth file (multi-account format).
+pub fn save_auth_file(auth: &NeuraAuthFile) -> Result<()> {
+    let auth_path = neura_path()?;
 
-    let clean = KcodeAuthFile {
+    let clean = NeuraAuthFile {
         anthropic_accounts: auth.anthropic_accounts.clone(),
         active_anthropic_account: auth.active_anthropic_account.clone(),
         anthropic: None,
@@ -405,7 +405,7 @@ pub fn is_max_subscription() -> bool {
 }
 
 /// Load credentials for the active Anthropic account.
-/// Falls through Claude Code -> kcode accounts -> OpenCode, preferring non-expired tokens.
+/// Falls through Claude Code -> neura accounts -> OpenCode, preferring non-expired tokens.
 pub fn load_credentials() -> Result<ClaudeCredentials> {
     let now_ms = chrono::Utc::now().timestamp_millis();
 
@@ -428,11 +428,11 @@ pub fn load_credentials() -> Result<ClaudeCredentials> {
         expired_candidates.push(("claude", creds));
     }
 
-    if let Ok(creds) = load_kcode_credentials() {
+    if let Ok(creds) = load_neura_credentials() {
         if creds.expires_at > now_ms {
             return Ok(creds);
         }
-        expired_candidates.push(("kcode", creds));
+        expired_candidates.push(("neura", creds));
     }
 
     if opencode_path()
@@ -459,10 +459,10 @@ pub fn load_credentials() -> Result<ClaudeCredentials> {
         return Ok(creds);
     }
 
-    anyhow::bail!("No Claude OAuth credentials found (checked Claude Code, kcode, OpenCode)")
+    anyhow::bail!("No Claude OAuth credentials found (checked Claude Code, neura, OpenCode)")
 }
 
-/// Load credentials for a specific kcode account by label.
+/// Load credentials for a specific neura account by label.
 pub fn load_credentials_for_account(label: &str) -> Result<ClaudeCredentials> {
     let auth = load_auth_file()?;
     let account = auth
@@ -479,11 +479,11 @@ pub fn load_credentials_for_account(label: &str) -> Result<ClaudeCredentials> {
     })
 }
 
-/// Load credentials from the active kcode account (multi-account aware).
-fn load_kcode_credentials() -> Result<ClaudeCredentials> {
+/// Load credentials from the active neura account (multi-account aware).
+fn load_neura_credentials() -> Result<ClaudeCredentials> {
     let auth = load_auth_file()?;
     if auth.anthropic_accounts.is_empty() {
-        anyhow::bail!("No anthropic accounts configured in kcode auth.json");
+        anyhow::bail!("No anthropic accounts configured in neura auth.json");
     }
 
     let active_label = get_active_account_override()
@@ -495,7 +495,7 @@ fn load_kcode_credentials() -> Result<ClaudeCredentials> {
         .iter()
         .find(|a| a.label == active_label)
         .or_else(|| auth.anthropic_accounts.first())
-        .context("No anthropic accounts in kcode auth.json")?;
+        .context("No anthropic accounts in neura auth.json")?;
 
     Ok(ClaudeCredentials {
         access_token: account.access.clone(),

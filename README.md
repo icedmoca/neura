@@ -1,31 +1,31 @@
 <p align="center">
-  <img src="kcode.png" alt="Kcode" width="100%" />
+  <img src="neura.png" alt="Neura" width="100%" />
 </p>
 
-# Kcode
+# Neura
 
-Kcode is a Rust terminal agent for coding, debugging, provider experimentation, local model diagnostics, adaptive memory, and operational repair learning. It is designed to be hackable: the implementation is in this repository, the documentation is source-backed, and the validation scripts can detect stale inventory.
+Neura is a Rust terminal agent for coding, debugging, provider experimentation, local model diagnostics, adaptive memory, and operational repair learning. It is designed to be hackable: the implementation is in this repository, the documentation is source-backed, and the validation scripts can detect stale inventory.
 
 ## Quick install
 
-Run the installer, reload your shell path if needed, then start Kcode:
+Run the installer, reload your shell path if needed, then start Neura:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/icedmoca/kcode/main/install/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/icedmoca/neura/main/install/install.sh | bash
 exec "$SHELL" -l
-kcode
+neura
 ```
 
 If you already cloned the repo locally, you can run:
 
 ```bash
 ./install.sh
-kcode
+neura
 ```
 
-## Why Kcode exists
+## Why Neura exists
 
-Kcode is built for developers who want a terminal-first coding agent that can:
+Neura is built for developers who want a terminal-first coding agent that can:
 
 - inspect and edit the same workspace you are using;
 - call local tools and shell commands with visible results;
@@ -39,13 +39,13 @@ Kcode is built for developers who want a terminal-first coding agent that can:
 
 ### Excellent adaptive memory
 
-Kcode has a strong local memory system designed for real coding work. Its adaptive cognition layer records useful execution signals, retrieves compact prompt memory, and keeps prior operational context available without dumping entire transcripts back into every turn. On top of that, operational repair learning turns repeated build, test, provider, runtime, auth, network, tooling, and context failures into reusable repair motifs.
+Neura has a strong local memory system designed for real coding work. Its adaptive cognition layer records useful execution signals, retrieves compact prompt memory, and keeps prior operational context available without dumping entire transcripts back into every turn. On top of that, operational repair learning turns repeated build, test, provider, runtime, auth, network, tooling, and context failures into reusable repair motifs.
 
-The result is memory that is practical rather than noisy: Kcode can carry forward what mattered, surface prior fixes when similar failures recur, and keep improving its repair instincts while staying deterministic, local, and testable. This makes Kcode especially good at long-running repository evolution where the agent benefits from remembering what worked, what failed, and what validation was needed.
+The result is memory that is practical rather than noisy: Neura can carry forward what mattered, surface prior fixes when similar failures recur, and keep improving its repair instincts while staying deterministic, local, and testable. This makes Neura especially good at long-running repository evolution where the agent benefits from remembering what worked, what failed, and what validation was needed.
 
 ### Token savings from memory and local sidecar work
 
-Kcode is designed to save tokens by remembering the right things instead of replaying everything. Adaptive cognition keeps compact, high-signal memory; repair learning stores concise failure→fix motifs; and the optional local sidecar model can handle cheaper support work such as summaries, routing hints, critique, memory compression, and local diagnostics. That means the expensive frontier model can spend more context on the current task while Kcode preserves continuity through compact local state.
+Neura is designed to save tokens by remembering the right things instead of replaying everything. Adaptive cognition keeps compact, high-signal memory; repair learning stores concise failure→fix motifs; and the optional local sidecar model can handle cheaper support work such as summaries, routing hints, critique, memory compression, and local diagnostics. That means the expensive frontier model can spend more context on the current task while Neura preserves continuity through compact local state.
 
 In practice this helps long sessions stay efficient: less repeated explanation, less transcript bloat, fewer repeated investigations, and faster recovery when a familiar build or test failure returns. The local sidecar model is especially useful as a low-cost assistant for background understanding while the primary provider focuses on the hard reasoning step.
 
@@ -69,7 +69,7 @@ In practice this helps long sessions stay efficient: less repeated explanation, 
 - Provider implementations under `src/provider`.
 - Routing, fallback, account failover, catalog refresh, streaming/SSE parsing, and provider-specific request shaping.
 - Local OpenAI-compatible diagnostics via `src/local_model.rs`.
-- The local sidecar model gives Kcode a cheap nearby model path for diagnostics, sanity checks, and fallback-style support when cloud calls are unnecessary or should be preserved.
+- The local sidecar model gives Neura a cheap nearby model path for diagnostics, sanity checks, and fallback-style support when cloud calls are unnecessary or should be preserved.
 
 ### Tools and integrations
 
@@ -99,7 +99,7 @@ flowchart TD
     CLI --> Dispatch[CLI dispatch, auth, remote/headless, utility flows]
     TUI --> UIState[Chat state, input, slash commands, model/account pickers]
     TUI --> Info[Info widgets, sidebars, rainbow context ∞]
-    Bins --> Bench[kcode-bench, tui-bench, harness/server utilities]
+    Bins --> Bench[neura-bench, tui-bench, harness/server utilities]
 
     Dispatch --> Runtime[src/agent.rs turn runtime]
     UIState --> Runtime
@@ -149,8 +149,8 @@ Read the full architecture guide: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 ## Quick start
 
 ```bash
-git clone https://github.com/icedmoca/kcode.git
-cd kcode
+git clone https://github.com/icedmoca/neura.git
+cd neura
 cargo build --release
 ```
 
@@ -203,14 +203,14 @@ You can also run `/improve` inside the TUI to start safe recursive self-improvem
 
 Provider/model availability depends on credentials, endpoint health, catalog refresh, and the specific adapter implementation under `src/provider`. The generated provider inventory is in [`docs/reference/implementation-inventory.md`](docs/reference/implementation-inventory.md).
 
-## Kcode UI cockpit
+## Neura UI cockpit
 
-Kcode includes a local-first web cockpit under `ui/` for visualizing memory, context pressure, tool lanes, runtime events, git state, and the self-improvement loop.
+Neura includes a local-first web cockpit under `ui/` for visualizing memory, context pressure, tool lanes, runtime events, git state, and the self-improvement loop.
 
 Run it locally:
 
 ```bash
-scripts/kcodeui
+scripts/neuraui
 ```
 
 Then open the URL printed by the server, usually:
@@ -228,7 +228,7 @@ http://127.0.0.1:8768/api/state
 Intended slash command behavior after harness reload:
 
 ```text
-/kcodeui
+/neuraui
 ```
 
-should launch `scripts/kcodeui` or open `http://127.0.0.1:8768`. If the currently running harness build does not yet expose dynamic slash-command registration, run the script directly while the command registry catches up.
+should launch `scripts/neuraui` or open `http://127.0.0.1:8768`. If the currently running harness build does not yet expose dynamic slash-command registration, run the script directly while the command registry catches up.

@@ -68,13 +68,13 @@ pub struct PolicyCreditReport {
 }
 
 pub fn credit_ledger_path() -> PathBuf {
-    std::env::var_os("KCODE_POLICY_CREDIT_LEDGER")
+    std::env::var_os("NEURA_POLICY_CREDIT_LEDGER")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let home = std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("."));
-            home.join(".kcode").join("policy_outcome_credit.json")
+            home.join(".neura").join("policy_outcome_credit.json")
         })
 }
 
@@ -210,12 +210,12 @@ mod tests {
         let dir = TempDir::new().unwrap();
         unsafe {
             std::env::set_var(
-                "KCODE_OPERATIONAL_POLICY_STATE",
+                "NEURA_OPERATIONAL_POLICY_STATE",
                 dir.path().join("policy.json"),
             )
         };
-        unsafe { std::env::set_var("KCODE_POLICY_CREDIT_LEDGER", dir.path().join("credit.json")) };
-        unsafe { std::env::set_var("KCODE_LATENT_MEMORY_STATE", dir.path().join("memory.json")) };
+        unsafe { std::env::set_var("NEURA_POLICY_CREDIT_LEDGER", dir.path().join("credit.json")) };
+        unsafe { std::env::set_var("NEURA_LATENT_MEMORY_STATE", dir.path().join("memory.json")) };
         let mut state = OperationalPolicyState::default();
         let decision = PolicyDecision {
             domain: PolicyDomain::TestValidation,

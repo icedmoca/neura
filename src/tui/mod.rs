@@ -27,8 +27,8 @@ mod ui_diff;
 pub mod usage_overlay;
 pub mod visual_debug;
 pub mod workspace_client;
-pub use kcode_tui_workspace::workspace_map;
-pub use kcode_tui_workspace::workspace_map_widget;
+pub use neura_tui_workspace::workspace_map;
+pub use neura_tui_workspace::workspace_map_widget;
 
 pub use app::{App, CopyBadgeUiState, DisplayMessage, ProcessingStatus, RunResult};
 pub use generated_image::{
@@ -1050,7 +1050,7 @@ pub(crate) fn subscribe_metadata() -> (Option<String>, Option<bool>) {
     if !selfdev && let Some(ref dir) = working_dir {
         let mut current = Some(dir.as_path());
         while let Some(path) = current {
-            if crate::build::is_kcode_repo(path) {
+            if crate::build::is_neura_repo(path) {
                 selfdev = true;
                 break;
             }

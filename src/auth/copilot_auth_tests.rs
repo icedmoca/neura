@@ -181,10 +181,10 @@ fn save_github_token_creates_config_dir() -> Result<()> {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().map_err(|e| anyhow!(e))?;
     let config_dir = dir.path().join("github-copilot");
-    let prev_kcode_home = std::env::var_os("KCODE_HOME");
+    let prev_neura_home = std::env::var_os("NEURA_HOME");
     let prev_xdg_config_home = std::env::var_os("XDG_CONFIG_HOME");
 
-    crate::env::remove_var("KCODE_HOME");
+    crate::env::remove_var("NEURA_HOME");
     crate::env::set_var(
         "XDG_CONFIG_HOME",
         dir.path()
@@ -201,10 +201,10 @@ fn save_github_token_creates_config_dir() -> Result<()> {
     let loaded = load_token_from_json(&hosts_path)?;
     assert_eq!(loaded, "gho_newtoken");
 
-    if let Some(prev) = prev_kcode_home {
-        crate::env::set_var("KCODE_HOME", prev);
+    if let Some(prev) = prev_neura_home {
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 
     if let Some(prev) = prev_xdg_config_home {
@@ -216,11 +216,11 @@ fn save_github_token_creates_config_dir() -> Result<()> {
 }
 
 #[test]
-fn legacy_copilot_config_dir_uses_kcode_home_external_dir() -> Result<()> {
+fn legacy_copilot_config_dir_uses_neura_home_external_dir() -> Result<()> {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().map_err(|e| anyhow!(e))?;
-    let prev = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", dir.path());
+    let prev = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", dir.path());
 
     let path = legacy_copilot_config_dir();
     assert_eq!(
@@ -232,9 +232,9 @@ fn legacy_copilot_config_dir_uses_kcode_home_external_dir() -> Result<()> {
     );
 
     if let Some(prev) = prev {
-        crate::env::set_var("KCODE_HOME", prev);
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
     Ok(())
 }
@@ -243,10 +243,10 @@ fn legacy_copilot_config_dir_uses_kcode_home_external_dir() -> Result<()> {
 fn save_github_token_makes_future_loads_available() -> Result<()> {
     let _guard = crate::storage::lock_test_env();
     let dir = TempDir::new().map_err(|e| anyhow!(e))?;
-    let prev_kcode_home = std::env::var_os("KCODE_HOME");
+    let prev_neura_home = std::env::var_os("NEURA_HOME");
     let prev_xdg_config_home = std::env::var_os("XDG_CONFIG_HOME");
 
-    crate::env::set_var("KCODE_HOME", dir.path());
+    crate::env::set_var("NEURA_HOME", dir.path());
     crate::env::remove_var("XDG_CONFIG_HOME");
 
     save_github_token("gho_persisted_token", "testuser")?;
@@ -260,10 +260,10 @@ fn save_github_token_makes_future_loads_available() -> Result<()> {
     );
     assert_eq!(load_github_token()?, "gho_persisted_token");
 
-    if let Some(prev) = prev_kcode_home {
-        crate::env::set_var("KCODE_HOME", prev);
+    if let Some(prev) = prev_neura_home {
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 
     if let Some(prev) = prev_xdg_config_home {

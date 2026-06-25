@@ -3,7 +3,7 @@
 use crate::message::{
     ContentBlock, Message as ChatMessage, Role, TOOL_OUTPUT_MISSING_TEXT, ToolDefinition,
 };
-use kcode_provider_core::openai_schema::{
+use neura_provider_core::openai_schema::{
     openai_compatible_schema, schema_supports_strict, strict_normalize_schema,
 };
 use serde_json::Value;
@@ -44,7 +44,7 @@ mod tests {
     use crate::tool::Registry;
     use anyhow::Result;
     use async_trait::async_trait;
-    use kcode_provider_core::openai_schema::{
+    use neura_provider_core::openai_schema::{
         make_schema_nullable, openai_compatible_schema, schema_supports_strict,
         strict_normalize_schema,
     };

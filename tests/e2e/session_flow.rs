@@ -4,15 +4,15 @@ use crate::test_support::*;
 async fn resume_session_restores_persisted_compaction_for_provider_context() -> Result<()> {
     let _env = setup_test_env()?;
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-compaction-resume-test-{}",
+        "neura-compaction-resume-test-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos()
     ));
     std::fs::create_dir_all(&runtime_dir)?;
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let provider = CapturingCompactionProvider::new();
     let captured_messages = provider.captured_messages();
@@ -137,7 +137,7 @@ async fn test_simple_response() -> Result<()> {
         StreamEvent::SessionId("test-session-123".to_string()),
     ]);
 
-    let provider: Arc<dyn kcode::provider::Provider> = Arc::new(provider);
+    let provider: Arc<dyn neura::provider::Provider> = Arc::new(provider);
     let registry = Registry::new(provider.clone()).await;
     let mut agent = Agent::new(provider, registry);
 
@@ -153,7 +153,7 @@ async fn test_simple_response() -> Result<()> {
 async fn test_agent_clear_preserves_debug_flag() -> Result<()> {
     let _env = setup_test_env()?;
     let provider = MockProvider::new();
-    let provider: Arc<dyn kcode::provider::Provider> = Arc::new(provider);
+    let provider: Arc<dyn neura::provider::Provider> = Arc::new(provider);
     let registry = Registry::new(provider.clone()).await;
     let mut agent = Agent::new(provider, registry);
     agent.set_debug(true);
@@ -170,18 +170,18 @@ async fn test_agent_clear_preserves_debug_flag() -> Result<()> {
 async fn test_debug_create_session_marks_debug() -> Result<()> {
     let _env = setup_test_env()?;
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-debug-test-{}",
+        "neura-debug-test-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos()
     ));
     std::fs::create_dir_all(&runtime_dir)?;
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let provider = MockProvider::new();
-    let provider: Arc<dyn kcode::provider::Provider> = Arc::new(provider);
+    let provider: Arc<dyn neura::provider::Provider> = Arc::new(provider);
     let server_instance =
         server::Server::new_with_paths(provider, socket_path.clone(), debug_socket_path.clone());
     let server_handle = tokio::spawn(async move { server_instance.run().await });
@@ -201,18 +201,18 @@ async fn test_debug_create_session_marks_debug() -> Result<()> {
 async fn test_debug_create_selfdev_session_marks_canary() -> Result<()> {
     let _env = setup_test_env()?;
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-debug-selfdev-test-{}",
+        "neura-debug-selfdev-test-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos()
     ));
     std::fs::create_dir_all(&runtime_dir)?;
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let provider = MockProvider::new();
-    let provider: Arc<dyn kcode::provider::Provider> = Arc::new(provider);
+    let provider: Arc<dyn neura::provider::Provider> = Arc::new(provider);
     let server_instance =
         server::Server::new_with_paths(provider, socket_path.clone(), debug_socket_path.clone());
     let server_handle = tokio::spawn(async move { server_instance.run().await });
@@ -237,18 +237,18 @@ async fn test_debug_create_selfdev_session_marks_canary() -> Result<()> {
 async fn test_clear_preserves_debug_for_resumed_debug_session() -> Result<()> {
     let _env = setup_test_env()?;
     let runtime_dir = std::env::temp_dir().join(format!(
-        "kcode-clear-debug-test-{}",
+        "neura-clear-debug-test-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos()
     ));
     std::fs::create_dir_all(&runtime_dir)?;
-    let socket_path = runtime_dir.join("kcode.sock");
-    let debug_socket_path = runtime_dir.join("kcode-debug.sock");
+    let socket_path = runtime_dir.join("neura.sock");
+    let debug_socket_path = runtime_dir.join("neura-debug.sock");
 
     let provider = MockProvider::new();
-    let provider: Arc<dyn kcode::provider::Provider> = Arc::new(provider);
+    let provider: Arc<dyn neura::provider::Provider> = Arc::new(provider);
     let server_instance =
         server::Server::new_with_paths(provider, socket_path.clone(), debug_socket_path.clone());
     let server_handle = tokio::spawn(async move { server_instance.run().await });

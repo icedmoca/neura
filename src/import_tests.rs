@@ -89,7 +89,7 @@ fn test_convert_blocks_content() {
 fn test_discover_projects_uses_sandboxed_external_home() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let project_dir = temp.path().join("external/.claude/projects/demo");
     std::fs::create_dir_all(&project_dir).unwrap();
@@ -107,7 +107,7 @@ fn test_discover_projects_uses_sandboxed_external_home() {
 fn test_list_claude_code_sessions_uses_live_transcripts_when_index_is_stale() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let project_dir = temp.path().join("external/.claude/projects/demo-project");
     std::fs::create_dir_all(&project_dir).unwrap();
@@ -175,7 +175,7 @@ fn test_list_claude_code_sessions_uses_live_transcripts_when_index_is_stale() {
 fn test_list_claude_code_sessions_uses_index_metadata_without_parsing_transcript() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let project_dir = temp.path().join("external/.claude/projects/demo-project");
     std::fs::create_dir_all(&project_dir).unwrap();
@@ -221,7 +221,7 @@ fn test_list_claude_code_sessions_uses_index_metadata_without_parsing_transcript
 fn test_list_claude_code_sessions_skips_empty_index_entries_without_messages() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let project_dir = temp.path().join("external/.claude/projects/demo-project");
     std::fs::create_dir_all(&project_dir).unwrap();
@@ -261,7 +261,7 @@ fn test_list_claude_code_sessions_skips_empty_index_entries_without_messages() {
 fn test_import_claude_session_uses_recovered_live_transcript() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let project_dir = temp.path().join("external/.claude/projects/demo-project");
     std::fs::create_dir_all(&project_dir).unwrap();
@@ -305,10 +305,10 @@ fn test_import_claude_session_uses_recovered_live_transcript() {
 }
 
 #[test]
-fn test_import_pi_session_creates_kcode_snapshot() {
+fn test_import_pi_session_creates_neura_snapshot() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let pi_dir = temp.path().join("external/.pi/agent/sessions/project");
     std::fs::create_dir_all(&pi_dir).unwrap();
@@ -336,10 +336,10 @@ fn test_import_pi_session_creates_kcode_snapshot() {
 }
 
 #[test]
-fn test_import_opencode_session_creates_kcode_snapshot() {
+fn test_import_opencode_session_creates_neura_snapshot() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let session_dir = temp
         .path()
@@ -402,10 +402,10 @@ fn test_import_opencode_session_creates_kcode_snapshot() {
 }
 
 #[test]
-fn test_resolve_resume_target_to_kcode_imports_codex_session() {
+fn test_resolve_resume_target_to_neura_imports_codex_session() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().unwrap();
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let codex_dir = temp.path().join("external/.codex/sessions/2026/04/05");
     std::fs::create_dir_all(&codex_dir).unwrap();
@@ -420,7 +420,7 @@ fn test_resolve_resume_target_to_kcode_imports_codex_session() {
         .unwrap();
 
     let resolved =
-        resolve_resume_target_to_kcode(&crate::tui::session_picker::ResumeTarget::CodexSession {
+        resolve_resume_target_to_neura(&crate::tui::session_picker::ResumeTarget::CodexSession {
             session_id: "codex-resolve-test".to_string(),
             session_path: codex_dir
                 .join("rollout.jsonl")
@@ -431,7 +431,7 @@ fn test_resolve_resume_target_to_kcode_imports_codex_session() {
 
     assert_eq!(
         resolved,
-        crate::tui::session_picker::ResumeTarget::KcodeSession {
+        crate::tui::session_picker::ResumeTarget::NeuraSession {
             session_id: imported_codex_session_id("codex-resolve-test"),
         }
     );

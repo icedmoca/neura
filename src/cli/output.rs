@@ -1,4 +1,4 @@
-pub const QUIET_ENV: &str = "KCODE_QUIET";
+pub const QUIET_ENV: &str = "NEURA_QUIET";
 
 pub fn set_quiet_enabled(enabled: bool) {
     if enabled {

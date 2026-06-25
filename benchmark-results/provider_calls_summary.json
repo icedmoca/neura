@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "benchmark_type": "real_provider_kcode_run_smoke",
+    "benchmark_type": "real_provider_neura_run_smoke",
     "runs": 3
   },
   "summary": [

@@ -1,5 +1,5 @@
 use super::{
-    ClientCandidate, extract_session_short_name_from_window_title, focused_kcode_session,
+    ClientCandidate, extract_session_short_name_from_window_title, focused_neura_session,
     last_focused_session, normalize_session_short_name, parse_ppid, read_resumed_session_id,
     remember_last_focused_session, run_command, select_candidate,
 };
@@ -107,7 +107,7 @@ fn select_candidate_prefers_title_match() {
         },
     ];
 
-    let selected = select_candidate(&candidates, Some("🦀 kcode/sleeping Crab [self-dev]"))
+    let selected = select_candidate(&candidates, Some("🦀 neura/sleeping Crab [self-dev]"))
         .expect("should select matching candidate");
     assert_eq!(selected.short_name, "crab");
 }
@@ -118,13 +118,13 @@ fn read_resumed_session_id_from_cmdline_for_current_process() {
 }
 
 #[test]
-fn extract_session_short_name_from_kcode_window_title() {
+fn extract_session_short_name_from_neura_window_title() {
     assert_eq!(
-        extract_session_short_name_from_window_title("🦢 kcode/cliff Swan [self-dev]"),
+        extract_session_short_name_from_window_title("🦢 neura/cliff Swan [self-dev]"),
         Some("swan".to_string())
     );
     assert_eq!(
-        extract_session_short_name_from_window_title("🦊 kcode Fox"),
+        extract_session_short_name_from_window_title("🦊 neura Fox"),
         Some("fox".to_string())
     );
 }
@@ -144,9 +144,9 @@ fn normalize_session_short_name_strips_wrapping_punctuation() {
 #[test]
 fn remember_and_read_last_focused_session() {
     let _guard = crate::storage::lock_test_env();
-    let prev = std::env::var_os("KCODE_HOME");
+    let prev = std::env::var_os("NEURA_HOME");
     let temp = tempfile::TempDir::new().expect("tempdir");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let active_dir = temp.path().join("active_pids");
     std::fs::create_dir_all(&active_dir).expect("create active_pids");
@@ -159,29 +159,29 @@ fn remember_and_read_last_focused_session() {
     );
 
     if let Some(prev) = prev {
-        crate::env::set_var("KCODE_HOME", prev);
+        crate::env::set_var("NEURA_HOME", prev);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
 #[cfg(target_os = "linux")]
 #[test]
-fn focused_kcode_session_uses_niri_window_title_when_process_name_is_generic() {
+fn focused_neura_session_uses_niri_window_title_when_process_name_is_generic() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("tempdir");
-    let _home = EnvVarGuard::set("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp.path());
 
     let active_dir = temp.path().join("active_pids");
     std::fs::create_dir_all(&active_dir).expect("create active_pids");
     std::fs::write(active_dir.join("session_swan_123"), "12345").expect("write active pid");
 
-    let focused_process = ChildGuard::spawn_named("kcode");
+    let focused_process = ChildGuard::spawn_named("neura");
     let bin_dir = temp.path().join("bin");
     install_fake_niri(
         &bin_dir,
         focused_process.pid(),
-        "🦢 kcode/cliff Swan [self-dev]",
+        "🦢 neura/cliff Swan [self-dev]",
     );
 
     let prev_path = std::env::var_os("PATH").unwrap_or_default();
@@ -191,7 +191,7 @@ fn focused_kcode_session_uses_niri_window_title_when_process_name_is_generic() {
     let _path = EnvVarGuard::set("PATH", path);
 
     assert_eq!(
-        focused_kcode_session().expect("resolve focused session"),
+        focused_neura_session().expect("resolve focused session"),
         Some("session_swan_123".to_string())
     );
 }

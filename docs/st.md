@@ -1,12 +1,12 @@
-# Kcode system topology and full file map
-This document is the long-form systems map for Kcode. It explains the end-to-end runtime, how the major subsystems call each other, and gives every repository file a navigable place in the architecture. It is intentionally exhaustive: source modules receive descriptions and every non-generated repository file is listed so a reader can trace from a user prompt to provider call, tool execution, memory/context handling, UI rendering, persistence, benchmarks, and documentation.
+# Neura system topology and full file map
+This document is the long-form systems map for Neura. It explains the end-to-end runtime, how the major subsystems call each other, and gives every repository file a navigable place in the architecture. It is intentionally exhaustive: source modules receive descriptions and every non-generated repository file is listed so a reader can trace from a user prompt to provider call, tool execution, memory/context handling, UI rendering, persistence, benchmarks, and documentation.
 > Scope note: `target/`, `.git/`, and generated build artifacts are excluded. Test fixtures are included because they document behavior and guard regressions.
 ## End-to-end runtime in one diagram
 ```mermaid
 flowchart TD
   U[User prompt in TUI/API] --> TUI[src/tui/* input and rendering]
   TUI --> AG[src/agent/* turn orchestration]
-  AG --> MEM[src/memory.rs + src/neura_memory.rs + storage under ~/.kcode]
+  AG --> MEM[src/memory.rs + src/neura_memory.rs + storage under ~/.neura]
   AG --> CTX[src/interlang.rs context compaction and refs]
   AG --> TOOLS[src/tool/* local tools, MCP, browser, shell, files]
   AG --> ROUTE[src/local_model.rs sidecar routing/pre-route]
@@ -135,15 +135,15 @@ flowchart LR
 | [`src/auth/account_store.rs`](../src/auth/account_store.rs) | 241 | Source module or test fixture. See symbols and path for its subsystem role. | `pub fn canonical_account_label(prefix: &str, index: usize) -> String; pub fn next_account_label(prefix: &str, account_count: usize) -> String; pub fn login_target_label<T, F>(; pub fn active_account_label<T, F>(; pub fn set_active_account<T, F>(; pub fn upsert_account<T, FGet, FSet>(` | auth/accounts |
 | [`src/auth/antigravity.rs`](../src/auth/antigravity.rs) | 624 | Source module or test fixture. See symbols and path for its subsystem role. | `fn antigravity_client_id() -> String; fn antigravity_client_secret() -> String; fn antigravity_version() -> String; fn metadata_platform() -> &'static str; fn user_agent() -> String; fn client_metadata_header() -> String` | auth/accounts |
 | [`src/auth/azure.rs`](../src/auth/azure.rs) | 124 | Source module or test fixture. See symbols and path for its subsystem role. | `fn parse_bool(raw: &str) -> Option<bool>; pub fn normalize_endpoint(raw: &str) -> Option<String>; pub fn load_endpoint() -> Option<String>; pub fn load_model() -> Option<String>; pub fn has_api_key() -> bool; pub fn uses_entra_id() -> bool` | auth/accounts |
-| [`src/auth/claude.rs`](../src/auth/claude.rs) | 566 | Represents a named Anthropic OAuth account stored in kcode's auth.json. | `pub enum ExternalClaudeAuthSource; pub fn source_id(self) -> &'static str; pub fn display_name(self) -> &'static str; pub fn path(self) -> Result<PathBuf>; pub struct ClaudeCredentials; pub struct AnthropicAccount` | auth/accounts |
-| [`src/auth/claude_tests.rs`](../src/auth/claude_tests.rs) | 410 | Source module or test fixture. See symbols and path for its subsystem role. | `struct EnvVarGuard; fn set(key: &'static str, value: &std::path::Path) -> Self; fn drop(&mut self); fn kcode_auth_file_default_is_empty(); fn kcode_auth_file_roundtrip(); fn kcode_path_respects_kcode_home()` | tests/fixtures |
+| [`src/auth/claude.rs`](../src/auth/claude.rs) | 566 | Represents a named Anthropic OAuth account stored in neura's auth.json. | `pub enum ExternalClaudeAuthSource; pub fn source_id(self) -> &'static str; pub fn display_name(self) -> &'static str; pub fn path(self) -> Result<PathBuf>; pub struct ClaudeCredentials; pub struct AnthropicAccount` | auth/accounts |
+| [`src/auth/claude_tests.rs`](../src/auth/claude_tests.rs) | 410 | Source module or test fixture. See symbols and path for its subsystem role. | `struct EnvVarGuard; fn set(key: &'static str, value: &std::path::Path) -> Self; fn drop(&mut self); fn neura_auth_file_default_is_empty(); fn neura_auth_file_roundtrip(); fn neura_path_respects_neura_home()` | tests/fixtures |
 | [`src/auth/codex.rs`](../src/auth/codex.rs) | 796 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct CodexCredentials; pub enum OpenAiAuthPreference; fn default() -> Self; pub fn parse(value: &str) -> Option<Self>; pub fn as_str(self) -> &'static str; pub struct OpenAiAccount` | auth/accounts |
 | [`src/auth/codex_tests.rs`](../src/auth/codex_tests.rs) | 410 | Source module or test fixture. See symbols and path for its subsystem role. | `struct EnvVarGuard; fn set(key: &'static str, value: &str) -> Self; fn set_path(key: &'static str, value: &std::path::Path) -> Self; fn drop(&mut self); fn auth_file_with_oauth_tokens(); fn auth_file_with_api_key_only()` | tests/fixtures |
 | [`src/auth/commands.rs`](../src/auth/commands.rs) | 183 | Source module or test fixture. See symbols and path for its subsystem role. | `fn cache_command_result(command: &str, exists: bool); fn is_wsl2() -> bool; fn explicit_command_exists(path: &std::path::Path) -> bool` | auth/accounts |
 | [`src/auth/copilot.rs`](../src/auth/copilot.rs) | 815 | VSCode's OAuth client ID for GitHub Copilot device flow. | `fn cached_github_token() -> Option<String>; fn cache_github_token(token: &str); pub fn invalidate_github_token_cache(); pub enum ExternalCopilotAuthSource; pub fn source_id(self) -> &'static str; pub fn display_name(self) -> &'static str` | auth/accounts |
 | [`src/auth/copilot_auth_tests.rs`](../src/auth/copilot_auth_tests.rs) | 516 | Source module or test fixture. See symbols and path for its subsystem role. | `fn copilot_api_token_not_expired(); fn copilot_api_token_expired(); fn copilot_api_token_expiring_within_buffer(); fn load_token_from_hosts_json() -> Result<()>; fn load_token_from_apps_json() -> Result<()>; fn load_token_missing_oauth_token_field() -> Result<()>` | tests/fixtures |
 | [`src/auth/cursor.rs`](../src/auth/cursor.rs) | 613 | Source module or test fixture. See symbols and path for its subsystem role. | `pub enum ExternalCursorAuthSource; pub fn source_id(self) -> &'static str; pub fn display_name(self) -> &'static str; pub fn path(self) -> Result<PathBuf>; pub struct CursorDirectTokens; struct CursorAuthFileData` | auth/accounts |
-| [`src/auth/cursor_tests.rs`](../src/auth/cursor_tests.rs) | 367 | Source module or test fixture. See symbols and path for its subsystem role. | `fn config_file_path_under_kcode(); fn save_and_load_api_key(); fn load_key_quoted(); fn load_key_single_quoted(); fn load_key_empty_value(); fn load_key_missing_file()` | tests/fixtures |
+| [`src/auth/cursor_tests.rs`](../src/auth/cursor_tests.rs) | 367 | Source module or test fixture. See symbols and path for its subsystem role. | `fn config_file_path_under_neura(); fn save_and_load_api_key(); fn load_key_quoted(); fn load_key_single_quoted(); fn load_key_empty_value(); fn load_key_missing_file()` | tests/fixtures |
 | [`src/auth/doctor.rs`](../src/auth/doctor.rs) | 51 | Source module or test fixture. See symbols and path for its subsystem role. | `pub fn recommended_actions(` | auth/accounts |
 | [`src/auth/external.rs`](../src/auth/external.rs) | 402 | Source module or test fixture. See symbols and path for its subsystem role. | `pub enum ExternalAuthSource; pub struct ExternalOAuthTokens; pub fn source_id(self) -> &'static str; pub fn display_name(self) -> &'static str; pub fn path(self) -> Result<PathBuf>; pub fn trust_external_auth_source(source: ExternalAuthSource) -> Result<()>` | auth/accounts |
 | [`src/auth/external_tests.rs`](../src/auth/external_tests.rs) | 194 | Source module or test fixture. See symbols and path for its subsystem role. | `fn write_auth_file(path: &std::path::Path, value: serde_json::Value); fn opencode_api_key_imports_from_trusted_file(); fn pi_api_key_env_reference_uses_named_env_var(); fn pi_shell_command_api_keys_are_not_executed(); fn load_copilot_oauth_token_from_pi_auth(); fn unconsented_source_detects_supported_api_key_files()` | tests/fixtures |
@@ -186,7 +186,7 @@ flowchart LR
 ### `src/browser.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/browser.rs`](../src/browser.rs) | 824 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct BrowserStatus; fn kcode_dir() -> PathBuf; fn browser_dir() -> PathBuf; pub fn browser_binary_path() -> PathBuf; fn host_binary_path() -> PathBuf; fn xpi_path() -> PathBuf` | runtime |
+| [`src/browser.rs`](../src/browser.rs) | 824 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct BrowserStatus; fn neura_dir() -> PathBuf; fn browser_dir() -> PathBuf; pub fn browser_binary_path() -> PathBuf; fn host_binary_path() -> PathBuf; fn xpi_path() -> PathBuf` | runtime |
 
 ### `src/browser_tests.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -196,10 +196,10 @@ flowchart LR
 ### `src/build`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/build/paths.rs`](../src/build/paths.rs) | 389 | Get the kcode repository directory | `pub fn get_repo_dir() -> Option<PathBuf>; pub fn find_repo_in_ancestors(start: &Path) -> Option<PathBuf>; pub fn binary_stem() -> &'static str; pub fn binary_name() -> &'static str; fn profile_binary_path(repo_dir: &Path, profile: &str) -> PathBuf; pub fn release_binary_path(repo_dir: &Path) -> PathBuf` | runtime |
+| [`src/build/paths.rs`](../src/build/paths.rs) | 389 | Get the neura repository directory | `pub fn get_repo_dir() -> Option<PathBuf>; pub fn find_repo_in_ancestors(start: &Path) -> Option<PathBuf>; pub fn binary_stem() -> &'static str; pub fn binary_name() -> &'static str; fn profile_binary_path(repo_dir: &Path, profile: &str) -> PathBuf; pub fn release_binary_path(repo_dir: &Path) -> PathBuf` | runtime |
 | [`src/build/source_state.rs`](../src/build/source_state.rs) | 228 | Source module or test fixture. See symbols and path for its subsystem role. | `fn stable_hash_update(state: &mut u64, bytes: &[u8]); fn stable_hash_str(state: &mut u64, value: &str); fn stable_hash_hex(bytes: &[u8]) -> String; fn canonicalize_or_self(path: &Path) -> PathBuf; fn hash_path_scope(path: &Path) -> String; fn git_output_bytes(repo_dir: &Path, args: &[&str]) -> Result<Vec<u8>>` | runtime |
 | [`src/build/storage_helpers.rs`](../src/build/storage_helpers.rs) | 175 | Get path to builds directory | `pub fn builds_dir() -> Result<PathBuf>; pub fn manifest_path() -> Result<PathBuf>; pub fn version_binary_path(hash: &str) -> Result<PathBuf>; pub fn stable_binary_path() -> Result<PathBuf>; pub fn current_binary_path() -> Result<PathBuf>; pub fn shared_server_binary_path() -> Result<PathBuf>` | runtime |
-| [`src/build/tests.rs`](../src/build/tests.rs) | 348 | Source module or test fixture. See symbols and path for its subsystem role. | `fn with_temp_kcode_home<T>(f: impl FnOnce() -> T) -> T; fn create_git_repo_fixture() -> tempfile::TempDir; fn source_state_fixture(short_hash: &str, fingerprint: &str) -> SourceState; fn test_build_manifest_default(); fn test_binary_version_hash_mismatch_rejects_publish_candidate(); fn test_dev_binary_source_metadata_mismatch_rejects_publish_candidate()` | tests/fixtures |
+| [`src/build/tests.rs`](../src/build/tests.rs) | 348 | Source module or test fixture. See symbols and path for its subsystem role. | `fn with_temp_neura_home<T>(f: impl FnOnce() -> T) -> T; fn create_git_repo_fixture() -> tempfile::TempDir; fn source_state_fixture(short_hash: &str, fingerprint: &str) -> SourceState; fn test_build_manifest_default(); fn test_binary_version_hash_mismatch_rejects_publish_candidate(); fn test_dev_binary_source_metadata_mismatch_rejects_publish_candidate()` | tests/fixtures |
 
 ### `src/build.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -230,7 +230,7 @@ flowchart LR
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
 | [`src/cli/args/tests.rs`](../src/cli/args/tests.rs) | 269 | Source module or test fixture. See symbols and path for its subsystem role. | `fn test_provider_choice_aliases_parse(); fn model_list_subcommand_parses(); fn login_no_browser_flag_parses(); fn login_scriptable_flags_parse(); fn quiet_global_flag_parses(); fn run_json_subcommand_parses()` | tests/fixtures |
-| [`src/cli/args.rs`](../src/cli/args.rs) | 498 | Provider to use (kcode, claude, openai, openrouter, azure, opencode, opencode-go, zai, 302ai, baseten, cortecs, deepseek, firmware, huggingface, moonshotai, nebius, scaleway, stackit, groq, mistral, perplexity, togetherai, deepinfra, xai, lmstudio, ollama, chutes, cerebras, alibaba-coding-plan, openai-compatible, cursor, copilot, gemini, antigravity, google, or auto-detect) | `` | runtime |
+| [`src/cli/args.rs`](../src/cli/args.rs) | 498 | Provider to use (neura, claude, openai, openrouter, azure, opencode, opencode-go, zai, 302ai, baseten, cortecs, deepseek, firmware, huggingface, moonshotai, nebius, scaleway, stackit, groq, mistral, perplexity, togetherai, deepinfra, xai, lmstudio, ollama, chutes, cerebras, alibaba-coding-plan, openai-compatible, cursor, copilot, gemini, antigravity, google, or auto-detect) | `` | runtime |
 | [`src/cli/auth_test/choice.rs`](../src/cli/auth_test/choice.rs) | 212 | Source module or test fixture. See symbols and path for its subsystem role. | `struct OpenAiCompatibleModelsResponse; struct OpenAiCompatibleModelInfo; fn print_auth_test_reports(reports: &[AuthTestProviderReport])` | auth/accounts |
 | [`src/cli/auth_test/probes.rs`](../src/cli/auth_test/probes.rs) | 256 | Source module or test fixture. See symbols and path for its subsystem role. | `fn generic_credential_paths_for_provider(; fn auth_state_label(state: crate::auth::AuthState) -> &'static str; fn probe_generic_provider_auth(` | auth/accounts |
 | [`src/cli/auth_test/run.rs`](../src/cli/auth_test/run.rs) | 415 | Source module or test fixture. See symbols and path for its subsystem role. | `fn persist_auth_test_report(report: &AuthTestProviderReport)` | auth/accounts |
@@ -252,7 +252,7 @@ flowchart LR
 | [`src/cli/output.rs`](../src/cli/output.rs) | 27 | Source module or test fixture. See symbols and path for its subsystem role. | `pub fn set_quiet_enabled(enabled: bool); pub fn quiet_enabled() -> bool; pub fn stderr_info(message: impl AsRef<str>); pub fn stderr_blank_line()` | runtime |
 | [`src/cli/provider_init/external_auth.rs`](../src/cli/provider_init/external_auth.rs) | 474 | Source module or test fixture. See symbols and path for its subsystem role. | `enum ExternalAuthReviewAction; fn prompt_to_review_external_auth_sources(; fn approve_external_auth_review_candidate(candidate: &ExternalAuthReviewCandidate) -> Result<()>; fn revoke_external_auth_review_candidate(candidate: &ExternalAuthReviewCandidate) -> Result<()>; fn validate_openrouter_like_import() -> Result<String>` | provider routing |
 | [`src/cli/provider_init.rs`](../src/cli/provider_init.rs) | 1358 | Source module or test fixture. See symbols and path for its subsystem role. | `pub enum ProviderChoice; pub fn as_arg_value(&self) -> &'static str; pub fn profile_for_choice(choice: &ProviderChoice) -> Option<OpenAiCompatibleProfile>; pub fn login_provider_for_choice(choice: &ProviderChoice) -> Option<LoginProviderDescriptor>; pub fn choice_for_login_provider(provider: LoginProviderDescriptor) -> Option<ProviderChoice>; pub fn prompt_login_provider_selection(` | provider routing |
-| [`src/cli/provider_init_tests.rs`](../src/cli/provider_init_tests.rs) | 448 | Source module or test fixture. See symbols and path for its subsystem role. | `fn lock_env() -> std::sync::MutexGuard<'static, ()>; fn test_provider_choice_arg_values(); fn test_server_bootstrap_login_selection_preserves_order(); fn test_auto_init_login_selection_preserves_order(); fn test_init_provider_kcode_delegates_runtime_profile_to_wrapper(); fn test_openai_compatible_profile_overrides()` | tests/fixtures |
+| [`src/cli/provider_init_tests.rs`](../src/cli/provider_init_tests.rs) | 448 | Source module or test fixture. See symbols and path for its subsystem role. | `fn lock_env() -> std::sync::MutexGuard<'static, ()>; fn test_provider_choice_arg_values(); fn test_server_bootstrap_login_selection_preserves_order(); fn test_auto_init_login_selection_preserves_order(); fn test_init_provider_neura_delegates_runtime_profile_to_wrapper(); fn test_openai_compatible_profile_overrides()` | tests/fixtures |
 | [`src/cli/selfdev.rs`](../src/cli/selfdev.rs) | 170 | Source module or test fixture. See symbols and path for its subsystem role. | `pub fn client_selfdev_requested() -> bool` | runtime |
 | [`src/cli/selfdev_tests.rs`](../src/cli/selfdev_tests.rs) | 296 | Source module or test fixture. See symbols and path for its subsystem role. | `fn lock_env() -> std::sync::MutexGuard<'static, ()>; struct TestEnvGuard; fn new() -> anyhow::Result<Self>; fn drop(&mut self); fn setup_test_env() -> TestEnvGuard; struct TestProvider;` | tests/fixtures |
 | [`src/cli/startup.rs`](../src/cli/startup.rs) | 197 | Source module or test fixture. See symbols and path for its subsystem role. | `fn parse_and_prepare_args() -> Result<Args>; fn spawn_background_update_check(args: &Args); fn should_spawn_background_update_check(args: &Args) -> bool; fn has_live_terminal_attached() -> bool; fn should_auto_install_update(args: &Args, live_terminal_attached: bool) -> bool; fn report_main_error(error: &anyhow::Error)` | runtime |
@@ -281,7 +281,7 @@ flowchart LR
 ### `src/config.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/config.rs`](../src/config.rs) | 843 | Configuration file support for kcode | `pub fn config() -> &'static Config; pub enum CompactionMode; pub fn as_str(&self) -> &'static str; pub fn parse(input: &str) -> Option<Self>; pub struct CompactionConfig; fn default() -> Self` | runtime |
+| [`src/config.rs`](../src/config.rs) | 843 | Configuration file support for neura | `pub fn config() -> &'static Config; pub enum CompactionMode; pub fn as_str(&self) -> &'static str; pub fn parse(input: &str) -> Option<Self>; pub struct CompactionConfig; fn default() -> Self` | runtime |
 
 ### `src/config_tests.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -296,7 +296,7 @@ flowchart LR
 ### `src/dictation.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/dictation.rs`](../src/dictation.rs) | 376 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct DictationRun; fn last_focused_session_write_cache() -> &'static Mutex<Option<String>>; pub fn remember_last_focused_session(session_id: &str) -> Result<()>; pub fn last_focused_session() -> Result<Option<String>>; pub fn type_text(text: &str) -> Result<()>; pub fn focused_kcode_session() -> Result<Option<String>>` | runtime |
+| [`src/dictation.rs`](../src/dictation.rs) | 376 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct DictationRun; fn last_focused_session_write_cache() -> &'static Mutex<Option<String>>; pub fn remember_last_focused_session(session_id: &str) -> Result<()>; pub fn last_focused_session() -> Result<Option<String>>; pub fn type_text(text: &str) -> Result<()>; pub fn focused_neura_session() -> Result<Option<String>>` | runtime |
 
 ### `src/dictation_tests.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -306,7 +306,7 @@ flowchart LR
 ### `src/embedding.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/embedding.rs`](../src/embedding.rs) | 493 | Embedding facade for kcode. | `pub struct Embedder; struct EmbedderCache; pub struct EmbedderStats; fn embedder_cache() -> &'static Mutex<EmbedderCache>; fn saturating_u64_from_u128(value: u128) -> u64; pub fn load() -> Result<Self>` | runtime |
+| [`src/embedding.rs`](../src/embedding.rs) | 493 | Embedding facade for neura. | `pub struct Embedder; struct EmbedderCache; pub struct EmbedderStats; fn embedder_cache() -> &'static Mutex<EmbedderCache>; fn saturating_u64_from_u128(value: u128) -> u64; pub fn load() -> Result<Self>` | runtime |
 
 ### `src/embedding_stub.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -316,7 +316,7 @@ flowchart LR
 ### `src/env.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/env.rs`](../src/env.rs) | 35 | Mutate the process environment for kcode runtime configuration. | `pub fn set_var<K, V>(key: K, value: V); pub fn remove_var<K>(key: K)` | runtime |
+| [`src/env.rs`](../src/env.rs) | 35 | Mutate the process environment for neura runtime configuration. | `pub fn set_var<K, V>(key: K, value: V); pub fn remove_var<K>(key: K)` | runtime |
 
 ### `src/gateway.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -351,7 +351,7 @@ flowchart LR
 ### `src/import.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/import.rs`](../src/import.rs) | 1504 | Import Claude Code sessions into kcode | `pub struct SessionIndexEntry; pub struct SessionsIndex; pub struct ClaudeCodeSessionInfo; struct ClaudeCodeEntry; struct ClaudeCodeMessage; enum ClaudeCodeContent` | runtime |
+| [`src/import.rs`](../src/import.rs) | 1504 | Import Claude Code sessions into neura | `pub struct SessionIndexEntry; pub struct SessionsIndex; pub struct ClaudeCodeSessionInfo; struct ClaudeCodeEntry; struct ClaudeCodeMessage; enum ClaudeCodeContent` | runtime |
 
 ### `src/import_tests.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -371,12 +371,12 @@ flowchart LR
 ### `src/local_model.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/local_model.rs`](../src/local_model.rs) | 1955 | Source module or test fixture. See symbols and path for its subsystem role. | `struct LocalModelProfile; enum LocalPromptStyle; fn kcode_home() -> String; fn portable_path(path: &str) -> String; fn llama_completion_path_owned() -> String; fn profile_path(profile: LocalModelProfile) -> String` | runtime |
+| [`src/local_model.rs`](../src/local_model.rs) | 1955 | Source module or test fixture. See symbols and path for its subsystem role. | `struct LocalModelProfile; enum LocalPromptStyle; fn neura_home() -> String; fn portable_path(path: &str) -> String; fn llama_completion_path_owned() -> String; fn profile_path(profile: LocalModelProfile) -> String` | runtime |
 
 ### `src/logging.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/logging.rs`](../src/logging.rs) | 319 | Logging infrastructure for kcode | `pub struct LogContext; pub fn set_session(session: &str); pub fn set_server(server: &str); pub fn set_provider_info(provider: &str, model: &str); fn context_prefix() -> String; fn current_task_id() -> Option<String>` | runtime |
+| [`src/logging.rs`](../src/logging.rs) | 319 | Logging infrastructure for neura | `pub struct LogContext; pub fn set_session(session: &str); pub fn set_server(server: &str); pub fn set_provider_info(provider: &str, model: &str); fn context_prefix() -> String; fn current_task_id() -> Option<String>` | runtime |
 
 ### `src/login_qr.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -397,7 +397,7 @@ flowchart LR
 | [`src/mcp/pool.rs`](../src/mcp/pool.rs) | 429 | Shared MCP Server Pool | `struct FailedConnectRecord; enum ConnectAttempt; pub struct SharedMcpPool; pub fn new(config: McpConfig) -> Self; pub fn from_default_config() -> Self; pub fn get_shared_pool() -> Option<Arc<SharedMcpPool>>` | runtime |
 | [`src/mcp/protocol.rs`](../src/mcp/protocol.rs) | 370 | MCP Protocol types (JSON-RPC 2.0) | `pub struct JsonRpcRequest; pub fn new(id: u64, method: impl Into<String>, params: Option<Value>) -> Self; pub struct JsonRpcResponse; pub struct JsonRpcError; pub struct InitializeParams; pub struct ClientCapabilities` | runtime |
 | [`src/mcp/protocol_tests.rs`](../src/mcp/protocol_tests.rs) | 115 | Source module or test fixture. See symbols and path for its subsystem role. | `fn test_json_rpc_request_serialization(); fn test_json_rpc_response_deserialization(); fn test_json_rpc_error_response(); fn test_mcp_config_deserialization(); fn test_mcp_config_empty(); fn test_tool_def_deserialization()` | tests/fixtures |
-| [`src/mcp/tool.rs`](../src/mcp/tool.rs) | 109 | MCP Tool - wraps MCP server tools for kcode's tool system | `pub struct McpTool; pub fn new(; fn name(&self) -> &str; fn description(&self) -> &str; fn parameters_schema(&self) -> Value` | tool execution |
+| [`src/mcp/tool.rs`](../src/mcp/tool.rs) | 109 | MCP Tool - wraps MCP server tools for neura's tool system | `pub struct McpTool; pub fn new(; fn name(&self) -> &str; fn description(&self) -> &str; fn parameters_schema(&self) -> Value` | tool execution |
 
 ### `src/memory`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -473,7 +473,7 @@ flowchart LR
 ### `src/neura_memory.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/neura_memory.rs`](../src/neura_memory.rs) | 320 | Neura-agent inspired memory utilities ported into Kcode. | `fn sensitive_detector_tags_credentials(); fn explicit_sensitive_recall_requires_secret_and_intent(); fn keyword_overlap_bonus_rewards_uncommon_terms(); fn relation_extraction_tags_preferences(); fn relevance_gate_abstains_on_noise(); fn relevance_gate_allows_high_trust_exact_overlap()` | memory/context |
+| [`src/neura_memory.rs`](../src/neura_memory.rs) | 320 | Neura-agent inspired memory utilities ported into Neura. | `fn sensitive_detector_tags_credentials(); fn explicit_sensitive_recall_requires_secret_and_intent(); fn keyword_overlap_bonus_rewards_uncommon_terms(); fn relation_extraction_tags_preferences(); fn relevance_gate_abstains_on_noise(); fn relevance_gate_allows_high_trust_exact_overlap()` | memory/context |
 
 ### `src/notifications.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -518,7 +518,7 @@ flowchart LR
 ### `src/prompt_tests.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/prompt_tests.rs`](../src/prompt_tests.rs) | 165 | Verify the default system prompt does NOT identify as "Claude Code" | `fn test_default_system_prompt_no_claude_code_identity(); fn test_skill_prompt_integration(); fn test_load_agents_md_files_uses_sandboxed_global_files(); fn test_dynamic_system_prompt_includes_time_and_timezone(); fn test_prompt_overlay_files_are_loaded_from_project_and_global_kcode_dirs(); fn test_non_selfdev_prompt_includes_lightweight_selfdev_hint()` | tests/fixtures |
+| [`src/prompt_tests.rs`](../src/prompt_tests.rs) | 165 | Verify the default system prompt does NOT identify as "Claude Code" | `fn test_default_system_prompt_no_claude_code_identity(); fn test_skill_prompt_integration(); fn test_load_agents_md_files_uses_sandboxed_global_files(); fn test_dynamic_system_prompt_includes_time_and_timezone(); fn test_prompt_overlay_files_are_loaded_from_project_and_global_neura_dirs(); fn test_non_selfdev_prompt_includes_lightweight_selfdev_hint()` | tests/fixtures |
 
 ### `src/protocol`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -528,7 +528,7 @@ flowchart LR
 ### `src/protocol.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/protocol.rs`](../src/protocol.rs) | 1347 | Client-server protocol for kcode | `pub enum TranscriptMode; pub enum CommDeliveryMode; pub struct HistoryMessage; pub struct SessionActivitySnapshot; pub enum Request; pub enum ServerEvent` | runtime |
+| [`src/protocol.rs`](../src/protocol.rs) | 1347 | Client-server protocol for neura | `pub enum TranscriptMode; pub enum CommDeliveryMode; pub struct HistoryMessage; pub struct SessionActivitySnapshot; pub enum Request; pub enum ServerEvent` | runtime |
 
 ### `src/protocol_memory.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -569,7 +569,7 @@ flowchart LR
 | [`src/provider/failover.rs`](../src/provider/failover.rs) | 319 | Source module or test fixture. See symbols and path for its subsystem role. | `fn contains_standalone_status_code(haystack: &str, code: &str) -> bool` | provider routing |
 | [`src/provider/gemini.rs`](../src/provider/gemini.rs) | 891 | Source module or test fixture. See symbols and path for its subsystem role. | `struct PersistedCatalog; pub struct GeminiProvider; fn persisted_catalog_path() -> Result<std::path::PathBuf>; fn load_persisted_catalog() -> Option<PersistedCatalog>; fn persist_catalog(models: &[String]); fn seed_cached_catalog(&self)` | provider routing |
 | [`src/provider/gemini_tests.rs`](../src/provider/gemini_tests.rs) | 313 | Source module or test fixture. See symbols and path for its subsystem role. | `struct MockProvider;; fn name(&self) -> &str; fn fork(&self) -> Arc<dyn Provider>; fn available_models_include_gemini_defaults(); fn set_model_accepts_gemini_models(); fn detects_model_not_found_errors()` | tests/fixtures |
-| [`src/provider/kcode.rs`](../src/provider/kcode.rs) | 291 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct KcodeProvider; pub fn new() -> Self; fn apply_runtime_profile(); fn ensure_runtime_mode(&self); fn default() -> Self; fn name(&self) -> &str` | provider routing |
+| [`src/provider/neura.rs`](../src/provider/neura.rs) | 291 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct NeuraProvider; pub fn new() -> Self; fn apply_runtime_profile(); fn ensure_runtime_mode(&self); fn default() -> Self; fn name(&self) -> &str` | provider routing |
 | [`src/provider/mod.rs`](../src/provider/mod.rs) | 2104 | Source module or test fixture. See symbols and path for its subsystem role. | `pub trait Provider: Send + Sync; fn name(&self) -> &str;; fn model(&self) -> String; fn set_model(&self, _model: &str) -> Result<()>; fn available_models(&self) -> Vec<&'static str>; fn available_models_display(&self) -> Vec<String>` | provider routing |
 | [`src/provider/models.rs`](../src/provider/models.rs) | 1355 | Source module or test fixture. See symbols and path for its subsystem role. | `struct PersistedModelCatalogStore; struct PersistedModelCatalogScope; struct RuntimeModelUnavailability; struct RuntimeProviderUnavailability; pub enum AccountModelAvailabilityState; pub struct AccountModelAvailability` | provider routing |
 | [`src/provider/models_catalog.rs`](../src/provider/models_catalog.rs) | 224 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct OpenAIModelCatalog; pub struct AnthropicModelCatalog` | provider routing |
@@ -787,7 +787,7 @@ flowchart LR
 ### `src/setup_hints_tests.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/setup_hints_tests.rs`](../src/setup_hints_tests.rs) | 77 | Source module or test fixture. See symbols and path for its subsystem role. | `fn first_launch_shows_explicit_alignment_hint_first(); fn second_and_third_launches_include_alignment_tip(); fn launches_after_third_do_not_show_generic_alignment_tip(); fn first_three_launches_can_include_hotkey_notice_too(); fn paused_kcode_shell_command_keeps_failures_visible()` | tests/fixtures |
+| [`src/setup_hints_tests.rs`](../src/setup_hints_tests.rs) | 77 | Source module or test fixture. See symbols and path for its subsystem role. | `fn first_launch_shows_explicit_alignment_hint_first(); fn second_and_third_launches_include_alignment_tip(); fn launches_after_third_do_not_show_generic_alignment_tip(); fn first_three_launches_can_include_hotkey_notice_too(); fn paused_neura_shell_command_keeps_failures_visible()` | tests/fixtures |
 
 ### `src/side_panel.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -837,17 +837,17 @@ flowchart LR
 ### `src/storage`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/storage/tests.rs`](../src/storage/tests.rs) | 140 | Source module or test fixture. See symbols and path for its subsystem role. | `fn harden_secret_file_permissions_sets_owner_only_modes(); fn user_home_path_uses_external_dir_under_kcode_home(); fn validate_external_auth_file_rejects_symlink(); fn app_config_dir_uses_kcode_home_when_set(); fn upsert_env_file_value_writes_replaces_and_removes_entries(); fn write_text_secret_sets_owner_only_modes()` | tests/fixtures |
+| [`src/storage/tests.rs`](../src/storage/tests.rs) | 140 | Source module or test fixture. See symbols and path for its subsystem role. | `fn harden_secret_file_permissions_sets_owner_only_modes(); fn user_home_path_uses_external_dir_under_neura_home(); fn validate_external_auth_file_rejects_symlink(); fn app_config_dir_uses_neura_home_when_set(); fn upsert_env_file_value_writes_replaces_and_removes_entries(); fn write_text_secret_sets_owner_only_modes()` | tests/fixtures |
 
 ### `src/storage.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/storage.rs`](../src/storage.rs) | 371 | Platform-aware runtime directory for sockets and ephemeral state. | `pub fn runtime_dir() -> PathBuf; fn fallback_runtime_dir() -> PathBuf; fn runtime_user_discriminator() -> String; fn runtime_user_discriminator() -> String; fn ensure_private_runtime_dir(path: &Path); pub fn kcode_dir() -> Result<PathBuf>` | runtime |
+| [`src/storage.rs`](../src/storage.rs) | 371 | Platform-aware runtime directory for sockets and ephemeral state. | `pub fn runtime_dir() -> PathBuf; fn fallback_runtime_dir() -> PathBuf; fn runtime_user_discriminator() -> String; fn runtime_user_discriminator() -> String; fn ensure_private_runtime_dir(path: &Path); pub fn neura_dir() -> Result<PathBuf>` | runtime |
 
 ### `src/subscription_catalog.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
 |---|---:|---|---|---|
-| [`src/subscription_catalog.rs`](../src/subscription_catalog.rs) | 258 | Source module or test fixture. See symbols and path for its subsystem role. | `pub enum KcodeTier; pub fn retail_price_usd(self) -> u32; pub fn usable_budget_usd(self) -> f64; pub fn display_name(self) -> &'static str; pub enum UpstreamRoutingPolicy; pub struct CuratedModel` | runtime |
+| [`src/subscription_catalog.rs`](../src/subscription_catalog.rs) | 258 | Source module or test fixture. See symbols and path for its subsystem role. | `pub enum NeuraTier; pub fn retail_price_usd(self) -> u32; pub fn usable_budget_usd(self) -> f64; pub fn display_name(self) -> &'static str; pub enum UpstreamRoutingPolicy; pub struct CuratedModel` | runtime |
 
 ### `src/telegram.rs`
 | File | Lines | Role in the system | Important symbols | Related flow |
@@ -894,7 +894,7 @@ flowchart LR
 | [`src/tool/apply_patch.rs`](../src/tool/apply_patch.rs) | 612 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct ApplyPatchTool;; pub fn new() -> Self; struct ApplyPatchInput; struct UpdateFileChunk; enum PatchHunk; fn name(&self) -> &str` | tool execution |
 | [`src/tool/apply_patch_tests.rs`](../src/tool/apply_patch_tests.rs) | 247 | Source module or test fixture. See symbols and path for its subsystem role. | `fn write_temp(content: &str) -> NamedTempFile; fn test_parse_add_file(); fn test_parse_delete_file(); fn test_parse_update_file_simple(); fn test_parse_update_with_context(); fn test_parse_update_with_move()` | tests/fixtures |
 | [`src/tool/bash.rs`](../src/tool/bash.rs) | 1065 | Source module or test fixture. See symbols and path for its subsystem role. | `fn progress_ratio_regex() -> Result<&'static regex::Regex>; fn progress_of_regex() -> Result<&'static regex::Regex>; fn progress_byte_ratio_regex() -> Result<&'static regex::Regex>; fn progress_percent_regex() -> Result<&'static regex::Regex>; struct ProgressMarker; fn task_id_from_output_path(path: &Path) -> Option<&str>` | tool execution |
-| [`src/tool/bash_tests.rs`](../src/tool/bash_tests.rs) | 566 | Source module or test fixture. See symbols and path for its subsystem role. | `fn make_ctx(stdin_tx: Option<mpsc::UnboundedSender<StdinInputRequest>>) -> ToolContext; fn make_agent_ctx(signal: kcode_agent_runtime::InterruptSignal) -> ToolContext; fn test_parse_progress_marker_handles_percent_payloads(); fn test_parse_heuristic_progress_handles_ratio_output(); fn test_parse_heuristic_progress_handles_percent_output(); fn test_parse_heuristic_progress_handles_phase_output()` | tests/fixtures |
+| [`src/tool/bash_tests.rs`](../src/tool/bash_tests.rs) | 566 | Source module or test fixture. See symbols and path for its subsystem role. | `fn make_ctx(stdin_tx: Option<mpsc::UnboundedSender<StdinInputRequest>>) -> ToolContext; fn make_agent_ctx(signal: neura_agent_runtime::InterruptSignal) -> ToolContext; fn test_parse_progress_marker_handles_percent_payloads(); fn test_parse_heuristic_progress_handles_ratio_output(); fn test_parse_heuristic_progress_handles_percent_output(); fn test_parse_heuristic_progress_handles_phase_output()` | tests/fixtures |
 | [`src/tool/batch.rs`](../src/tool/batch.rs) | 314 | Source module or test fixture. See symbols and path for its subsystem role. | `fn ordered_batch_subcalls(; pub struct BatchTool; pub fn new(registry: Registry) -> Self; struct BatchInput; struct ToolCallInput; fn resolved_parameters(self) -> (String, Value)` | tool execution |
 | [`src/tool/batch_tests.rs`](../src/tool/batch_tests.rs) | 143 | Source module or test fixture. See symbols and path for its subsystem role. | `fn test_normalize_flat_params(); fn test_normalize_already_nested(); fn test_normalize_name_key_to_tool(); fn test_normalize_mixed_tool_and_name_keys(); fn test_normalize_arguments_aliases_to_parameters(); fn test_schema_only_requires_tool()` | tests/fixtures |
 | [`src/tool/bg.rs`](../src/tool/bg.rs) | 878 | Background task management tool | `fn default_watch_notify() -> bool; fn default_watch_wake() -> bool; fn default_wait_return_on_progress() -> bool; pub struct BgTool;; pub fn new() -> Self; struct BgInput` | tool execution |
@@ -908,7 +908,7 @@ flowchart LR
 | [`src/tool/communicate_tests/input_format.rs`](../src/tool/communicate_tests/input_format.rs) | 234 | Source module or test fixture. See symbols and path for its subsystem role. | `fn spawn_initial_message_accepts_prompt_alias_and_prefers_explicit_initial_message(); fn communicate_input_accepts_delivery_and_share_append(); fn communicate_input_accepts_spawn_if_needed(); fn communicate_input_accepts_prefer_spawn(); fn format_tool_summary_includes_call_count(); fn format_members_includes_status_and_detail()` | tool execution |
 | [`src/tool/communicate_tests.rs`](../src/tool/communicate_tests.rs) | 444 | Source module or test fixture. See symbols and path for its subsystem role. | `fn tool_is_named_swarm(); fn format_plan_status_includes_next_ready(); fn schema_still_requires_action(); fn schema_advertises_supported_swarm_fields(); struct EnvGuard; fn set(key: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self` | tests/fixtures |
 | [`src/tool/conversation_search.rs`](../src/tool/conversation_search.rs) | 399 | Conversation search tool - RAG for compacted conversation history | `struct SearchInput; struct TurnRange; pub struct ConversationSearchTool; pub fn new(compaction: Arc<RwLock<CompactionManager>>) -> Self; fn name(&self) -> &str; fn description(&self) -> &str` | tool execution |
-| [`src/tool/debug_socket.rs`](../src/tool/debug_socket.rs) | 167 | Debug socket tool - send commands to the kcode debug socket | `fn next_debug_request_id() -> u64; struct DebugSocketInput; pub struct DebugSocketTool;; pub fn new() -> Self; fn name(&self) -> &str; fn description(&self) -> &str` | tool execution |
+| [`src/tool/debug_socket.rs`](../src/tool/debug_socket.rs) | 167 | Debug socket tool - send commands to the neura debug socket | `fn next_debug_request_id() -> u64; struct DebugSocketInput; pub struct DebugSocketTool;; pub fn new() -> Self; fn name(&self) -> &str; fn description(&self) -> &str` | tool execution |
 | [`src/tool/edit.rs`](../src/tool/edit.rs) | 429 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct EditTool;; pub fn new() -> Self; struct EditInput; fn name(&self) -> &str; fn description(&self) -> &str; fn parameters_schema(&self) -> Value` | tool execution |
 | [`src/tool/glob.rs`](../src/tool/glob.rs) | 178 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct GlobTool;; pub fn new() -> Self; struct GlobInput; fn name(&self) -> &str; fn description(&self) -> &str; fn parameters_schema(&self) -> Value` | tool execution |
 | [`src/tool/gmail.rs`](../src/tool/gmail.rs) | 410 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct GmailTool; pub fn new() -> Self; struct GmailInput; fn name(&self) -> &str; fn description(&self) -> &str; fn parameters_schema(&self) -> Value` | tool execution |
@@ -930,7 +930,7 @@ flowchart LR
 | [`src/tool/read.rs`](../src/tool/read.rs) | 548 | Source module or test fixture. See symbols and path for its subsystem role. | `pub struct ReadTool;; pub fn new() -> Self; struct ReadInput; enum ReadRangeStyle; struct NormalizedReadRange; fn next_offset(self) -> usize` | tool execution |
 | [`src/tool/selfdev/build_queue.rs`](../src/tool/selfdev/build_queue.rs) | 654 | Source module or test fixture. See symbols and path for its subsystem role. | `` | tool execution |
 | [`src/tool/selfdev/launch.rs`](../src/tool/selfdev/launch.rs) | 224 | Source module or test fixture. See symbols and path for its subsystem role. | `pub fn enter_selfdev_session(; pub fn schedule_selfdev_prompt_delivery(session_id: String, prompt: String)` | tool execution |
-| [`src/tool/selfdev/mod.rs`](../src/tool/selfdev/mod.rs) | 585 | Self-development tool - manage canary builds when working on kcode itself | `struct SelfDevInput; pub struct ReloadContext; pub struct SelfDevLaunchResult; pub fn command_preview(&self) -> Option<String>; enum BuildRequestState; struct BuildRequest` | tool execution |
+| [`src/tool/selfdev/mod.rs`](../src/tool/selfdev/mod.rs) | 585 | Self-development tool - manage canary builds when working on neura itself | `struct SelfDevInput; pub struct ReloadContext; pub struct SelfDevLaunchResult; pub fn command_preview(&self) -> Option<String>; enum BuildRequestState; struct BuildRequest` | tool execution |
 | [`src/tool/selfdev/reload.rs`](../src/tool/selfdev/reload.rs) | 419 | Peek at context for a specific session without consuming it. | `pub struct ReloadRecoveryDirective; fn sanitize_session_id(session_id: &str) -> String; pub fn path_for_session(session_id: &str) -> Result<std::path::PathBuf>; fn legacy_path() -> Result<std::path::PathBuf>; pub fn save(&self) -> Result<()>; pub fn load() -> Result<Option<Self>>` | tool execution |
 | [`src/tool/selfdev/status.rs`](../src/tool/selfdev/status.rs) | 298 | Source module or test fixture. See symbols and path for its subsystem role. | `pub fn selfdev_status_output() -> Result<ToolOutput>` | tool execution |
 | [`src/tool/selfdev/tests.rs`](../src/tool/selfdev/tests.rs) | 894 | Source module or test fixture. See symbols and path for its subsystem role. | `fn lock_env() -> std::sync::MutexGuard<'static, ()>; struct EnvVarGuard; fn set(key: &'static str, value: impl AsRef<OsStr>) -> Self; fn remove(key: &'static str) -> Self; fn drop(&mut self); fn create_test_context(session_id: &str, working_dir: Option<std::path::PathBuf>) -> ToolContext` | tests/fixtures |
@@ -958,7 +958,7 @@ flowchart LR
 |---|---:|---|---|---|
 | [`src/tui/account_picker.rs`](../src/tui/account_picker.rs) | 1013 | Source module or test fixture. See symbols and path for its subsystem role. | `pub enum AccountProviderKind; pub enum AccountPickerCommand; pub struct AccountPickerItem; pub fn action(; fn matches_filter(&self, filter: &str) -> bool; pub struct AccountPickerSummary` | terminal UI |
 | [`src/tui/account_picker_render.rs`](../src/tui/account_picker_render.rs) | 306 | Source module or test fixture. See symbols and path for its subsystem role. | `fn extract_account_label(title: &str) -> Option<String>` | terminal UI |
-| [`src/tui/app/auth.rs`](../src/tui/app/auth.rs) | 1988 | Source module or test fixture. See symbols and path for its subsystem role. | `fn open_auth_browser(url: &str) -> bool; fn record_oauth_preflight(; fn begin_pending_login(&mut self, pending: PendingLogin); fn start_claude_login(&mut self); fn start_kcode_login(&mut self); fn start_openai_login(&mut self)` | terminal UI |
+| [`src/tui/app/auth.rs`](../src/tui/app/auth.rs) | 1988 | Source module or test fixture. See symbols and path for its subsystem role. | `fn open_auth_browser(url: &str) -> bool; fn record_oauth_preflight(; fn begin_pending_login(&mut self, pending: PendingLogin); fn start_claude_login(&mut self); fn start_neura_login(&mut self); fn start_openai_login(&mut self)` | terminal UI |
 | [`src/tui/app/auth_account_commands.rs`](../src/tui/app/auth_account_commands.rs) | 1154 | Source module or test fixture. See symbols and path for its subsystem role. | `fn parse_account_command(trimmed: &str) -> Option<Result<AccountCommand, String>>; fn execute_account_command_local(app: &mut App, command: AccountCommand); fn execute_account_add_local(app: &mut App, provider_id: &str, label: Option<&str>); fn normalize_clearish_value(value: &str) -> Option<String>; fn normalize_normal_mode_value(value: &str) -> Option<String>; fn save_default_provider_setting(app: &mut App, provider: Option<&str>)` | terminal UI |
 | [`src/tui/app/auth_account_picker.rs`](../src/tui/app/auth_account_picker.rs) | 1318 | Source module or test fixture. See symbols and path for its subsystem role. | `fn build_all_inline_account_picker(&self) -> (Vec<crate::tui::PickerEntry>, usize); fn build_claude_inline_account_picker(&self) -> (Vec<crate::tui::PickerEntry>, usize); fn build_openai_inline_account_picker(&self) -> (Vec<crate::tui::PickerEntry>, usize)` | terminal UI |
 | [`src/tui/app/auth_account_picker_saved_accounts.rs`](../src/tui/app/auth_account_picker_saved_accounts.rs) | 284 | Source module or test fixture. See symbols and path for its subsystem role. | `` | terminal UI |
@@ -1246,7 +1246,7 @@ Every tracked non-build repository file is listed below. This section is generat
 ### `assets/`
 | File | Purpose / relationship |
 |---|---|
-| [`assets/kcode.png`](../assets/kcode.png) | Static asset used by documentation. |
+| [`assets/neura.png`](../assets/neura.png) | Static asset used by documentation. |
 
 ### `benchmark-results/`
 | File | Purpose / relationship |
@@ -1417,52 +1417,52 @@ Every tracked non-build repository file is listed below. This section is generat
 ### `crates/`
 | File | Purpose / relationship |
 |---|---|
-| [`crates/kcode-agent-runtime/Cargo.toml`](../crates/kcode-agent-runtime/Cargo.toml) | Repository file. |
-| [`crates/kcode-agent-runtime/src/lib.rs`](../crates/kcode-agent-runtime/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-azure-auth/Cargo.toml`](../crates/kcode-azure-auth/Cargo.toml) | Repository file. |
-| [`crates/kcode-azure-auth/src/lib.rs`](../crates/kcode-azure-auth/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/Cargo.toml`](../crates/kcode-desktop/Cargo.toml) | Repository file. |
-| [`crates/kcode-desktop/src/animation.rs`](../crates/kcode-desktop/src/animation.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/desktop_prefs.rs`](../crates/kcode-desktop/src/desktop_prefs.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/main.rs`](../crates/kcode-desktop/src/main.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/main_tests.rs`](../crates/kcode-desktop/src/main_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/render_helpers.rs`](../crates/kcode-desktop/src/render_helpers.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/session_data.rs`](../crates/kcode-desktop/src/session_data.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/session_launch.rs`](../crates/kcode-desktop/src/session_launch.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/single_session.rs`](../crates/kcode-desktop/src/single_session.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/workspace.rs`](../crates/kcode-desktop/src/workspace.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-desktop/src/workspace_tests.rs`](../crates/kcode-desktop/src/workspace_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-embedding/Cargo.toml`](../crates/kcode-embedding/Cargo.toml) | Repository file. |
-| [`crates/kcode-embedding/src/lib.rs`](../crates/kcode-embedding/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-mobile-core/Cargo.toml`](../crates/kcode-mobile-core/Cargo.toml) | Repository file. |
-| [`crates/kcode-mobile-core/src/lib.rs`](../crates/kcode-mobile-core/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-mobile-core/src/lib_tests.rs`](../crates/kcode-mobile-core/src/lib_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-mobile-core/src/protocol.rs`](../crates/kcode-mobile-core/src/protocol.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-mobile-core/src/visual.rs`](../crates/kcode-mobile-core/src/visual.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-mobile-core/tests/golden/pairing_ready_chat_send.json`](../crates/kcode-mobile-core/tests/golden/pairing_ready_chat_send.json) | Repository file. |
-| [`crates/kcode-mobile-sim/Cargo.toml`](../crates/kcode-mobile-sim/Cargo.toml) | Repository file. |
-| [`crates/kcode-mobile-sim/src/gpu_preview.rs`](../crates/kcode-mobile-sim/src/gpu_preview.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-mobile-sim/src/lib.rs`](../crates/kcode-mobile-sim/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-mobile-sim/src/lib_tests.rs`](../crates/kcode-mobile-sim/src/lib_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-mobile-sim/src/main.rs`](../crates/kcode-mobile-sim/src/main.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-notify-email/Cargo.toml`](../crates/kcode-notify-email/Cargo.toml) | Repository file. |
-| [`crates/kcode-notify-email/src/lib.rs`](../crates/kcode-notify-email/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-pdf/Cargo.toml`](../crates/kcode-pdf/Cargo.toml) | Repository file. |
-| [`crates/kcode-pdf/src/lib.rs`](../crates/kcode-pdf/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-provider-core/Cargo.toml`](../crates/kcode-provider-core/Cargo.toml) | Repository file. |
-| [`crates/kcode-provider-core/src/lib.rs`](../crates/kcode-provider-core/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-provider-core/src/openai_schema.rs`](../crates/kcode-provider-core/src/openai_schema.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-provider-gemini/Cargo.toml`](../crates/kcode-provider-gemini/Cargo.toml) | Repository file. |
-| [`crates/kcode-provider-gemini/src/lib.rs`](../crates/kcode-provider-gemini/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-provider-metadata/Cargo.toml`](../crates/kcode-provider-metadata/Cargo.toml) | Repository file. |
-| [`crates/kcode-provider-metadata/src/lib.rs`](../crates/kcode-provider-metadata/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-provider-openrouter/Cargo.toml`](../crates/kcode-provider-openrouter/Cargo.toml) | Repository file. |
-| [`crates/kcode-provider-openrouter/src/lib.rs`](../crates/kcode-provider-openrouter/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-tui-workspace/Cargo.toml`](../crates/kcode-tui-workspace/Cargo.toml) | Repository file. |
-| [`crates/kcode-tui-workspace/src/color_support.rs`](../crates/kcode-tui-workspace/src/color_support.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-tui-workspace/src/lib.rs`](../crates/kcode-tui-workspace/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-tui-workspace/src/workspace_map.rs`](../crates/kcode-tui-workspace/src/workspace_map.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`crates/kcode-tui-workspace/src/workspace_map_widget.rs`](../crates/kcode-tui-workspace/src/workspace_map_widget.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-agent-runtime/Cargo.toml`](../crates/neura-agent-runtime/Cargo.toml) | Repository file. |
+| [`crates/neura-agent-runtime/src/lib.rs`](../crates/neura-agent-runtime/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-azure-auth/Cargo.toml`](../crates/neura-azure-auth/Cargo.toml) | Repository file. |
+| [`crates/neura-azure-auth/src/lib.rs`](../crates/neura-azure-auth/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/Cargo.toml`](../crates/neura-desktop/Cargo.toml) | Repository file. |
+| [`crates/neura-desktop/src/animation.rs`](../crates/neura-desktop/src/animation.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/desktop_prefs.rs`](../crates/neura-desktop/src/desktop_prefs.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/main.rs`](../crates/neura-desktop/src/main.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/main_tests.rs`](../crates/neura-desktop/src/main_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/render_helpers.rs`](../crates/neura-desktop/src/render_helpers.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/session_data.rs`](../crates/neura-desktop/src/session_data.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/session_launch.rs`](../crates/neura-desktop/src/session_launch.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/single_session.rs`](../crates/neura-desktop/src/single_session.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/workspace.rs`](../crates/neura-desktop/src/workspace.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-desktop/src/workspace_tests.rs`](../crates/neura-desktop/src/workspace_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-embedding/Cargo.toml`](../crates/neura-embedding/Cargo.toml) | Repository file. |
+| [`crates/neura-embedding/src/lib.rs`](../crates/neura-embedding/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-mobile-core/Cargo.toml`](../crates/neura-mobile-core/Cargo.toml) | Repository file. |
+| [`crates/neura-mobile-core/src/lib.rs`](../crates/neura-mobile-core/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-mobile-core/src/lib_tests.rs`](../crates/neura-mobile-core/src/lib_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-mobile-core/src/protocol.rs`](../crates/neura-mobile-core/src/protocol.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-mobile-core/src/visual.rs`](../crates/neura-mobile-core/src/visual.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-mobile-core/tests/golden/pairing_ready_chat_send.json`](../crates/neura-mobile-core/tests/golden/pairing_ready_chat_send.json) | Repository file. |
+| [`crates/neura-mobile-sim/Cargo.toml`](../crates/neura-mobile-sim/Cargo.toml) | Repository file. |
+| [`crates/neura-mobile-sim/src/gpu_preview.rs`](../crates/neura-mobile-sim/src/gpu_preview.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-mobile-sim/src/lib.rs`](../crates/neura-mobile-sim/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-mobile-sim/src/lib_tests.rs`](../crates/neura-mobile-sim/src/lib_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-mobile-sim/src/main.rs`](../crates/neura-mobile-sim/src/main.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-notify-email/Cargo.toml`](../crates/neura-notify-email/Cargo.toml) | Repository file. |
+| [`crates/neura-notify-email/src/lib.rs`](../crates/neura-notify-email/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-pdf/Cargo.toml`](../crates/neura-pdf/Cargo.toml) | Repository file. |
+| [`crates/neura-pdf/src/lib.rs`](../crates/neura-pdf/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-provider-core/Cargo.toml`](../crates/neura-provider-core/Cargo.toml) | Repository file. |
+| [`crates/neura-provider-core/src/lib.rs`](../crates/neura-provider-core/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-provider-core/src/openai_schema.rs`](../crates/neura-provider-core/src/openai_schema.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-provider-gemini/Cargo.toml`](../crates/neura-provider-gemini/Cargo.toml) | Repository file. |
+| [`crates/neura-provider-gemini/src/lib.rs`](../crates/neura-provider-gemini/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-provider-metadata/Cargo.toml`](../crates/neura-provider-metadata/Cargo.toml) | Repository file. |
+| [`crates/neura-provider-metadata/src/lib.rs`](../crates/neura-provider-metadata/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-provider-openrouter/Cargo.toml`](../crates/neura-provider-openrouter/Cargo.toml) | Repository file. |
+| [`crates/neura-provider-openrouter/src/lib.rs`](../crates/neura-provider-openrouter/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-tui-workspace/Cargo.toml`](../crates/neura-tui-workspace/Cargo.toml) | Repository file. |
+| [`crates/neura-tui-workspace/src/color_support.rs`](../crates/neura-tui-workspace/src/color_support.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-tui-workspace/src/lib.rs`](../crates/neura-tui-workspace/src/lib.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-tui-workspace/src/workspace_map.rs`](../crates/neura-tui-workspace/src/workspace_map.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`crates/neura-tui-workspace/src/workspace_map_widget.rs`](../crates/neura-tui-workspace/src/workspace_map_widget.rs) | Rust source, module, test, or fixture. See source architecture table above. |
 
 ### `docs/`
 | File | Purpose / relationship |
@@ -1698,7 +1698,7 @@ Every tracked non-build repository file is listed below. This section is generat
 | [`src/provider/failover.rs`](../src/provider/failover.rs) | Rust source, module, test, or fixture. See source architecture table above. |
 | [`src/provider/gemini.rs`](../src/provider/gemini.rs) | Rust source, module, test, or fixture. See source architecture table above. |
 | [`src/provider/gemini_tests.rs`](../src/provider/gemini_tests.rs) | Rust source, module, test, or fixture. See source architecture table above. |
-| [`src/provider/kcode.rs`](../src/provider/kcode.rs) | Rust source, module, test, or fixture. See source architecture table above. |
+| [`src/provider/neura.rs`](../src/provider/neura.rs) | Rust source, module, test, or fixture. See source architecture table above. |
 | [`src/provider/mod.rs`](../src/provider/mod.rs) | Rust source, module, test, or fixture. See source architecture table above. |
 | [`src/provider/models.rs`](../src/provider/models.rs) | Rust source, module, test, or fixture. See source architecture table above. |
 | [`src/provider/models_catalog.rs`](../src/provider/models_catalog.rs) | Rust source, module, test, or fixture. See source architecture table above. |
@@ -2191,6 +2191,6 @@ Every tracked non-build repository file is listed below. This section is generat
 - Keep final prompt admission provider-agnostic. Do not optimize only OpenAI or only Anthropic.
 - Exact context should be externalized as refs and recovered explicitly with `.ctx_get` when needed.
 - Large tool/read/grep/build outputs must be summarized or vaulted before they become recurring history.
-- Reload must target `~/.kcode/builds/current/kcode`, not just a copied binary in `~/.local/bin`.
+- Reload must target `~/.neura/builds/current/neura`, not just a copied binary in `~/.local/bin`.
 - Persisted session snapshots and journals matter. If a bug injects huge context, clean both active snapshots and replay journals.
 - New features should include tests that guard both usefulness and token/cost regressions.

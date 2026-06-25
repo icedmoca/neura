@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Kcode library tests in deterministic shards.
+"""Run Neura library tests in deterministic shards.
 
 Why this exists:
 - `cargo test --lib` is large enough that local/agent harnesses can time out.

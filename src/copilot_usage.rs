@@ -1,7 +1,7 @@
 //! Local Copilot usage tracking
 //!
 //! Tracks request counts and token usage locally since GitHub Copilot
-//! doesn't expose a usage API. Data persists to ~/.kcode/copilot_usage.json.
+//! doesn't expose a usage API. Data persists to ~/.neura/copilot_usage.json.
 
 use chrono::{Datelike, Utc};
 use serde::{Deserialize, Serialize};
@@ -11,8 +11,8 @@ use std::sync::Mutex;
 static TRACKER: Mutex<Option<CopilotUsageTracker>> = Mutex::new(None);
 
 fn usage_path() -> PathBuf {
-    crate::storage::kcode_dir()
-        .unwrap_or_else(|_| PathBuf::from(".").join(".kcode"))
+    crate::storage::neura_dir()
+        .unwrap_or_else(|_| PathBuf::from(".").join(".neura"))
         .join("copilot_usage.json")
 }
 
@@ -174,21 +174,21 @@ mod tests {
     }
 
     #[test]
-    fn usage_path_respects_kcode_home() {
+    fn usage_path_respects_neura_home() {
         let _env_lock = lock_env();
         clear_tracker();
         let temp = tempfile::tempdir().expect("tempdir");
-        let _home = EnvVarGuard::set("KCODE_HOME", temp.path().as_os_str());
+        let _home = EnvVarGuard::set("NEURA_HOME", temp.path().as_os_str());
 
         assert_eq!(usage_path(), temp.path().join("copilot_usage.json"));
     }
 
     #[test]
-    fn save_and_load_roundtrip_under_kcode_home() {
+    fn save_and_load_roundtrip_under_neura_home() {
         let _env_lock = lock_env();
         clear_tracker();
         let temp = tempfile::tempdir().expect("tempdir");
-        let _home = EnvVarGuard::set("KCODE_HOME", temp.path().as_os_str());
+        let _home = EnvVarGuard::set("NEURA_HOME", temp.path().as_os_str());
 
         let tracker = CopilotUsageTracker {
             today: DayUsage {

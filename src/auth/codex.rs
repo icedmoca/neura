@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::{OnceLock, RwLock};
 
-const ALLOW_LEGACY_AUTH_ENV: &str = "KCODE_ALLOW_CODEX_LEGACY_AUTH";
+const ALLOW_LEGACY_AUTH_ENV: &str = "NEURA_ALLOW_CODEX_LEGACY_AUTH";
 pub const LEGACY_CODEX_AUTH_SOURCE_ID: &str = "openai_codex_auth_json";
 
 #[derive(Debug, Clone)]
@@ -68,7 +68,7 @@ pub struct OpenAiAccount {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct KcodeOpenAiAuthFile {
+pub struct NeuraOpenAiAuthFile {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub openai_accounts: Vec<OpenAiAccount>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -138,7 +138,7 @@ pub fn login_target_label(requested: Option<&str>) -> Result<String> {
     ))
 }
 
-fn relabel_accounts(auth: &mut KcodeOpenAiAuthFile) -> bool {
+fn relabel_accounts(auth: &mut NeuraOpenAiAuthFile) -> bool {
     let outcome = crate::auth::account_store::relabel_accounts(
         ACCOUNT_LABEL_PREFIX,
         &mut auth.openai_accounts,
@@ -153,8 +153,8 @@ fn relabel_accounts(auth: &mut KcodeOpenAiAuthFile) -> bool {
     outcome.changed
 }
 
-fn kcode_auth_path() -> Result<PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("openai-auth.json"))
+fn neura_auth_path() -> Result<PathBuf> {
+    Ok(crate::storage::neura_dir()?.join("openai-auth.json"))
 }
 
 fn legacy_auth_path() -> Result<PathBuf> {
@@ -205,14 +205,14 @@ pub fn has_unconsented_legacy_credentials() -> bool {
     legacy_auth_source_exists() && !legacy_auth_allowed()
 }
 
-pub fn load_auth_file() -> Result<KcodeOpenAiAuthFile> {
-    let path = kcode_auth_path()?;
+pub fn load_auth_file() -> Result<NeuraOpenAiAuthFile> {
+    let path = neura_auth_path()?;
     let mut auth = if path.exists() {
         crate::storage::harden_secret_file_permissions(&path);
         crate::storage::read_json(&path)
             .with_context(|| format!("Could not read OpenAI credentials from {:?}", path))?
     } else {
-        KcodeOpenAiAuthFile::default()
+        NeuraOpenAiAuthFile::default()
     };
 
     if relabel_accounts(&mut auth) {
@@ -225,9 +225,9 @@ pub fn load_auth_file() -> Result<KcodeOpenAiAuthFile> {
     Ok(auth)
 }
 
-pub fn save_auth_file(auth: &KcodeOpenAiAuthFile) -> Result<()> {
-    let auth_path = kcode_auth_path()?;
-    let clean = KcodeOpenAiAuthFile {
+pub fn save_auth_file(auth: &NeuraOpenAiAuthFile) -> Result<()> {
+    let auth_path = neura_auth_path()?;
+    let clean = NeuraOpenAiAuthFile {
         openai_accounts: auth.openai_accounts.clone(),
         active_openai_account: auth.active_openai_account.clone(),
         openai_auth_preference: auth.openai_auth_preference,
@@ -302,7 +302,7 @@ pub fn load_api_key_credentials() -> Result<CodexCredentials> {
         .or(legacy)
         .map(|key| key.trim().to_string())
         .filter(|key| !key.is_empty())
-        .context("No OpenAI API key found in ~/.kcode/openai-auth.json or OPENAI_API_KEY")?;
+        .context("No OpenAI API key found in ~/.neura/openai-auth.json or OPENAI_API_KEY")?;
     Ok(CodexCredentials {
         access_token: api_key,
         refresh_token: String::new(),
@@ -593,7 +593,7 @@ fn load_oauth_credentials_only() -> Result<CodexCredentials> {
     let mut expired_candidates: Vec<(&str, CodexCredentials)> = Vec::new();
     let legacy_allowed = legacy_auth_allowed();
 
-    if let Ok(creds) = load_kcode_credentials() {
+    if let Ok(creds) = load_neura_credentials() {
         if creds
             .expires_at
             .map(|expires_at| expires_at > now_ms)
@@ -601,7 +601,7 @@ fn load_oauth_credentials_only() -> Result<CodexCredentials> {
         {
             return Ok(creds);
         }
-        expired_candidates.push(("kcode", creds));
+        expired_candidates.push(("neura", creds));
     }
 
     if legacy_allowed {
@@ -673,10 +673,10 @@ pub fn upsert_account_from_tokens(
     upsert_account(account_from_credentials(label, &creds, email))
 }
 
-fn load_kcode_credentials() -> Result<CodexCredentials> {
+fn load_neura_credentials() -> Result<CodexCredentials> {
     let auth = load_auth_file()?;
     if auth.openai_accounts.is_empty() {
-        anyhow::bail!("No OpenAI accounts configured in kcode auth file")
+        anyhow::bail!("No OpenAI accounts configured in neura auth file")
     }
 
     let active_label = get_active_account_override()
@@ -688,7 +688,7 @@ fn load_kcode_credentials() -> Result<CodexCredentials> {
         .iter()
         .find(|account| account.label == active_label)
         .or_else(|| auth.openai_accounts.first())
-        .context("No OpenAI accounts in kcode auth file")?;
+        .context("No OpenAI accounts in neura auth file")?;
 
     Ok(credentials_from_account(account))
 }

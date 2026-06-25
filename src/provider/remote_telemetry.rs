@@ -8,14 +8,14 @@ use uuid::Uuid;
 fn telemetry_path() -> std::path::PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("remote-provider-requests.jsonl")
 }
 
 fn turn_trace_path() -> std::path::PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join(".kcode")
+        .join(".neura")
         .join("turn-trace.jsonl")
 }
 

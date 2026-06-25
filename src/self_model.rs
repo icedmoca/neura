@@ -1,7 +1,7 @@
 //! Self-model integration and operational cognition tightening.
 //!
 //! This module provides a small, deterministic substrate that other cognitive
-//! systems can use to describe what Kcode currently believes about its own
+//! systems can use to describe what Neura currently believes about its own
 //! operating state.  It intentionally avoids provider-specific behavior and is
 //! safe to run in tests, benchmarks, slash commands, replay, repair, and routing
 //! code paths.
@@ -188,7 +188,7 @@ impl DomainAssessment {
     }
 }
 
-/// A deterministic snapshot of Kcode's operational self-model.
+/// A deterministic snapshot of Neura's operational self-model.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SelfModel {
     pub version: u32,

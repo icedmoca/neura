@@ -3,7 +3,7 @@ use super::{
     persist_reload_recovery_intents, receive_reload_signal,
 };
 use crate::server::{ReloadSignal, SwarmEvent, SwarmEventType, SwarmMember};
-use kcode_agent_runtime::InterruptSignal;
+use neura_agent_runtime::InterruptSignal;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -95,8 +95,8 @@ async fn receive_reload_signal_waits_for_future_value_when_initially_empty() {
 fn persist_reload_recovery_intents_records_running_peer_recovery() -> anyhow::Result<()> {
     let _guard = crate::storage::lock_test_env();
     let temp_home = tempfile::TempDir::new()?;
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp_home.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp_home.path());
 
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -136,9 +136,9 @@ fn persist_reload_recovery_intents_records_running_peer_recovery() -> anyhow::Re
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
     Ok(())
 }

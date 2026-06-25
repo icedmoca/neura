@@ -26,7 +26,7 @@ type ChatTurnResult = {
   error?: string;
 };
 
-type KcodeState = {
+type NeuraState = {
   serverName?: string;
   git: { branch: string; status: string[]; commits: string[] };
   repo: { rustFiles: number; pythonFiles: number; tsFiles: number };
@@ -34,7 +34,7 @@ type KcodeState = {
 };
 
 function getInitialTheme(): Theme {
-  const saved = localStorage.getItem("kcode-theme") as Theme | null;
+  const saved = localStorage.getItem("neura-theme") as Theme | null;
   if (saved === "light" || saved === "dark") return saved;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
@@ -65,13 +65,13 @@ function App() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
-  const [state, setState] = useState<KcodeState | null>(null);
+  const [state, setState] = useState<NeuraState | null>(null);
   const [shutState, setShutState] = useState<"idle" | "confirm" | "down">("idle");
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("kcode-theme", theme);
+    localStorage.setItem("neura-theme", theme);
   }, [theme]);
 
   const loadChats = useCallback(async () => {
@@ -237,7 +237,7 @@ function App() {
       <main className="chat-main">
         <header className="chat-head">
           <div className="chat-head__left">
-            <h1 className={`brand ${sending ? "brand--busy" : ""}`}>KCODE</h1>
+            <h1 className={`brand ${sending ? "brand--busy" : ""}`}>NEURA</h1>
             {!empty && (
               <span className="set-display">
                 <span className="set-display__slash">/</span>
@@ -250,7 +250,7 @@ function App() {
             <button className="icon-btn" title="Toggle theme" onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}>
               {theme === "dark" ? "☀" : "☾"}
             </button>
-            <button className="icon-btn icon-btn--power" title="Shut down kcode" onClick={() => setShutState("confirm")}>
+            <button className="icon-btn icon-btn--power" title="Shut down neura" onClick={() => setShutState("confirm")}>
               <PowerIcon />
             </button>
           </div>
@@ -276,8 +276,8 @@ function App() {
 
         {empty && (
           <div className="chat-hero">
-            <span className={`brand brand--hero ${sending ? "brand--busy" : ""}`}>KCODE</span>
-            <p className="chat-hero__sub">Chat with your kcode agent. Each conversation is its own session.</p>
+            <span className={`brand brand--hero ${sending ? "brand--busy" : ""}`}>NEURA</span>
+            <p className="chat-hero__sub">Chat with your neura agent. Each conversation is its own session.</p>
           </div>
         )}
 
@@ -287,7 +287,7 @@ function App() {
           <div className={`chat-input__inner ${sending ? "chat-input__inner--busy" : ""}`}>
             <textarea
               ref={inputRef}
-              placeholder="Message kcode…"
+              placeholder="Message neura…"
               onFocus={markTyping}
               onInput={markTyping}
               onKeyDown={onKey}
@@ -304,8 +304,8 @@ function App() {
         <div className="modal-scrim" onClick={() => setShutState("idle")}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal__icon"><PowerIcon /></div>
-            <h3>Shut down kcode?</h3>
-            <p>This kills every kcode process — the agent, this web UI, and any running sessions. Run <code>kcode</code> in a terminal to start again.</p>
+            <h3>Shut down neura?</h3>
+            <p>This kills every neura process — the agent, this web UI, and any running sessions. Run <code>neura</code> in a terminal to start again.</p>
             <div className="modal__actions">
               <button className="btn btn--ghost" onClick={() => setShutState("idle")}>Cancel</button>
               <button className="btn btn--danger" onClick={shutdown}>Shut down</button>
@@ -316,9 +316,9 @@ function App() {
 
       {shutState === "down" && (
         <div className="shutdown-screen">
-          <span className="brand brand--hero">KCODE</span>
-          <p>kcode has shut down.</p>
-          <p className="muted">Run <code>kcode</code> in a terminal to start it again.</p>
+          <span className="brand brand--hero">NEURA</span>
+          <p>neura has shut down.</p>
+          <p className="muted">Run <code>neura</code> in a terminal to start it again.</p>
         </div>
       )}
 

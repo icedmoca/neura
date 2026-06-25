@@ -1,13 +1,13 @@
 use super::{SidePanelSource, make_text};
 use anyhow::{Context, Result};
-use kcode::side_panel::{
+use neura::side_panel::{
     SidePanelPage, SidePanelPageFormat, SidePanelPageSource, SidePanelSnapshot,
 };
 use std::fs;
 use std::path::PathBuf;
 
 pub(super) fn make_bench_file(idx: usize, approx_len: usize) -> Result<PathBuf> {
-    let base_dir = std::env::temp_dir().join("kcode_tui_bench");
+    let base_dir = std::env::temp_dir().join("neura_tui_bench");
     fs::create_dir_all(&base_dir).with_context(|| {
         format!(
             "failed to create TUI bench directory {}",
@@ -48,10 +48,10 @@ pub(super) fn make_bench_side_panel(
 
     let file_path = match source {
         SidePanelSource::Managed => std::env::temp_dir()
-            .join("kcode_tui_bench")
+            .join("neura_tui_bench")
             .join("side_panel_managed.md"),
         SidePanelSource::LinkedFile => std::env::temp_dir()
-            .join("kcode_tui_bench")
+            .join("neura_tui_bench")
             .join("side_panel_linked.md"),
     };
     fs::create_dir_all(

@@ -13,7 +13,7 @@ use std::sync::{Arc as StdArc, Mutex as StdMutex};
 use std::time::{Duration, Instant};
 
 fn cleanup_background_task_files(task_id: &str) {
-    let task_dir = std::env::temp_dir().join("kcode-bg-tasks");
+    let task_dir = std::env::temp_dir().join("neura-bg-tasks");
     let _ = std::fs::remove_file(task_dir.join(format!("{}.status.json", task_id)));
     let _ = std::fs::remove_file(task_dir.join(format!("{}.output", task_id)));
 }
@@ -145,7 +145,7 @@ impl Provider for OpenRouterSpecCaptureProvider {
 }
 
 fn create_test_app() -> App {
-    ensure_test_kcode_home_if_unset();
+    ensure_test_neura_home_if_unset();
     clear_persisted_test_ui_state();
     crate::tui::ui::clear_test_render_state_for_tests();
 
@@ -171,7 +171,7 @@ fn wait_for_model_picker_load(app: &mut App) {
 }
 
 fn create_refresh_summary_test_app(summary: crate::provider::ModelCatalogRefreshSummary) -> App {
-    ensure_test_kcode_home_if_unset();
+    ensure_test_neura_home_if_unset();
     clear_persisted_test_ui_state();
     crate::tui::ui::clear_test_render_state_for_tests();
 
@@ -185,7 +185,7 @@ fn create_refresh_summary_test_app(summary: crate::provider::ModelCatalogRefresh
 }
 
 fn create_openrouter_spec_capture_test_app() -> (App, StdArc<StdMutex<Vec<String>>>) {
-    ensure_test_kcode_home_if_unset();
+    ensure_test_neura_home_if_unset();
     clear_persisted_test_ui_state();
     crate::tui::ui::clear_test_render_state_for_tests();
 
@@ -276,25 +276,25 @@ fn test_side_panel_snapshot(page_id: &str, title: &str) -> crate::side_panel::Si
     }
 }
 
-fn ensure_test_kcode_home_if_unset() {
+fn ensure_test_neura_home_if_unset() {
     use std::sync::OnceLock;
 
     static TEST_HOME: OnceLock<std::path::PathBuf> = OnceLock::new();
 
-    if std::env::var_os("KCODE_HOME").is_some() {
+    if std::env::var_os("NEURA_HOME").is_some() {
         return;
     }
 
     let path = TEST_HOME.get_or_init(|| {
-        let path = std::env::temp_dir().join(format!("kcode-test-home-{}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("neura-test-home-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&path);
         path
     });
-    crate::env::set_var("KCODE_HOME", path);
+    crate::env::set_var("NEURA_HOME", path);
 }
 
 fn clear_persisted_test_ui_state() {
-    if let Ok(home) = crate::storage::kcode_dir() {
+    if let Ok(home) = crate::storage::neura_dir() {
         let ambient_dir = home.join("ambient");
         let _ = std::fs::remove_file(ambient_dir.join("queue.json"));
         let _ = std::fs::remove_file(ambient_dir.join("state.json"));
@@ -305,11 +305,11 @@ fn clear_persisted_test_ui_state() {
     crate::auth::AuthStatus::invalidate_cache();
 }
 
-fn with_temp_kcode_home<T>(f: impl FnOnce() -> T) -> T {
+fn with_temp_neura_home<T>(f: impl FnOnce() -> T) -> T {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
     crate::auth::claude::set_active_account_override(None);
     crate::auth::codex::set_active_account_override(None);
     crate::auth::AuthStatus::invalidate_cache();
@@ -322,19 +322,19 @@ fn with_temp_kcode_home<T>(f: impl FnOnce() -> T) -> T {
     crate::auth::AuthStatus::invalidate_cache();
     crate::tui::app::helpers::clear_ambient_info_cache_for_tests();
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
     result
 }
 
-fn create_kcode_repo_fixture() -> tempfile::TempDir {
+fn create_neura_repo_fixture() -> tempfile::TempDir {
     let temp = tempfile::TempDir::new().expect("temp repo");
     std::fs::create_dir_all(temp.path().join(".git")).expect("git dir");
     std::fs::write(
         temp.path().join("Cargo.toml"),
-        "[package]\nname = \"kcode\"\nversion = \"0.1.0\"\n",
+        "[package]\nname = \"neura\"\nversion = \"0.1.0\"\n",
     )
     .expect("cargo toml");
     temp
@@ -373,7 +373,7 @@ fn create_real_git_repo_fixture() -> tempfile::TempDir {
 
 #[test]
 fn test_handle_turn_error_failover_prompt_manual_mode_shows_system_notice() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         write_test_config("[provider]\ncross_provider_failover = \"manual\"\n");
         let mut app = create_test_app();
         let prompt = crate::provider::ProviderFailoverPrompt {
@@ -402,7 +402,7 @@ fn test_handle_turn_error_failover_prompt_manual_mode_shows_system_notice() {
 
 #[test]
 fn test_handle_turn_error_failover_prompt_countdown_can_switch_and_retry() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         write_test_config("[provider]\ncross_provider_failover = \"countdown\"\n");
         let (mut app, active_provider) = create_switchable_test_app("claude");
         let prompt = crate::provider::ProviderFailoverPrompt {

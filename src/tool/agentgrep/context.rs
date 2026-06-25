@@ -15,7 +15,7 @@ pub(super) fn maybe_write_context_json(
 
     let mut path = storage::runtime_dir();
     path.push(format!(
-        "kcode-agentgrep-context-{}-{}.json",
+        "neura-agentgrep-context-{}-{}.json",
         ctx.session_id, ctx.tool_call_id
     ));
     if let Some(parent) = path.parent() {

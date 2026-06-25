@@ -5,7 +5,7 @@ mod storage_helpers;
 pub use paths::{
     SELFDEV_CARGO_PROFILE, binary_name, binary_stem, client_update_candidate,
     current_binary_build_time_string, current_binary_built_at, find_dev_binary,
-    find_repo_in_ancestors, get_repo_dir, is_kcode_repo, launcher_binary_path, launcher_dir,
+    find_repo_in_ancestors, get_repo_dir, is_neura_repo, launcher_binary_path, launcher_dir,
     preferred_reload_candidate, release_binary_path, run_selfdev_build, selfdev_binary_path,
     selfdev_build_command, shared_server_update_candidate, update_launcher_symlink_to_current,
     update_launcher_symlink_to_stable,
@@ -389,7 +389,7 @@ pub fn write_current_dev_binary_source_metadata(
 fn read_binary_version_report(binary: &Path) -> Result<BinaryVersionReport> {
     let output = Command::new(binary)
         .args(["version", "--json"])
-        .env("KCODE_NON_INTERACTIVE", "1")
+        .env("NEURA_NON_INTERACTIVE", "1")
         .output()?;
 
     if !output.status.success() {
@@ -685,17 +685,17 @@ pub fn smoke_test_server_binary(binary: &Path) -> Result<()> {
     let temp = tempfile::tempdir()?;
     let runtime_dir = temp.path().join("runtime");
     storage::ensure_dir(&runtime_dir)?;
-    let socket_path = temp.path().join("kcode-smoke.sock");
-    let stderr_path = temp.path().join("kcode-smoke.stderr.log");
+    let socket_path = temp.path().join("neura-smoke.sock");
+    let stderr_path = temp.path().join("neura-smoke.stderr.log");
     let stderr = File::create(&stderr_path)?;
 
     let mut child = Command::new(binary)
         .arg("serve")
         .arg("--socket")
         .arg(&socket_path)
-        .env("KCODE_NON_INTERACTIVE", "1")
-        .env("KCODE_RUNTIME_DIR", &runtime_dir)
-        .env("KCODE_GATEWAY_ENABLED", "0")
+        .env("NEURA_NON_INTERACTIVE", "1")
+        .env("NEURA_RUNTIME_DIR", &runtime_dir)
+        .env("NEURA_GATEWAY_ENABLED", "0")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::from(stderr))

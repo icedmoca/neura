@@ -631,7 +631,7 @@ fn env_flag_enabled(name: &str) -> bool {
 }
 
 fn default_is_test_session() -> bool {
-    env_flag_enabled("KCODE_TEST_SESSION")
+    env_flag_enabled("NEURA_TEST_SESSION")
 }
 
 /// Minimal git state for reproducibility
@@ -652,9 +652,9 @@ pub struct EnvSnapshot {
     pub working_dir: Option<String>,
     pub provider: String,
     pub model: String,
-    pub kcode_version: String,
-    pub kcode_git_hash: Option<String>,
-    pub kcode_git_dirty: Option<bool>,
+    pub neura_version: String,
+    pub neura_git_hash: Option<String>,
+    pub neura_git_dirty: Option<bool>,
     pub os: String,
     pub arch: String,
     pub pid: u32,
@@ -667,18 +667,18 @@ pub struct EnvSnapshot {
 
 pub fn derive_session_provider_key(provider_name: &str) -> Option<String> {
     let normalized_name = provider_name.trim().to_ascii_lowercase();
-    if normalized_name == "kcode" {
-        return Some("kcode".to_string());
+    if normalized_name == "neura" {
+        return Some("neura".to_string());
     }
 
-    if let Ok(namespace) = std::env::var("KCODE_OPENROUTER_CACHE_NAMESPACE") {
+    if let Ok(namespace) = std::env::var("NEURA_OPENROUTER_CACHE_NAMESPACE") {
         let namespace = namespace.trim().to_ascii_lowercase();
         if !namespace.is_empty() {
             return Some(namespace);
         }
     }
 
-    if let Ok(active) = std::env::var("KCODE_ACTIVE_PROVIDER") {
+    if let Ok(active) = std::env::var("NEURA_ACTIVE_PROVIDER") {
         let active = active.trim().to_ascii_lowercase();
         if !active.is_empty() {
             return Some(active);
@@ -1379,15 +1379,15 @@ impl Session {
         false
     }
 
-    /// Check if this session is working on the kcode repository
+    /// Check if this session is working on the neura repository
     pub fn is_self_dev(&self) -> bool {
         if let Some(ref dir) = self.working_dir {
-            // Check if working dir contains kcode source
+            // Check if working dir contains neura source
             let path = std::path::Path::new(dir);
             path.join("Cargo.toml").exists()
                 && path.join("src/main.rs").exists()
                 && std::fs::read_to_string(path.join("Cargo.toml"))
-                    .map(|s| s.contains("name = \"kcode\""))
+                    .map(|s| s.contains("name = \"neura\""))
                     .unwrap_or(false)
         } else {
             false
@@ -2043,7 +2043,7 @@ pub(crate) fn session_journal_path_from_snapshot(path: &Path) -> PathBuf {
 }
 
 pub fn session_path(session_id: &str) -> Result<PathBuf> {
-    let base = storage::kcode_dir()?;
+    let base = storage::neura_dir()?;
     Ok(session_path_in_dir(&base, session_id))
 }
 

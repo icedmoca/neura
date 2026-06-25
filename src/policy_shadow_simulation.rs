@@ -75,13 +75,13 @@ pub struct PolicyShadowReport {
 }
 
 pub fn shadow_ledger_path() -> PathBuf {
-    std::env::var_os("KCODE_POLICY_SHADOW_LEDGER")
+    std::env::var_os("NEURA_POLICY_SHADOW_LEDGER")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let home = std::env::var_os("HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("."));
-            home.join(".kcode").join("policy_shadow_simulation.json")
+            home.join(".neura").join("policy_shadow_simulation.json")
         })
 }
 
@@ -363,7 +363,7 @@ mod tests {
     #[test]
     fn shadow_simulation_promotes_positive_policy() {
         let dir = TempDir::new().unwrap();
-        unsafe { std::env::set_var("KCODE_POLICY_SHADOW_LEDGER", dir.path().join("shadow.json")) };
+        unsafe { std::env::set_var("NEURA_POLICY_SHADOW_LEDGER", dir.path().join("shadow.json")) };
         let mut state = OperationalPolicyState::default();
         state.rules.push(OperationalPolicyRule {
             id: "r1".into(),

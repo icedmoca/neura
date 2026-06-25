@@ -2,7 +2,7 @@
   "id": "repo_file_count",
   "kind": "file_tool",
   "message": "Use tools if needed. Count how many top-level Markdown files are in the current directory and answer with only the number.",
-  "command": "/home/dad/.kcode/builds/current/kcode run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.kcode/build-src/kcode <message>",
+  "command": "/home/dad/.neura/builds/current/neura run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.neura/build-src/neura <message>",
   "returncode": 0,
   "wall_seconds": 5.076,
   "stdout_tail": "{\n  \"session_id\": \"session_giraffe_1778032682333_e70cbe46859387f5\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"5\",\n  \"usage\": {\n    \"input_tokens\": 4399,\n    \"output_tokens\": 5,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",

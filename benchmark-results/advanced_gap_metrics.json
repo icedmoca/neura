@@ -23,7 +23,7 @@
       "estimated_prompt_tokens": 122435679,
       "tokens_per_success": 6801982.17
     },
-    "kcode_path_exact": {
+    "neura_path_exact": {
       "multi_file_commits": 18,
       "all_files_available_successes": 18,
       "success_rate": 1.0,

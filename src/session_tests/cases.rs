@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow};
 #[test]
 fn test_session_exists_roundtrip() -> Result<()> {
     let tmp_dir = std::env::temp_dir().join(format!(
-        "kcode-session-test-{}",
+        "neura-session-test-{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| anyhow!(e))?
@@ -80,10 +80,10 @@ fn test_debug_memory_profile_reports_messages_and_provider_cache() {
 fn load_startup_stub_preserves_metadata_but_skips_heavy_vectors() -> Result<()> {
     let _env_lock = lock_env();
     let temp_home = tempfile::Builder::new()
-        .prefix("kcode-startup-stub-test-")
+        .prefix("neura-startup-stub-test-")
         .tempdir()
         .map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp_home.path().as_os_str());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp_home.path().as_os_str());
 
     let session_id = "session_startup_stub_roundtrip";
     let mut session = Session::create_with_id(
@@ -113,9 +113,9 @@ fn load_startup_stub_preserves_metadata_but_skips_heavy_vectors() -> Result<()> 
         working_dir: Some(temp_home.path().to_string_lossy().to_string()),
         provider: "openai".to_string(),
         model: "gpt-5.4".to_string(),
-        kcode_version: "test".to_string(),
-        kcode_git_hash: Some("abc123".to_string()),
-        kcode_git_dirty: Some(false),
+        neura_version: "test".to_string(),
+        neura_git_hash: Some("abc123".to_string()),
+        neura_git_dirty: Some(false),
         os: "linux".to_string(),
         arch: "x86_64".to_string(),
         pid: 123,
@@ -153,10 +153,10 @@ fn load_startup_stub_preserves_metadata_but_skips_heavy_vectors() -> Result<()> 
 fn load_for_remote_startup_preserves_messages_and_replay_but_skips_heavy_vectors() -> Result<()> {
     let _env_lock = lock_env();
     let temp_home = tempfile::Builder::new()
-        .prefix("kcode-remote-startup-test-")
+        .prefix("neura-remote-startup-test-")
         .tempdir()
         .map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp_home.path().as_os_str());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp_home.path().as_os_str());
 
     let session_id = "session_remote_startup_roundtrip";
     let mut session = Session::create_with_id(
@@ -184,9 +184,9 @@ fn load_for_remote_startup_preserves_messages_and_replay_but_skips_heavy_vectors
         working_dir: Some(temp_home.path().to_string_lossy().to_string()),
         provider: "openai".to_string(),
         model: "gpt-5.4".to_string(),
-        kcode_version: "test".to_string(),
-        kcode_git_hash: Some("abc123".to_string()),
-        kcode_git_dirty: Some(false),
+        neura_version: "test".to_string(),
+        neura_git_hash: Some("abc123".to_string()),
+        neura_git_dirty: Some(false),
         os: "linux".to_string(),
         arch: "x86_64".to_string(),
         pid: 123,
@@ -220,7 +220,7 @@ fn load_for_remote_startup_preserves_messages_and_replay_but_skips_heavy_vectors
 #[test]
 fn test_create_marks_debug_when_test_session_env_enabled() {
     let _env_lock = lock_env();
-    let _test_flag = EnvVarGuard::set("KCODE_TEST_SESSION", "1");
+    let _test_flag = EnvVarGuard::set("NEURA_TEST_SESSION", "1");
 
     let s1 = Session::create(None, None);
     assert!(s1.is_debug);
@@ -232,7 +232,7 @@ fn test_create_marks_debug_when_test_session_env_enabled() {
 #[test]
 fn test_create_not_debug_when_test_session_env_disabled() {
     let _env_lock = lock_env();
-    let _test_flag = EnvVarGuard::set("KCODE_TEST_SESSION", "0");
+    let _test_flag = EnvVarGuard::set("NEURA_TEST_SESSION", "0");
 
     let s = Session::create(None, None);
     assert!(!s.is_debug);
@@ -242,11 +242,11 @@ fn test_create_not_debug_when_test_session_env_disabled() {
 fn test_recover_crashed_sessions_preserves_debug_flag() -> Result<()> {
     let _env_lock = lock_env();
     let temp_home = tempfile::Builder::new()
-        .prefix("kcode-recover-debug-test-")
+        .prefix("neura-recover-debug-test-")
         .tempdir()
         .map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp_home.path().as_os_str());
-    let _test_flag = EnvVarGuard::set("KCODE_TEST_SESSION", "0");
+    let _home = EnvVarGuard::set("NEURA_HOME", temp_home.path().as_os_str());
+    let _test_flag = EnvVarGuard::set("NEURA_TEST_SESSION", "0");
 
     let mut crashed = Session::create_with_id(
         "session_recover_debug_source".to_string(),
@@ -276,10 +276,10 @@ fn test_recover_crashed_sessions_preserves_debug_flag() -> Result<()> {
 fn test_save_persists_full_session_content() -> Result<()> {
     let _env_lock = lock_env();
     let temp_home = tempfile::Builder::new()
-        .prefix("kcode-session-save-test-")
+        .prefix("neura-session-save-test-")
         .tempdir()
         .map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp_home.path().as_os_str());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp_home.path().as_os_str());
 
     let mut session = Session::create_with_id(
         "session_save_persist_test".to_string(),
@@ -330,10 +330,10 @@ fn test_save_persists_full_session_content() -> Result<()> {
 fn test_save_persists_compaction_state() -> Result<()> {
     let _env_lock = lock_env();
     let temp_home = tempfile::Builder::new()
-        .prefix("kcode-session-compaction-save-test-")
+        .prefix("neura-session-compaction-save-test-")
         .tempdir()
         .map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp_home.path().as_os_str());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp_home.path().as_os_str());
 
     let mut session = Session::create_with_id(
         "session_compaction_persist_test".to_string(),
@@ -359,10 +359,10 @@ fn test_save_persists_compaction_state() -> Result<()> {
 fn test_save_persists_provider_key() -> Result<()> {
     let _env_lock = lock_env();
     let temp_home = tempfile::Builder::new()
-        .prefix("kcode-session-provider-key-save-test-")
+        .prefix("neura-session-provider-key-save-test-")
         .tempdir()
         .map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp_home.path().as_os_str());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp_home.path().as_os_str());
 
     let mut session = Session::create_with_id(
         "session_provider_key_persist_test".to_string(),
@@ -384,10 +384,10 @@ fn test_save_persists_provider_key() -> Result<()> {
 fn test_save_appends_journal_and_load_replays_it() -> Result<()> {
     let _env_lock = lock_env();
     let temp_home = tempfile::Builder::new()
-        .prefix("kcode-session-journal-test-")
+        .prefix("neura-session-journal-test-")
         .tempdir()
         .map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp_home.path().as_os_str());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp_home.path().as_os_str());
 
     let mut session = Session::create_with_id(
         "session_journal_append_test".to_string(),
@@ -431,10 +431,10 @@ fn test_save_appends_journal_and_load_replays_it() -> Result<()> {
 fn test_save_checkpoints_after_full_mutation_and_clears_journal() -> Result<()> {
     let _env_lock = lock_env();
     let temp_home = tempfile::Builder::new()
-        .prefix("kcode-session-checkpoint-test-")
+        .prefix("neura-session-checkpoint-test-")
         .tempdir()
         .map_err(|e| anyhow!(e))?;
-    let _home = EnvVarGuard::set("KCODE_HOME", temp_home.path().as_os_str());
+    let _home = EnvVarGuard::set("NEURA_HOME", temp_home.path().as_os_str());
 
     let mut session = Session::create_with_id(
         "session_journal_checkpoint_test".to_string(),

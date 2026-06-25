@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate source-backed documentation inventory for Kcode."""
+"""Validate source-backed documentation inventory for Neura."""
 from __future__ import annotations
 
 import argparse

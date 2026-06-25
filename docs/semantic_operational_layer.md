@@ -1,10 +1,10 @@
 # Operational Cognition Verbalization and Semantic State Abstraction Layer
 
-This phase adds a deterministic semantic layer above Kcode's `SelfModel`. The layer converts operational cognition signals into bounded, non-anthropomorphic language and machine-readable semantic state.
+This phase adds a deterministic semantic layer above Neura's `SelfModel`. The layer converts operational cognition signals into bounded, non-anthropomorphic language and machine-readable semantic state.
 
 ## Why This Exists
 
-The previous self-model phase gave Kcode structured operational cognition:
+The previous self-model phase gave Neura structured operational cognition:
 
 - domain assessments
 - operational states

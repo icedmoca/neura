@@ -1,12 +1,12 @@
-# Kcode architecture: implementation-backed technical reference
+# Neura architecture: implementation-backed technical reference
 
-Kcode is a Rust terminal agent whose architecture is organized around explicit control surfaces, provider adapters, tool execution, local memory, and operational repair learning. This document is intentionally descriptive rather than aspirational: paths named here correspond to source files or generated inventory in this repository.
+Neura is a Rust terminal agent whose architecture is organized around explicit control surfaces, provider adapters, tool execution, local memory, and operational repair learning. This document is intentionally descriptive rather than aspirational: paths named here correspond to source files or generated inventory in this repository.
 
 ## 1. Architectural thesis
 
-Kcode is not just a chat loop. It is a terminal-native operating environment for repository evolution. The central design question is: how can a coding agent safely operate over a mutable workspace while preserving continuity, minimizing token waste, and keeping provider/tool behavior debuggable?
+Neura is not just a chat loop. It is a terminal-native operating environment for repository evolution. The central design question is: how can a coding agent safely operate over a mutable workspace while preserving continuity, minimizing token waste, and keeping provider/tool behavior debuggable?
 
-Kcode answers this with five layers:
+Neura answers this with five layers:
 
 1. **Entry and interaction**: CLI, TUI, slash commands, model/account selection, sidebars.
 2. **Agent turn runtime**: message assembly, provider routing, streaming, tool-call orchestration, validation hooks.
@@ -118,7 +118,7 @@ The TUI is deliberately not the owner of provider semantics. It asks the runtime
 
 ## 5. Runtime lifecycle
 
-A Kcode turn can be understood as:
+A Neura turn can be understood as:
 
 1. **Admission**: decide whether a turn may begin, whether cancellation is needed, and what state must be captured.
 2. **Context assembly**: combine user input, conversation state, selected compact memory, tool context, and system/developer constraints.
@@ -128,7 +128,7 @@ A Kcode turn can be understood as:
 6. **Validation**: run focused checks when the task implies code or documentation changes.
 7. **Learning**: record useful execution signals and repair motifs.
 
-This separation helps Kcode avoid a monolithic agent function where UI, provider details, tools, and memory all become entangled.
+This separation helps Neura avoid a monolithic agent function where UI, provider details, tools, and memory all become entangled.
 
 ## 6. Provider architecture
 
@@ -143,7 +143,7 @@ Provider files under `src/provider` are the source of truth for provider behavio
 - model name aliases and routing prefixes;
 - error normalization.
 
-OpenAI-compatible endpoints are similar, not identical. Kcode therefore treats compatibility as an adapter family rather than assuming all compatible servers are operationally equivalent.
+OpenAI-compatible endpoints are similar, not identical. Neura therefore treats compatibility as an adapter family rather than assuming all compatible servers are operationally equivalent.
 
 ## 7. Local sidecar model architecture
 
@@ -156,7 +156,7 @@ The local sidecar model is a token-economy component. It is best used for cheap,
 - checking local OpenAI-compatible server health;
 - supporting benchmark comparisons.
 
-The sidecar does not replace the primary provider for difficult reasoning unless the loaded local model is capable enough. Its architectural value is that it lets Kcode spend frontier-provider tokens where they matter most.
+The sidecar does not replace the primary provider for difficult reasoning unless the loaded local model is capable enough. Its architectural value is that it lets Neura spend frontier-provider tokens where they matter most.
 
 ## 8. Tool architecture
 
@@ -169,11 +169,11 @@ Tools are executable capabilities. Good tool architecture requires:
 - reproducible validation;
 - avoidance of irreversible operations without user confirmation.
 
-Kcode's tool layer is the bridge between model intent and workspace mutation. Because tools can change files or run commands, tool tests and operational discipline matter more than prose claims.
+Neura's tool layer is the bridge between model intent and workspace mutation. Because tools can change files or run commands, tool tests and operational discipline matter more than prose claims.
 
 ## 9. Memory architecture
 
-Kcode memory has two complementary forms:
+Neura memory has two complementary forms:
 
 1. **Adaptive cognition**: persistent local signals that can be retrieved as compact prompt memory.
 2. **Operational repair learning**: deterministic motifs derived from failures and repair attempts.
@@ -190,11 +190,11 @@ The repair learning subsystem defines:
 - `RepairMotif`: recurring failure signature and preferred repair;
 - `ReplayGate`: validation intensity recommendation.
 
-The key architectural decision is determinism. Classification and replay-gate assignment are rule-based and testable. This means Kcode can learn operational patterns without outsourcing the truth of failure classification to a model.
+The key architectural decision is determinism. Classification and replay-gate assignment are rule-based and testable. This means Neura can learn operational patterns without outsourcing the truth of failure classification to a model.
 
 ## 11. Token economy
 
-Kcode saves tokens through:
+Neura saves tokens through:
 
 - compact prompt memory instead of raw transcript replay;
 - local sidecar summarization and compression;
@@ -217,7 +217,7 @@ python3 scripts/validate_docs.py
 
 ## 13. Design constraints and tradeoffs
 
-- Kcode optimizes for explicitness over hidden magic.
+- Neura optimizes for explicitness over hidden magic.
 - Provider adapters are allowed to differ because providers genuinely differ.
 - Local memory is compact and selective, not a complete transcript database.
 - The local sidecar is a support model, not a guaranteed replacement for frontier models.

@@ -1,7 +1,7 @@
 use futures::StreamExt;
-use kcode::message::{ContentBlock, Message, ToolDefinition};
-use kcode::provider::Provider;
-use kcode::provider::claude::ClaudeProvider;
+use neura::message::{ContentBlock, Message, ToolDefinition};
+use neura::provider::Provider;
+use neura::provider::claude::ClaudeProvider;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -9,7 +9,7 @@ async fn main() -> anyhow::Result<()> {
     let provider = ClaudeProvider::new();
 
     let messages = vec![Message {
-        role: kcode::message::Role::User,
+        role: neura::message::Role::User,
         content: vec![ContentBlock::Text {
             text: "Say hello in exactly 5 words.".to_string(),
             cache_control: None,

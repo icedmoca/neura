@@ -16,7 +16,7 @@ fn test_prepare_messages_live_batch_rows_do_not_soft_wrap_on_narrow_width() {
                 id: "batch-1-bash".to_string(),
                 name: "bash".to_string(),
                 input: serde_json::json!({
-                    "command": "cargo test --package kcode --lib tui::ui::tests::render_tool_message_batch_rows_do_not_soft_wrap_on_narrow_width -- --nocapture"
+                    "command": "cargo test --package neura --lib tui::ui::tests::render_tool_message_batch_rows_do_not_soft_wrap_on_narrow_width -- --nocapture"
                 }),
                 intent: None,
             }],
@@ -26,7 +26,7 @@ fn test_prepare_messages_live_batch_rows_do_not_soft_wrap_on_narrow_width() {
                     id: "batch-1-bash".to_string(),
                     name: "bash".to_string(),
                     input: serde_json::json!({
-                        "command": "cargo test --package kcode --lib tui::ui::tests::render_tool_message_batch_rows_do_not_soft_wrap_on_narrow_width -- --nocapture"
+                        "command": "cargo test --package neura --lib tui::ui::tests::render_tool_message_batch_rows_do_not_soft_wrap_on_narrow_width -- --nocapture"
                     }),
                     intent: None,
                 },
@@ -75,7 +75,7 @@ fn test_prepare_messages_centered_live_batch_rows_keep_dedicated_padding_span() 
                 id: "batch-1-bash".to_string(),
                 name: "bash".to_string(),
                 input: serde_json::json!({
-                    "command": "cargo test --package kcode --lib tui::ui::tests::render_tool_message_batch_rows_do_not_soft_wrap_on_narrow_width -- --nocapture --exact with-extra-flags-and-output-to-stretch-the-line"
+                    "command": "cargo test --package neura --lib tui::ui::tests::render_tool_message_batch_rows_do_not_soft_wrap_on_narrow_width -- --nocapture --exact with-extra-flags-and-output-to-stretch-the-line"
                 }),
                 intent: None,
             }],
@@ -85,7 +85,7 @@ fn test_prepare_messages_centered_live_batch_rows_keep_dedicated_padding_span() 
                     id: "batch-1-bash".to_string(),
                     name: "bash".to_string(),
                     input: serde_json::json!({
-                        "command": "cargo test --package kcode --lib tui::ui::tests::render_tool_message_batch_rows_do_not_soft_wrap_on_narrow_width -- --nocapture --exact with-extra-flags-and-output-to-stretch-the-line"
+                        "command": "cargo test --package neura --lib tui::ui::tests::render_tool_message_batch_rows_do_not_soft_wrap_on_narrow_width -- --nocapture --exact with-extra-flags-and-output-to-stretch-the-line"
                     }),
                     intent: None,
                 },

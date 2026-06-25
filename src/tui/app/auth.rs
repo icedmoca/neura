@@ -42,38 +42,38 @@ impl App {
             );
             if let Some(target) = callback_target {
                 notices.push(format!(
-                    "Local callback target `{}` is unavailable, so kcode is using manual-safe paste completion instead.",
+                    "Local callback target `{}` is unavailable, so neura is using manual-safe paste completion instead.",
                     target
                 ));
             } else {
                 notices.push(
-                    "The local callback listener is unavailable, so kcode is using manual-safe paste completion instead."
+                    "The local callback listener is unavailable, so neura is using manual-safe paste completion instead."
                         .to_string(),
                 );
             }
         }
         if !notices.is_empty() {
             notices.push(format!(
-                "If login still fails, run `kcode auth doctor {}` for a guided diagnosis.",
+                "If login still fails, run `neura auth doctor {}` for a guided diagnosis.",
                 provider_id
             ));
         }
         notices.join("\n")
     }
 
-    pub(super) fn show_kcode_subscription_status(&mut self) {
+    pub(super) fn show_neura_subscription_status(&mut self) {
         let configured_key = crate::subscription_catalog::configured_api_key().is_some();
         let configured_base = crate::subscription_catalog::configured_api_base()
-            .unwrap_or_else(|| crate::subscription_catalog::DEFAULT_KCODE_API_BASE.to_string());
+            .unwrap_or_else(|| crate::subscription_catalog::DEFAULT_NEURA_API_BASE.to_string());
         let runtime_mode = crate::subscription_catalog::is_runtime_mode_enabled();
 
-        let mut message = String::from("**Kcode Subscription Status**\n\n");
+        let mut message = String::from("**Neura Subscription Status**\n\n");
         message.push_str(&format!(
             "- Credentials: {}\n",
             if configured_key {
                 "configured"
             } else {
-                "not configured (`/login kcode`)"
+                "not configured (`/login neura`)"
             }
         ));
         message.push_str(&format!(
@@ -113,8 +113,8 @@ impl App {
 
         message.push_str("\n**Planned tiers**\n\n");
         for tier in [
-            crate::subscription_catalog::KcodeTier::Starter20,
-            crate::subscription_catalog::KcodeTier::Pro100,
+            crate::subscription_catalog::NeuraTier::Starter20,
+            crate::subscription_catalog::NeuraTier::Pro100,
         ] {
             message.push_str(&format!(
                 "- {} — ${}/mo retail, about ${:.2} usable inference budget\n",
@@ -125,7 +125,7 @@ impl App {
         }
 
         message.push_str(
-            "\nUsage/billing reporting is not live yet; this command is a scaffold for the curated kcode-managed subscription path.",
+            "\nUsage/billing reporting is not live yet; this command is a scaffold for the curated neura-managed subscription path.",
         );
 
         self.push_display_message(DisplayMessage::system(message));
@@ -158,7 +158,7 @@ impl App {
             ));
         }
         message.push_str(
-            "\nUse `/login <provider>` to authenticate. `/login kcode` is for curated kcode subscription access; `/account` opens the provider/account management center, `/account <provider> settings` shows provider-specific controls, and `/auth doctor` or `/account <provider> doctor` shows recovery steps.",
+            "\nUse `/login <provider>` to authenticate. `/login neura` is for curated neura subscription access; `/account` opens the provider/account management center, `/account <provider> settings` shows provider-specific controls, and `/auth doctor` or `/account <provider> doctor` shows recovery steps.",
         );
         self.push_display_message(DisplayMessage::system(message));
     }
@@ -201,7 +201,7 @@ impl App {
                     }
                 }
             }
-            crate::provider_catalog::LoginProviderTarget::Kcode => self.start_kcode_login(),
+            crate::provider_catalog::LoginProviderTarget::Neura => self.start_neura_login(),
             crate::provider_catalog::LoginProviderTarget::Claude => self.start_claude_login(),
             crate::provider_catalog::LoginProviderTarget::OpenAi => self.start_openai_login(),
             crate::provider_catalog::LoginProviderTarget::OpenRouter => {
@@ -213,7 +213,7 @@ impl App {
                     provider.auth_kind.label(),
                 );
                 self.push_display_message(DisplayMessage::error(
-                    "Azure OpenAI login is currently CLI-only. Run `kcode login --provider azure`."
+                    "Azure OpenAI login is currently CLI-only. Run `neura login --provider azure`."
                         .to_string(),
                 ));
             }
@@ -232,7 +232,7 @@ impl App {
                     provider.auth_kind.label(),
                 );
                 self.push_display_message(DisplayMessage::error(
-                    "Google/Gmail login is only available from the CLI right now. Run `kcode login --provider google`."
+                    "Google/Gmail login is only available from the CLI right now. Run `neura login --provider google`."
                         .to_string(),
                 ));
             }
@@ -252,23 +252,23 @@ impl App {
         self.start_claude_login_for_account(&label);
     }
 
-    fn start_kcode_login(&mut self) {
+    fn start_neura_login(&mut self) {
         self.push_display_message(DisplayMessage::system(format!(
-            "**Kcode Subscription Login**\n\nPaste your kcode subscription API key. This is distinct from OpenRouter BYOK and is meant for curated kcode-managed access.\n\nCurated entries: {}\n\nOptional: after the key, kcode can also store a custom router base URL if you have one.",
+            "**Neura Subscription Login**\n\nPaste your neura subscription API key. This is distinct from OpenRouter BYOK and is meant for curated neura-managed access.\n\nCurated entries: {}\n\nOptional: after the key, neura can also store a custom router base URL if you have one.",
             crate::subscription_catalog::curated_models()
                 .iter()
                 .map(|model| model.display_name)
                 .collect::<Vec<_>>()
                 .join(", ")
         )));
-        self.set_status_notice("Login: kcode API key...");
+        self.set_status_notice("Login: neura API key...");
         self.begin_pending_login(PendingLogin::ApiKeyProfile {
-            provider_id: "kcode".to_string(),
-            provider: "Kcode Subscription".to_string(),
+            provider_id: "neura".to_string(),
+            provider: "Neura Subscription".to_string(),
             auth_method: "api_key".to_string(),
-            docs_url: "https://subscription.kcode.invalid".to_string(),
-            env_file: crate::subscription_catalog::KCODE_ENV_FILE.to_string(),
-            key_name: crate::subscription_catalog::KCODE_API_KEY_ENV.to_string(),
+            docs_url: "https://subscription.neura.invalid".to_string(),
+            env_file: crate::subscription_catalog::NEURA_ENV_FILE.to_string(),
+            key_name: crate::subscription_catalog::NEURA_API_KEY_ENV.to_string(),
             default_model: Some(crate::subscription_catalog::default_model().id.to_string()),
             endpoint: None,
             api_key_optional: false,
@@ -910,7 +910,7 @@ impl App {
         let provider_id = openai_compatible_profile
             .map(|profile| profile.id.to_string())
             .unwrap_or_else(|| match key_name {
-                crate::subscription_catalog::KCODE_API_KEY_ENV => "kcode".to_string(),
+                crate::subscription_catalog::NEURA_API_KEY_ENV => "neura".to_string(),
                 "OPENROUTER_API_KEY" => "openrouter".to_string(),
                 _ => provider.to_ascii_lowercase().replace(' ', "-"),
             });
@@ -942,7 +942,7 @@ impl App {
             self.push_display_message(DisplayMessage::system(format!(
                 "**Cursor Login**\n\n\
                  Running `{} login` to open browser authentication.\n\n\
-                 If that fails, kcode will fall back to saving a Cursor API key for `cursor-agent`.",
+                 If that fails, neura will fall back to saving a Cursor API key for `cursor-agent`.",
                 binary
             )));
             self.set_status_notice("Login: cursor browser...");
@@ -981,7 +981,7 @@ impl App {
             "**Cursor API Key**\n\n\
              Get your API key from: https://cursor.com/settings\n\
              (Dashboard > Integrations > User API Keys)\n\n\
-             kcode will save it securely and provide it to `cursor-agent` at runtime.\n\
+             neura will save it securely and provide it to `cursor-agent` at runtime.\n\
              You still need Cursor Agent installed to use the Cursor provider.\n\n\
              **Paste your API key below**."
                 .to_string(),
@@ -1531,13 +1531,13 @@ impl App {
                                 )
                             }
                         })()
-                    } else if key_name == crate::subscription_catalog::KCODE_API_KEY_ENV {
+                    } else if key_name == crate::subscription_catalog::NEURA_API_KEY_ENV {
                         (|| {
                             let mut content = format!("{}={}\n", key_name, key);
                             if let Some(base) = crate::subscription_catalog::configured_api_base() {
                                 content.push_str(&format!(
                                     "{}={}\n",
-                                    crate::subscription_catalog::KCODE_API_BASE_ENV,
+                                    crate::subscription_catalog::NEURA_API_BASE_ENV,
                                     base
                                 ));
                             }
@@ -1569,7 +1569,7 @@ impl App {
                                 .and_then(|resolved| resolved.default_model.as_deref())
                                 .or(default_model.as_deref())
                             {
-                                crate::env::set_var("KCODE_OPENROUTER_MODEL", default_model);
+                                crate::env::set_var("NEURA_OPENROUTER_MODEL", default_model);
                             }
                         }
 
@@ -1580,10 +1580,10 @@ impl App {
                         let model_hint = effective_default_model
                             .map(|m| format!("\nSuggested default model: `{}`", m))
                             .unwrap_or_default();
-                        let guidance = if key_name == crate::subscription_catalog::KCODE_API_KEY_ENV
+                        let guidance = if key_name == crate::subscription_catalog::NEURA_API_KEY_ENV
                         {
                             format!(
-                                "Use `--provider kcode` or `/login kcode` to access curated models via your router.\nDocs: {}",
+                                "Use `--provider neura` or `/login neura` to access curated models via your router.\nDocs: {}",
                                 docs_url
                             )
                         } else if let Some(resolved) = resolved_openai_compatible.as_ref() {
@@ -1625,7 +1625,7 @@ impl App {
                             success: true,
                             message: format!(
                                 "**{}.**\n\n\
-                                 Stored at `~/.config/kcode/{}`.\n\
+                                 Stored at `~/.config/neura/{}`.\n\
                                  {}{}",
                                 saved_label, env_file, guidance, model_hint
                             ),
@@ -1675,7 +1675,7 @@ impl App {
                         }
                     };
                     if let Err(err) = crate::provider_catalog::save_env_value_to_env_file(
-                        "KCODE_OPENAI_COMPAT_API_BASE",
+                        "NEURA_OPENAI_COMPAT_API_BASE",
                         crate::provider_catalog::OPENAI_COMPAT_PROFILE.env_file,
                         Some(&normalized),
                     ) {
@@ -1707,8 +1707,8 @@ impl App {
                             provider: "cursor".to_string(),
                             success: true,
                             message: "**Cursor API key saved.**\n\n\
-                             Stored at `~/.config/kcode/cursor.env`.\n\
-                             kcode will pass it to `cursor-agent` automatically.\n\
+                             Stored at `~/.config/neura/cursor.env`.\n\
+                             neura will pass it to `cursor-agent` automatically.\n\
                              Install Cursor Agent if it is not already on PATH."
                                 .to_string(),
                         }));
@@ -1924,7 +1924,7 @@ fn save_tui_openai_compatible_api_base(
             anyhow::anyhow!("OpenAI-compatible API base must be https://... or http://localhost.")
         })?;
         crate::provider_catalog::save_env_value_to_env_file(
-            "KCODE_OPENAI_COMPAT_API_BASE",
+            "NEURA_OPENAI_COMPAT_API_BASE",
             crate::provider_catalog::OPENAI_COMPAT_PROFILE.env_file,
             Some(&normalized),
         )?;

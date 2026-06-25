@@ -9,10 +9,10 @@ pub const DEFAULT_PORT: u16 = 51121;
 const LOOPBACK_HOST: &str = "127.0.0.1";
 const REDIRECT_PATH: &str = "/oauth-callback";
 // OAuth client credentials are intentionally not embedded in the public repo.
-// Set KCODE_ANTIGRAVITY_CLIENT_ID and KCODE_ANTIGRAVITY_CLIENT_SECRET to enable OAuth flows.
-const CLIENT_ID_ENV: &str = "KCODE_ANTIGRAVITY_CLIENT_ID";
-const CLIENT_SECRET_ENV: &str = "KCODE_ANTIGRAVITY_CLIENT_SECRET";
-const VERSION_ENV: &str = "KCODE_ANTIGRAVITY_VERSION";
+// Set NEURA_ANTIGRAVITY_CLIENT_ID and NEURA_ANTIGRAVITY_CLIENT_SECRET to enable OAuth flows.
+const CLIENT_ID_ENV: &str = "NEURA_ANTIGRAVITY_CLIENT_ID";
+const CLIENT_SECRET_ENV: &str = "NEURA_ANTIGRAVITY_CLIENT_SECRET";
+const VERSION_ENV: &str = "NEURA_ANTIGRAVITY_VERSION";
 const ANTIGRAVITY_VERSION: &str = "1.18.3";
 const ANTIGRAVITY_SCOPES: &[&str] = &[
     "https://www.googleapis.com/auth/cloud-platform",
@@ -116,7 +116,7 @@ struct LoadCodeAssistResponse {
 }
 
 pub fn tokens_path() -> Result<std::path::PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("antigravity_oauth.json"))
+    Ok(crate::storage::neura_dir()?.join("antigravity_oauth.json"))
 }
 
 pub fn load_tokens() -> Result<AntigravityTokens> {
@@ -125,7 +125,7 @@ pub fn load_tokens() -> Result<AntigravityTokens> {
         crate::storage::harden_secret_file_permissions(&path);
         return crate::storage::read_json(&path).map_err(|_| {
             anyhow::anyhow!(
-                "No Antigravity tokens found. Run `kcode login --provider antigravity`."
+                "No Antigravity tokens found. Run `neura login --provider antigravity`."
             )
         });
     }
@@ -140,7 +140,7 @@ pub fn load_tokens() -> Result<AntigravityTokens> {
         });
     }
 
-    anyhow::bail!("No Antigravity tokens found. Run `kcode login --provider antigravity`.");
+    anyhow::bail!("No Antigravity tokens found. Run `neura login --provider antigravity`.");
 }
 
 pub fn save_tokens(tokens: &AntigravityTokens) -> Result<()> {
@@ -249,7 +249,7 @@ pub async fn login(no_browser: bool) -> Result<AntigravityTokens> {
                 redirect_uri
             );
             eprintln!(
-                "If the browser lands on a loopback error page instead of returning to kcode, copy the full URL from the address bar and re-run with `--no-browser` to paste it manually."
+                "If the browser lands on a loopback error page instead of returning to neura, copy the full URL from the address bar and re-run with `--no-browser` to paste it manually."
             );
             match tokio::time::timeout(
                 std::time::Duration::from_secs(300),
@@ -307,7 +307,7 @@ async fn manual_login(
         let _ = open::that(auth_url);
     }
     eprintln!(
-        "After approving access, paste the full callback URL (or query string) here so kcode can verify the login state.\n"
+        "After approving access, paste the full callback URL (or query string) here so neura can verify the login state.\n"
     );
     eprintln!(
         "If the browser shows a local callback error, copy the full URL from the address bar before closing the tab.\n"

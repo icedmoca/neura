@@ -18,7 +18,7 @@ use crate::plan::{
     unresolved_dependencies,
 };
 use crate::protocol::{NotificationType, PlanGraphStatus, ServerEvent};
-use kcode_agent_runtime::SoftInterruptSource;
+use neura_agent_runtime::SoftInterruptSource;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock, broadcast, mpsc, watch};

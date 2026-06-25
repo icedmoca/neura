@@ -46,13 +46,13 @@ const AUTH_STATUS_CACHE_TTL_SECS: u64 = 30;
 const AUTH_STATUS_FAST_CACHE_TTL_SECS: u64 = 5;
 
 /// Per-process cache for command existence lookups.
-/// CLI tools don't get installed/uninstalled while kcode is running, so caching
+/// CLI tools don't get installed/uninstalled while neura is running, so caching
 /// indefinitely per process is correct and avoids repeated PATH scans.
 static COMMAND_EXISTS_CACHE: std::sync::LazyLock<Mutex<HashMap<String, bool>>> =
     std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub fn browser_suppressed(cli_no_browser: bool) -> bool {
-    cli_no_browser || env_truthy("NO_BROWSER") || env_truthy("KCODE_NO_BROWSER")
+    cli_no_browser || env_truthy("NO_BROWSER") || env_truthy("NEURA_NO_BROWSER")
 }
 
 fn env_truthy(key: &str) -> bool {
@@ -66,7 +66,7 @@ fn env_truthy(key: &str) -> bool {
 }
 
 fn auth_timing_logging_enabled() -> bool {
-    env_truthy("KCODE_AUTH_TIMING")
+    env_truthy("NEURA_AUTH_TIMING")
 }
 
 impl AuthStatus {
@@ -122,7 +122,7 @@ impl AuthStatus {
     /// Returns true if at least one provider has usable credentials.
     pub fn has_any_available(&self) -> bool {
         self.anthropic.state == AuthState::Available
-            || self.kcode == AuthState::Available
+            || self.neura == AuthState::Available
             || self.openai == AuthState::Available
             || self.openrouter == AuthState::Available
             || self.azure == AuthState::Available
@@ -150,7 +150,7 @@ impl AuthStatus {
                     AuthState::NotConfigured
                 }
             }
-            LoginProviderAuthStateKey::Kcode => self.kcode,
+            LoginProviderAuthStateKey::Neura => self.neura,
             LoginProviderAuthStateKey::Anthropic => self.anthropic.state,
             LoginProviderAuthStateKey::OpenAi => self.openai,
             LoginProviderAuthStateKey::Azure => self.azure,
@@ -172,7 +172,7 @@ impl AuthStatus {
                     AuthState::NotConfigured
                 }
             }
-            crate::provider_catalog::LoginProviderTarget::Kcode => {
+            crate::provider_catalog::LoginProviderTarget::Neura => {
                 if crate::subscription_catalog::has_credentials() {
                     AuthState::Available
                 } else {
@@ -213,17 +213,17 @@ impl AuthStatus {
                     "No importable external logins found".to_string()
                 }
             }
-            crate::provider_catalog::LoginProviderTarget::Kcode => {
+            crate::provider_catalog::LoginProviderTarget::Neura => {
                 if self.state_for_provider(provider) == AuthState::Available {
                     if crate::subscription_catalog::has_router_base() {
                         format!(
                             "API key (`{}`) + router base",
-                            crate::subscription_catalog::KCODE_API_KEY_ENV
+                            crate::subscription_catalog::NEURA_API_KEY_ENV
                         )
                     } else {
                         format!(
                             "API key (`{}`), router base pending",
-                            crate::subscription_catalog::KCODE_API_KEY_ENV
+                            crate::subscription_catalog::NEURA_API_KEY_ENV
                         )
                     }
                 } else {
@@ -355,13 +355,13 @@ impl AuthStatus {
                 AuthRefreshSupport::ExternalManaged,
                 AuthValidationMethod::TrustedImportScan,
             ),
-            crate::provider_catalog::LoginProviderTarget::Kcode => {
+            crate::provider_catalog::LoginProviderTarget::Neura => {
                 let (source, detail) = summarize_sources(vec![
-                    env_source(crate::subscription_catalog::KCODE_API_KEY_ENV),
+                    env_source(crate::subscription_catalog::NEURA_API_KEY_ENV),
                     config_source(
-                        crate::subscription_catalog::KCODE_API_KEY_ENV,
-                        crate::subscription_catalog::KCODE_ENV_FILE,
-                        "~/.config/kcode/kcode-subscription.env",
+                        crate::subscription_catalog::NEURA_API_KEY_ENV,
+                        crate::subscription_catalog::NEURA_ENV_FILE,
+                        "~/.config/neura/neura-subscription.env",
                     ),
                 ]);
                 (
@@ -378,7 +378,7 @@ impl AuthStatus {
                     config_source(
                         "OPENROUTER_API_KEY",
                         "openrouter.env",
-                        "~/.config/kcode/openrouter.env",
+                        "~/.config/neura/openrouter.env",
                     ),
                     external_api_key_source("OPENROUTER_API_KEY"),
                 ]);
@@ -397,7 +397,7 @@ impl AuthStatus {
                     config_source(
                         crate::auth::azure::API_KEY_ENV,
                         crate::auth::azure::ENV_FILE,
-                        "~/.config/kcode/azure-openai.env",
+                        "~/.config/neura/azure-openai.env",
                     ),
                 ]);
                 (
@@ -419,7 +419,7 @@ impl AuthStatus {
                     config_source(
                         &resolved.api_key_env,
                         &resolved.env_file,
-                        format!("~/.config/kcode/{}", resolved.env_file),
+                        format!("~/.config/neura/{}", resolved.env_file),
                     ),
                     external_api_key_source(&resolved.api_key_env),
                 ]);
@@ -462,7 +462,7 @@ impl AuthStatus {
         let mut status = Self::default();
 
         if crate::subscription_catalog::has_credentials() {
-            status.kcode = AuthState::Available;
+            status.neura = AuthState::Available;
         }
 
         // Check Anthropic (OAuth or API key)
@@ -615,9 +615,9 @@ impl AuthStatus {
 
         let step_start = Instant::now();
         if crate::subscription_catalog::has_credentials() {
-            status.kcode = AuthState::Available;
+            status.neura = AuthState::Available;
         }
-        timings.push(("kcode", step_start.elapsed().as_millis()));
+        timings.push(("neura", step_start.elapsed().as_millis()));
 
         let step_start = Instant::now();
         let mut anthropic = ProviderAuth::default();
@@ -916,7 +916,7 @@ fn assessment_for_key(
                 AuthValidationMethod::TimestampCheck,
             )
         }
-        LoginProviderAuthStateKey::Kcode
+        LoginProviderAuthStateKey::Neura
         | LoginProviderAuthStateKey::Azure
         | LoginProviderAuthStateKey::OpenRouterLike
         | LoginProviderAuthStateKey::ExternalImport => (
@@ -1008,8 +1008,8 @@ fn anthropic_oauth_source(status: &AuthStatus) -> Option<(AuthCredentialSource, 
         .is_empty()
     {
         return Some((
-            AuthCredentialSource::KcodeManagedFile,
-            "~/.kcode/auth.json".to_string(),
+            AuthCredentialSource::NeuraManagedFile,
+            "~/.neura/auth.json".to_string(),
         ));
     }
     if let Some(source) = crate::auth::claude::preferred_external_auth_source()
@@ -1039,8 +1039,8 @@ fn openai_oauth_source(status: &AuthStatus) -> Option<(AuthCredentialSource, Str
         .is_empty()
     {
         return Some((
-            AuthCredentialSource::KcodeManagedFile,
-            "~/.kcode/openai-auth.json".to_string(),
+            AuthCredentialSource::NeuraManagedFile,
+            "~/.neura/openai-auth.json".to_string(),
         ));
     }
     if crate::auth::codex::legacy_auth_allowed() && crate::auth::codex::legacy_auth_source_exists()
@@ -1080,7 +1080,7 @@ fn gemini_source() -> Option<(AuthCredentialSource, String)> {
         && path.exists()
     {
         return Some((
-            AuthCredentialSource::KcodeManagedFile,
+            AuthCredentialSource::NeuraManagedFile,
             format!("{}", path.display()),
         ));
     }
@@ -1109,7 +1109,7 @@ fn antigravity_source() -> Option<(AuthCredentialSource, String)> {
         && path.exists()
     {
         return Some((
-            AuthCredentialSource::KcodeManagedFile,
+            AuthCredentialSource::NeuraManagedFile,
             format!("{}", path.display()),
         ));
     }
@@ -1129,7 +1129,7 @@ fn google_source() -> Option<(AuthCredentialSource, String)> {
         && credentials_path.exists()
     {
         return Some((
-            AuthCredentialSource::KcodeManagedFile,
+            AuthCredentialSource::NeuraManagedFile,
             format!("{} + {}", credentials_path.display(), tokens_path.display()),
         ));
     }
@@ -1167,8 +1167,8 @@ fn cursor_source() -> Option<(AuthCredentialSource, String)> {
             format!("trusted Cursor app state ({})", path.display()),
         ));
     }
-    if config_source("CURSOR_API_KEY", "cursor.env", "~/.config/kcode/cursor.env").is_some() {
-        return config_source("CURSOR_API_KEY", "cursor.env", "~/.config/kcode/cursor.env");
+    if config_source("CURSOR_API_KEY", "cursor.env", "~/.config/neura/cursor.env").is_some() {
+        return config_source("CURSOR_API_KEY", "cursor.env", "~/.config/neura/cursor.env");
     }
     if crate::auth::cursor::has_cursor_agent_auth() {
         return Some((

@@ -6,7 +6,7 @@ fn harden_secret_file_permissions_sets_owner_only_modes() {
     use std::os::unix::fs::PermissionsExt;
 
     let dir = tempfile::TempDir::new().expect("create temp dir");
-    let secret_dir = dir.path().join("kcode");
+    let secret_dir = dir.path().join("neura");
     std::fs::create_dir_all(&secret_dir).expect("create secret dir");
 
     let secret_file = secret_dir.join("openrouter.env");
@@ -35,11 +35,11 @@ fn harden_secret_file_permissions_sets_owner_only_modes() {
 }
 
 #[test]
-fn user_home_path_uses_external_dir_under_kcode_home() {
+fn user_home_path_uses_external_dir_under_neura_home() {
     let _guard = lock_test_env();
-    let prev_home = std::env::var_os("KCODE_HOME");
+    let prev_home = std::env::var_os("NEURA_HOME");
     let temp = tempfile::TempDir::new().expect("create temp dir");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let resolved = user_home_path(".codex/auth.json").expect("resolve user home path");
     assert_eq!(
@@ -51,9 +51,9 @@ fn user_home_path_uses_external_dir_under_kcode_home() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -73,19 +73,19 @@ fn validate_external_auth_file_rejects_symlink() {
 }
 
 #[test]
-fn app_config_dir_uses_kcode_home_when_set() {
+fn app_config_dir_uses_neura_home_when_set() {
     let _guard = lock_test_env();
-    let prev_home = std::env::var_os("KCODE_HOME");
+    let prev_home = std::env::var_os("NEURA_HOME");
     let temp = tempfile::TempDir::new().expect("create temp dir");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let resolved = app_config_dir().expect("resolve app config dir");
-    assert_eq!(resolved, temp.path().join("config").join("kcode"));
+    assert_eq!(resolved, temp.path().join("config").join("neura"));
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 

@@ -2,8 +2,8 @@
 fn test_fast_default_on_saves_config_and_updates_session() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
 
     let mut app = create_fast_test_app();
     app.input = "/fast default on".to_string();
@@ -21,9 +21,9 @@ fn test_fast_default_on_saves_config_and_updates_session() {
     assert_eq!(last.content, "Saved OpenAI fast mode: **on**.");
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
@@ -31,8 +31,8 @@ fn test_fast_default_on_saves_config_and_updates_session() {
 fn test_fast_status_shows_saved_default() {
     let _guard = crate::storage::lock_test_env();
     let temp = tempfile::tempdir().expect("tempdir");
-    let prev_home = std::env::var_os("KCODE_HOME");
-    crate::env::set_var("KCODE_HOME", temp.path());
+    let prev_home = std::env::var_os("NEURA_HOME");
+    crate::env::set_var("NEURA_HOME", temp.path());
     crate::config::Config::set_openai_service_tier(Some("priority")).expect("save fast default");
 
     let mut app = create_fast_test_app();
@@ -47,15 +47,15 @@ fn test_fast_status_shows_saved_default() {
     );
 
     if let Some(prev_home) = prev_home {
-        crate::env::set_var("KCODE_HOME", prev_home);
+        crate::env::set_var("NEURA_HOME", prev_home);
     } else {
-        crate::env::remove_var("KCODE_HOME");
+        crate::env::remove_var("NEURA_HOME");
     }
 }
 
 #[test]
 fn test_alignment_command_persists_and_applies_immediately() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         let mut app = create_test_app();
         app.set_centered(false);
         app.input = "/alignment centered".to_string();
@@ -78,7 +78,7 @@ fn test_alignment_command_persists_and_applies_immediately() {
 
 #[test]
 fn test_alignment_status_shows_current_and_saved_defaults() {
-    with_temp_kcode_home(|| {
+    with_temp_neura_home(|| {
         crate::config::Config::set_display_centered(false).expect("save alignment default");
 
         let mut app = create_test_app();
@@ -131,11 +131,11 @@ fn test_mask_email_censors_local_part() {
 }
 
 #[test]
-fn test_subscription_command_shows_kcode_status_scaffold() {
+fn test_subscription_command_shows_neura_status_scaffold() {
     let _guard = crate::storage::lock_test_env();
     crate::subscription_catalog::clear_runtime_env();
-    crate::env::remove_var(crate::subscription_catalog::KCODE_API_KEY_ENV);
-    crate::env::remove_var(crate::subscription_catalog::KCODE_API_BASE_ENV);
+    crate::env::remove_var(crate::subscription_catalog::NEURA_API_KEY_ENV);
+    crate::env::remove_var(crate::subscription_catalog::NEURA_API_BASE_ENV);
 
     let mut app = create_test_app();
     app.input = "/subscription".to_string();
@@ -146,8 +146,8 @@ fn test_subscription_command_shows_kcode_status_scaffold() {
         .last()
         .expect("missing /subscription response");
     assert_eq!(msg.role, "system");
-    assert!(msg.content.contains("Kcode Subscription Status"));
-    assert!(msg.content.contains("/login kcode"));
+    assert!(msg.content.contains("Neura Subscription Status"));
+    assert!(msg.content.contains("/login neura"));
     assert!(msg.content.contains("Healer Alpha"));
     assert!(msg.content.contains("Kimi K2.5"));
     assert!(msg.content.contains("$20 Starter"));

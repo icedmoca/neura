@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 /// Get path to builds directory
 pub fn builds_dir() -> Result<PathBuf> {
-    let base = storage::kcode_dir()?;
+    let base = storage::neura_dir()?;
     let dir = base.join("builds");
     storage::ensure_dir(&dir)?;
     Ok(dir)
@@ -141,12 +141,12 @@ pub fn read_shared_server_version() -> Result<Option<String>> {
 
 /// Get path to build log file
 pub fn build_log_path() -> Result<PathBuf> {
-    Ok(storage::kcode_dir()?.join("build.log"))
+    Ok(storage::neura_dir()?.join("build.log"))
 }
 
 /// Get path to build progress file (for TUI to watch)
 pub fn build_progress_path() -> Result<PathBuf> {
-    Ok(storage::kcode_dir()?.join("build-progress"))
+    Ok(storage::neura_dir()?.join("build-progress"))
 }
 
 /// Write current build progress (for TUI to display)

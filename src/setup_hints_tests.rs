@@ -69,9 +69,9 @@ fn first_three_launches_can_include_hotkey_notice_too() {
 }
 
 #[test]
-fn paused_kcode_shell_command_keeps_failures_visible() {
-    let command = paused_kcode_shell_command("/tmp/kcode");
+fn paused_neura_shell_command_keeps_failures_visible() {
+    let command = paused_neura_shell_command("/tmp/neura");
     assert!(command.contains("Press Enter to close"));
-    assert!(command.contains("Kcode exited with status"));
-    assert!(command.contains("kcode executable not found"));
+    assert!(command.contains("Neura exited with status"));
+    assert!(command.contains("neura executable not found"));
 }

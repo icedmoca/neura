@@ -880,7 +880,7 @@ async fn handle_debug_command(app: &mut App, cmd: &str, remote: &mut RemoteConne
             "remote": true,
             "server_version": app.remote_server_version.clone(),
             "server_has_update": app.remote_server_has_update,
-            "version": env!("KCODE_VERSION"),
+            "version": env!("NEURA_VERSION"),
             "diagram_mode": format!("{:?}", app.diagram_mode),
         })
         .to_string();

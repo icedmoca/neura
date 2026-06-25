@@ -199,11 +199,11 @@ fn auth_status_check_returns_valid_struct() {
 fn openrouter_like_status_is_provider_specific() {
     let _lock = crate::storage::lock_test_env();
     let temp = tempfile::TempDir::new().expect("create temp dir");
-    let prev_home = std::env::var_os("KCODE_HOME");
+    let prev_home = std::env::var_os("NEURA_HOME");
     let prev_chutes = std::env::var_os("CHUTES_API_KEY");
     let prev_opencode = std::env::var_os("OPENCODE_API_KEY");
 
-    crate::env::set_var("KCODE_HOME", temp.path());
+    crate::env::set_var("NEURA_HOME", temp.path());
     crate::env::set_var("CHUTES_API_KEY", "chutes-test-key");
     crate::env::remove_var("OPENCODE_API_KEY");
     AuthStatus::invalidate_cache();
@@ -222,7 +222,7 @@ fn openrouter_like_status_is_provider_specific() {
         "API key (`CHUTES_API_KEY`)".to_string()
     );
 
-    restore_env_var("KCODE_HOME", prev_home);
+    restore_env_var("NEURA_HOME", prev_home);
     restore_env_var("CHUTES_API_KEY", prev_chutes);
     restore_env_var("OPENCODE_API_KEY", prev_opencode);
     AuthStatus::invalidate_cache();
@@ -235,14 +235,14 @@ fn cursor_status_is_available_when_api_key_exists_without_cli() {
     let prev_access_token = std::env::var_os("CURSOR_ACCESS_TOKEN");
     let prev_refresh_token = std::env::var_os("CURSOR_REFRESH_TOKEN");
     let prev_api_key = std::env::var_os("CURSOR_API_KEY");
-    let prev_cli_path = std::env::var_os("KCODE_CURSOR_CLI_PATH");
+    let prev_cli_path = std::env::var_os("NEURA_CURSOR_CLI_PATH");
     let temp = tempfile::TempDir::new().expect("create temp dir");
 
     crate::env::remove_var("CURSOR_ACCESS_TOKEN");
     crate::env::remove_var("CURSOR_REFRESH_TOKEN");
     crate::env::set_var("CURSOR_API_KEY", "cursor-test-key");
     crate::env::set_var(
-        "KCODE_CURSOR_CLI_PATH",
+        "NEURA_CURSOR_CLI_PATH",
         temp.path().join("missing-cursor-agent"),
     );
     AuthStatus::invalidate_cache();
@@ -253,7 +253,7 @@ fn cursor_status_is_available_when_api_key_exists_without_cli() {
     restore_env_var("CURSOR_ACCESS_TOKEN", prev_access_token);
     restore_env_var("CURSOR_REFRESH_TOKEN", prev_refresh_token);
     restore_env_var("CURSOR_API_KEY", prev_api_key);
-    restore_env_var("KCODE_CURSOR_CLI_PATH", prev_cli_path);
+    restore_env_var("NEURA_CURSOR_CLI_PATH", prev_cli_path);
     AuthStatus::invalidate_cache();
 }
 
@@ -264,7 +264,7 @@ fn cursor_status_is_available_for_native_auth_without_cli() {
     let prev_access_token = std::env::var_os("CURSOR_ACCESS_TOKEN");
     let prev_refresh_token = std::env::var_os("CURSOR_REFRESH_TOKEN");
     let prev_api_key = std::env::var_os("CURSOR_API_KEY");
-    let prev_cli_path = std::env::var_os("KCODE_CURSOR_CLI_PATH");
+    let prev_cli_path = std::env::var_os("NEURA_CURSOR_CLI_PATH");
     let temp = tempfile::TempDir::new().expect("create temp dir");
 
     crate::env::set_var(
@@ -274,7 +274,7 @@ fn cursor_status_is_available_for_native_auth_without_cli() {
     crate::env::remove_var("CURSOR_REFRESH_TOKEN");
     crate::env::remove_var("CURSOR_API_KEY");
     crate::env::set_var(
-        "KCODE_CURSOR_CLI_PATH",
+        "NEURA_CURSOR_CLI_PATH",
         temp.path().join("missing-cursor-agent"),
     );
     AuthStatus::invalidate_cache();
@@ -285,7 +285,7 @@ fn cursor_status_is_available_for_native_auth_without_cli() {
     restore_env_var("CURSOR_ACCESS_TOKEN", prev_access_token);
     restore_env_var("CURSOR_REFRESH_TOKEN", prev_refresh_token);
     restore_env_var("CURSOR_API_KEY", prev_api_key);
-    restore_env_var("KCODE_CURSOR_CLI_PATH", prev_cli_path);
+    restore_env_var("NEURA_CURSOR_CLI_PATH", prev_cli_path);
     AuthStatus::invalidate_cache();
 }
 
@@ -294,7 +294,7 @@ fn cursor_status_is_available_for_native_auth_without_cli() {
 fn cursor_status_is_available_for_authenticated_cli_session() {
     let _lock = crate::storage::lock_test_env();
     let prev_api_key = std::env::var_os("CURSOR_API_KEY");
-    let prev_cli_path = std::env::var_os("KCODE_CURSOR_CLI_PATH");
+    let prev_cli_path = std::env::var_os("NEURA_CURSOR_CLI_PATH");
     let temp = tempfile::TempDir::new().expect("create temp dir");
     let mock_cli = write_mock_cursor_agent(
         temp.path(),
@@ -302,22 +302,22 @@ fn cursor_status_is_available_for_authenticated_cli_session() {
     );
 
     crate::env::remove_var("CURSOR_API_KEY");
-    crate::env::set_var("KCODE_CURSOR_CLI_PATH", &mock_cli);
+    crate::env::set_var("NEURA_CURSOR_CLI_PATH", &mock_cli);
     AuthStatus::invalidate_cache();
 
     let status = AuthStatus::check();
     assert_eq!(status.cursor, AuthState::Available);
 
     restore_env_var("CURSOR_API_KEY", prev_api_key);
-    restore_env_var("KCODE_CURSOR_CLI_PATH", prev_cli_path);
+    restore_env_var("NEURA_CURSOR_CLI_PATH", prev_cli_path);
     AuthStatus::invalidate_cache();
 }
 
 #[test]
 fn configured_api_key_source_uses_valid_overrides() {
     let _lock = crate::storage::lock_test_env();
-    let key_var = "KCODE_OPENAI_COMPAT_API_KEY_NAME";
-    let file_var = "KCODE_OPENAI_COMPAT_ENV_FILE";
+    let key_var = "NEURA_OPENAI_COMPAT_API_KEY_NAME";
+    let file_var = "NEURA_OPENAI_COMPAT_ENV_FILE";
     let prev_key = std::env::var(key_var).ok();
     let prev_file = std::env::var(file_var).ok();
 
@@ -350,8 +350,8 @@ fn configured_api_key_source_uses_valid_overrides() {
 #[test]
 fn configured_api_key_source_rejects_invalid_values() {
     let _lock = crate::storage::lock_test_env();
-    let key_var = "KCODE_OPENAI_COMPAT_API_KEY_NAME";
-    let file_var = "KCODE_OPENAI_COMPAT_ENV_FILE";
+    let key_var = "NEURA_OPENAI_COMPAT_API_KEY_NAME";
+    let file_var = "NEURA_OPENAI_COMPAT_ENV_FILE";
     let prev_key = std::env::var(key_var).ok();
     let prev_file = std::env::var(file_var).ok();
 

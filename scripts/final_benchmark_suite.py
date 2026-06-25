@@ -28,7 +28,7 @@ messy=load('provider_messy_benchmark.json')
 advanced=load('advanced_gap_metrics.json')
 # telemetry aggregate
 stats=[]
-p=pathlib.Path.home()/'.kcode/interlang-stats.jsonl'
+p=pathlib.Path.home()/'.neura/interlang-stats.jsonl'
 if p.exists():
     for line in p.read_text(errors='ignore').splitlines():
         try: stats.append(json.loads(line))
@@ -52,8 +52,8 @@ usage_known=[r for r in provider_token_rows if r['input_tokens'] is not None]
 ctx_runs=rerun(['python3','scripts/context_benchmark.py'],5)
 git_runs=rerun(['python3','scripts/coding_task_benchmark.py'],3)
 # summaries
-kctx=context['summary']['kcode_exact']; fullctx=context['summary']['full_context']; ragctx=context['summary']['lexical_rag']
-kcode_real=coding['summary']['kcode_path_exact']; full_real=coding['summary']['full_context']; rag_real=coding['summary']['lexical_rag']
+kctx=context['summary']['neura_exact']; fullctx=context['summary']['full_context']; ragctx=context['summary']['lexical_rag']
+neura_real=coding['summary']['neura_path_exact']; full_real=coding['summary']['full_context']; rag_real=coding['summary']['lexical_rag']
 edit_success=sum(r.get('final_tests_passed',False) for r in edit.get('runs',[])); edit_total=len(edit.get('runs',[]))
 mess_success=sum(r.get('passed_guard',False) for r in messy.get('runs',[])); mess_total=len(messy.get('runs',[]))
 all_provider=[]
@@ -68,14 +68,14 @@ lat=[x for x in lat if isinstance(x,(int,float))]
 report={
  'metadata':{'benchmark_type':'final_complete_benchmark_suite','scope':'local telemetry + deterministic local retrieval + real provider smoke/edit/adversarial runs','generated_at_unix':time.time()},
  'token_usage_vs_baseline':{'events':len(stats),'original_chars':sum(orig),'encoded_chars':sum(enc),'saved_chars':sum(saved),'reduction_pct':pct(sum(saved)/sum(orig)) if sum(orig) else None,'estimated_tokens_saved_chars4':round(sum(saved)/4),'short_medium_long':'see BENCHMARKS.md bucket table'},
- 'task_success_rate':{'actual_provider_edit_test':{'tasks':edit_total,'successes':edit_success,'success_rate':pct(edit_success/edit_total) if edit_total else None},'real_repo_context_tasks':{'tasks':kcode_real['tasks'],'kcode_success_rate':pct(kcode_real['success_rate']),'full_context_success_rate':pct(full_real['success_rate']),'lexical_rag_success_rate':pct(rag_real['success_rate'])}},
- 'hallucination_rate':{'provider_messy_adversarial_runs':mess_total,'guard_passes':mess_success,'measured_hallucinations':mess_total-mess_success,'hallucination_rate':pct((mess_total-mess_success)/mess_total) if mess_total else None,'context_layer_lexical_rag_hallucination_rate':pct(ragctx['hallucination_rate']),'kcode_exact_context_hallucination_rate':pct(kctx['hallucination_rate'])},
- 'context_recall_accuracy':{'kcode_exact':{'precision':1.0,'recall':1.0,'success_rate':pct(kctx['success_rate'])},'full_context':{'precision':1.0,'recall':1.0,'success_rate':pct(fullctx['success_rate'])},'lexical_rag':{'success_rate':pct(ragctx['success_rate']),'miss_rate':pct(ragctx['miss_rate']),'hallucination_rate':pct(ragctx['hallucination_rate'])}},
- 'long_session_degradation':{'telemetry_events':len(stats),'p50_blocks':q([b for b in blocks if b],.5),'p95_blocks':q([b for b in blocks if b],.95),'max_blocks':max(blocks) if blocks else 0,'long_bucket_reduction_pct':92.77,'multi_file_proxy_kcode_success_rate':pct(advanced['long_horizon_multifile_proxy']['kcode_path_exact']['success_rate'])},
+ 'task_success_rate':{'actual_provider_edit_test':{'tasks':edit_total,'successes':edit_success,'success_rate':pct(edit_success/edit_total) if edit_total else None},'real_repo_context_tasks':{'tasks':neura_real['tasks'],'neura_success_rate':pct(neura_real['success_rate']),'full_context_success_rate':pct(full_real['success_rate']),'lexical_rag_success_rate':pct(rag_real['success_rate'])}},
+ 'hallucination_rate':{'provider_messy_adversarial_runs':mess_total,'guard_passes':mess_success,'measured_hallucinations':mess_total-mess_success,'hallucination_rate':pct((mess_total-mess_success)/mess_total) if mess_total else None,'context_layer_lexical_rag_hallucination_rate':pct(ragctx['hallucination_rate']),'neura_exact_context_hallucination_rate':pct(kctx['hallucination_rate'])},
+ 'context_recall_accuracy':{'neura_exact':{'precision':1.0,'recall':1.0,'success_rate':pct(kctx['success_rate'])},'full_context':{'precision':1.0,'recall':1.0,'success_rate':pct(fullctx['success_rate'])},'lexical_rag':{'success_rate':pct(ragctx['success_rate']),'miss_rate':pct(ragctx['miss_rate']),'hallucination_rate':pct(ragctx['hallucination_rate'])}},
+ 'long_session_degradation':{'telemetry_events':len(stats),'p50_blocks':q([b for b in blocks if b],.5),'p95_blocks':q([b for b in blocks if b],.95),'max_blocks':max(blocks) if blocks else 0,'long_bucket_reduction_pct':92.77,'multi_file_proxy_neura_success_rate':pct(advanced['long_horizon_multifile_proxy']['neura_path_exact']['success_rate'])},
  'latency_response_time':{'provider_runs':len(lat),'mean_wall_seconds':round(statistics.mean(lat),3) if lat else None,'p50_wall_seconds':q(lat,.5),'p95_wall_seconds':q(lat,.95),'max_wall_seconds':max(lat) if lat else None},
- 'cost_efficiency':{'provider_usage_rows_with_tokens':len(usage_known),'total_provider_input_tokens_known':sum(r['input_tokens'] for r in usage_known),'total_provider_output_tokens_known':sum(r['output_tokens'] for r in usage_known if r['output_tokens'] is not None),'successful_provider_runs_known':sum(r['success'] for r in usage_known),'input_tokens_per_success_known':round(sum(r['input_tokens'] for r in usage_known)/max(1,sum(r['success'] for r in usage_known)),2),'kcode_real_context_tokens_per_success':kcode_real['estimated_tokens_per_success'],'full_context_tokens_per_success':full_real['estimated_tokens_per_success'],'rag_tokens_per_success':rag_real['estimated_tokens_per_success']},
+ 'cost_efficiency':{'provider_usage_rows_with_tokens':len(usage_known),'total_provider_input_tokens_known':sum(r['input_tokens'] for r in usage_known),'total_provider_output_tokens_known':sum(r['output_tokens'] for r in usage_known if r['output_tokens'] is not None),'successful_provider_runs_known':sum(r['success'] for r in usage_known),'input_tokens_per_success_known':round(sum(r['input_tokens'] for r in usage_known)/max(1,sum(r['success'] for r in usage_known)),2),'neura_real_context_tokens_per_success':neura_real['estimated_tokens_per_success'],'full_context_tokens_per_success':full_real['estimated_tokens_per_success'],'rag_tokens_per_success':rag_real['estimated_tokens_per_success']},
  'determinism_reproducibility':{'context_benchmark_runs':len(ctx_runs),'context_identical_outputs':len({r['sha256'] for r in ctx_runs})==1,'coding_benchmark_runs':len(git_runs),'coding_identical_outputs':len({r['sha256'] for r in git_runs})==1,'context_wall_seconds':ctx_runs,'coding_wall_seconds':git_runs},
- 'failure_mode_analysis':{'lexical_rag_real_context_failures':rag_real['failure_types'],'kcode_real_context_failures':kcode_real['failure_types'],'provider_edit_failures':edit_total-edit_success,'provider_messy_failures':mess_total-mess_success},
+ 'failure_mode_analysis':{'lexical_rag_real_context_failures':rag_real['failure_types'],'neura_real_context_failures':neura_real['failure_types'],'provider_edit_failures':edit_total-edit_success,'provider_messy_failures':mess_total-mess_success},
  'tool_use_accuracy':{'provider_file_tool_runs':2,'provider_file_tool_successes':2,'provider_edit_tool_runs':edit_total,'provider_edit_tool_successes':edit_success},
  'user_intervention_rate':{'provider_smoke_and_edit_runs':len(all_provider),'manual_interventions_observed':0,'intervention_rate':0.0},
  'memory_efficiency':{'encoded_over_original_pct':pct(sum(enc)/sum(orig)) if sum(orig) else None,'compression_factor':round(sum(orig)/sum(enc),2) if sum(enc) else None},

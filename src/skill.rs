@@ -59,14 +59,14 @@ impl SkillRegistry {
     }
 
     /// Import skills from Claude Code and Codex CLI on first run.
-    /// Only runs if ~/.kcode/skills/ doesn't exist yet.
+    /// Only runs if ~/.neura/skills/ doesn't exist yet.
     fn import_from_external() {
-        let kcode_skills = match crate::storage::kcode_dir() {
+        let neura_skills = match crate::storage::neura_dir() {
             Ok(dir) => dir.join("skills"),
             Err(_) => return,
         };
 
-        if kcode_skills.exists() {
+        if neura_skills.exists() {
             return; // Not first run
         }
 
@@ -77,10 +77,10 @@ impl SkillRegistry {
         if let Ok(claude_skills) = crate::storage::user_home_path(".claude/skills")
             && claude_skills.is_dir()
         {
-            let count = Self::copy_skills_dir(&claude_skills, &kcode_skills);
+            let count = Self::copy_skills_dir(&claude_skills, &neura_skills);
             if count > 0 {
                 sources.push(format!("{} from Claude Code", count));
-                copied.extend(Self::list_skill_names(&kcode_skills));
+                copied.extend(Self::list_skill_names(&neura_skills));
             }
         }
 
@@ -88,10 +88,10 @@ impl SkillRegistry {
         if let Ok(codex_skills) = crate::storage::user_home_path(".codex/skills")
             && codex_skills.is_dir()
         {
-            let count = Self::copy_skills_dir(&codex_skills, &kcode_skills);
+            let count = Self::copy_skills_dir(&codex_skills, &neura_skills);
             if count > 0 {
                 sources.push(format!("{} from Codex CLI", count));
-                copied.extend(Self::list_skill_names(&kcode_skills));
+                copied.extend(Self::list_skill_names(&neura_skills));
             }
         }
 
@@ -193,18 +193,18 @@ impl SkillRegistry {
 
         let mut registry = Self::default();
 
-        // Load from ~/.kcode/skills/ (kcode's own global skills)
-        if let Ok(kcode_dir) = crate::storage::kcode_dir() {
-            let kcode_skills = kcode_dir.join("skills");
-            if kcode_skills.exists() {
-                registry.load_from_dir(&kcode_skills)?;
+        // Load from ~/.neura/skills/ (neura's own global skills)
+        if let Ok(neura_dir) = crate::storage::neura_dir() {
+            let neura_skills = neura_dir.join("skills");
+            if neura_skills.exists() {
+                registry.load_from_dir(&neura_skills)?;
             }
         }
 
-        // Load from ./.kcode/skills/ (project-local kcode skills)
-        let local_kcode = Path::new(".kcode").join("skills");
-        if local_kcode.exists() {
-            registry.load_from_dir(&local_kcode)?;
+        // Load from ./.neura/skills/ (project-local neura skills)
+        let local_neura = Path::new(".neura").join("skills");
+        if local_neura.exists() {
+            registry.load_from_dir(&local_neura)?;
         }
 
         // Fallback: ./.claude/skills/ (project-local Claude skills for compatibility)
@@ -332,18 +332,18 @@ impl SkillRegistry {
 
         let mut count = 0;
 
-        // Load from ~/.kcode/skills/ (kcode's own global skills)
-        if let Ok(kcode_dir) = crate::storage::kcode_dir() {
-            let kcode_skills = kcode_dir.join("skills");
-            if kcode_skills.exists() {
-                count += self.load_from_dir_count(&kcode_skills)?;
+        // Load from ~/.neura/skills/ (neura's own global skills)
+        if let Ok(neura_dir) = crate::storage::neura_dir() {
+            let neura_skills = neura_dir.join("skills");
+            if neura_skills.exists() {
+                count += self.load_from_dir_count(&neura_skills)?;
             }
         }
 
-        // Load from ./.kcode/skills/ (project-local kcode skills)
-        let local_kcode = Path::new(".kcode").join("skills");
-        if local_kcode.exists() {
-            count += self.load_from_dir_count(&local_kcode)?;
+        // Load from ./.neura/skills/ (project-local neura skills)
+        let local_neura = Path::new(".neura").join("skills");
+        if local_neura.exists() {
+            count += self.load_from_dir_count(&local_neura)?;
         }
 
         // Fallback: ./.claude/skills/ (project-local Claude skills for compatibility)
@@ -469,7 +469,7 @@ pub fn maybe_rehydrate_skill_get(registry: &SkillRegistry, model_text: &str) -> 
     }
 
     Some(format!(
-        "<system-reminder>\nKcode .skill_get rehydration fulfilled (skill={}, reason={}). Treat the following SKILL.md instructions as authoritative for this turn only.\n\n```skill\n{}\n```\n</system-reminder>",
+        "<system-reminder>\nNeura .skill_get rehydration fulfilled (skill={}, reason={}). Treat the following SKILL.md instructions as authoritative for this turn only.\n\n```skill\n{}\n```\n</system-reminder>",
         req.name,
         req.reason.as_deref().unwrap_or("unspecified"),
         body

@@ -2,7 +2,7 @@
   "id": "direct_time_arizona",
   "kind": "direct_answer",
   "message": "Answer in one short sentence: what time zone is Arizona in, outside the Navajo Nation? Do not use tools.",
-  "command": "/home/dad/.kcode/builds/current/kcode run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.kcode/build-src/kcode <message>",
+  "command": "/home/dad/.neura/builds/current/neura run --json --trace --quiet --no-update --no-selfdev --cwd /home/dad/.neura/build-src/neura <message>",
   "returncode": 0,
   "wall_seconds": 1.989,
   "stdout_tail": "{\n  \"session_id\": \"session_donkey_1778032675380_eb62810bafab33a3\",\n  \"provider\": \"OpenAI\",\n  \"model\": \"gpt-5.5\",\n  \"text\": \"Arizona is in Mountain Standard Time (MST, UTC-7) year-round outside the Navajo Nation.\",\n  \"usage\": {\n    \"input_tokens\": 4258,\n    \"output_tokens\": 26,\n    \"cache_read_input_tokens\": 0,\n    \"cache_creation_input_tokens\": null\n  }\n}\n",

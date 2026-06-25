@@ -1,7 +1,7 @@
-use kcode::latent_learning::{
+use neura::latent_learning::{
     LatentLearningState, convergence_metrics, counterfactual_probe, remap_plan,
 };
-use kcode::latent_operational_recurrence::{LatentOperationalState, OperationalEvent};
+use neura::latent_operational_recurrence::{LatentOperationalState, OperationalEvent};
 
 #[test]
 fn learning_accepts_validated_success_and_forms_attractor() {

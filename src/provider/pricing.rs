@@ -1,7 +1,7 @@
 use super::{ALL_OPENAI_MODELS, openrouter};
 use crate::auth;
 use crate::provider::models::provider_for_model;
-use kcode_provider_core::{RouteCheapnessEstimate, RouteCostConfidence, RouteCostSource};
+use neura_provider_core::{RouteCheapnessEstimate, RouteCostConfidence, RouteCostSource};
 
 fn usd_to_micros(usd: f64) -> u64 {
     (usd * 1_000_000.0).round() as u64
@@ -209,7 +209,7 @@ pub(crate) fn openai_oauth_pricing(model: &str) -> RouteCheapnessEstimate {
 }
 
 pub(crate) fn copilot_pricing(model: &str) -> RouteCheapnessEstimate {
-    let mode = std::env::var("KCODE_COPILOT_PREMIUM").ok();
+    let mode = std::env::var("NEURA_COPILOT_PREMIUM").ok();
     let is_zero = matches!(mode.as_deref(), Some("0"));
     let likely_premium_model =
         model.contains("opus") || model.contains("gpt-5.5") || model.contains("gpt-5.4");
@@ -236,7 +236,7 @@ pub(crate) fn copilot_pricing(model: &str) -> RouteCheapnessEstimate {
         Some(included_requests),
         estimated_reference,
         Some(if is_zero {
-            "Copilot zero-premium mode: kcode will send requests as agent/non-premium when possible"
+            "Copilot zero-premium mode: neura will send requests as agent/non-premium when possible"
                 .to_string()
         } else if likely_premium_model {
             "Copilot premium-request estimate using Pro+/premium pricing".to_string()
@@ -347,28 +347,28 @@ pub(crate) fn cheapness_for_route(
 mod tests {
     use super::*;
     use crate::env;
-    use kcode_provider_core::{RouteBillingKind, RouteCostConfidence, RouteCostSource};
+    use neura_provider_core::{RouteBillingKind, RouteCostConfidence, RouteCostSource};
 
     fn with_clean_provider_test_env<T>(f: impl FnOnce() -> T) -> T {
         let _guard = crate::storage::lock_test_env();
         let temp = tempfile::tempdir().expect("tempdir");
-        let prev_home = std::env::var_os("KCODE_HOME");
+        let prev_home = std::env::var_os("NEURA_HOME");
         let prev_openai_api_key = std::env::var_os("OPENAI_API_KEY");
-        let prev_copilot_premium = std::env::var_os("KCODE_COPILOT_PREMIUM");
+        let prev_copilot_premium = std::env::var_os("NEURA_COPILOT_PREMIUM");
         crate::auth::claude::set_active_account_override(None);
         crate::auth::codex::set_active_account_override(None);
-        env::set_var("KCODE_HOME", temp.path());
+        env::set_var("NEURA_HOME", temp.path());
         env::remove_var("OPENAI_API_KEY");
-        env::remove_var("KCODE_COPILOT_PREMIUM");
+        env::remove_var("NEURA_COPILOT_PREMIUM");
 
         let result = f();
 
         crate::auth::claude::set_active_account_override(None);
         crate::auth::codex::set_active_account_override(None);
         if let Some(prev_home) = prev_home {
-            env::set_var("KCODE_HOME", prev_home);
+            env::set_var("NEURA_HOME", prev_home);
         } else {
-            env::remove_var("KCODE_HOME");
+            env::remove_var("NEURA_HOME");
         }
         if let Some(prev_openai_api_key) = prev_openai_api_key {
             env::set_var("OPENAI_API_KEY", prev_openai_api_key);
@@ -376,9 +376,9 @@ mod tests {
             env::remove_var("OPENAI_API_KEY");
         }
         if let Some(prev_copilot_premium) = prev_copilot_premium {
-            env::set_var("KCODE_COPILOT_PREMIUM", prev_copilot_premium);
+            env::set_var("NEURA_COPILOT_PREMIUM", prev_copilot_premium);
         } else {
-            env::remove_var("KCODE_COPILOT_PREMIUM");
+            env::remove_var("NEURA_COPILOT_PREMIUM");
         }
         result
     }
@@ -440,7 +440,7 @@ mod tests {
     #[test]
     fn copilot_zero_mode_marks_estimate_high_confidence_and_zero_reference_cost() {
         with_clean_provider_test_env(|| {
-            env::set_var("KCODE_COPILOT_PREMIUM", "0");
+            env::set_var("NEURA_COPILOT_PREMIUM", "0");
             let estimate = copilot_pricing("claude-opus-4-6");
             assert_eq!(estimate.billing_kind, RouteBillingKind::IncludedQuota);
             assert_eq!(estimate.confidence, RouteCostConfidence::High);

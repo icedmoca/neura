@@ -1,10 +1,10 @@
-# Kcode Tools, Agents, and MCPs
+# Neura Tools, Agents, and MCPs
 
-Kcode is not just a chat box. It is a tool-running agent harness. This document lists the built-in capabilities that ship with Kcode and how to think about them.
+Neura is not just a chat box. It is a tool-running agent harness. This document lists the built-in capabilities that ship with Neura and how to think about them.
 
 ## The big picture
 
-Kcode gives the model access to controlled tools for real work:
+Neura gives the model access to controlled tools for real work:
 
 - files and folders,
 - shell commands,
@@ -20,7 +20,7 @@ Kcode gives the model access to controlled tools for real work:
 - local mouse/screenshot automation,
 - benchmark/debug helpers.
 
-Kcode also prunes tool schemas dynamically. Simple direct-answer turns do not need to pay for every tool description. Tool-heavy turns get relevant tools, and `tool_expand` can request more if needed.
+Neura also prunes tool schemas dynamically. Simple direct-answer turns do not need to pay for every tool description. Tool-heavy turns get relevant tools, and `tool_expand` can request more if needed.
 
 ## Core file and code tools
 
@@ -31,7 +31,7 @@ Kcode also prunes tool schemas dynamically. Simple direct-answer turns do not ne
 | `edit` | replace text in a file |
 | `multiedit` | apply multiple replacements to one file |
 | `patch` | apply unified diffs |
-| `apply_patch` | apply Codex/Kcode-style patches |
+| `apply_patch` | apply Codex/Neura-style patches |
 | `ls` | list directory contents |
 | `glob` | find files by glob |
 | `grep` | lightweight regex search |
@@ -81,13 +81,13 @@ Kcode also prunes tool schemas dynamically. Simple direct-answer turns do not ne
 
 ### Hermes-style skills
 
-Kcode discovers skills as directories containing a `SKILL.md` file. The prompt only injects a compact skill anchor with the available skill names, not the full skill bodies. When exact instructions are needed, the model should emit:
+Neura discovers skills as directories containing a `SKILL.md` file. The prompt only injects a compact skill anchor with the available skill names, not the full skill bodies. When exact instructions are needed, the model should emit:
 
 ```text
 .skill_get name=<skill-name> reason=<why this skill is needed>
 ```
 
-Kcode intercepts that request, rehydrates the exact `SKILL.md` content into a system reminder, and retries the turn. This mirrors `.mem_get`/`.ctx_get` token discipline: advertise availability cheaply, then load large skill text only on demand. For immediate tool-driven inspection, call `skill_manage` with `action="list"` or `action="read"`.
+Neura intercepts that request, rehydrates the exact `SKILL.md` content into a system reminder, and retries the turn. This mirrors `.mem_get`/`.ctx_get` token discipline: advertise availability cheaply, then load large skill text only on demand. For immediate tool-driven inspection, call `skill_manage` with `action="list"` or `action="read"`.
 
 ## Agent and swarm tools
 
@@ -105,7 +105,7 @@ Kcode intercepts that request, rehydrates the exact `SKILL.md` content into a sy
 | Tool | What it does |
 |---|---|
 | `mcp` | list/connect/disconnect/reload MCP servers |
-| bundled Chromium MCP bridge | browser automation server/extension included with Kcode |
+| bundled Chromium MCP bridge | browser automation server/extension included with Neura |
 
 The bundled Chromium bridge ships in:
 
@@ -116,23 +116,23 @@ vendor/chromium-agent-bridge
 The installer copies it to:
 
 ```text
-~/.kcode/chromium-agent-bridge
+~/.neura/chromium-agent-bridge
 ```
 
 and registers it in:
 
 ```text
-~/.kcode/mcp.json
+~/.neura/mcp.json
 ```
 
 See [INSTALL.md](INSTALL.md) for the Chrome extension setup step.
 
 ## Local sidecar agent/model
 
-Kcode can install a local GGUF sidecar model:
+Neura can install a local GGUF sidecar model:
 
 ```text
-kcode-oss-20b-mxfp4
+neura-oss-20b-mxfp4
 ```
 
 The sidecar is not the main remote reasoning model. It helps with local support tasks such as:
@@ -146,7 +146,7 @@ The sidecar is not the main remote reasoning model. It helps with local support 
 
 ## Context tools and exact recall
 
-Kcode's context system is also part of its tool story:
+Neura's context system is also part of its tool story:
 
 - old bulky context can become compact local refs,
 - summaries are breadcrumbs, not source of truth,
@@ -154,17 +154,17 @@ Kcode's context system is also part of its tool story:
 - sensitive-looking context is not auto-injected,
 - token/context telemetry is recorded locally.
 
-This is what lets Kcode run long sessions without blindly resending every old log, diff, and tool result.
+This is what lets Neura run long sessions without blindly resending every old log, diff, and tool result.
 
 ## Tool safety model
 
-Kcode can do real work, so the safest practice is:
+Neura can do real work, so the safest practice is:
 
 - inspect before editing,
 - prefer reversible file changes,
 - run tests before claiming success,
 - avoid destructive commands unless explicitly requested,
-- keep credentials and runtime state in `~/.kcode`, not the repository.
+- keep credentials and runtime state in `~/.neura`, not the repository.
 
 ## Full tool list extracted from source
 

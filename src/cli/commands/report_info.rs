@@ -304,16 +304,16 @@ pub(super) async fn run_provider_current_command(
 
 pub(super) fn run_version_command(emit_json: bool) -> Result<()> {
     let report = VersionReport {
-        version: env!("KCODE_VERSION").to_string(),
-        semver: env!("KCODE_SEMVER").to_string(),
-        base_semver: env!("KCODE_BASE_SEMVER").to_string(),
-        update_semver: env!("KCODE_UPDATE_SEMVER").to_string(),
-        git_hash: env!("KCODE_GIT_HASH").to_string(),
-        git_tag: env!("KCODE_GIT_TAG").to_string(),
+        version: env!("NEURA_VERSION").to_string(),
+        semver: env!("NEURA_SEMVER").to_string(),
+        base_semver: env!("NEURA_BASE_SEMVER").to_string(),
+        update_semver: env!("NEURA_UPDATE_SEMVER").to_string(),
+        git_hash: env!("NEURA_GIT_HASH").to_string(),
+        git_tag: env!("NEURA_GIT_TAG").to_string(),
         build_time: crate::build::current_binary_build_time_string()
             .unwrap_or_else(|| "unknown".to_string()),
-        git_date: env!("KCODE_GIT_DATE").to_string(),
-        release_build: option_env!("KCODE_RELEASE_BUILD").is_some(),
+        git_date: env!("NEURA_GIT_DATE").to_string(),
+        release_build: option_env!("NEURA_RELEASE_BUILD").is_some(),
     };
 
     if emit_json {
@@ -349,8 +349,8 @@ pub(super) async fn run_usage_command(emit_json: bool) -> Result<()> {
         println!("No connected providers");
         println!();
         println!("Next steps:");
-        println!("- Use `kcode login --provider claude` to connect Claude OAuth.");
-        println!("- Use `kcode login --provider openai` to connect ChatGPT / Codex OAuth.");
+        println!("- Use `neura login --provider claude` to connect Claude OAuth.");
+        println!("- Use `neura login --provider openai` to connect ChatGPT / Codex OAuth.");
         return Ok(());
     }
 
@@ -409,7 +409,7 @@ fn select_auth_doctor_providers(
         let provider =
             crate::provider_catalog::resolve_login_provider(provider_arg).ok_or_else(|| {
                 anyhow::anyhow!(
-                    "Unknown provider '{}'. Use `kcode provider list` to see valid provider ids.",
+                    "Unknown provider '{}'. Use `neura provider list` to see valid provider ids.",
                     provider_arg
                 )
             })?;
@@ -452,7 +452,7 @@ fn usage_provider_report(provider: &crate::usage::ProviderUsage) -> UsageProvide
 
 pub(super) fn list_cli_providers() -> Vec<ProviderListEntry> {
     let choices = [
-        ProviderChoice::Kcode,
+        ProviderChoice::Neura,
         ProviderChoice::Claude,
         ProviderChoice::Openai,
         ProviderChoice::Openrouter,

@@ -401,7 +401,7 @@ fn save_state(session_id: &str, state: &PersistedSidePanelState) -> Result<()> {
 }
 
 fn session_dir(session_id: &str) -> Result<PathBuf> {
-    let base = crate::storage::kcode_dir()?.join("side_panel");
+    let base = crate::storage::neura_dir()?.join("side_panel");
     Ok(base.join(session_id))
 }
 

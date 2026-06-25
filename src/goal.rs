@@ -690,7 +690,7 @@ fn goal_file_in_dir(dir: &Path, id: &str) -> PathBuf {
 }
 
 fn global_goals_dir() -> Result<PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("goals").join("global"))
+    Ok(crate::storage::neura_dir()?.join("goals").join("global"))
 }
 
 fn project_goals_dir(working_dir: Option<&Path>) -> Result<Option<PathBuf>> {
@@ -698,7 +698,7 @@ fn project_goals_dir(working_dir: Option<&Path>) -> Result<Option<PathBuf>> {
         return Ok(None);
     };
     Ok(Some(
-        crate::storage::kcode_dir()?
+        crate::storage::neura_dir()?
             .join("goals")
             .join("projects")
             .join(project_hash(dir)),
@@ -742,7 +742,7 @@ fn project_hash(path: &Path) -> String {
 }
 
 fn session_attachment_path(session_id: &str) -> Result<PathBuf> {
-    Ok(crate::storage::kcode_dir()?
+    Ok(crate::storage::neura_dir()?
         .join("goals")
         .join("sessions")
         .join(format!("{}.json", session_id)))

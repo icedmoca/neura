@@ -1,4 +1,4 @@
-use kcode::autonomous_improvement::{
+use neura::autonomous_improvement::{
     ImprovementConfig, render_self_improvement_report, run_self_improvement_cycle,
 };
 

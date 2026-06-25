@@ -79,19 +79,19 @@ fn detected_resume_terminal_recognizes_handterm_term_program() {
 #[test]
 fn shell_command_quotes_single_quotes_for_handterm_exec() {
     let command = shell_command(&[
-        "/tmp/kcode binary".to_string(),
+        "/tmp/neura binary".to_string(),
         "--resume".to_string(),
         "session'quote".to_string(),
     ]);
     assert_eq!(
         command,
-        "'/tmp/kcode binary' '--resume' 'session'\"'\"'quote'"
+        "'/tmp/neura binary' '--resume' 'session'\"'\"'quote'"
     );
 }
 
 #[test]
 fn resume_invocation_args_includes_socket_when_present() {
-    let args = resume_invocation_args("ses_123", Some("/tmp/kcode-test.sock"));
+    let args = resume_invocation_args("ses_123", Some("/tmp/neura-test.sock"));
     assert_eq!(
         args,
         vec![
@@ -99,7 +99,7 @@ fn resume_invocation_args_includes_socket_when_present() {
             "--resume".to_string(),
             "ses_123".to_string(),
             "--socket".to_string(),
-            "/tmp/kcode-test.sock".to_string()
+            "/tmp/neura-test.sock".to_string()
         ]
     );
 }
@@ -118,7 +118,7 @@ fn resume_invocation_args_omits_blank_socket() {
 }
 
 #[test]
-fn build_resume_command_uses_imported_kcode_session_for_claude_code() {
+fn build_resume_command_uses_imported_neura_session_for_claude_code() {
     let (program, args, title) = build_resume_command(
         &ResumeTarget::ClaudeCodeSession {
             session_id: "claude-session-123".to_string(),
@@ -129,7 +129,7 @@ fn build_resume_command_uses_imported_kcode_session_for_claude_code() {
 
     assert_eq!(
         program.file_name().and_then(|name| name.to_str()),
-        Some("kcode")
+        Some("neura")
     );
     assert_eq!(
         args,
@@ -144,7 +144,7 @@ fn build_resume_command_uses_imported_kcode_session_for_claude_code() {
 }
 
 #[test]
-fn build_resume_command_uses_imported_kcode_session_for_codex() {
+fn build_resume_command_uses_imported_neura_session_for_codex() {
     let (program, args, title) = build_resume_command(
         &ResumeTarget::CodexSession {
             session_id: "codex-session-123".to_string(),
@@ -155,7 +155,7 @@ fn build_resume_command_uses_imported_kcode_session_for_codex() {
 
     assert_eq!(
         program.file_name().and_then(|name| name.to_str()),
-        Some("kcode")
+        Some("neura")
     );
     assert_eq!(
         args,
@@ -183,7 +183,7 @@ fn format_countdown_until_handles_subminute_and_minutes() {
 #[test]
 fn gather_ambient_info_filters_to_session_reminders_when_ambient_disabled() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let _home = EnvVarGuard::set_path("KCODE_HOME", temp.path());
+    let _home = EnvVarGuard::set_path("NEURA_HOME", temp.path());
 
     let mut manager = AmbientManager::new().expect("ambient manager");
     let first_due = Utc::now() + ChronoDuration::minutes(5);

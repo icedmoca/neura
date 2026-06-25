@@ -581,7 +581,7 @@ pub fn load_session(id_or_path: &str) -> Result<Session> {
     }
 
     // Try as session ID in the sessions directory
-    let sessions_dir = crate::storage::kcode_dir()?.join("sessions");
+    let sessions_dir = crate::storage::neura_dir()?.join("sessions");
     // Try exact match
     let exact = sessions_dir.join(format!("{}.json", id_or_path));
     if exact.exists() {
@@ -618,7 +618,7 @@ pub fn load_swarm_sessions(
     let lower_bound = seed.created_at - Duration::hours(6);
     let upper_bound = seed.updated_at + Duration::hours(6);
 
-    let sessions_dir = crate::storage::kcode_dir()?.join("sessions");
+    let sessions_dir = crate::storage::neura_dir()?.join("sessions");
     if !sessions_dir.exists() {
         return Ok(vec![SwarmReplaySession {
             timeline: maybe_auto_edit(&seed, auto_edit),

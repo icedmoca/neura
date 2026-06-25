@@ -1,9 +1,9 @@
 use std::ffi::OsStr;
 
-/// Mutate the process environment for kcode runtime configuration.
+/// Mutate the process environment for neura runtime configuration.
 ///
 /// Rust 2024 makes environment mutation unsafe because it can race with
-/// concurrent environment access in foreign code. kcode intentionally mutates
+/// concurrent environment access in foreign code. neura intentionally mutates
 /// process-local env vars to coordinate provider/runtime bootstrap before or
 /// during task execution. We centralize that unsafety here so call sites remain
 /// auditable.
@@ -12,7 +12,7 @@ where
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
-    // SAFETY: kcode treats these mutations as process-global configuration.
+    // SAFETY: neura treats these mutations as process-global configuration.
     // They are a pre-existing design choice used throughout startup, auth,
     // provider bootstrap, tests, and self-dev flows. Centralizing the unsafe
     // operation here makes the Rust 2024 requirement explicit without
@@ -22,7 +22,7 @@ where
     }
 }
 
-/// Remove a process environment variable used by kcode runtime configuration.
+/// Remove a process environment variable used by neura runtime configuration.
 pub fn remove_var<K>(key: K)
 where
     K: AsRef<OsStr>,

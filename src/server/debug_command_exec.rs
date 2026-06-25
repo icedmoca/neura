@@ -6,7 +6,7 @@ use crate::agent::Agent;
 use crate::build;
 use crate::mcp::McpConfig;
 use anyhow::Result;
-use kcode_agent_runtime::SoftInterruptSource;
+use neura_agent_runtime::SoftInterruptSource;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::time::Duration;
@@ -48,7 +48,7 @@ pub(super) async fn resolve_debug_session(
 }
 
 pub(super) fn debug_message_timeout_secs() -> Option<u64> {
-    let raw = std::env::var("KCODE_DEBUG_MESSAGE_TIMEOUT_SECS").ok()?;
+    let raw = std::env::var("NEURA_DEBUG_MESSAGE_TIMEOUT_SECS").ok()?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return None;
@@ -207,8 +207,8 @@ pub(super) async fn execute_debug_command(
         let connected_servers: Vec<String> = connected.keys().cloned().collect();
 
         let config = McpConfig::load();
-        let config_path = if let Ok(kcode_dir) = crate::storage::kcode_dir() {
-            let path = kcode_dir.join("mcp.json");
+        let config_path = if let Ok(neura_dir) = crate::storage::neura_dir() {
+            let path = neura_dir.join("mcp.json");
             if path.exists() {
                 Some(path.to_string_lossy().to_string())
             } else {
@@ -536,13 +536,13 @@ pub(super) async fn execute_debug_command(
 
     if trimmed == "reload" {
         let repo_dir = crate::build::get_repo_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not find kcode repository directory"))?;
+            .ok_or_else(|| anyhow::anyhow!("Could not find neura repository directory"))?;
 
         let target_binary = crate::build::find_dev_binary(&repo_dir)
             .unwrap_or_else(|| build::release_binary_path(&repo_dir));
         if !target_binary.exists() {
             return Err(anyhow::anyhow!(format!(
-                "No binary found at {}. Run 'kcode self-dev --build' first, or build with 'scripts/dev_cargo.sh build --profile selfdev -p kcode --bin kcode' and publish current.",
+                "No binary found at {}. Run 'neura self-dev --build' first, or build with 'scripts/dev_cargo.sh build --profile selfdev -p neura --bin neura' and publish current.",
                 target_binary.display()
             )));
         }
@@ -559,8 +559,8 @@ pub(super) async fn execute_debug_command(
         manifest.canary_status = Some(crate::build::CanaryStatus::Testing);
         manifest.save()?;
 
-        let kcode_dir = crate::storage::kcode_dir()?;
-        let info_path = kcode_dir.join("reload-info");
+        let neura_dir = crate::storage::neura_dir()?;
+        let info_path = neura_dir.join("reload-info");
         std::fs::write(&info_path, format!("reload:{}", hash))?;
 
         let _request_id = super::send_reload_signal(hash.clone(), None, false);
@@ -648,8 +648,8 @@ mod tests {
     #[tokio::test]
     async fn debug_tool_selfdev_reload_returns_promptly_for_direct_execution() {
         let _env_lock = lock_env();
-        let _test_session = EnvGuard::set("KCODE_TEST_SESSION", "1");
-        let _debug_control = EnvGuard::set("KCODE_DEBUG_CONTROL", "1");
+        let _test_session = EnvGuard::set("NEURA_TEST_SESSION", "1");
+        let _debug_control = EnvGuard::set("NEURA_DEBUG_CONTROL", "1");
 
         let mut reload_rx = crate::server::subscribe_reload_signal_for_tests();
 

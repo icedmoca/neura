@@ -1,7 +1,7 @@
 //! Tamper-evident runtime receipt ledger.
 //!
 //! This is a local append-only JSONL hash chain. It is not a cryptocurrency or
-//! consensus system. It gives Kcode a durable, verifiable receipt trail for
+//! consensus system. It gives Neura a durable, verifiable receipt trail for
 //! important runtime decisions such as governor mode changes, backend work,
 //! session persistence, tool execution, and provider calls.
 
@@ -238,7 +238,7 @@ static LEDGER_ENABLED: OnceLock<bool> = OnceLock::new();
 
 pub fn enabled() -> bool {
     *LEDGER_ENABLED.get_or_init(|| {
-        std::env::var("KCODE_RUNTIME_LEDGER")
+        std::env::var("NEURA_RUNTIME_LEDGER")
             .map(|v| !matches!(v.as_str(), "0" | "false" | "off"))
             .unwrap_or(true)
     })
@@ -250,7 +250,7 @@ mod tests {
 
     fn temp_ledger_path(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!(
-            "kcode-runtime-ledger-{name}-{}-{}.jsonl",
+            "neura-runtime-ledger-{name}-{}-{}.jsonl",
             std::process::id(),
             now_ms()
         ))

@@ -55,7 +55,7 @@ fn sanitize_session_id(session_id: &str) -> String {
 }
 
 fn recovery_dir() -> Result<PathBuf> {
-    Ok(crate::storage::kcode_dir()?.join("reload-recovery"))
+    Ok(crate::storage::neura_dir()?.join("reload-recovery"))
 }
 
 pub(super) fn path_for_session(session_id: &str) -> Result<PathBuf> {

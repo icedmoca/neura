@@ -11,10 +11,10 @@ for i in range(20):
     TASKS.append({'id':f'memory_conflict_{i}','domain':'memory_conflict','message':f'Old memory says deploy shard is red-{i}. Newer memory says deploy shard is blue-{i}. Use the newer memory, mention conflict, and answer blue-{i}.','expect':[f'blue-{i}','conflict']})
 
 def run_one(t):
-    cmd=['/home/dad/.kcode/builds/current/kcode','run','--json','--trace','--quiet','--no-update','--no-selfdev','--cwd','/home/dad/.kcode/build-src/kcode',t['message']]
+    cmd=['/home/dad/.neura/builds/current/neura','run','--json','--trace','--quiet','--no-update','--no-selfdev','--cwd','/home/dad/.neura/build-src/neura',t['message']]
     start=time.perf_counter()
     try:
-        cp=subprocess.run(cmd,cwd='/home/dad/.kcode/build-src/kcode',text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=180)
+        cp=subprocess.run(cmd,cwd='/home/dad/.neura/build-src/neura',text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=180)
         rec={**t,'returncode':cp.returncode,'wall_seconds':round(time.perf_counter()-start,3),'stdout_tail':cp.stdout[-3000:],'stderr_tail':cp.stderr[-3000:]}
     except subprocess.TimeoutExpired as e:
         rec={**t,'returncode':124,'wall_seconds':round(time.perf_counter()-start,3),'stdout_tail':e.stdout or '','stderr_tail':e.stderr or '','timeout':True}

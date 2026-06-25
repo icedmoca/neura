@@ -1,6 +1,6 @@
-# Kcode interactive performance audit
+# Neura interactive performance audit
 
-This file records the current latency-sensitive paths in Kcode and the concrete optimization status as of this audit.
+This file records the current latency-sensitive paths in Neura and the concrete optimization status as of this audit.
 
 ## High-confidence findings
 
