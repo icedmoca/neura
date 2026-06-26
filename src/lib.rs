@@ -25,7 +25,7 @@ pub mod embedding;
 pub mod embedding_stub;
 pub mod evidence_ledger;
 pub mod evidence_replay;
-pub mod neura_memory;
+pub mod directive_memory;
 pub mod neura_ui;
 pub mod latent_learning;
 pub mod latent_learning_background;

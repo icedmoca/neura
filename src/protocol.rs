@@ -82,6 +82,12 @@ pub enum Request {
     #[serde(rename = "cancel")]
     Cancel { id: u64 },
 
+    /// Explicit shutdown: the user quit the client (Ctrl+C twice or /exit),
+    /// so the shared server daemon should flush and exit promptly instead of
+    /// lingering for the idle timeout.
+    #[serde(rename = "shutdown")]
+    Shutdown { id: u64 },
+
     /// Move the currently executing tool to background
     #[serde(rename = "background_tool")]
     BackgroundTool { id: u64 },
@@ -1260,6 +1266,7 @@ impl Request {
         match self {
             Request::Message { id, .. } => *id,
             Request::Cancel { id } => *id,
+            Request::Shutdown { id } => *id,
             Request::BackgroundTool { id } => *id,
             Request::SoftInterrupt { id, .. } => *id,
             Request::CancelSoftInterrupts { id } => *id,

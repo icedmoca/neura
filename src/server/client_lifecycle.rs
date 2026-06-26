@@ -1300,6 +1300,14 @@ pub(super) async fn handle_client(
                 }
             }
 
+            Request::Shutdown { id } => {
+                let _ = id;
+                // The user explicitly quit the client. Mark the daemon for prompt
+                // shutdown; it exits via the idle path once this (and any other)
+                // client disconnects and the final memory extraction has flushed.
+                crate::server::request_explicit_shutdown();
+            }
+
             Request::SoftInterrupt {
                 id,
                 content,

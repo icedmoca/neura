@@ -256,6 +256,47 @@ pub(super) fn copy_to_clipboard(text: &str) -> bool {
             return child.wait().map(|s| s.success()).unwrap_or(false);
         }
     }
+    copy_to_clipboard_arboard(text)
+}
+
+/// arboard fallback used when `wl-copy` is unavailable.
+///
+/// On Linux, X11/Wayland clipboard ownership only persists while the owning
+/// process keeps serving selection requests. `set_text` followed by an
+/// immediate drop of the `Clipboard` reports success yet leaves the clipboard
+/// empty — the data vanishes the instant the handle is dropped. To avoid that
+/// false-positive we hand the selection to a detached owner thread that blocks
+/// (via `SetExtLinux::wait`) serving requests until another app takes ownership,
+/// mirroring what `wl-copy`/`xclip` do by daemonizing.
+#[cfg(target_os = "linux")]
+fn copy_to_clipboard_arboard(text: &str) -> bool {
+    use arboard::SetExtLinux;
+
+    let (tx, rx) = std::sync::mpsc::channel();
+    let text = text.to_string();
+    let spawned = std::thread::Builder::new()
+        .name("clipboard-owner".to_string())
+        .spawn(move || match arboard::Clipboard::new() {
+            Ok(mut cb) => {
+                // We have a working backend and are about to take ownership;
+                // report success now, then block to keep the data available.
+                let _ = tx.send(true);
+                let _ = cb.set().wait().text(text);
+            }
+            Err(_) => {
+                let _ = tx.send(false);
+            }
+        })
+        .is_ok();
+
+    spawned
+        && rx
+            .recv_timeout(Duration::from_millis(500))
+            .unwrap_or(false)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn copy_to_clipboard_arboard(text: &str) -> bool {
     arboard::Clipboard::new()
         .and_then(|mut cb| cb.set_text(text.to_string()))
         .is_ok()

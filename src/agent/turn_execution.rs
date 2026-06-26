@@ -6,7 +6,7 @@ impl Agent {
     pub async fn run_once(&mut self, user_message: &str) -> Result<()> {
         crate::live_operational_fabric::emit_user_message("agent.run_once", user_message);
         crate::live_operational_fabric::emit_memory_bridge("agent.run_once", user_message.len());
-        let _ = crate::neura_memory::ingest_text("agent.run_once", user_message);
+        let _ = crate::directive_memory::ingest_text("agent.run_once", user_message);
         self.add_message(
             Role::User,
             vec![ContentBlock::Text {
@@ -28,7 +28,7 @@ impl Agent {
             "agent.run_once_capture",
             user_message.len(),
         );
-        let _ = crate::neura_memory::ingest_text("agent.run_once_capture", user_message);
+        let _ = crate::directive_memory::ingest_text("agent.run_once_capture", user_message);
         self.add_message(
             Role::User,
             vec![ContentBlock::Text {
@@ -51,7 +51,7 @@ impl Agent {
     ) -> Result<()> {
         crate::live_operational_fabric::emit_user_message("agent.streaming", user_message);
         crate::live_operational_fabric::emit_memory_bridge("agent.streaming", user_message.len());
-        let _ = crate::neura_memory::ingest_text("agent.streaming", user_message);
+        let _ = crate::directive_memory::ingest_text("agent.streaming", user_message);
         // Inject any pending notifications before the user message
         let alerts = self.take_alerts();
         if !alerts.is_empty() {
@@ -93,7 +93,7 @@ impl Agent {
             "agent.streaming_mpsc",
             user_message.len(),
         );
-        let _ = crate::neura_memory::ingest_text("agent.streaming", user_message);
+        let _ = crate::directive_memory::ingest_text("agent.streaming", user_message);
         // Inject any pending notifications before the user message
         let alerts = self.take_alerts();
         if !alerts.is_empty() {

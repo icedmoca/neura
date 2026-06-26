@@ -14,7 +14,7 @@ use chrono::Utc;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Instant;
 use tokio::sync::mpsc;
 
@@ -242,8 +242,11 @@ enum AgentMessage {
 const MIN_TURNS_FOR_EXTRACTION: usize = 4;
 
 /// Trigger a periodic incremental extraction every N turns, even without a topic change.
-/// This ensures memories are captured during long single-topic sessions.
-const PERIODIC_EXTRACTION_INTERVAL: usize = 12;
+/// Set to 1 so the sidecar attempts extraction after *every* turn; the
+/// single-flight guard (`extraction_in_flight`) throttles it so a new run only
+/// starts once the previous (~18s) one finishes. This keeps memory hot/fresh
+/// during a live session instead of only at session end.
+const PERIODIC_EXTRACTION_INTERVAL: usize = 1;
 
 /// Skip repeated relevance checks when the formatted context is unchanged.
 const RELEVANCE_CONTEXT_REPEAT_SUPPRESSION_SECS: u64 = 30;
@@ -383,6 +386,11 @@ pub struct MemoryAgent {
 
     /// Per-session state keyed by session ID
     sessions: HashMap<String, SessionState>,
+
+    /// Single-flight guard: true while a background extraction is running.
+    /// Extraction is attempted every turn but skipped if one is still in
+    /// flight, so the (~18s) sidecar call never overlaps or queues.
+    extraction_in_flight: Arc<AtomicBool>,
 }
 
 impl MemoryAgent {
@@ -392,6 +400,7 @@ impl MemoryAgent {
             rx,
             sidecar: memory::memory_sidecar_enabled().then(Sidecar::new),
             sessions: HashMap::new(),
+            extraction_in_flight: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -817,6 +826,17 @@ impl MemoryAgent {
             return;
         }
 
+        // Single-flight: extraction is attempted every turn, but the sidecar
+        // call is ~18s. If one is already running, skip this turn rather than
+        // overlap/queue. The flag is cleared by the spawned task on completion.
+        if self.extraction_in_flight.swap(true, Ordering::SeqCst) {
+            crate::logging::info(&format!(
+                "[{}] Incremental extraction skipped: previous run still in flight",
+                session_id
+            ));
+            return;
+        }
+
         // Update UI state
         memory::set_state(MemoryState::Extracting {
             reason: reason.to_string(),
@@ -830,8 +850,10 @@ impl MemoryAgent {
                 "Incremental extraction skipped for session {}: sidecar unavailable",
                 session_id
             ));
+            self.extraction_in_flight.store(false, Ordering::SeqCst);
             return;
         };
+        let extraction_flag = self.extraction_in_flight.clone();
         let memory_manager = self.manager_for_session(session_id);
         let context_owned = context.to_string();
 
@@ -873,12 +895,10 @@ impl MemoryAgent {
                     let mut superseded_count = 0;
 
                     for mem in extracted {
-                        let category = match mem.category.as_str() {
-                            "fact" => memory::MemoryCategory::Fact,
-                            "preference" => memory::MemoryCategory::Preference,
-                            "correction" => memory::MemoryCategory::Correction,
-                            _ => memory::MemoryCategory::Fact,
-                        };
+                        // Use the shared parser: handles enum-list echoes
+                        // ("fact|decision") and preserves valid labels instead
+                        // of flattening everything to Fact.
+                        let category = memory::MemoryCategory::from_extracted(&mem.category);
 
                         let trust = match mem.trust.as_str() {
                             "high" => memory::TrustLevel::High,
@@ -1050,6 +1070,8 @@ impl MemoryAgent {
                     memory::set_state(MemoryState::Idle);
                 }
             }
+            // Release the single-flight guard so the next turn can extract.
+            extraction_flag.store(false, Ordering::SeqCst);
         });
     }
 

@@ -251,19 +251,63 @@ impl MemoryCategory {
     /// Maps legacy/incorrect category names to the correct variant and avoids
     /// blindly defaulting to Fact.
     pub fn from_extracted(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
+        // Weak local models (e.g. phi3:mini) sometimes echo the whole enum list
+        // back verbatim ("fact|decision", "workflow / fact") instead of picking
+        // one value. Take the first non-empty token before any separator.
+        let first = s
+            .split(|c| c == '|' || c == '/' || c == ',' || c == ' ')
+            .map(str::trim)
+            .find(|t| !t.is_empty())
+            .unwrap_or("")
+            .to_lowercase();
+        match first.as_str() {
             "fact" | "facts" => MemoryCategory::Fact,
             "preference" | "preferences" | "pref" => MemoryCategory::Preference,
             "correction" | "corrections" | "fix" | "bug" => MemoryCategory::Correction,
             "entity" | "entities" => MemoryCategory::Entity,
             "observation" | "lesson" | "learning" => MemoryCategory::Fact,
-            other => {
-                crate::logging::info(&format!(
-                    "Unknown memory category from extraction: '{}', defaulting to fact",
-                    other
-                ));
-                MemoryCategory::Fact
-            }
+            "" => MemoryCategory::Fact,
+            // Preserve the model's own label (project/workflow/decision/…) as a
+            // custom category instead of flattening everything to Fact.
+            other => MemoryCategory::Custom(other.to_string()),
         }
+    }
+}
+
+#[cfg(test)]
+mod category_tests {
+    use super::MemoryCategory;
+
+    #[test]
+    fn from_extracted_picks_first_token_of_echoed_enum() {
+        // phi3:mini frequently returns the whole pipe list instead of one value.
+        assert!(matches!(
+            MemoryCategory::from_extracted("fact|decision"),
+            MemoryCategory::Fact
+        ));
+        assert!(matches!(
+            MemoryCategory::from_extracted("preference|project|workflow"),
+            MemoryCategory::Preference
+        ));
+    }
+
+    #[test]
+    fn from_extracted_preserves_unknown_label_instead_of_flattening() {
+        match MemoryCategory::from_extracted("workflow") {
+            MemoryCategory::Custom(s) => assert_eq!(s, "workflow"),
+            other => panic!("expected Custom(workflow), got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn from_extracted_handles_separators_and_blank() {
+        assert!(matches!(
+            MemoryCategory::from_extracted(" fact / preference "),
+            MemoryCategory::Fact
+        ));
+        assert!(matches!(
+            MemoryCategory::from_extracted(""),
+            MemoryCategory::Fact
+        ));
     }
 }

@@ -52,11 +52,17 @@ impl App {
             } else {
                 // Wait for input or redraw tick
                 tokio::select! {
-                    _ = redraw_interval.tick() => {
-                        needs_redraw |= local::handle_tick(&mut self);
-                    }
+                    // Prioritize and coalesce keyboard input so typing stays responsive.
+                    biased;
                     event = event_stream.next() => {
                         needs_redraw |= local::handle_terminal_event(&mut self, &mut terminal, event)?;
+                        while crossterm::event::poll(std::time::Duration::ZERO).unwrap_or(false) {
+                            let drained = Some(crossterm::event::read());
+                            needs_redraw |= local::handle_terminal_event(&mut self, &mut terminal, drained)?;
+                        }
+                    }
+                    _ = redraw_interval.tick() => {
+                        needs_redraw |= local::handle_tick(&mut self);
                     }
                     command = async {
                         match handterm_native_scroll.as_mut() {
@@ -169,6 +175,17 @@ impl App {
                 }
 
                 if self.should_quit {
+                    // A real user quit (Ctrl+C twice or /exit) — distinct from a
+                    // client reload/rebuild/update, which also set should_quit but
+                    // must NOT kill the server. On a real quit, tell the shared
+                    // daemon to shut down too, so quitting turns off all neura
+                    // processes instead of leaving it lingering for the idle timeout.
+                    if self.reload_requested.is_none()
+                        && self.rebuild_requested.is_none()
+                        && self.update_requested.is_none()
+                    {
+                        remote_conn.request_server_shutdown().await;
+                    }
                     break 'outer;
                 }
 
@@ -180,8 +197,17 @@ impl App {
                 }
 
                 tokio::select! {
-                    _ = redraw_interval.tick() => {
-                        needs_redraw |= remote::handle_tick(&mut self, &mut remote_conn).await;
+                    // Prioritize keyboard input over server stream traffic so typing
+                    // stays responsive while the assistant streams. Drain any input
+                    // already queued so a burst of keystrokes coalesces into a single
+                    // redraw (at the top of the loop) instead of one repaint per key.
+                    biased;
+                    event = event_stream.next() => {
+                        needs_redraw |= remote::handle_terminal_event(&mut self, &mut terminal, &mut remote_conn, event).await?;
+                        while crossterm::event::poll(std::time::Duration::ZERO).unwrap_or(false) {
+                            let drained = Some(crossterm::event::read());
+                            needs_redraw |= remote::handle_terminal_event(&mut self, &mut terminal, &mut remote_conn, drained).await?;
+                        }
                     }
                     event = remote_conn.next_event() => {
                         let (outcome, event_redraw) = remote::handle_remote_event(
@@ -198,8 +224,8 @@ impl App {
                             remote::RemoteEventOutcome::Reconnect => continue 'outer,
                         }
                     }
-                    event = event_stream.next() => {
-                        needs_redraw |= remote::handle_terminal_event(&mut self, &mut terminal, &mut remote_conn, event).await?;
+                    _ = redraw_interval.tick() => {
+                        needs_redraw |= remote::handle_tick(&mut self, &mut remote_conn).await;
                     }
                     command = async {
                         match handterm_native_scroll.as_mut() {

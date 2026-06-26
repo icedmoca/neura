@@ -25,6 +25,9 @@ pub struct SidecarConfig {
     pub model: String,
     pub kind: SidecarKind,
     pub timeout_ms: u64,
+    /// Max transcript chars sent per extraction. Small local models have tiny
+    /// context windows; oversized prompts get truncated (garbage) and run slow.
+    pub max_transcript_chars: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,17 +68,25 @@ fn discover_neura_model_name() -> Option<String> {
 
 impl SidecarConfig {
     pub fn from_env() -> Self {
+        // Config provides persistent defaults; environment variables override them.
+        let agents = &crate::config::config().agents;
         let url = env::var("NEURA_SIDECAR_URL")
-            .or_else(|_| env::var("NEURA_LOCAL_MODEL_BASE_URL"))
-            .unwrap_or_else(|_| DEFAULT_NEURA_SIDECAR_URL.to_string());
+            .ok()
+            .or_else(|| env::var("NEURA_LOCAL_MODEL_BASE_URL").ok())
+            .or_else(|| agents.memory_sidecar_url.clone())
+            .unwrap_or_else(|| DEFAULT_NEURA_SIDECAR_URL.to_string());
         let model = env::var("NEURA_SIDECAR_MODEL")
-            .or_else(|_| env::var("NEURA_LOCAL_MODEL"))
-            .unwrap_or_else(|_| {
+            .ok()
+            .or_else(|| env::var("NEURA_LOCAL_MODEL").ok())
+            .or_else(|| agents.memory_model.clone())
+            .unwrap_or_else(|| {
                 discover_neura_model_name()
                     .unwrap_or_else(|| DEFAULT_NEURA_SIDECAR_MODEL.to_string())
             });
         let kind = match env::var("NEURA_SIDECAR_KIND")
-            .unwrap_or_else(|_| "openai-compatible".to_string())
+            .ok()
+            .or_else(|| agents.memory_sidecar_kind.clone())
+            .unwrap_or_else(|| "openai-compatible".to_string())
             .to_lowercase()
             .as_str()
         {
@@ -89,13 +100,20 @@ impl SidecarConfig {
         let timeout_ms = env::var("NEURA_SIDECAR_TIMEOUT_MS")
             .ok()
             .and_then(|v| v.parse().ok())
+            .or(agents.memory_sidecar_timeout_ms)
             .unwrap_or(2500);
+        let max_transcript_chars = env::var("NEURA_SIDECAR_MAX_TRANSCRIPT_CHARS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .or(agents.memory_sidecar_max_transcript_chars)
+            .unwrap_or(24_000);
         Self {
             enabled,
             url,
             model,
             kind,
             timeout_ms,
+            max_transcript_chars,
         }
     }
 }
@@ -356,7 +374,10 @@ impl Sidecar {
         existing: &[String],
     ) -> Result<Vec<ExtractedMemory>> {
         let cfg = self.cfg.clone();
-        let transcript = transcript.chars().take(24_000).collect::<String>();
+        let transcript = transcript
+            .chars()
+            .take(cfg.max_transcript_chars)
+            .collect::<String>();
         let existing = existing.iter().take(40).cloned().collect::<Vec<_>>();
         tokio::task::spawn_blocking(move || {
             let client = SidecarClient::new(cfg)?;
@@ -457,7 +478,7 @@ fn extract_memories_blocking(
         existing.join("\n- ")
     };
     let prompt = format!(
-        "You are Neura's local memory sidecar. Extract only durable, user-relevant memories from this session. Avoid duplicates of existing memories. Return strict JSON: {{\"extracted\":[{{\"content\":\"...\",\"kind\":\"preference|project|workflow|fact|decision\",\"confidence\":0.0}}]}}. Keep content concise and technical.\nExisting memories:\n- {existing_text}\n\nTranscript:\n{transcript}"
+        "You are Neura's local memory sidecar. Extract only durable, user-relevant memories from this session. Avoid duplicates of existing memories. Return strict JSON in exactly this shape: {{\"extracted\":[{{\"content\":\"...\",\"kind\":\"fact\",\"confidence\":0.0}}]}}. The \"kind\" field must be a SINGLE word chosen from: preference, project, workflow, fact, decision (do not output the list or multiple words). Keep content concise and technical.\nExisting memories:\n- {existing_text}\n\nTranscript:\n{transcript}"
     );
     let raw = match client.cfg.kind {
         SidecarKind::Ollama => client.generate_ollama(&prompt)?,

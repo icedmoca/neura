@@ -243,6 +243,22 @@ pub struct AgentsConfig {
     pub memory_model: Option<String>,
     /// Whether memory should use the sidecar for relevance/extraction.
     pub memory_sidecar_enabled: bool,
+    /// Optional base URL for the memory sidecar
+    /// (e.g. `http://127.0.0.1:11434/v1` for a local ollama server).
+    pub memory_sidecar_url: Option<String>,
+    /// Sidecar backend kind: `openai-compatible` (default) or `ollama`.
+    pub memory_sidecar_kind: Option<String>,
+    /// Request timeout for sidecar calls, in milliseconds. Local models (cold
+    /// load + large prompts) need far more than the cloud-oriented default.
+    pub memory_sidecar_timeout_ms: Option<u64>,
+    /// Max transcript chars per sidecar extraction. Keep small for local models
+    /// whose context window is limited (e.g. ~9000 for a 4k-context model).
+    pub memory_sidecar_max_transcript_chars: Option<usize>,
+    /// Use the local sidecar to generate interlang context-vault block summaries
+    /// (a better compact representation of externalized blocks for the remote
+    /// model). Runs in the background, single-flight; the deterministic summary
+    /// is the instant fallback and the exact text always stays in the vault.
+    pub sidecar_ctx_summaries: bool,
 }
 
 /// Automatic end-of-turn code review configuration.

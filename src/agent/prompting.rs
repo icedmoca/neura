@@ -108,7 +108,7 @@ impl Agent {
         );
 
         self.append_current_turn_system_reminder(&mut split);
-        if let Some(memory_block) = crate::neura_memory::prompt_memory_block() {
+        if let Some(memory_block) = crate::directive_memory::prompt_memory_block() {
             split.dynamic_part.push_str(&memory_block);
         }
 

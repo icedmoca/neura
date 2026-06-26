@@ -609,6 +609,40 @@ impl RemoteConnection {
         self.send_request(request).await
     }
 
+    /// Tell the shared server daemon to shut down promptly. Sent when the user
+    /// explicitly quits the client (Ctrl+C twice or /exit) so quitting turns off
+    /// all neura processes instead of leaving the daemon to idle out.
+    ///
+    /// The write is flushed and then briefly held open: the client tears down
+    /// immediately after this returns, and delivery of the final write can race
+    /// with process teardown, so we give the server a moment to read+process the
+    /// request before the connection closes.
+    pub async fn request_server_shutdown(&self) {
+        let json = match serde_json::to_string(&Request::Shutdown { id: 0 }) {
+            Ok(json) => json + "\n",
+            Err(error) => {
+                crate::logging::warn(&format!(
+                    "Failed to encode server shutdown request: {}",
+                    error
+                ));
+                return;
+            }
+        };
+        {
+            let mut w = self.writer.lock().await;
+            if let Err(error) = w.write_all(json.as_bytes()).await {
+                crate::logging::warn(&format!(
+                    "Failed to send server shutdown request: {}",
+                    error
+                ));
+                return;
+            }
+            let _ = w.flush().await;
+        }
+        crate::logging::info("Sent server shutdown request (explicit client quit).");
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    }
+
     /// Move the currently executing tool to background
     pub async fn background_tool(&mut self) -> Result<()> {
         let request = Request::BackgroundTool {

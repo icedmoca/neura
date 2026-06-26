@@ -363,6 +363,53 @@ mod file_activity_tests;
 /// Idle timeout for the shared server when no clients are connected (5 minutes)
 const IDLE_TIMEOUT_SECS: u64 = 300;
 
+/// Idle timeout used once a client has explicitly quit (Ctrl+C twice or
+/// /exit). Short — just enough for the disconnect-triggered final memory
+/// extraction to make progress — then the daemon exits instead of lingering 5
+/// minutes. Per-turn extraction already captures memory during the session, so
+/// this can be brief. This is what makes an explicit quit turn off all neura
+/// processes promptly.
+const EXPLICIT_SHUTDOWN_GRACE_SECS: u64 = 8;
+
+/// Set when a client requests an explicit shutdown (see `Request::Shutdown`).
+static EXPLICIT_SHUTDOWN_REQUESTED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+/// Mark that the server should shut down promptly after the current client(s)
+/// disconnect, rather than waiting out the full idle timeout.
+pub fn request_explicit_shutdown() {
+    EXPLICIT_SHUTDOWN_REQUESTED.store(true, std::sync::atomic::Ordering::SeqCst);
+    crate::logging::info("Explicit shutdown requested by client; server will exit promptly once idle.");
+}
+
+/// The effective idle timeout: short once an explicit shutdown was requested.
+fn effective_idle_timeout_secs() -> u64 {
+    if EXPLICIT_SHUTDOWN_REQUESTED.load(std::sync::atomic::Ordering::SeqCst) {
+        EXPLICIT_SHUTDOWN_GRACE_SECS
+    } else {
+        IDLE_TIMEOUT_SECS
+    }
+}
+
+/// Best-effort: stop companion helper processes so an explicit quit turns off
+/// all neura processes, not just the daemon. Currently the chromium-agent-bridge
+/// (a separate helper not spawned in-process). Does not touch the ollama sidecar
+/// keep-warm (intentionally always-hot) or anything else.
+fn kill_companion_helpers() {
+    for pattern in ["chromium-agent-bridge"] {
+        match std::process::Command::new("pkill").arg("-f").arg(pattern).status() {
+            Ok(status) => crate::logging::info(&format!(
+                "Explicit shutdown: pkill -f {} -> {}",
+                pattern, status
+            )),
+            Err(e) => crate::logging::warn(&format!(
+                "Explicit shutdown: failed to pkill {}: {}",
+                pattern, e
+            )),
+        }
+    }
+}
+
 /// How often to check whether the embedding model can be unloaded.
 const EMBEDDING_IDLE_CHECK_SECS: u64 = 30;
 
@@ -1299,7 +1346,9 @@ impl Server {
             let idle_server_name = self.identity.name.clone();
             tokio::spawn(async move {
                 let mut idle_since: Option<std::time::Instant> = None;
-                let mut check_interval = tokio::time::interval(std::time::Duration::from_secs(10));
+                // Check every 2s so an explicit-quit shutdown fires close to the
+                // grace window instead of being rounded up to a coarse tick.
+                let mut check_interval = tokio::time::interval(std::time::Duration::from_secs(2));
 
                 loop {
                     check_interval.tick().await;
@@ -1311,19 +1360,34 @@ impl Server {
                         if idle_since.is_none() {
                             idle_since = Some(std::time::Instant::now());
                             crate::logging::info(&format!(
-                                "No clients connected. Server will exit after {} minutes of idle.",
-                                IDLE_TIMEOUT_SECS / 60
+                                "No clients connected. Server will exit after {}s of idle.",
+                                effective_idle_timeout_secs()
                             ));
                         }
 
                         if let Some(since) = idle_since {
                             let idle_duration = since.elapsed().as_secs();
-                            if idle_duration >= IDLE_TIMEOUT_SECS {
+                            // Recomputed each tick so an explicit shutdown request
+                            // (Ctrl+C twice / /exit) collapses the 5-minute idle
+                            // window down to the short grace period immediately.
+                            if idle_duration >= effective_idle_timeout_secs() {
                                 crate::logging::info(&format!(
-                                    "Server idle for {} minutes with no clients. Shutting down.",
-                                    idle_duration / 60
+                                    "Server idle for {}s with no clients{}. Shutting down.",
+                                    idle_duration,
+                                    if EXPLICIT_SHUTDOWN_REQUESTED
+                                        .load(std::sync::atomic::Ordering::SeqCst)
+                                    {
+                                        " (explicit quit)"
+                                    } else {
+                                        ""
+                                    }
                                 ));
                                 let _ = crate::registry::unregister_server(&idle_server_name).await;
+                                if EXPLICIT_SHUTDOWN_REQUESTED
+                                    .load(std::sync::atomic::Ordering::SeqCst)
+                                {
+                                    kill_companion_helpers();
+                                }
                                 std::process::exit(EXIT_IDLE_TIMEOUT);
                             }
                         }

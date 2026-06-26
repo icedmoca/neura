@@ -610,6 +610,9 @@ pub fn maybe_compact_messages_with_budget(
     let (mut compacted, compact_stats) = compact_messages_for_test(&dieted);
     merge_stats(&mut stats, compact_stats);
     maybe_append_auto_rehydration(&mut compacted, &mut stats);
+    // Background, single-flight: upgrade one vault block's summary via the
+    // local sidecar (no-op unless enabled; never blocks this turn).
+    maybe_upgrade_vault_summaries();
     (compacted, stats)
 }
 
@@ -640,6 +643,144 @@ fn context_diet_enabled() -> bool {
             )
         })
         .unwrap_or(true)
+}
+
+// ── Sidecar-generated context-vault summaries ──────────────────────────────
+//
+// interlang externalizes large/repetitive blocks to the local vault and shows
+// the remote model only a compact `<ctx s="...">` / `<il:seen summary="...">`
+// reference. That `summary` is normally a deterministic heuristic. When enabled,
+// the always-hot local sidecar rewrites it into a faithful one-line description
+// — a better compact representation for the remote model. This runs in the
+// BACKGROUND (single-flight, one block per turn); the deterministic summary is
+// the instant fallback, and the exact text always stays in the vault, so an
+// imperfect sidecar summary can never lose information.
+
+const SIDECAR_SUMMARY_MAX_INPUT_CHARS: usize = 6_000;
+const SIDECAR_SUMMARY_MAX_OUTPUT_CHARS: usize = 240;
+
+struct SummaryUpgradeState {
+    in_flight: bool,
+    handled: HashSet<String>,
+}
+
+fn summary_upgrade_state() -> &'static Mutex<SummaryUpgradeState> {
+    static STATE: OnceLock<Mutex<SummaryUpgradeState>> = OnceLock::new();
+    STATE.get_or_init(|| {
+        Mutex::new(SummaryUpgradeState {
+            in_flight: false,
+            handled: HashSet::new(),
+        })
+    })
+}
+
+fn sidecar_ctx_summaries_enabled() -> bool {
+    if let Ok(v) = std::env::var("NEURA_SIDECAR_CTX_SUMMARIES") {
+        return !matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "0" | "false" | "no" | "off"
+        );
+    }
+    crate::config::config().agents.sidecar_ctx_summaries
+}
+
+/// Clamp a block to fit the sidecar's small context window, keeping the head
+/// and tail (where identifiers/errors usually live). Char-safe.
+fn cap_for_sidecar(text: &str) -> String {
+    if text.chars().count() <= SIDECAR_SUMMARY_MAX_INPUT_CHARS {
+        return text.to_string();
+    }
+    let head_budget = SIDECAR_SUMMARY_MAX_INPUT_CHARS * 2 / 3;
+    let tail_budget = SIDECAR_SUMMARY_MAX_INPUT_CHARS - head_budget;
+    let head: String = text.chars().take(head_budget).collect();
+    let chars: Vec<char> = text.chars().collect();
+    let tail: String = chars[chars.len().saturating_sub(tail_budget)..]
+        .iter()
+        .collect();
+    format!("{}\n...[middle elided]...\n{}", head, tail)
+}
+
+async fn summarize_block_with_sidecar(text: &str) -> Option<String> {
+    let system = "You compress a block of tool output or text into ONE concise factual line \
+(max ~200 chars) so another model can tell what it contains and decide whether to fetch the \
+exact text. Preserve key identifiers: file paths, error messages, commands, symbols, numbers. \
+Output only the line — no preamble, no markdown, no quotes.";
+    let raw = crate::sidecar::Sidecar::new().complete(system, text).await.ok()?;
+    let line = raw
+        .lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .unwrap_or("")
+        .trim_matches('"')
+        .trim()
+        .to_string();
+    if line.is_empty() {
+        return None;
+    }
+    Some(crate::util::truncate_str(&line, SIDECAR_SUMMARY_MAX_OUTPUT_CHARS).to_string())
+}
+
+/// After compaction, opportunistically upgrade ONE vault block's summary using
+/// the sidecar (single-flight, background). Retried across turns so the vault
+/// fills in over time without ever blocking the turn path.
+fn maybe_upgrade_vault_summaries() {
+    if !sidecar_ctx_summaries_enabled() || !crate::memory::memory_sidecar_enabled() {
+        return;
+    }
+    let Ok(handle) = tokio::runtime::Handle::try_current() else {
+        return;
+    };
+
+    // Pick one not-yet-handled, non-sensitive block with exact text.
+    let (hash, exact) = {
+        let mut state = match summary_upgrade_state().lock() {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        if state.in_flight {
+            return;
+        }
+        let Ok(seen) = seen_blocks().lock() else {
+            return;
+        };
+        let mut chosen: Option<(String, String)> = None;
+        for (h, b) in seen.iter() {
+            if b.sensitive || b.exact.is_empty() || state.handled.contains(h) {
+                continue;
+            }
+            chosen = Some((h.clone(), b.exact.clone()));
+            break;
+        }
+        drop(seen);
+        let Some(picked) = chosen else {
+            return;
+        };
+        state.handled.insert(picked.0.clone());
+        state.in_flight = true;
+        picked
+    };
+
+    let input = cap_for_sidecar(&exact);
+    handle.spawn(async move {
+        if let Some(summary) = summarize_block_with_sidecar(&input).await {
+            if let Ok(mut seen) = seen_blocks().lock()
+                && let Some(block) = seen.get_mut(&hash)
+            {
+                block.summary = summary;
+                // Drop cached encoded refs so every ref kind re-encodes with the
+                // upgraded summary on the next turn.
+                block.encoded_refs.clear();
+                ctx_vault::maybe_persist(block);
+                crate::logging::info(&format!(
+                    "interlang: upgraded ctx-vault summary via sidecar ({})",
+                    &hash[..hash.len().min(12)]
+                ));
+            }
+        }
+        if let Ok(mut state) = summary_upgrade_state().lock() {
+            state.in_flight = false;
+        }
+    });
 }
 
 fn env_usize(name: &str, default: usize, min: usize, max: usize) -> usize {

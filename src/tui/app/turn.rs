@@ -245,20 +245,19 @@ impl App {
             // Stream with input handling
             #[allow(unused_variables)]
             let last_stream_render = Instant::now() - STREAM_RENDER_FRAME_BUDGET;
-            loop {
+            'stream: loop {
                 tokio::select! {
-                    // Redraw periodically
-                    _ = redraw_interval.tick() => {
-                        if let Some(chunk) = self.stream_buffer.flush() {
-                            self.append_streaming_text(&chunk);
-                        }
-                        // Poll for background compaction completion during streaming
-                        self.poll_compaction_completion();
-                        terminal.draw(|frame| crate::tui::ui::draw(frame, self))?;
-                    }
+                    // Keep typing responsive while the assistant streams: handle input
+                    // before the stream/redraw branches, drain all queued input events,
+                    // and coalesce them into a single redraw instead of repainting the
+                    // whole transcript once per keystroke during fast typing.
+                    biased;
                     // Handle keyboard input
                     event = event_stream.next() => {
-                        match event {
+                        let mut needs_redraw = false;
+                        let mut next_event = event;
+                        loop {
+                        match next_event {
                             Some(Ok(Event::Key(key))) => {
                                 self.update_copy_badge_key_event(key);
                                 if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
@@ -395,31 +394,60 @@ impl App {
                                         reasoning_content.clear();
                                         interleaved = true;
                                         // Continue to next iteration of outer loop (new API call)
-                                        break;
+                                        break 'stream;
                                     }
 
-                                    if !scroll_only {
-                                        self.redraw_now(terminal)?;
-                                    }
+                                    needs_redraw |= !scroll_only;
                                 }
                             }
                             Some(Ok(Event::Paste(text))) => {
                                 self.handle_paste(text);
-                                self.redraw_now(terminal)?;
+                                needs_redraw = true;
                             }
                             Some(Ok(Event::Mouse(mouse))) => {
                                 let scroll_only = self.handle_mouse_event(mouse);
-                                if !scroll_only {
-                                    self.redraw_now(terminal)?;
-                                }
+                                needs_redraw |= !scroll_only;
                             }
                             Some(Ok(Event::Resize(_, _))) => {
                                 if self.should_redraw_after_resize() {
-                                    self.redraw_now(terminal)?;
+                                    needs_redraw = true;
                                 }
                             }
                             _ => {}
                         }
+
+                        // Drain input already queued behind this event so a burst of
+                        // keystrokes collapses into one repaint instead of one per key.
+                        if !crossterm::event::poll(Duration::ZERO)? {
+                            break;
+                        }
+                        next_event = Some(crossterm::event::read());
+                        }
+
+                        if needs_redraw {
+                            last_input_redraw = Some(Instant::now());
+                            self.redraw_now(terminal)?;
+                        }
+                    }
+                    // Redraw periodically (stream-driven refresh, capped at the floor).
+                    // Defer when input is pending or was just handled so typing wins the
+                    // frame and stream repaints don't interleave with active keystrokes.
+                    // Streamed text still appears via the immediate keystroke redraws.
+                    _ = redraw_interval.tick() => {
+                        if crossterm::event::poll(Duration::ZERO).unwrap_or(false) {
+                            continue;
+                        }
+                        if let Some(last) = last_input_redraw {
+                            if last.elapsed() < TYPING_STREAM_REDRAW_QUIET_PERIOD {
+                                continue;
+                            }
+                        }
+                        if let Some(chunk) = self.stream_buffer.flush() {
+                            self.append_streaming_text(&chunk);
+                        }
+                        // Poll for background compaction completion during streaming
+                        self.poll_compaction_completion();
+                        terminal.draw(|frame| crate::tui::ui::draw(frame, self))?;
                     }
                     // Handle stream events
                     stream_event = stream.next() => {
