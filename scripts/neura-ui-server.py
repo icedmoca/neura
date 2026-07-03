@@ -131,6 +131,7 @@ NEURA_RUN_TIMEOUT = int(os.environ.get("NEURA_UI_RUN_TIMEOUT", "300"))
 NEURA_TITLE_TIMEOUT = int(os.environ.get("NEURA_UI_TITLE_TIMEOUT", "60"))
 NEURA_TITLE_MODEL = os.environ.get("NEURA_UI_TITLE_MODEL", "").strip()
 TITLE_MAX_CHARS = 72
+TITLE_GEN_MARKER = "You label coding-agent chat threads in a sidebar"
 
 
 def neura_bin() -> str:
@@ -312,7 +313,7 @@ def generate_chat_title_with_neura(messages: list[dict]) -> str | None:
     if not transcript:
         return None
     prompt = (
-        "You label coding-agent chat threads in a sidebar.\n"
+        f"{TITLE_GEN_MARKER}\n"
         "Read the full transcript below and reply with ONLY a short title (3-8 words) "
         "that captures what the whole conversation is about.\n"
         "No quotes, no punctuation at the end, no explanation.\n\n"
@@ -348,6 +349,9 @@ def generate_chat_title_with_neura(messages: list[dict]) -> str | None:
             continue
     if not report:
         return None
+    throwaway_session_id = report.get("session_id")
+    if isinstance(throwaway_session_id, str) and throwaway_session_id:
+        delete_session_files(throwaway_session_id)
     title = clean_generated_title(str(report.get("text") or ""))
     return title or None
 
@@ -393,6 +397,64 @@ def schedule_chat_title_refresh(session_id: str | None) -> None:
             pass
 
     threading.Thread(target=worker, name=f"neura-title-{session_id[:18]}", daemon=True).start()
+
+
+def first_user_text_from_messages(msgs) -> str:
+    for m in msgs:
+        if m.get("role") != "user":
+            continue
+        text, _ = _message_text(m.get("content"))
+        if text:
+            return text
+    return ""
+
+
+def is_title_generation_session_messages(msgs) -> bool:
+    return TITLE_GEN_MARKER in first_user_text_from_messages(msgs)
+
+
+def delete_session_files(session_id: str) -> None:
+    if not session_id or not session_id.startswith("session_"):
+        return
+    for name in (f"{session_id}.json", f"{session_id}.journal.jsonl"):
+        path = SESSIONS_DIR / name
+        if path.exists():
+            try:
+                path.unlink()
+            except Exception:
+                pass
+    active = NEURA_HOME / f"{session_id}.active"
+    if active.exists():
+        try:
+            active.unlink()
+        except Exception:
+            pass
+
+
+def purge_title_generation_sessions() -> int:
+    """Remove throwaway neura-run sessions created only for sidebar title labeling."""
+    removed = 0
+    if not SESSIONS_DIR.exists():
+        return removed
+    for path in SESSIONS_DIR.glob("session_*.json"):
+        sid = path.stem
+        try:
+            data = json.loads(path.read_text())
+        except Exception:
+            continue
+        msgs = session_messages(sid, data)
+        if not is_title_generation_session_messages(msgs):
+            continue
+        delete_session_files(sid)
+        meta = load_ui_chat_meta()
+        chats = meta.get("chats", {})
+        if sid in chats:
+            del chats[sid]
+            save_ui_chat_meta(meta)
+        removed += 1
+    if removed:
+        publish_event("state_changed", reason="title_generation_sessions_purged", count=removed)
+    return removed
 
 
 def session_animal(session_id: str) -> str:
@@ -519,8 +581,12 @@ def load_chat(session_id: str) -> dict | None:
         data = json.loads(path.read_text())
     except Exception:
         return None
+    raw_msgs = session_messages(session_id, data)
+    if is_title_generation_session_messages(raw_msgs):
+        delete_session_files(session_id)
+        return None
     messages = []
-    for m in session_messages(session_id, data):
+    for m in raw_msgs:
         role = m.get("role", "")
         if role not in ("user", "assistant"):
             continue
@@ -545,6 +611,7 @@ def load_chat(session_id: str) -> dict | None:
 
 
 def list_chats() -> list[dict]:
+    purge_title_generation_sessions()
     out = []
     if not SESSIONS_DIR.exists():
         return out
@@ -555,7 +622,7 @@ def list_chats() -> list[dict]:
         except Exception:
             continue
         msgs = session_messages(sid, data)
-        if not msgs:
+        if not msgs or is_title_generation_session_messages(msgs):
             continue
         animal = data.get("short_name") or session_animal(sid)
         title, locked, source = resolve_chat_title(sid, data)
