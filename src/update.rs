@@ -581,6 +581,14 @@ pub fn prepare_update_blocking() -> Result<PreparedUpdate> {
 pub const SOURCE_UPDATE_REMOTE: &str = "https://github.com/icedmoca/neura.git";
 pub const SOURCE_UPDATE_BRANCH: &str = "main";
 
+/// Neura source checkout for `/update` and background session updates.
+/// Uses `build::get_repo_dir()` (compile-time manifest, exe layout, or cwd ancestors) —
+/// never the session working directory or process cwd alone.
+pub fn resolve_source_update_repo() -> Result<PathBuf> {
+    crate::build::get_repo_dir()
+        .ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))
+}
+
 pub fn run_source_update(repo: &Path) -> Result<String> {
     run_git(repo, &["fetch", SOURCE_UPDATE_REMOTE, SOURCE_UPDATE_BRANCH])?;
     run_git(repo, &["checkout", SOURCE_UPDATE_BRANCH])?;
@@ -629,7 +637,17 @@ pub fn spawn_background_session_update(session_id: String) {
             ),
         });
 
-        let repo = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
+        let repo = match resolve_source_update_repo() {
+            Ok(repo) => repo,
+            Err(err) => {
+                publish(SessionUpdateStatus::Error {
+                    session_id,
+                    action,
+                    message: err.to_string(),
+                });
+                return;
+            }
+        };
         match run_source_update(&repo) {
             Ok(message) => {
                 publish(SessionUpdateStatus::Status {
@@ -1090,6 +1108,20 @@ mod tests {
             estimate_release_update_duration(40 * 1024 * 1024, None),
             Duration::from_secs(35)
         );
+    }
+
+    #[test]
+    fn resolve_source_update_repo_uses_build_repo_not_cwd() {
+        let expected = crate::build::get_repo_dir().expect("tests must run inside neura checkout");
+        let temp = tempfile::tempdir().expect("tempdir");
+        let previous = std::env::current_dir().expect("cwd");
+        std::env::set_current_dir(temp.path()).expect("chdir to non-repo temp dir");
+
+        let resolved = resolve_source_update_repo().expect("repo via manifest/exe, not cwd");
+        assert_eq!(resolved, expected);
+        assert_ne!(resolved, temp.path());
+
+        std::env::set_current_dir(previous).expect("restore cwd");
     }
 
     #[test]

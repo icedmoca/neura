@@ -443,8 +443,7 @@ pub fn check_for_updates() -> Option<bool> {
 }
 
 pub fn run_auto_update() -> Result<()> {
-    let repo_dir =
-        get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))?;
+    let repo_dir = update::resolve_source_update_repo()?;
 
     update::run_git_pull_ff_only(&repo_dir, true)?;
 
@@ -509,8 +508,7 @@ pub fn run_update() -> Result<()> {
         return Ok(());
     }
 
-    let repo_dir =
-        get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))?;
+    let repo_dir = update::resolve_source_update_repo()?;
 
     update::print_centered(&format!("Updating neura from {}...", repo_dir.display()));
 

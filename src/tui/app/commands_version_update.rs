@@ -61,8 +61,8 @@ pub(super) fn version_message() -> String {
 }
 
 pub(super) fn run_update() -> anyhow::Result<String> {
-    let repo = std::env::current_dir()?;
-    Ok(crate::update::run_source_update(&repo)?)
+    let repo = crate::update::resolve_source_update_repo()?;
+    crate::update::run_source_update(&repo)
 }
 
 #[cfg(test)]
@@ -80,5 +80,21 @@ mod tests {
         let msg = version_message();
         assert!(msg.contains("Neura"));
         assert!(msg.contains("Reload candidate"));
+    }
+
+    #[test]
+    fn run_update_resolves_repo_via_get_repo_dir_not_cwd() {
+        let expected = crate::update::resolve_source_update_repo()
+            .expect("neura repository must be discoverable");
+        let temp = tempfile::tempdir().expect("tempdir");
+        let previous = std::env::current_dir().expect("cwd");
+        std::env::set_current_dir(temp.path()).expect("chdir to non-repo session cwd");
+
+        let resolved = crate::update::resolve_source_update_repo()
+            .expect("/update must not depend on session cwd");
+        assert_eq!(resolved, expected);
+        assert_ne!(resolved, temp.path());
+
+        std::env::set_current_dir(previous).expect("restore cwd");
     }
 }
