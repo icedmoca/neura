@@ -247,15 +247,18 @@ pub(in crate::tui::app) fn handle_server_event(
             if !auto_poked {
                 app.clear_visible_turn_started();
             }
-            auto_poked
+            // Always repaint: streaming text was committed and/or an interrupt notice was added.
+            true
         }
         ServerEvent::Done { id } => {
+            let mut turn_completed = false;
             let mut auto_poked = false;
             crate::logging::info(&format!(
                 "Client received Done id={}, current_message_id={:?}",
                 id, app.current_message_id
             ));
             if app.current_message_id == Some(id) {
+                turn_completed = true;
                 app.clear_pending_remote_retry();
                 if let Some(chunk) = app.stream_buffer.flush() {
                     app.append_streaming_text(&chunk);
@@ -311,7 +314,8 @@ pub(in crate::tui::app) fn handle_server_event(
                     ));
                 }
             }
-            auto_poked
+            // Repaint when the active turn finished even if auto-poke did not queue a follow-up.
+            turn_completed || auto_poked
         }
         ServerEvent::Error {
             message,

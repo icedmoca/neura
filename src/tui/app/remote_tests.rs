@@ -227,3 +227,29 @@ fn handle_server_event_applies_remote_memory_activity_snapshot() {
 
     crate::memory::clear_activity();
 }
+
+#[test]
+fn handle_server_event_done_requests_redraw_when_turn_finishes_without_auto_poke() {
+    let rt = tokio::runtime::Runtime::new().expect("runtime");
+    let _guard = rt.enter();
+
+    let mut app = create_test_app();
+    app.is_remote = true;
+    app.is_processing = true;
+    app.current_message_id = Some(7);
+    app.streaming_text = "hello from neura".to_string();
+    let mut remote = crate::tui::backend::RemoteConnection::dummy();
+
+    let needs_redraw =
+        handle_server_event(&mut app, ServerEvent::Done { id: 7 }, &mut remote);
+
+    assert!(needs_redraw, "Done should request a repaint when the active turn completes");
+    assert!(!app.is_processing);
+    assert!(
+        app.display_messages
+            .iter()
+            .any(|message| message.role == "assistant" && message.content == "hello from neura"),
+        "expected finalized assistant message in display history"
+    );
+    assert!(app.streaming_text.is_empty());
+}

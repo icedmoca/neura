@@ -919,6 +919,12 @@ impl App {
             self.clear_streaming_render_state();
             self.stream_buffer.clear();
             self.streaming_tool_calls.clear();
+            if !self.auto_scroll_paused {
+                self.follow_chat_bottom();
+            }
+            // Commit streaming text into display_messages above; repaint immediately so the
+            // finalized assistant reply is visible without waiting for the next keypress.
+            let _ = self.redraw_now(terminal);
 
             // If no tool calls, we're done
             if tool_calls.is_empty() {
@@ -1186,6 +1192,7 @@ impl App {
 
         super::commands::maybe_trigger_autoreview_local(self);
         super::commands::maybe_trigger_autojudge_local(self);
+        let _ = self.redraw_now(terminal);
         Ok(())
     }
 }
