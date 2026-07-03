@@ -9,6 +9,8 @@ type ChatSummary = {
   name: string;
   serverName: string;
   title: string;
+  titleLocked?: boolean;
+  titleSource?: string;
   model: string | null;
   updatedAt: string | number | null;
   messageCount: number;
@@ -21,6 +23,8 @@ type ChatTurnResult = {
   name?: string;
   serverName?: string;
   title?: string;
+  titleLocked?: boolean;
+  titleSource?: string;
   text?: string;
   model?: string;
   error?: string;
@@ -67,6 +71,9 @@ function App() {
   const [showInfo, setShowInfo] = useState(false);
   const [state, setState] = useState<NeuraState | null>(null);
   const [shutState, setShutState] = useState<"idle" | "confirm" | "down">("idle");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -128,19 +135,89 @@ function App() {
 
   useEffect(() => {
     const events = new EventSource("/api/events");
-    events.onmessage = () => scheduleRefreshFromServer();
+    events.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data) as { type?: string; session_id?: string; title?: string };
+        if (payload.type === "chat_title_updated" && payload.session_id && payload.title) {
+          setChats((prev) =>
+            prev.map((chat) =>
+              chat.id === payload.session_id
+                ? { ...chat, title: payload.title as string, titleLocked: false, titleSource: "auto" }
+                : chat,
+            ),
+          );
+          if (activeId === payload.session_id) {
+            setActiveTitle(payload.title);
+          }
+        }
+      } catch {
+        /* ignore malformed events */
+      }
+      scheduleRefreshFromServer();
+    };
     events.onerror = () => { /* EventSource reconnects automatically. */ };
     return () => {
       events.close();
       if (idleRefreshTimerRef.current !== null) window.clearTimeout(idleRefreshTimerRef.current);
     };
-  }, [scheduleRefreshFromServer]);
+  }, [scheduleRefreshFromServer, activeId]);
 
   useEffect(() => {
     if (Date.now() < typingUntilRef.current) return;
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
+
+  useEffect(() => {
+    if (renamingId && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingId]);
+
+  const startRename = (chat: ChatSummary) => {
+    setRenamingId(chat.id);
+    setRenameDraft(chat.title);
+    setError(null);
+  };
+
+  const cancelRename = () => {
+    setRenamingId(null);
+    setRenameDraft("");
+  };
+
+  const commitRename = useCallback(async () => {
+    const sessionId = renamingId;
+    const title = renameDraft.trim();
+    if (!sessionId || !title) {
+      cancelRename();
+      return;
+    }
+    try {
+      const res = await fetch(`/api/chats/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, lock: true }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || `Rename failed (${res.status})`);
+      }
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.id === sessionId
+            ? { ...chat, title: json.title ?? title, titleLocked: true, titleSource: "user" }
+            : chat,
+        ),
+      );
+      if (activeId === sessionId) {
+        setActiveTitle(json.title ?? title);
+      }
+      cancelRename();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, [renamingId, renameDraft, activeId]);
 
   const newChat = () => {
     setActiveId(null);
@@ -150,6 +227,7 @@ function App() {
   };
 
   const openChat = async (chat: ChatSummary) => {
+    if (renamingId) cancelRename();
     setActiveId(chat.id);
     setActiveTitle(chat.title);
     setError(null);
@@ -209,6 +287,7 @@ function App() {
   };
 
   const empty = messages.length === 0 && !sending;
+  const showHeaderRename = Boolean(renamingId && renamingId === activeId && !empty);
 
   return (
     <div className={`chat-wrap chat-wrap--signed-in ${empty ? "chat-wrap--empty" : ""}`}>
@@ -222,14 +301,46 @@ function App() {
         <div className="chat-rail__scroll">
           {chats.length === 0 && <p className="chat-rail__empty">No chats yet. Start one below.</p>}
           {chats.map((c) => (
-            <button
+            <div
               key={c.id}
-              className={`chat-rail__item ${c.id === activeId ? "is-active" : ""}`}
-              onClick={() => openChat(c)}
+              className={`chat-rail__item-wrap ${c.id === activeId ? "is-active" : ""}`}
             >
-              <span className="chat-rail__item-title">{c.title}</span>
-              <span className="chat-rail__item-meta">{c.messageCount} msg{c.model && c.model !== "unknown" ? ` · ${c.model}` : ""}</span>
-            </button>
+              {renamingId === c.id && !showHeaderRename ? (
+                <div className="chat-rail__rename">
+                  <input
+                    ref={renameInputRef}
+                    className="chat-rail__rename-input"
+                    value={renameDraft}
+                    onChange={(e) => setRenameDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void commitRename();
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelRename();
+                      }
+                    }}
+                    onBlur={() => void commitRename()}
+                  />
+                </div>
+              ) : (
+                <button
+                  className={`chat-rail__item ${c.id === activeId ? "is-active" : ""}`}
+                  onClick={() => openChat(c)}
+                  onDoubleClick={(e) => {
+                    e.preventDefault();
+                    startRename(c);
+                  }}
+                >
+                  <span className="chat-rail__item-title" title="Double-click to rename">{c.title}</span>
+                  <span className="chat-rail__item-meta">
+                    {c.messageCount} msg{c.model && c.model !== "unknown" ? ` · ${c.model}` : ""}
+                    {c.titleLocked ? " · pinned" : ""}
+                  </span>
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </aside>
@@ -241,7 +352,36 @@ function App() {
             {!empty && (
               <span className="set-display">
                 <span className="set-display__slash">/</span>
-                <span className="set-display__name">{activeTitle}</span>
+                {activeId && showHeaderRename ? (
+                  <input
+                    ref={renameInputRef}
+                    className="set-display__rename"
+                    value={renameDraft}
+                    onChange={(e) => setRenameDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void commitRename();
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelRename();
+                      }
+                    }}
+                    onBlur={() => void commitRename()}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="set-display__name set-display__name--button"
+                    title="Click to rename chat"
+                    onClick={() => {
+                      const chat = chats.find((c) => c.id === activeId);
+                      if (chat) startRename(chat);
+                    }}
+                  >
+                    {activeTitle}
+                  </button>
+                )}
               </span>
             )}
           </div>

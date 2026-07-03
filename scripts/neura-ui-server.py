@@ -33,7 +33,12 @@ UI_DIR = ROOT / "ui"
 DIST_DIR = UI_DIR / "dist"
 NEURA_HOME = Path(os.environ.get("NEURA_HOME", str(Path.home() / ".neura")))
 SESSIONS_DIR = NEURA_HOME / "sessions"
+UI_META_DIR = NEURA_HOME / "ui"
+UI_CHAT_META_FILE = UI_META_DIR / "chat-meta.json"
 SERVER_IDENTITY_FILE = NEURA_HOME / "ui-server.json"
+UI_META_LOCK = threading.Lock()
+TITLE_REFRESH_LOCK = threading.Lock()
+TITLE_REFRESH_IN_FLIGHT: set[str] = set()
 
 SUBSCRIBERS: set[queue.Queue[dict]] = set()
 SUBSCRIBERS_LOCK = threading.Lock()
@@ -123,6 +128,9 @@ SERVER_MODIFIERS = [
 
 # Single timeout for an agent turn; chat calls hit a real provider.
 NEURA_RUN_TIMEOUT = int(os.environ.get("NEURA_UI_RUN_TIMEOUT", "300"))
+NEURA_TITLE_TIMEOUT = int(os.environ.get("NEURA_UI_TITLE_TIMEOUT", "60"))
+NEURA_TITLE_MODEL = os.environ.get("NEURA_UI_TITLE_MODEL", "").strip()
+TITLE_MAX_CHARS = 72
 
 
 def neura_bin() -> str:
@@ -153,6 +161,238 @@ def server_identity() -> dict:
 
 
 SERVER_NAME = server_identity()["serverName"]
+
+
+def default_chat_title(animal: str) -> str:
+    return f"{SERVER_NAME} {animal}"
+
+
+def truncate_title_text(text: str, max_chars: int = TITLE_MAX_CHARS) -> str:
+    trimmed = " ".join((text or "").strip().split())
+    if not trimmed:
+        return "New chat"
+    if len(trimmed) <= max_chars:
+        return trimmed
+    return trimmed[: max_chars - 1].rstrip() + "…"
+
+
+def load_ui_chat_meta() -> dict:
+    with UI_META_LOCK:
+        try:
+            if UI_CHAT_META_FILE.exists():
+                return json.loads(UI_CHAT_META_FILE.read_text())
+        except Exception:
+            pass
+        return {"chats": {}}
+
+
+def save_ui_chat_meta(data: dict) -> None:
+    UI_META_DIR.mkdir(parents=True, exist_ok=True)
+    with UI_META_LOCK:
+        UI_CHAT_META_FILE.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def read_session_snapshot(session_id: str) -> dict | None:
+    path = SESSIONS_DIR / f"{session_id}.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return None
+
+
+def resolve_chat_title(session_id: str, data: dict | None = None) -> tuple[str, bool, str]:
+    """Return (title, locked, source). source is user|auto|heuristic|session|default."""
+    meta = load_ui_chat_meta().get("chats", {}).get(session_id, {})
+    if isinstance(meta, dict) and meta.get("title"):
+        return (
+            str(meta["title"]),
+            bool(meta.get("locked")),
+            str(meta.get("source") or ("user" if meta.get("locked") else "auto")),
+        )
+    if data is None:
+        data = read_session_snapshot(session_id)
+    if data and data.get("title"):
+        return str(data["title"]), False, "session"
+    animal = (data or {}).get("short_name") or session_animal(session_id)
+    return default_chat_title(animal), False, "default"
+
+
+def patch_session_snapshot_title(session_id: str, title: str) -> None:
+    path = SESSIONS_DIR / f"{session_id}.json"
+    if not path.exists():
+        return
+    try:
+        data = json.loads(path.read_text())
+        data["title"] = title
+        path.write_text(json.dumps(data) + "\n")
+    except Exception:
+        pass
+
+
+def set_chat_title(
+    session_id: str,
+    title: str,
+    *,
+    locked: bool,
+    source: str,
+) -> str:
+    clean = truncate_title_text(title)
+    meta = load_ui_chat_meta()
+    chats = meta.setdefault("chats", {})
+    chats[session_id] = {
+        "title": clean,
+        "locked": locked,
+        "source": source,
+        "updatedAt": time.time(),
+    }
+    save_ui_chat_meta(meta)
+    patch_session_snapshot_title(session_id, clean)
+    publish_event("chat_title_updated", session_id=session_id, title=clean, locked=locked)
+    return clean
+
+
+def conversation_transcript(messages: list[dict], *, max_chars: int = 4500) -> str:
+    lines: list[str] = []
+    used = 0
+    for msg in messages:
+        role = msg.get("role", "")
+        if role not in ("user", "assistant"):
+            continue
+        text = (msg.get("text") or "").strip()
+        if not text:
+            continue
+        label = "User" if role == "user" else "Assistant"
+        chunk = f"{label}: {text}"
+        if used + len(chunk) + 1 > max_chars:
+            remaining = max_chars - used - 20
+            if remaining > 40:
+                lines.append(chunk[:remaining] + "…")
+            break
+        lines.append(chunk)
+        used += len(chunk) + 1
+    return "\n\n".join(lines)
+
+
+def heuristic_chat_title(messages: list[dict]) -> str:
+    user_texts = [
+        (m.get("text") or "").strip()
+        for m in messages
+        if m.get("role") == "user" and (m.get("text") or "").strip()
+    ]
+    if not user_texts:
+        return "New chat"
+    if len(user_texts) == 1:
+        first = user_texts[0].splitlines()[0].strip()
+        return truncate_title_text(first)
+    # Blend the first few user turns into a short topic label.
+    joined = " · ".join(t.splitlines()[0].strip() for t in user_texts[:3])
+    return truncate_title_text(joined)
+
+
+def clean_generated_title(text: str) -> str:
+    title = (text or "").strip()
+    if not title:
+        return ""
+    title = title.splitlines()[0].strip()
+    for prefix in ("Title:", "title:", "Chat title:", "Topic:"):
+        if title.startswith(prefix):
+            title = title[len(prefix) :].strip()
+    if (title.startswith('"') and title.endswith('"')) or (
+        title.startswith("'") and title.endswith("'")
+    ):
+        title = title[1:-1].strip()
+    title = title.strip(" .")
+    return truncate_title_text(title)
+
+
+def generate_chat_title_with_neura(messages: list[dict]) -> str | None:
+    transcript = conversation_transcript(messages)
+    if not transcript:
+        return None
+    prompt = (
+        "You label coding-agent chat threads in a sidebar.\n"
+        "Read the full transcript below and reply with ONLY a short title (3-8 words) "
+        "that captures what the whole conversation is about.\n"
+        "No quotes, no punctuation at the end, no explanation.\n\n"
+        f"{transcript}"
+    )
+    cmd = [neura_bin(), "run", "--json", "--no-update", "--no-selfdev", "--quiet"]
+    if NEURA_TITLE_MODEL:
+        cmd.extend(["-m", NEURA_TITLE_MODEL])
+    cmd.extend(["--", prompt])
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=NEURA_TITLE_TIMEOUT,
+            cwd=str(Path.home()),
+        )
+    except subprocess.TimeoutExpired:
+        return None
+    except Exception:
+        return None
+    if proc.returncode != 0:
+        return None
+    raw = (proc.stdout or "").strip()
+    report = None
+    for start in (raw.find("{"), 0):
+        if start < 0:
+            continue
+        try:
+            report = json.loads(raw[start:])
+            break
+        except Exception:
+            continue
+    if not report:
+        return None
+    title = clean_generated_title(str(report.get("text") or ""))
+    return title or None
+
+
+def refresh_chat_title(session_id: str) -> str | None:
+    with TITLE_REFRESH_LOCK:
+        if session_id in TITLE_REFRESH_IN_FLIGHT:
+            return None
+        TITLE_REFRESH_IN_FLIGHT.add(session_id)
+    try:
+        data = read_session_snapshot(session_id)
+        if data is None:
+            return None
+        _, locked, _ = resolve_chat_title(session_id, data)
+        if locked:
+            return None
+        chat = load_chat(session_id)
+        if chat is None:
+            return None
+        messages = chat.get("messages") or []
+        if not messages:
+            return None
+        title = generate_chat_title_with_neura(messages) or heuristic_chat_title(messages)
+        if not title:
+            return None
+        current, _, _ = resolve_chat_title(session_id, data)
+        if title == current:
+            return title
+        return set_chat_title(session_id, title, locked=False, source="auto")
+    finally:
+        with TITLE_REFRESH_LOCK:
+            TITLE_REFRESH_IN_FLIGHT.discard(session_id)
+
+
+def schedule_chat_title_refresh(session_id: str | None) -> None:
+    if not session_id:
+        return
+
+    def worker() -> None:
+        try:
+            refresh_chat_title(session_id)
+        except Exception:
+            pass
+
+    threading.Thread(target=worker, name=f"neura-title-{session_id[:18]}", daemon=True).start()
 
 
 def session_animal(session_id: str) -> str:
@@ -289,11 +529,14 @@ def load_chat(session_id: str) -> dict | None:
             continue
         messages.append({"role": role, "text": text, "tools": tools})
     animal = data.get("short_name") or session_animal(session_id)
+    title, locked, source = resolve_chat_title(session_id, data)
     return {
         "id": session_id,
         "name": animal,
         "serverName": SERVER_NAME,
-        "title": data.get("title") or f"{SERVER_NAME} {animal}",
+        "title": title,
+        "titleLocked": locked,
+        "titleSource": source,
         "model": data.get("model"),
         "updatedAt": data.get("updated_at") or data.get("last_active_at"),
         "messageCount": len(messages),
@@ -315,11 +558,14 @@ def list_chats() -> list[dict]:
         if not msgs:
             continue
         animal = data.get("short_name") or session_animal(sid)
+        title, locked, source = resolve_chat_title(sid, data)
         out.append({
             "id": sid,
             "name": animal,
             "serverName": SERVER_NAME,
-            "title": data.get("title") or f"{SERVER_NAME} {animal}",
+            "title": title,
+            "titleLocked": locked,
+            "titleSource": source,
             "model": data.get("model"),
             "updatedAt": data.get("updated_at") or data.get("last_active_at") or path.stat().st_mtime,
             "messageCount": sum(1 for m in msgs if m.get("role") in ("user", "assistant")),
@@ -367,15 +613,21 @@ def run_chat_turn(session_id: str | None, message: str) -> dict:
 
     sid = report.get("session_id", session_id or "")
     animal = session_animal(sid)
-    return {
+    data = read_session_snapshot(sid) if sid else None
+    title, locked, source = resolve_chat_title(sid, data) if sid else (default_chat_title(animal), False, "default")
+    result = {
         "session_id": sid,
         "name": animal,
         "serverName": SERVER_NAME,
-        "title": f"{SERVER_NAME} {animal}",
+        "title": title,
+        "titleLocked": locked,
+        "titleSource": source,
         "text": report.get("text", ""),
         "model": report.get("model"),
         "usage": report.get("usage"),
     }
+    schedule_chat_title_refresh(sid or None)
+    return result
 
 
 # ------------------------------- shutdown ------------------------------------
@@ -515,6 +767,34 @@ class Handler(SimpleHTTPRequestHandler):
         # SPA fallback.
         self.path = "/index.html"
         return super().do_GET()
+
+    def do_PATCH(self) -> None:  # noqa: N802
+        path = urlparse(self.path).path
+        if not path.startswith("/api/chats/"):
+            return self.send_error(404, "Unknown Neura API endpoint")
+        session_id = path[len("/api/chats/") :].strip("/")
+        if not session_id:
+            return self.send_error(404, "Unknown chat session")
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except Exception as exc:
+            return self._send_json({"error": f"bad request: {exc}"}, status=400)
+        title = (body.get("title") or "").strip()
+        if not title:
+            return self._send_json({"error": "title is required"}, status=400)
+        if read_session_snapshot(session_id) is None and session_id not in load_ui_chat_meta().get("chats", {}):
+            return self._send_json({"error": "Unknown chat session"}, status=404)
+        locked = bool(body.get("lock", True))
+        saved = set_chat_title(session_id, title, locked=locked, source="user")
+        return self._send_json(
+            {
+                "id": session_id,
+                "title": saved,
+                "titleLocked": locked,
+                "titleSource": "user",
+            }
+        )
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
