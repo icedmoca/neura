@@ -91,6 +91,16 @@ pub(crate) enum Command {
     /// Start the agent server (background daemon)
     Serve,
 
+    /// Build a local codebase intelligence snapshot for other Neura models.
+    CodebaseModel {
+        /// Repository root to index. Defaults to the current working directory.
+        #[arg(long, default_value = ".")]
+        root: std::path::PathBuf,
+        /// Output path. Defaults to <root>/.neura/codebase-model.json.
+        #[arg(long)]
+        output: Option<std::path::PathBuf>,
+    },
+
     /// Connect to a running server
     Connect,
 

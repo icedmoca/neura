@@ -8,6 +8,7 @@ use super::args::{
     AmbientCommand, Args, AuthCommand, Command, LatentCommand, MemoryCommand, ModelCommand,
     ProviderCommand, RestartCommand, SelfImproveCommand, TranscriptModeArg,
 };
+use crate::agent::codebase_model::CodebaseModelBuilder;
 use crate::{
     agent, auth, build, provider, provider_catalog, self_improvement_daemon, server, session,
     setup_hints, startup_profile, tui,
@@ -67,6 +68,13 @@ pub(crate) async fn run_main(mut args: Args) -> Result<()> {
                 serve_start.elapsed().as_millis()
             ));
             server.run().await?;
+        }
+        Some(Command::CodebaseModel { root, output }) => {
+            let model = CodebaseModelBuilder::new(&root).build()?;
+            let output = output.unwrap_or_else(|| root.join(".neura/codebase-model.json"));
+            model.save_json(&output)?;
+            println!("{}", model.project_brief());
+            println!("Wrote codebase model to {}", output.display());
         }
         Some(Command::Connect) => {
             tui_launch::run_client().await?;

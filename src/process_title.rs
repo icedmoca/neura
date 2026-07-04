@@ -74,6 +74,7 @@ pub(crate) fn set_client_remote_display_title(
 pub(crate) fn initial_title(args: &Args) -> String {
     match &args.command {
         Some(Command::Serve) => "neura:server".to_string(),
+        Some(Command::CodebaseModel { .. }) => "codebase-model".to_string(),
         Some(Command::Connect) => "neura:client".to_string(),
         Some(Command::Run { .. }) => "neura run".to_string(),
         Some(Command::Login { .. }) => "neura login".to_string(),
