@@ -1,5 +1,6 @@
 use super::*;
 use crate::storage::neura_dir;
+use anyhow::Context;
 use std::path::PathBuf;
 
 impl Config {
@@ -37,15 +38,18 @@ impl Config {
 
     /// Save config to file
     pub fn save(&self) -> anyhow::Result<()> {
-        let path = Self::path().ok_or_else(|| anyhow::anyhow!("No config path"))?;
+        let path = Self::path().context("failed to resolve Neura config path")?;
 
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent).with_context(|| {
+                format!("failed to create config directory {}", parent.display())
+            })?;
         }
 
-        let content = toml::to_string_pretty(self)?;
-        std::fs::write(&path, content)?;
+        let content = toml::to_string_pretty(self).context("failed to serialize config")?;
+        std::fs::write(&path, content)
+            .with_context(|| format!("failed to write config file {}", path.display()))?;
         Ok(())
     }
 
