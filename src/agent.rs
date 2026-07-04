@@ -1,6 +1,7 @@
 #![cfg_attr(test, allow(clippy::await_holding_lock))]
 
 mod compaction;
+pub mod codebase_model;
 mod context_compiler;
 mod environment;
 mod interrupts;
