@@ -229,6 +229,7 @@ mod tests {
             token,
             latent,
             text,
+            ..
         }) = render_subtext_event(&event)
         else {
             panic!("expected subtext latent event");
