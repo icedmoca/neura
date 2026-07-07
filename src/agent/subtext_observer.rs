@@ -40,44 +40,70 @@ pub(crate) fn spawn_subtext_observer_for_turn(
     }
 
     tokio::spawn(async move {
-        let _ = event_sender.send(ServerEvent::SubtextLatent {
-            phase: "connecting".to_string(),
-            token: None,
-            latent: Vec::new(),
-            text: "[subtext] connecting local latent observer".to_string(),
-        });
+        send_subtext_latent(
+            &event_sender,
+            "connecting".to_string(),
+            None,
+            Vec::new(),
+            "[subtext] connecting local latent observer".to_string(),
+        );
 
         let result = stream_subtext_chat(&websocket_url, &request, |event| {
             if let Some(event) = render_subtext_event(&event) {
-                let _ = event_sender.send(event);
+                send_rendered_subtext_event(&event_sender, event);
             }
         })
         .await;
 
         match result {
             Ok(_) => {
-                let _ = event_sender.send(ServerEvent::SubtextLatent {
-                    phase: "done".to_string(),
-                    token: None,
-                    latent: Vec::new(),
-                    text: "[subtext] latent observer complete".to_string(),
-                });
+                send_subtext_latent(
+                    &event_sender,
+                    "done".to_string(),
+                    None,
+                    Vec::new(),
+                    "[subtext] latent observer complete".to_string(),
+                );
             }
             Err(error) => {
-                let _ = event_sender.send(ServerEvent::SubtextLatent {
-                    phase: "error".to_string(),
-                    token: None,
-                    latent: Vec::new(),
-                    text: format!("[subtext] observer unavailable: {error}"),
-                });
-                let _ = event_sender.send(ServerEvent::SubtextLatent {
-                    phase: "stopped".to_string(),
-                    token: None,
-                    latent: Vec::new(),
-                    text: "[subtext] latent observer stopped".to_string(),
-                });
+                send_subtext_latent(
+                    &event_sender,
+                    "error".to_string(),
+                    None,
+                    Vec::new(),
+                    format!("[subtext] observer unavailable: {error}"),
+                );
+                send_subtext_latent(
+                    &event_sender,
+                    "stopped".to_string(),
+                    None,
+                    Vec::new(),
+                    "[subtext] latent observer stopped".to_string(),
+                );
             }
         }
+    });
+}
+
+fn send_rendered_subtext_event(
+    event_sender: &mpsc::UnboundedSender<ServerEvent>,
+    event: ServerEvent,
+) {
+    let _ = event_sender.send(event);
+}
+
+fn send_subtext_latent(
+    event_sender: &mpsc::UnboundedSender<ServerEvent>,
+    phase: String,
+    token: Option<String>,
+    latent: Vec<String>,
+    text: String,
+) {
+    let _ = event_sender.send(ServerEvent::SubtextLatent {
+        phase,
+        token,
+        latent,
+        text,
     });
 }
 
