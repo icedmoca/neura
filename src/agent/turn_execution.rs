@@ -131,6 +131,17 @@ impl Agent {
         }
 
         self.add_message(Role::User, blocks);
+        let subtext_messages: Vec<_> = self
+            .session
+            .messages
+            .iter()
+            .map(crate::session::StoredMessage::to_message)
+            .collect();
+        crate::agent::subtext_observer::spawn_subtext_observer_for_turn(
+            self.session.id.clone(),
+            &subtext_messages,
+            Some(event_tx.clone()),
+        );
         crate::telemetry::record_turn();
         self.session.save()?;
         let result = self.run_turn_streaming_mpsc(event_tx).await;

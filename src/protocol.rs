@@ -560,6 +560,15 @@ pub enum Request {
     reason = "wire protocol prioritizes straightforward serde payloads over boxing every larger event variant"
 )]
 pub enum ServerEvent {
+    /// Live local Subtext sidecar latent frame. UI clients can render `text`
+    /// directly and use the structured fields for richer displays.
+    #[serde(rename = "subtext_latent")]
+    SubtextLatent {
+        phase: String,
+        token: Option<String>,
+        latent: Vec<String>,
+        text: String,
+    },
     /// Acknowledgment of request
     #[serde(rename = "ack")]
     Ack { id: u64 },
