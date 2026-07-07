@@ -98,3 +98,11 @@ fn parse_manual_subagent_spec_rejects_missing_prompt() {
         .expect_err("missing prompt should be rejected");
     assert!(err.contains("Missing prompt"));
 }
+
+#[test]
+fn parse_voice_command_accepts_exact_command_only() {
+    assert!(matches!(parse_voice_command("/voice"), Some(Ok(()))));
+    assert!(parse_voice_command("voice").is_none());
+    assert!(parse_voice_command("/voicemail").is_none());
+    assert!(matches!(parse_voice_command("/voice now"), Some(Err(_))));
+}

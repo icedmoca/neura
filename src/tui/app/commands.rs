@@ -94,6 +94,14 @@ pub(super) fn parse_poke_command(trimmed: &str) -> Option<Result<PokeCommand, St
     }
 }
 
+pub(super) fn parse_voice_command(trimmed: &str) -> Option<Result<(), String>> {
+    match trimmed {
+        "/voice" => Some(Ok(())),
+        _ if trimmed.starts_with("/voice ") => Some(Err("Usage: `/voice`".to_string())),
+        _ => None,
+    }
+}
+
 pub(super) fn is_poke_message(message: &str) -> bool {
     message.starts_with("You have ")
         && message.contains(" incomplete todo")

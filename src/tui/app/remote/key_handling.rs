@@ -1653,6 +1653,16 @@ async fn handle_remote_key_internal(
                     return Ok(());
                 }
 
+                if let Some(command) = app_mod::commands::parse_voice_command(trimmed) {
+                    match command {
+                        Err(error) => app.push_display_message(DisplayMessage::error(error)),
+                        Ok(()) => app.push_display_message(DisplayMessage::system(
+                            "Voice mode is not available in this Neura build yet. The `/voice` command is now recognized, so `/reload` will pick up this fix after rebuilding/installing, but a voice backend still needs to be compiled into Neura before microphone input can start.",
+                        )),
+                    }
+                    return Ok(());
+                }
+
                 if let Some(command) = app_mod::commands::parse_enrich_command(trimmed) {
                     match command {
                         Err(error) => app.push_display_message(DisplayMessage::error(error)),
