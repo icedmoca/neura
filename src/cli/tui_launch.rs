@@ -294,6 +294,10 @@ pub async fn run_client() -> Result<()> {
                                 print!("{}", text);
                                 std::io::stdout().flush()?;
                             }
+                            ServerEvent::SubtextLatent { text, .. } => {
+                                println!("\n{}", text);
+                                std::io::stdout().flush()?;
+                            }
                             ServerEvent::Done { id } if id == msg_id => {
                                 break;
                             }
