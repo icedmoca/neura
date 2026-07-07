@@ -20,6 +20,7 @@
 //! into a fully typed pipeline that produces a `ProviderPayload`.
 
 use crate::agent::turn_loops::TurnAdmission;
+use crate::local_memory_sidecar::{LocalMemoryCandidate, pack_local_memories};
 use crate::message::Message;
 
 /// Resource budgets per admission tier. Computed once per turn and fed into
@@ -110,6 +111,38 @@ impl MemoryPlan {
     }
 }
 
+fn pack_memory_prompt_for_local_sidecar(prompt: &str, max_tokens: usize) -> String {
+    let mut candidates = Vec::new();
+    let mut current = Vec::new();
+    for line in prompt.lines() {
+        if line.trim().is_empty() {
+            if !current.is_empty() {
+                candidates.push(LocalMemoryCandidate::new(current.join("\n"), 0));
+                current.clear();
+            }
+        } else {
+            current.push(line.trim_end().to_string());
+        }
+    }
+    if !current.is_empty() {
+        candidates.push(LocalMemoryCandidate::new(current.join("\n"), 0));
+    }
+
+    if candidates.is_empty() {
+        return prompt.trim().to_string();
+    }
+
+    let packed = pack_local_memories(candidates, max_tokens);
+    if packed.is_empty() {
+        return String::new();
+    }
+    packed
+        .into_iter()
+        .map(|memory| memory.text)
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
 /// Decide which memory plan to use for the upcoming turn. Falls back to
 /// `Inject` (legacy behaviour) unless `NEURA_MEMORY_ANCHOR` is set.
 pub fn plan_memory(
@@ -127,7 +160,7 @@ pub fn plan_memory(
     }
     if !memory_anchor_enabled() {
         return MemoryPlan::Inject {
-            prompt: prompt.to_string(),
+            prompt: pack_memory_prompt_for_local_sidecar(prompt, 2_000),
             count: pending_count,
             memory_ids: pending_ids.to_vec(),
         };
@@ -148,7 +181,7 @@ pub fn plan_memory(
         .unwrap_or(false);
     if mentions_memory_explicitly {
         return MemoryPlan::Inject {
-            prompt: prompt.to_string(),
+            prompt: pack_memory_prompt_for_local_sidecar(prompt, 2_000),
             count: pending_count,
             memory_ids: pending_ids.to_vec(),
         };
