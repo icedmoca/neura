@@ -1,3 +1,4 @@
+use crate::local_model::LocalModelConfig;
 use crate::message::{ContentBlock, Message, Role};
 use crate::protocol::ServerEvent;
 use crate::subtext_client::{
@@ -93,6 +94,97 @@ pub(crate) fn spawn_subtext_observer_for_turn(
                     "[subtext] latent observer stopped".to_string(),
                 );
             }
+        }
+    });
+}
+
+fn spawn_local_model_observer(
+    _session_id: String,
+    messages: &[Message],
+    event_sender: mpsc::UnboundedSender<ServerEvent>,
+) {
+    let request_messages = messages_to_subtext(messages);
+    if request_messages.is_empty() {
+        return;
+    }
+    tokio::spawn(async move {
+        let config = LocalModelConfig::default();
+        let model = config
+            .model
+            .clone()
+            .unwrap_or_else(|| "neura-sidecar-20b".to_string());
+        let url = format!(
+            "{}{}",
+            config.base_url.trim_end_matches('/'),
+            config.chat_path
+        );
+        send_subtext_latent(
+            &event_sender,
+            "local_model".to_string(),
+            None,
+            Vec::new(),
+            format!("[subtext] using Neura local model observer ({model})"),
+        );
+
+        let mut prompt = String::from(
+            "Briefly summarize what the assistant should focus on next. Return terse latent notes, not the final answer.\n\n",
+        );
+        for message in request_messages.iter().rev().take(4).rev() {
+            prompt.push_str(&format!("{}: {}\n", message.role, message.content));
+        }
+        let body = serde_json::json!({
+            "model": model,
+            "messages": [
+                {"role":"system","content":"You are a local latent observer for Neura. Produce terse thinking/status notes only."},
+                {"role":"user","content": prompt}
+            ],
+            "max_tokens": 80,
+            "temperature": 0.2,
+            "stream": false
+        });
+        let client = reqwest::Client::new();
+        let mut req = client
+            .post(url)
+            .timeout(Duration::from_millis(config.timeout_ms.max(750)))
+            .json(&body);
+        if let Some(key) = config.api_key {
+            req = req.bearer_auth(key);
+        }
+        match req.send().await.and_then(|res| res.error_for_status()) {
+            Ok(response) => match response.json::<serde_json::Value>().await {
+                Ok(value) => {
+                    let text = value
+                        .pointer("/choices/0/message/content")
+                        .and_then(|v| v.as_str())
+                        .or_else(|| value.pointer("/choices/0/text").and_then(|v| v.as_str()))
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    if !text.is_empty() {
+                        send_subtext_latent(
+                            &event_sender,
+                            "local_model".to_string(),
+                            None,
+                            Vec::new(),
+                            format!("[local-thought] {text}"),
+                        );
+                    }
+                }
+                Err(error) => send_subtext_latent(
+                    &event_sender,
+                    "local_model_error".to_string(),
+                    None,
+                    Vec::new(),
+                    format!("[subtext] local model observer parse error: {error}"),
+                ),
+            },
+            Err(error) => send_subtext_latent(
+                &event_sender,
+                "local_model_unavailable".to_string(),
+                None,
+                Vec::new(),
+                format!("[subtext] Neura local model observer unavailable: {error}"),
+            ),
         }
     });
 }
