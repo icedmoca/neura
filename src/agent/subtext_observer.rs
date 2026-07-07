@@ -3,10 +3,18 @@ use crate::protocol::ServerEvent;
 use crate::subtext_client::{
     SubtextChatMessage, SubtextChatRequest, SubtextEvent, stream_subtext_chat,
 };
+use std::path::PathBuf;
+use std::process::Stdio;
+use std::sync::OnceLock;
+use std::time::Duration;
 use tokio::sync::mpsc;
 
 /// Environment variable used to enable live Subtext latent-frame observation.
 pub const SUBTEXT_WS_ENV: &str = "NEURA_SUBTEXT_WS";
+pub const SUBTEXT_PATH_ENV: &str = "NEURA_SUBTEXT_PATH";
+pub const SUBTEXT_AUTO_ENV: &str = "NEURA_SUBTEXT_AUTO";
+const DEFAULT_SUBTEXT_WS: &str = "ws://127.0.0.1:8765/ws";
+static AUTOSTARTED_SUBTEXT_URL: OnceLock<Option<String>> = OnceLock::new();
 
 /// Spawn a best-effort Subtext observer for the current turn.
 ///
@@ -21,12 +29,15 @@ pub(crate) fn spawn_subtext_observer_for_turn(
     let Some(event_sender) = event_sender else {
         return;
     };
-    let Ok(websocket_url) = std::env::var(SUBTEXT_WS_ENV) else {
+    let Some(websocket_url) = resolve_subtext_websocket_url() else {
+        let _ = event_sender.send(ServerEvent::SubtextLatent {
+            phase: "unavailable".to_string(),
+            token: None,
+            latent: Vec::new(),
+            text: "[subtext] local sidecar not configured or found; continuing without latent observer".to_string(),
+        });
         return;
     };
-    if websocket_url.trim().is_empty() {
-        return;
-    }
 
     let request = SubtextChatRequest {
         messages: messages_to_subtext(messages),
@@ -83,6 +94,98 @@ pub(crate) fn spawn_subtext_observer_for_turn(
             }
         }
     });
+}
+
+fn resolve_subtext_websocket_url() -> Option<String> {
+    if let Ok(url) = std::env::var(SUBTEXT_WS_ENV) {
+        let trimmed = url.trim();
+        if !trimmed.is_empty() {
+            return Some(trimmed.to_string());
+        }
+    }
+
+    AUTOSTARTED_SUBTEXT_URL
+        .get_or_init(|| {
+            if subtext_autostart_disabled() {
+                return None;
+            }
+            if localhost_port_is_open("127.0.0.1:8765") {
+                return Some(DEFAULT_SUBTEXT_WS.to_string());
+            }
+            try_spawn_subtext_sidecar().then(|| DEFAULT_SUBTEXT_WS.to_string())
+        })
+        .clone()
+}
+
+fn subtext_autostart_disabled() -> bool {
+    std::env::var(SUBTEXT_AUTO_ENV)
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "0" | "false" | "off" | "no"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn localhost_port_is_open(addr: &str) -> bool {
+    let Ok(addr) = addr.parse() else {
+        return false;
+    };
+    std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(120)).is_ok()
+}
+
+fn try_spawn_subtext_sidecar() -> bool {
+    let Some(root) = find_subtext_root() else {
+        return false;
+    };
+    let server = root.join("server.py");
+    if !server.is_file() {
+        return false;
+    }
+
+    let python = std::env::var("NEURA_SUBTEXT_PYTHON").unwrap_or_else(|_| "python3".to_string());
+    std::process::Command::new(python)
+        .arg(server)
+        .current_dir(root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .is_ok()
+}
+
+fn find_subtext_root() -> Option<PathBuf> {
+    if let Ok(path) = std::env::var(SUBTEXT_PATH_ENV) {
+        let path = PathBuf::from(path);
+        if path.join("server.py").is_file() {
+            return Some(path);
+        }
+    }
+
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    let cwd = std::env::current_dir().ok();
+    let mut candidates = Vec::new();
+    if let Some(home) = home {
+        candidates.push(home.join("Subtext"));
+        candidates.push(home.join("subtext"));
+        candidates.push(home.join("src/Subtext"));
+        candidates.push(home.join("src/subtext"));
+        candidates.push(home.join("code/Subtext"));
+        candidates.push(home.join("code/subtext"));
+    }
+    if let Some(cwd) = cwd {
+        candidates.push(cwd.join("Subtext"));
+        candidates.push(cwd.join("subtext"));
+        if let Some(parent) = cwd.parent() {
+            candidates.push(parent.join("Subtext"));
+            candidates.push(parent.join("subtext"));
+        }
+    }
+
+    candidates
+        .into_iter()
+        .find(|path| path.join("server.py").is_file())
 }
 
 fn send_rendered_subtext_event(
