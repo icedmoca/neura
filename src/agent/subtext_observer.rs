@@ -13,6 +13,7 @@ use tokio::sync::mpsc;
 pub const SUBTEXT_WS_ENV: &str = "NEURA_SUBTEXT_WS";
 pub const SUBTEXT_PATH_ENV: &str = "NEURA_SUBTEXT_PATH";
 pub const SUBTEXT_AUTO_ENV: &str = "NEURA_SUBTEXT_AUTO";
+pub const SUBTEXT_MODEL_ENV: &str = "NEURA_SUBTEXT_MODEL_ID";
 const DEFAULT_SUBTEXT_WS: &str = "ws://127.0.0.1:8765/ws";
 static AUTOSTARTED_SUBTEXT_URL: OnceLock<Option<String>> = OnceLock::new();
 
@@ -136,6 +137,14 @@ fn localhost_port_is_open(addr: &str) -> bool {
 }
 
 fn try_spawn_subtext_sidecar() -> bool {
+    let Ok(model_id) = std::env::var(SUBTEXT_MODEL_ENV) else {
+        return false;
+    };
+    let model_id = model_id.trim().to_string();
+    if model_id.is_empty() {
+        return false;
+    }
+
     let Some(root) = find_subtext_root() else {
         return false;
     };
@@ -158,6 +167,7 @@ fn try_spawn_subtext_sidecar() -> bool {
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
+        .env("SUBTEXT_MODEL_ID", model_id)
         .spawn()
         .is_ok()
 }
