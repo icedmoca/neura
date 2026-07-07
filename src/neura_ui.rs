@@ -70,8 +70,9 @@ fn try_launch() -> Result<String, String> {
 
     // Read the server's announced `NEURA_UI_URL=...` on a detached thread so the
     // caller (often the TUI event loop) never blocks while the server boots or,
-    // on first run, builds the UI bundle. Owning `child` here keeps the process
-    // alive after this function returns; dropping it does not kill the server.
+    // on first run, builds the UI bundle. Keep draining stdout until the launcher
+    // exits so we do not close the pipe early (that would crash the Python server
+    // on its next print with BrokenPipeError before it binds the HTTP port).
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         let _child = child;
@@ -79,7 +80,6 @@ fn try_launch() -> Result<String, String> {
         for line in reader.lines().map_while(Result::ok) {
             if let Some(url) = line.trim().strip_prefix("NEURA_UI_URL=") {
                 let _ = tx.send(url.to_string());
-                break;
             }
         }
     });

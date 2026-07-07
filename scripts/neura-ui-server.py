@@ -3426,6 +3426,19 @@ def ensure_built() -> None:
     subprocess.check_call(["npm", "run", "build"], cwd=UI_DIR)
 
 
+def detach_stdout_from_caller() -> None:
+    """Parent may close our stdout pipe after reading NEURA_UI_URL; keep running."""
+    try:
+        sys.stdout.flush()
+    except BrokenPipeError:
+        pass
+    try:
+        with open(os.devnull, "w") as devnull:
+            os.dup2(devnull.fileno(), 1)
+    except OSError:
+        pass
+
+
 def find_port(preferred: int) -> int:
     for port in range(preferred, preferred + 20):
         with socket.socket() as sock:
@@ -3453,6 +3466,7 @@ def main() -> int:
     if args.voice:
         url += "?voice=1"
     print(f"NEURA_UI_URL={url}", flush=True)
+    detach_stdout_from_caller()
     if args.open:
         threading.Timer(0.2, lambda: webbrowser.open(url)).start()
     initialize_live_updates()
