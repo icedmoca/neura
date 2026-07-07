@@ -144,7 +144,14 @@ fn try_spawn_subtext_sidecar() -> bool {
         return false;
     }
 
-    let python = std::env::var("NEURA_SUBTEXT_PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let python = std::env::var("NEURA_SUBTEXT_PYTHON")
+        .ok()
+        .map(PathBuf::from)
+        .or_else(|| {
+            let venv_python = root.join(".venv/bin/python");
+            venv_python.is_file().then_some(venv_python)
+        })
+        .unwrap_or_else(|| PathBuf::from("python3"));
     std::process::Command::new(python)
         .arg(server)
         .current_dir(root)
