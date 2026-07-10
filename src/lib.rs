@@ -44,6 +44,7 @@ pub mod goal;
 pub mod id;
 pub mod import;
 pub mod interlang;
+pub mod knowledge;
 pub mod live_operational_fabric;
 pub mod local_memory_sidecar;
 pub mod local_model;

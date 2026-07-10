@@ -1302,10 +1302,12 @@ pub(super) async fn handle_client(
 
             Request::Shutdown { id } => {
                 let _ = id;
-                // The user explicitly quit the client. Mark the daemon for prompt
-                // shutdown; it exits via the idle path once this (and any other)
-                // client disconnects and the final memory extraction has flushed.
+                // The user explicitly quit the client (`/exit` or Ctrl+C twice).
+                // Mark the daemon for prompt shutdown as a fallback, then run the
+                // full teardown: close every session (so the next launch is a
+                // single fresh session) and kill all neura processes entirely.
                 crate::server::request_explicit_shutdown();
+                crate::server::begin_explicit_full_shutdown();
             }
 
             Request::SoftInterrupt {

@@ -1982,7 +1982,10 @@ pub(super) fn handle_neuraui_command(app: &mut App, trimmed: &str) -> bool {
 
     let content = crate::neura_ui::launch();
 
-    app.display_messages.push(DisplayMessage {
+    // Must go through push_display_message so the render cache is invalidated
+    // (bump_display_messages_version). Pushing directly to the vec left the status
+    // line invisible until the next input bumped the version.
+    app.push_display_message(DisplayMessage {
         role: "system".to_string(),
         content,
         tool_calls: Vec::new(),

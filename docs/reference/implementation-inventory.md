@@ -5,8 +5,8 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 ## Binaries
 
 - `harness`: `src/bin/harness.rs`
-- `neura-bench`: `src/bin/neura_bench.rs`
 - `mermaid-side-panel-probe`: `src/bin/mermaid_side_panel_probe.rs`
+- `neura-bench`: `src/bin/neura_bench.rs`
 - `session-memory-bench`: `src/bin/session_memory_bench.rs`
 - `test-api`: `src/bin/test_api.rs`
 - `tui-bench`: `src/bin/tui_bench.rs`
@@ -45,6 +45,10 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `/improve`: Autonomously improve the repository (`src/tui/app/state_ui_input_helpers.rs`)
 - `/info`: Show session info and tokens (`src/tui/app/state_ui_input_helpers.rs`)
 - `/judge`: Launch a one-shot headed judge session (`src/tui/app/state_ui_input_helpers.rs`)
+- `/login`: Login to a provider (`src/tui/app/state_ui_input_helpers.rs`)
+- `/memory`: Toggle memory feature (`src/tui/app/state_ui_input_helpers.rs`)
+- `/model`: List or switch models (`src/tui/app/state_ui_input_helpers.rs`)
+- `/models`: Alias for /model (`src/tui/app/state_ui_input_helpers.rs`)
 - `/neura-cognition`: Inspect adaptive .neura cognition memory substrate (`src/tui/app/state_ui_input_helpers.rs`)
 - `/neura-cognitive-integration debt`: Inspect deferred context debt and recall traces. (`src/tui/app/state_ui_input_helpers.rs`)
 - `/neura-cognitive-integration mesh`: Inspect cross-layer cognitive integration nodes, edges, and coherence. (`src/tui/app/state_ui_input_helpers.rs`)
@@ -120,10 +124,6 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `/neura-synthetic-science proposals`: Inspect synthetic research proposals and expected information gain. (`src/tui/app/state_ui_input_helpers.rs`)
 - `/neura-synthetic-science status`: Inspect synthetic scientific cognition ecosystem status and bounded cycles. (`src/tui/app/state_ui_input_helpers.rs`)
 - `/neura-topology retrieval`: Inspect topology-aware retrieval centrality, bridge scores, and retrieval weights. (`src/tui/app/state_ui_input_helpers.rs`)
-- `/login`: Login to a provider (`src/tui/app/state_ui_input_helpers.rs`)
-- `/memory`: Toggle memory feature (`src/tui/app/state_ui_input_helpers.rs`)
-- `/model`: List or switch models (`src/tui/app/state_ui_input_helpers.rs`)
-- `/models`: Alias for /model (`src/tui/app/state_ui_input_helpers.rs`)
 - `/observe`: Show the latest tool context in the side panel (`src/tui/app/state_ui_input_helpers.rs`)
 - `/poke`: Poke model to resume with incomplete todos (`src/tui/app/state_ui_input_helpers.rs`)
 - `/quit`: Exit neura (`src/tui/app/state_ui_input_helpers.rs`)
@@ -176,11 +176,11 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `failover`: `src/provider/failover.rs`
 - `gemini`: `src/provider/gemini.rs`
 - `gemini_tests`: `src/provider/gemini_tests.rs`
-- `neura`: `src/provider/neura.rs`
 - `mod`: `src/provider/mod.rs`
 - `models`: `src/provider/models.rs`
 - `models_catalog`: `src/provider/models_catalog.rs`
 - `multi_provider`: `src/provider/multi_provider.rs`
+- `neura`: `src/provider/neura.rs`
 - `openai`: `src/provider/openai.rs`
 - `openai_provider_impl`: `src/provider/openai_provider_impl.rs`
 - `openai_request`: `src/provider/openai_request.rs`
@@ -206,6 +206,7 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `color_support` from `crates/neura-tui-workspace/src/lib.rs`
 - `workspace_map` from `crates/neura-tui-workspace/src/lib.rs`
 - `workspace_map_widget` from `crates/neura-tui-workspace/src/lib.rs`
+- `codebase_model` from `src/agent.rs`
 - `runner` from `src/ambient.rs`
 - `scheduler` from `src/ambient.rs`
 - `account_store` from `src/auth/mod.rs`
@@ -230,6 +231,7 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `debug` from `src/cli/mod.rs`
 - `dispatch` from `src/cli/mod.rs`
 - `hot_exec` from `src/cli/mod.rs`
+- `latent` from `src/cli/mod.rs`
 - `login` from `src/cli/mod.rs`
 - `output` from `src/cli/mod.rs`
 - `provider_init` from `src/cli/mod.rs`
@@ -237,12 +239,21 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `startup` from `src/cli/mod.rs`
 - `terminal` from `src/cli/mod.rs`
 - `tui_launch` from `src/cli/mod.rs`
+- `engineering` from `src/knowledge/mod.rs`
+- `evidence` from `src/knowledge/mod.rs`
+- `insights` from `src/knowledge/mod.rs`
+- `reasoning` from `src/knowledge/mod.rs`
+- `repo` from `src/knowledge/mod.rs`
+- `verify` from `src/knowledge/mod.rs`
 - `adaptive_cognition` from `src/lib.rs`
+- `adversarial_eval` from `src/lib.rs`
 - `agent` from `src/lib.rs`
 - `ambient` from `src/lib.rs`
 - `ambient_runner` from `src/lib.rs`
 - `ambient_scheduler` from `src/lib.rs`
 - `auth` from `src/lib.rs`
+- `autonomous_improvement` from `src/lib.rs`
+- `backend_work` from `src/lib.rs`
 - `background` from `src/lib.rs`
 - `browser` from `src/lib.rs`
 - `build` from `src/lib.rs`
@@ -255,32 +266,51 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `config` from `src/lib.rs`
 - `copilot_usage` from `src/lib.rs`
 - `dictation` from `src/lib.rs`
+- `directive_memory` from `src/lib.rs`
 - `embedding` from `src/lib.rs`
 - `embedding_stub` from `src/lib.rs`
 - `env` from `src/lib.rs`
+- `evidence_ledger` from `src/lib.rs`
+- `evidence_replay` from `src/lib.rs`
 - `gateway` from `src/lib.rs`
 - `gmail` from `src/lib.rs`
 - `goal` from `src/lib.rs`
 - `id` from `src/lib.rs`
 - `import` from `src/lib.rs`
 - `interlang` from `src/lib.rs`
-- `neura_memory` from `src/lib.rs`
+- `knowledge` from `src/lib.rs`
+- `latency` from `src/lib.rs`
+- `latent_learning` from `src/lib.rs`
+- `latent_learning_background` from `src/lib.rs`
+- `latent_memory` from `src/lib.rs`
+- `latent_operational_recurrence` from `src/lib.rs`
+- `live_operational_fabric` from `src/lib.rs`
+- `local_memory_sidecar` from `src/lib.rs`
 - `local_model` from `src/lib.rs`
 - `logging` from `src/lib.rs`
 - `login_qr` from `src/lib.rs`
+- `long_horizon_pressure` from `src/lib.rs`
 - `mcp` from `src/lib.rs`
 - `memory` from `src/lib.rs`
 - `memory_agent` from `src/lib.rs`
+- `memory_eval` from `src/lib.rs`
 - `memory_graph` from `src/lib.rs`
 - `memory_log` from `src/lib.rs`
 - `memory_types` from `src/lib.rs`
 - `message` from `src/lib.rs`
 - `neura_memory` from `src/lib.rs`
+- `neura_ui` from `src/lib.rs`
 - `notifications` from `src/lib.rs`
+- `operational_eval` from `src/lib.rs`
+- `operational_policy` from `src/lib.rs`
 - `operational_repair_learning` from `src/lib.rs`
+- `patch_proposal` from `src/lib.rs`
 - `perf` from `src/lib.rs`
 - `plan` from `src/lib.rs`
 - `platform` from `src/lib.rs`
+- `policy_outcome_credit` from `src/lib.rs`
+- `policy_runtime` from `src/lib.rs`
+- `policy_shadow_simulation` from `src/lib.rs`
 - `process_memory` from `src/lib.rs`
 - `process_title` from `src/lib.rs`
 - `prompt` from `src/lib.rs`
@@ -290,8 +320,14 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `registry` from `src/lib.rs`
 - `replay` from `src/lib.rs`
 - `restart_snapshot` from `src/lib.rs`
+- `runtime_governor` from `src/lib.rs`
+- `runtime_ledger` from `src/lib.rs`
 - `runtime_memory_log` from `src/lib.rs`
 - `safety` from `src/lib.rs`
+- `self_improvement` from `src/lib.rs`
+- `self_improvement_daemon` from `src/lib.rs`
+- `self_model` from `src/lib.rs`
+- `semantic_operational_layer` from `src/lib.rs`
 - `server` from `src/lib.rs`
 - `session` from `src/lib.rs`
 - `setup_hints` from `src/lib.rs`
@@ -303,9 +339,11 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `stdin_detect` from `src/lib.rs`
 - `storage` from `src/lib.rs`
 - `subscription_catalog` from `src/lib.rs`
+- `subtext_client` from `src/lib.rs`
 - `telegram` from `src/lib.rs`
 - `telemetry` from `src/lib.rs`
 - `todo` from `src/lib.rs`
+- `token_abstraction` from `src/lib.rs`
 - `tool` from `src/lib.rs`
 - `transport` from `src/lib.rs`
 - `tui` from `src/lib.rs`
@@ -313,6 +351,7 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `usage` from `src/lib.rs`
 - `util` from `src/lib.rs`
 - `video_export` from `src/lib.rs`
+- `work_queue` from `src/lib.rs`
 - `pool` from `src/mcp/mod.rs`
 - `anthropic` from `src/provider/mod.rs`
 - `antigravity` from `src/provider/mod.rs`
@@ -321,8 +360,8 @@ Generated from source with `scripts/validate_docs.py --write-inventory`.
 - `copilot` from `src/provider/mod.rs`
 - `cursor` from `src/provider/mod.rs`
 - `gemini` from `src/provider/mod.rs`
-- `neura` from `src/provider/mod.rs`
 - `models` from `src/provider/mod.rs`
+- `neura` from `src/provider/mod.rs`
 - `openai` from `src/provider/mod.rs`
 - `openrouter` from `src/provider/mod.rs`
 - `pricing` from `src/provider/mod.rs`

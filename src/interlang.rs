@@ -705,7 +705,10 @@ async fn summarize_block_with_sidecar(text: &str) -> Option<String> {
 (max ~200 chars) so another model can tell what it contains and decide whether to fetch the \
 exact text. Preserve key identifiers: file paths, error messages, commands, symbols, numbers. \
 Output only the line — no preamble, no markdown, no quotes.";
-    let raw = crate::sidecar::Sidecar::new().complete(system, text).await.ok()?;
+    let raw = crate::sidecar::Sidecar::new()
+        .complete(system, text)
+        .await
+        .ok()?;
     let line = raw
         .lines()
         .map(str::trim)

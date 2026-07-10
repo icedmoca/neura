@@ -124,10 +124,17 @@ pub fn arm_auto_restore_from_recent_crashes() -> Result<Option<RestartSnapshot>>
             .then_with(|| a.1.session_id.cmp(&b.1.session_id))
     });
 
+    // NOTE: crash-synthesized snapshots are deliberately NOT armed for
+    // auto-restore. An unexpected shutdown (or killing neura processes) must
+    // never silently spawn a terminal window per crashed session — that
+    // surprised the user with 12 windows at once. We record the snapshot so
+    // the opt-in `neura restart restore` still works, but startup only *notifies*
+    // about it. Only an explicit `neura restart save --auto-restore` arms an
+    // automatic restore.
     let snapshot = RestartSnapshot {
         version: 1,
         created_at: Utc::now(),
-        auto_restore_on_next_start: true,
+        auto_restore_on_next_start: false,
         sessions: captured.into_iter().map(|(_, session)| session).collect(),
     };
 

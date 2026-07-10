@@ -585,8 +585,7 @@ pub const SOURCE_UPDATE_BRANCH: &str = "main";
 /// Uses `build::get_repo_dir()` (compile-time manifest, exe layout, or cwd ancestors) —
 /// never the session working directory or process cwd alone.
 pub fn resolve_source_update_repo() -> Result<PathBuf> {
-    crate::build::get_repo_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))
+    crate::build::get_repo_dir().ok_or_else(|| anyhow::anyhow!("Could not find neura repository"))
 }
 
 pub fn run_source_update(repo: &Path) -> Result<String> {

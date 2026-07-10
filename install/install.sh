@@ -312,6 +312,12 @@ write_launchers() {
   cat > "$BIN_DIR/neura" <<'LAUNCHER'
 #!/usr/bin/env bash
 export NEURA_HOME="${NEURA_HOME:-__NEURA_HOME__}"
+# Phase D cognitive-state trigger: ON by default (override by exporting these
+# before launch). Fail-quiet if the fusion service (:8801) is down.
+export NEURA_COGNITION_TRIGGERS="${NEURA_COGNITION_TRIGGERS:-1}"
+export NEURA_COGNITION_MIN_LEVEL="${NEURA_COGNITION_MIN_LEVEL:-warn}"
+export NEURA_LOGITLENS_URL="${NEURA_LOGITLENS_URL:-http://127.0.0.1:8801}"
+export NEURA_COGNITION_TIMEOUT_MS="${NEURA_COGNITION_TIMEOUT_MS:-8000}"
 exec "$NEURA_HOME/builds/current/neura" "$@"
 LAUNCHER
   sed -i.bak "s#__NEURA_HOME__#$NEURA_HOME#g" "$BIN_DIR/neura" && rm -f "$BIN_DIR/neura.bak"

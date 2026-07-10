@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "postcss": "^8.5.16",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",

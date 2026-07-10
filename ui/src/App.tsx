@@ -5,6 +5,7 @@ import { DappProvider } from "./dapp/DappProvider";
 import DappPreview from "./dapp/DappPreview";
 import DappSidebar from "./dapp/DappSidebar";
 import FolderPickerModal from "./FolderPickerModal";
+import CognitionPanel from "./CognitionPanel";
 import "./index.css";
 
 type ChatSummary = {
@@ -137,6 +138,13 @@ const SendIcon = () => (
   </svg>
 );
 
+const CognitionIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <circle cx="12" cy="5" r="2" /><circle cx="5" cy="17" r="2" /><circle cx="19" cy="17" r="2" />
+    <path d="M12 7v4m0 0-5.3 4.4M12 11l5.3 4.4" />
+  </svg>
+);
+
 const PowerIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.8 0" />
@@ -184,6 +192,7 @@ function App() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [showCognition, setShowCognition] = useState(false);
   const [state, setState] = useState<NeuraState | null>(null);
   const [shutState, setShutState] = useState<"idle" | "confirm" | "down">("idle");
   const [showAddProject, setShowAddProject] = useState(false);
@@ -203,6 +212,13 @@ function App() {
   const [dappGenerating, setDappGenerating] = useState(false);
   const [dappLibraryHit, setDappLibraryHit] = useState<string | null>(null);
   const [sidebarMode, setSidebarMode] = useState<"dapp" | "chats">("dapp");
+  const [latentWords, setLatentWords] = useState<string[]>([]);
+  const [latentPhase, setLatentPhase] = useState<string | null>(null);
+  const [lastThought, setLastThought] = useState<{ text: string; words: string[] } | null>(null);
+  const latentTextRef = useRef<string>("");
+  const subtextConfigRef = useRef<{ endpoint: string; enabled: boolean; model?: string } | null>(null);
+  const subtextAbortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const copyResetTimerRef = useRef<number | null>(null);
   const copyHoverLockRef = useRef<string | null>(null);
   const chatHiddenRef = useRef(false);
@@ -243,6 +259,28 @@ function App() {
   useEffect(() => {
     sendingRef.current = sending;
   }, [sending]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/subtext-config", { cache: "no-store" });
+        const cfg = await res.json();
+        if (!cancelled && cfg && typeof cfg.endpoint === "string") {
+          subtextConfigRef.current = cfg;
+        }
+      } catch {
+        /* observer is best-effort; ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadProjects = useCallback(async () => {
     try {
@@ -671,6 +709,7 @@ function App() {
     setActiveTitle("new chat");
     setMessages([]);
     setError(null);
+    setLastThought(null);
     focusInput(inputRef);
   }, []);
 
@@ -685,6 +724,7 @@ function App() {
     setActiveTitle("new chat");
     setMessages([]);
     setError(null);
+    setLastThought(null);
   }, [renamingId]);
 
   const selectProject = useCallback((project: ProjectSummary) => {
@@ -698,6 +738,7 @@ function App() {
     setActiveTitle("new chat");
     setMessages([]);
     setError(null);
+    setLastThought(null);
     focusInput(inputRef);
   }, [renamingId]);
 
@@ -847,6 +888,7 @@ function App() {
     setActiveId(chat.id);
     setActiveTitle(chat.title);
     setError(null);
+    setLastThought(null);
     try {
       const res = await fetch(`/api/chats/${chat.id}`, { cache: "no-store" });
       const json = await res.json();
@@ -882,6 +924,103 @@ function App() {
       });
   }, []);
 
+  const stopSubtextObserver = useCallback(() => {
+    // Intentionally do NOT abort the observer here. Aborting mid-stream cancels
+    // the local model request — which on a cold model (17GB, ~30s to load)
+    // means zero tokens render before the answer arrives, and also keeps the
+    // model perpetually cold. Instead we let it finish in the background: it
+    // settles into `lastThought` when done (see the stream loop), and the model
+    // stays warm for the next turn. Here we only hide the live pill and persist
+    // whatever partial thought exists so something shows immediately.
+    const partial = latentTextRef.current.trim();
+    if (partial) {
+      setLastThought({ text: partial, words: partial.split(/\s+/).slice(-16) });
+    }
+    setLatentWords([]);
+    setLatentPhase(null);
+  }, []);
+
+  const startSubtextObserver = useCallback((text: string) => {
+    const cfg = subtextConfigRef.current;
+    if (!cfg || !cfg.enabled || !cfg.endpoint) return;
+    // Abort any prior observer without clearing UI (a fresh one follows).
+    const prior = subtextAbortRef.current;
+    if (prior) {
+      try {
+        prior.abort();
+      } catch {
+        /* ignore */
+      }
+    }
+    const controller = new AbortController();
+    subtextAbortRef.current = controller;
+    latentTextRef.current = "";
+    setLastThought(null);
+    setLatentWords([]);
+    setLatentPhase("thinking");
+
+    const context = messagesRef.current
+      .filter((m) => m.text.trim())
+      .slice(-6)
+      .map((m) => ({ role: m.role, content: m.text }));
+
+    void (async () => {
+      try {
+        const res = await fetch(cfg.endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, context }),
+          signal: controller.signal,
+        });
+        if (!res.body) return;
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let sep: number;
+          while ((sep = buffer.indexOf("\n\n")) >= 0) {
+            const rawEvent = buffer.slice(0, sep);
+            buffer = buffer.slice(sep + 2);
+            const dataLine = rawEvent
+              .split("\n")
+              .find((l) => l.startsWith("data:"));
+            if (!dataLine) continue;
+            let frame: { type?: string; phase?: string; text?: string; words?: string[] };
+            try {
+              frame = JSON.parse(dataLine.slice(5).trim());
+            } catch {
+              continue;
+            }
+            if (frame.type === "frame") {
+              if (typeof frame.text === "string" && frame.text.trim()) {
+                latentTextRef.current = frame.text;
+              }
+              if (Array.isArray(frame.words) && frame.words.length) {
+                setLatentWords(frame.words.slice(-12));
+              }
+              if (frame.phase) setLatentPhase(frame.phase);
+            } else if (frame.type === "done" || frame.type === "error") {
+              const finalText = latentTextRef.current.trim();
+              if (finalText) {
+                setLastThought({ text: finalText, words: finalText.split(/\s+/).slice(-16) });
+              }
+              return;
+            }
+          }
+        }
+      } catch {
+        /* aborted or network error; observer is best-effort */
+      } finally {
+        if (subtextAbortRef.current === controller) {
+          subtextAbortRef.current = null;
+        }
+      }
+    })();
+  }, []);
+
   const sendMessage = useCallback(async (
     text: string,
     sessionId: string | null,
@@ -891,6 +1030,7 @@ function App() {
     if (showUserMessage) {
       setMessages((m) => [...m, { role: "user", text }]);
     }
+    startSubtextObserver(text);
     setSending(true);
     setError(null);
     setDappLibraryHit(null);
@@ -937,8 +1077,9 @@ function App() {
       return sessionId;
     } finally {
       setSending(false);
+      stopSubtextObserver();
     }
-  }, [loadChats, loadProjects, prefetchDapp]);
+  }, [loadChats, loadProjects, prefetchDapp, startSubtextObserver, stopSubtextObserver]);
 
   const pumpSendQueue = useCallback(async () => {
     if (pumpQueueRef.current) return;
@@ -1153,6 +1294,9 @@ function App() {
             <h1 className={`brand ${sending ? "brand--busy" : ""}`}>NEURA</h1>
           </div>
           <div className="head__right">
+            <button type="button" className="icon-btn" title="Cognition — knowledge graph, predictions, sleep" onClick={() => setShowCognition((v) => !v)}>
+              <CognitionIcon />
+            </button>
             <button type="button" className="icon-btn" title="Live state" onClick={() => setShowInfo((v) => !v)}>ⓘ</button>
             <button type="button" className="icon-btn icon-btn--power" title="Shut down neura" onClick={() => setShutState("confirm")}>
               <PowerIcon />
@@ -1212,6 +1356,28 @@ function App() {
               <span className="msg__who">{activeTitle}</span>
               <div className="msg__body msg__body--thinking">thinking…</div>
             </div>
+          )}
+          {sending && (latentWords.length > 0 || latentPhase) && (
+            <div className="subtext" title="Live latent thoughts from the local Subtext observer">
+              <span className="subtext__label">
+                💭 {latentPhase ? latentPhase : "latent"}
+              </span>
+              <span className="subtext__words">
+                {latentWords.length > 0
+                  ? latentWords.map((w, i) => (
+                      <span key={`${w}-${i}`} className="subtext__word">
+                        {w}
+                      </span>
+                    ))
+                  : <span className="subtext__word subtext__word--muted">listening…</span>}
+              </span>
+            </div>
+          )}
+          {!sending && lastThought && (
+            <details className="thought" open>
+              <summary className="thought__summary">💭 thought</summary>
+              <div className="thought__body">{lastThought.text}</div>
+            </details>
           )}
         </div>
 
@@ -1459,6 +1625,10 @@ function App() {
           <p>neura has shut down.</p>
           <p className="muted">Run <code>neura</code> in a terminal to start it again.</p>
         </div>
+      )}
+
+      {showCognition && (
+        <CognitionPanel projectPath={activeProjectPath} onClose={() => setShowCognition(false)} />
       )}
 
       {showInfo && state && (

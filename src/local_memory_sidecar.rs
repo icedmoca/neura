@@ -52,11 +52,21 @@ pub struct PackedLocalMemory {
 
 /// Estimate tokens for sidecar/local model context budgeting.
 ///
-/// This is not a model-specific BPE tokenizer. It is deliberately conservative
-/// and deterministic: ASCII word-ish runs are counted roughly as 4 chars/token,
-/// punctuation is a token, and non-ASCII chars are grouped more tightly. That
-/// makes packing stable even when the actual local sidecar model changes.
+/// Prefers the shared exact tokenizer used by the interlang/ctx-vault pipeline
+/// so budgeting is consistent across Neura. When the tokenizer model is not
+/// available it falls back to the deterministic heuristic below: ASCII word-ish
+/// runs count as ~4 chars/token, punctuation is a token, and non-ASCII chars are
+/// grouped more tightly, keeping packing stable regardless of the local model.
 pub fn estimate_local_tokens(text: &str) -> usize {
+    if let Some(exact) = crate::interlang::exact_token_count(text) {
+        return exact;
+    }
+    heuristic_local_tokens(text)
+}
+
+/// Deterministic, dependency-free token estimate used when no exact tokenizer
+/// is loaded. Exposed for tests so the heuristic stays stable.
+pub fn heuristic_local_tokens(text: &str) -> usize {
     let mut tokens = 0usize;
     let mut current_run_chars = 0usize;
     let mut current_ascii = true;
@@ -206,9 +216,11 @@ mod tests {
 
     #[test]
     fn estimates_ascii_and_punctuation_tokens() {
-        assert_eq!(estimate_local_tokens("hello"), 2);
-        assert_eq!(estimate_local_tokens("hello, world!"), 6);
-        assert!(estimate_local_tokens("memory tokenization sidecar") >= 6);
+        // Assert against the deterministic heuristic so the test does not depend
+        // on whether the shared exact tokenizer model is present on disk.
+        assert_eq!(heuristic_local_tokens("hello"), 2);
+        assert_eq!(heuristic_local_tokens("hello, world!"), 6);
+        assert!(heuristic_local_tokens("memory tokenization sidecar") >= 6);
     }
 
     #[test]

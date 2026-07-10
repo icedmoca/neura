@@ -315,6 +315,47 @@ fn find_crashed_via_pid_files() -> Option<Vec<(String, String)>> {
     )
 }
 
+/// Close every currently-tracked session (active or recently crashed) and clear
+/// the active-PID registry. Used by the explicit-quit path (`/exit` or Ctrl+C
+/// twice): the user wants all neura sessions torn down so the next launch starts
+/// exactly one fresh session — no crash notice, no auto-restore.
+///
+/// Returns the number of session files transitioned into `Closed`.
+pub fn close_all_open_sessions() -> usize {
+    let mut ids: HashSet<String> = HashSet::new();
+    for id in super::active_session_ids() {
+        ids.insert(id);
+    }
+    // Note: find_recent_crashed_sessions() also marks dead-PID sessions crashed
+    // as a side effect; we immediately override that to Closed below.
+    for (id, _name) in find_recent_crashed_sessions() {
+        ids.insert(id);
+    }
+
+    let mut closed = 0usize;
+    for id in &ids {
+        if let Ok(mut session) = Session::load(id) {
+            let was_open = !matches!(session.status, SessionStatus::Closed);
+            session.mark_closed();
+            if session.save().is_ok() && was_open {
+                closed += 1;
+            }
+        }
+    }
+
+    // Belt-and-suspenders: drop any lingering active-pid files so a now-dead PID
+    // can never be re-read as a "crash" on the next launch.
+    if let Some(dir) = active_pids_dir()
+        && let Ok(entries) = std::fs::read_dir(&dir)
+    {
+        for entry in entries.flatten() {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+
+    closed
+}
+
 /// Legacy fallback: scan the full sessions directory.
 /// Used only on the first launch after upgrading to the active_pids system.
 fn find_crashed_legacy_scan() -> Vec<(String, String)> {

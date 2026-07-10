@@ -224,6 +224,10 @@ pub(crate) enum Command {
     #[command(subcommand)]
     Memory(MemoryCommand),
 
+    /// Knowledge-source commands (repositories as semantic knowledge)
+    #[command(subcommand)]
+    Knowledge(KnowledgeCommand),
+
     /// Ambient mode management
     #[command(subcommand)]
     Ambient(AmbientCommand),
@@ -459,6 +463,165 @@ pub(crate) enum AmbientCommand {
 }
 
 #[derive(Subcommand, Debug)]
+pub(crate) enum KnowledgeCommand {
+    /// Ingest (or incrementally refresh) a repository as a knowledge source.
+    /// Concepts land in the project memory graph and participate in the
+    /// normal sleep / consolidation / retrieval pipeline.
+    Ingest {
+        /// Repository root (defaults to the current directory)
+        #[arg(default_value = ".")]
+        path: String,
+
+        /// Re-extract everything, ignoring incremental fingerprints
+        #[arg(long)]
+        full: bool,
+
+        /// Emit the ingest report as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Show registered knowledge sources, concept counts, and pipeline state
+    Status {
+        /// Emit full source state as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Incrementally refresh all registered sources and fold queued
+    /// tool-outcome evidence into the graph (also runs during memory sleep)
+    Sync {
+        /// Emit the per-source reports as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Reason over the knowledge graph: concepts, typed relations,
+    /// communities, and the evidence behind them (deterministic, explainable)
+    Reason {
+        /// What to reason about (free text, module names, paths)
+        #[arg(required = true, num_args = 1..)]
+        query: Vec<String>,
+
+        /// Emit the full reasoning trace as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Estimate architectural impact of changing the matched concepts:
+    /// dependents, containers, likely affected tests, uncertainty
+    Impact {
+        /// Target concept (free text, module name, or source path)
+        #[arg(required = true, num_args = 1..)]
+        target: Vec<String>,
+
+        /// Emit the impact model as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Read-only architectural observations: centrality, coupling,
+    /// communities, dead/duplicate concepts, documentation drift
+    Insights {
+        /// Emit observations as JSON
+        #[arg(long)]
+        json: bool,
+
+        /// Also append the observations to the evidence ledger
+        #[arg(long)]
+        record: bool,
+    },
+
+    /// Show predictive-reasoning state: pending predictions and recent
+    /// prediction-vs-reality reflections from the evidence ledger
+    Reflect {
+        /// Emit as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Mirror the project's persistent goals into the knowledge graph as
+    /// first-class concepts and list them
+    Goals {
+        /// Emit goal concepts as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Preserve an architectural decision: reasoning, alternatives,
+    /// tradeoffs, assumptions — linked into the graph and the evidence ledger
+    Decision {
+        /// The decision itself
+        #[arg(required = true, num_args = 1..)]
+        decision: Vec<String>,
+
+        /// Why this decision was made
+        #[arg(long, default_value = "")]
+        reasoning: String,
+
+        /// An alternative that was considered (repeatable)
+        #[arg(long = "alternative")]
+        alternatives: Vec<String>,
+
+        /// Tradeoffs accepted
+        #[arg(long)]
+        tradeoffs: Option<String>,
+
+        /// A future assumption this decision rests on (repeatable)
+        #[arg(long = "assumption")]
+        assumptions: Vec<String>,
+
+        /// Stated confidence 0.0–1.0
+        #[arg(long, default_value_t = 0.7)]
+        confidence: f32,
+    },
+
+    /// Decompose an engineering topic into a dependency-ordered plan over
+    /// architectural concepts (persists as an evolving plan concept)
+    Plan {
+        /// What to plan (free text / module names)
+        #[arg(required = true, num_args = 1..)]
+        topic: Vec<String>,
+
+        /// Emit the plan as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Autonomous verification: build/check, optional tests, graph
+    /// integrity, knowledge synchronization — outcome becomes evidence
+    Verify {
+        /// Also run the project's test suite
+        #[arg(long)]
+        tests: bool,
+
+        /// Emit the report as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Deterministic architecture-health report: coupling, duplication,
+    /// doc/knowledge coverage, confidence, co-change, prediction precision
+    Health {
+        /// Emit the report as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Architectural evolution: per-source timeline, or the history of the
+    /// concepts matching a query
+    History {
+        /// Optional concept query (empty = per-source timeline)
+        #[arg(num_args = 0..)]
+        query: Vec<String>,
+
+        /// Emit as JSON
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
 pub(crate) enum MemoryCommand {
     /// List all stored memories
     List {
@@ -507,6 +670,62 @@ pub(crate) enum MemoryCommand {
 
     /// Show memory statistics
     Stats,
+
+    /// Show the memory graph: edge-type breakdown, top hubs, clusters, and a
+    /// Mermaid diagram of the learned associations.
+    Graph {
+        /// Max memory nodes to render in the diagram (highest-degree first)
+        #[arg(long, default_value_t = 40)]
+        max_nodes: usize,
+
+        /// Print only the Mermaid diagram (no stats header)
+        #[arg(long)]
+        mermaid: bool,
+    },
+
+    /// Run an offline consolidation ("sleep") pass: grow associations, fade
+    /// noise, detect concept communities, and recompute importance-weighted
+    /// confidence. No user interaction required.
+    Sleep {
+        /// Emit the report as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Reason over the knowledge graph. Operations:
+    ///   why <id>            explain why a memory is relevant (top relations)
+    ///   path <a> <b>        shortest reasoning path between two memories
+    ///   concept <text..>    summarize a concept: seed + expanded neighborhood
+    ///   compare <a> <b>     shared tags / neighbours / direct relation
+    ///   contradictions [id] strongest contradiction, or contradictions of id
+    Reason {
+        /// Operation followed by its operands
+        #[arg(required = true, num_args = 1..)]
+        args: Vec<String>,
+    },
+
+    /// Validate graph integrity (dangling edges, confidence bounds, duplicate
+    /// concepts, cyclic supersedes, symmetric-edge and evidence invariants).
+    Health {
+        /// Emit the report as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Inspect the knowledge graph. Reports:
+    ///   consolidations       recent automatic consolidation history
+    ///   contradictions       discovered contradiction edges + reasoning
+    ///   confidence           confidence distribution (histogram)
+    ///   communities          largest concept communities
+    ///   important            most important memories
+    ///   evidence <id>        evidence chain for a memory
+    ///   sleep                last sleep-cycle statistics
+    ///   health               graph-health summary
+    Report {
+        /// Report kind followed by optional operands
+        #[arg(required = true, num_args = 1..)]
+        args: Vec<String>,
+    },
 
     /// Clear test memory storage (used by debug sessions)
     ClearTest,

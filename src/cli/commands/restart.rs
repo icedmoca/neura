@@ -96,35 +96,60 @@ pub async fn maybe_run_pending_restart_restore_on_startup() -> Result<bool> {
         },
     };
 
-    if snapshot.auto_restore_on_next_start {
+    // Auto-restore is ONLY honored for an explicit snapshot the user armed via
+    // `neura restart save --auto-restore`. Crash-synthesized snapshots are never
+    // auto-restored (they arrive with `auto_restore_on_next_start == false`), so
+    // an unexpected shutdown can never silently spawn a window per session.
+    if snapshot.auto_restore_on_next_start && !synthesized_from_recent_crashes {
         let _ = crate::restart_snapshot::set_auto_restore_on_next_start(false);
-        if synthesized_from_recent_crashes {
-            println!(
-                "Detected {} recent neura session crash(es) from an unexpected shutdown. Restoring them now...\n",
-                snapshot.sessions.len()
-            );
-        } else {
-            println!(
-                "Found a reboot snapshot with auto-restore enabled. Restoring {} neura window(s)...\n",
-                snapshot.sessions.len()
-            );
-        }
+        println!(
+            "Found a reboot snapshot with auto-restore enabled. Restoring {} neura window(s)...\n",
+            snapshot.sessions.len()
+        );
         run_restart_restore_command()?;
         return Ok(true);
     }
 
     if std::io::stdin().is_terminal() || std::io::stderr().is_terminal() {
-        println!("Saved reboot snapshot detected. Restore it with:\n  neura restart restore\n");
+        if synthesized_from_recent_crashes {
+            let n = snapshot.sessions.len();
+            println!(
+                "Detected {n} neura session(s) from a previous unexpected shutdown. \
+They were NOT reopened automatically.\n\
+  Reopen them:  neura restart restore\n\
+  Dismiss:      neura restart clear\n"
+            );
+        } else {
+            println!("Saved reboot snapshot detected. Restore it with:\n  neura restart restore\n");
+        }
     }
 
     Ok(false)
 }
 
 pub fn run_restart_clear_command() -> Result<()> {
-    if crate::restart_snapshot::clear_snapshot()? {
-        println!("Cleared reboot snapshot.");
-    } else {
-        println!("No reboot snapshot was saved.");
+    let had_snapshot = crate::restart_snapshot::clear_snapshot()?;
+    // Also acknowledge any recent crashed sessions so the crash-detection
+    // notice on the next `neura` launch does not keep re-appearing. Marking
+    // them `Closed` (handled) leaves the transcripts intact but stops them
+    // from being re-synthesized as "recent crashes".
+    let mut acknowledged = 0usize;
+    for (session_id, _) in crate::session::find_recent_crashed_sessions() {
+        if let Ok(mut session) = crate::session::Session::load(&session_id) {
+            if matches!(session.status, crate::session::SessionStatus::Crashed { .. }) {
+                session.status = crate::session::SessionStatus::Closed;
+                if session.save().is_ok() {
+                    acknowledged += 1;
+                }
+            }
+        }
+    }
+
+    match (had_snapshot, acknowledged) {
+        (true, 0) => println!("Cleared reboot snapshot."),
+        (true, n) => println!("Cleared reboot snapshot and dismissed {n} crashed session(s)."),
+        (false, 0) => println!("No reboot snapshot was saved."),
+        (false, n) => println!("Dismissed {n} crashed session(s)."),
     }
     Ok(())
 }

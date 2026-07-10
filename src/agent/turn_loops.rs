@@ -1100,10 +1100,17 @@ impl Agent {
                             execution_mode: ToolExecutionMode::AgentTurn,
                         };
                         crate::telemetry::record_tool_call();
+                        let evidence_paths =
+                            crate::knowledge::evidence::candidate_paths(&tool_name, &input);
                         let tool_result = self.registry.execute(&tool_name, input, ctx).await;
                         if tool_result.is_err() {
                             crate::telemetry::record_tool_failure();
                         }
+                        crate::knowledge::evidence::note_tool_outcome_paths(
+                            &tool_name,
+                            evidence_paths,
+                            tool_result.is_ok(),
+                        );
                         let native_result = match tool_result {
                             Ok(output) => NativeToolResult::success(request_id, output.output),
                             Err(e) => NativeToolResult::error(request_id, e.to_string()),
@@ -1459,6 +1466,9 @@ impl Agent {
 
                 let result = self.registry.execute(&tc.name, tc.input.clone(), ctx).await;
                 crate::telemetry::record_tool_call();
+                // Workspace edits are architectural observations: queue them
+                // as knowledge evidence (folded in at the next sleep/sync).
+                crate::knowledge::evidence::note_tool_outcome(&tc.name, &tc.input, result.is_ok());
                 self.unlock_tools_if_needed(&tc.name);
                 let tool_elapsed = tool_start.elapsed();
                 logging::info(&format!(

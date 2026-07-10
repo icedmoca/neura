@@ -1635,6 +1635,16 @@ fn format_event_for_expanded(
                 rgb(140, 210, 255),
             )
         }
+        MemoryEventKind::CascadeExpanded { added } => (
+            "🕸\u{fe0f}",
+            format!("graph cascade +{} related", added),
+            rgb(150, 170, 210),
+        ),
+        MemoryEventKind::EpisodicPromoted { .. } => (
+            "🧠",
+            "episodic→semantic".to_string(),
+            rgb(180, 160, 220),
+        ),
         MemoryEventKind::MaintenanceComplete { latency_ms } => (
             "🌿",
             truncate_with_ellipsis(&format!("maintained ({}ms)", latency_ms), max_width),

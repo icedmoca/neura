@@ -289,10 +289,7 @@ fn copy_to_clipboard_arboard(text: &str) -> bool {
         })
         .is_ok();
 
-    spawned
-        && rx
-            .recv_timeout(Duration::from_millis(500))
-            .unwrap_or(false)
+    spawned && rx.recv_timeout(Duration::from_millis(500)).unwrap_or(false)
 }
 
 #[cfg(not(target_os = "linux"))]

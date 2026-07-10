@@ -375,11 +375,58 @@ const EXPLICIT_SHUTDOWN_GRACE_SECS: u64 = 8;
 static EXPLICIT_SHUTDOWN_REQUESTED: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
+/// Guards `begin_explicit_full_shutdown` so only the first quit wins.
+static FULL_SHUTDOWN_STARTED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 /// Mark that the server should shut down promptly after the current client(s)
 /// disconnect, rather than waiting out the full idle timeout.
 pub fn request_explicit_shutdown() {
     EXPLICIT_SHUTDOWN_REQUESTED.store(true, std::sync::atomic::Ordering::SeqCst);
-    crate::logging::info("Explicit shutdown requested by client; server will exit promptly once idle.");
+    crate::logging::info(
+        "Explicit shutdown requested by client; server will exit promptly once idle.",
+    );
+}
+
+/// Full teardown for an explicit user quit (`/exit` or Ctrl+C twice).
+///
+/// The user's intent here is unambiguous: turn *everything* off and start clean
+/// next time. So we:
+///   1. close every tracked session so the next launch starts a single fresh
+///      session with no crash notice / auto-restore,
+///   2. stop companion helpers,
+///   3. after a short grace (so the quitting client can restore its terminal and
+///      exit cleanly), kill every remaining `neura` process — the daemon itself
+///      and any sibling clients / `neura run` subprocesses — then hard-exit.
+///
+/// The kill targets processes whose `comm` is exactly `neura` (see
+/// `process_title::KILLALL_PROCESS_NAME`), so the Python web UI, the Ollama
+/// sidecar, and the logit-lens helper are all left untouched.
+pub fn begin_explicit_full_shutdown() {
+    if FULL_SHUTDOWN_STARTED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return;
+    }
+
+    let closed = crate::session::close_all_open_sessions();
+    crate::logging::info(&format!(
+        "Explicit quit: closed {closed} session(s); tearing down all neura processes."
+    ));
+    kill_companion_helpers();
+
+    std::thread::spawn(|| {
+        // Give the quitting client time to flush its final read and restore the
+        // terminal before we SIGKILL the process tree.
+        std::thread::sleep(std::time::Duration::from_millis(700));
+        crate::logging::info("Explicit quit: killing all neura processes now.");
+        // Detached `pkill` (comm != "neura") reliably signals every neura process
+        // — including this daemon (our parent) — without racing to kill itself.
+        let _ = std::process::Command::new("pkill")
+            .args(["-9", "-x", "neura"])
+            .status();
+        // Belt-and-suspenders in case pkill is unavailable or misses us.
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        std::process::exit(EXIT_IDLE_TIMEOUT);
+    });
 }
 
 /// The effective idle timeout: short once an explicit shutdown was requested.
@@ -397,7 +444,11 @@ fn effective_idle_timeout_secs() -> u64 {
 /// keep-warm (intentionally always-hot) or anything else.
 fn kill_companion_helpers() {
     for pattern in ["chromium-agent-bridge"] {
-        match std::process::Command::new("pkill").arg("-f").arg(pattern).status() {
+        match std::process::Command::new("pkill")
+            .arg("-f")
+            .arg(pattern)
+            .status()
+        {
             Ok(status) => crate::logging::info(&format!(
                 "Explicit shutdown: pkill -f {} -> {}",
                 pattern, status

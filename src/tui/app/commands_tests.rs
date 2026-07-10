@@ -1,5 +1,7 @@
 use super::super::commands_review::{ImproveCommand, RefactorCommand};
-use super::{parse_improve_command, parse_manual_subagent_spec, parse_refactor_command};
+use super::{
+    parse_improve_command, parse_manual_subagent_spec, parse_refactor_command, parse_voice_command,
+};
 
 #[test]
 fn parse_improve_command_accepts_builtin_forms() {

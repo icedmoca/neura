@@ -518,6 +518,8 @@ impl Skill {
             reinforcements: Vec::new(),
             embedding: None,
             confidence: 1.0,
+            evidence: Vec::new(),
+            concept_embedding: None,
         }
     }
 }

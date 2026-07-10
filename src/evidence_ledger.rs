@@ -20,6 +20,14 @@ pub enum EvidenceKind {
     MemoryUpdate,
     TokenEvent,
     PromotionDecision,
+    /// Architectural expectation recorded before acting (knowledge layer).
+    Prediction,
+    /// Post-execution comparison of predictions against reality.
+    Reflection,
+    /// Read-only architectural observation from the semantic graph.
+    ArchitecturalInsight,
+    /// Preserved engineering decision: reasoning, alternatives, tradeoffs.
+    EngineeringDecision,
     System,
 }
 

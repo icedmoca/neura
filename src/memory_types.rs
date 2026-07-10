@@ -159,6 +159,10 @@ pub enum MemoryEventKind {
         preview: String,
         items: Vec<InjectedMemoryItem>,
     },
+    /// Graph cascade retrieval added related candidates beyond embedding hits.
+    CascadeExpanded { added: usize },
+    /// A repeatedly-observed episodic memory was promoted to semantic.
+    EpisodicPromoted { id: String },
     /// Background maintenance started.
     MaintenanceStarted { verified: usize, rejected: usize },
     /// Background maintenance discovered or strengthened links.

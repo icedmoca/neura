@@ -155,6 +155,22 @@ pub enum MemorySubcommand {
         overwrite: bool,
     },
     Stats,
+    Graph {
+        max_nodes: usize,
+        mermaid: bool,
+    },
+    Sleep {
+        json: bool,
+    },
+    Reason {
+        args: Vec<String>,
+    },
+    Health {
+        json: bool,
+    },
+    Report {
+        args: Vec<String>,
+    },
     ClearTest,
     SidecarEnsure {
         json: bool,
@@ -164,7 +180,756 @@ pub enum MemorySubcommand {
     },
 }
 
-pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
+pub enum KnowledgeSubcommand {
+    Ingest { path: String, full: bool, json: bool },
+    Status { json: bool },
+    Sync { json: bool },
+    Reason { query: String, json: bool },
+    Impact { target: String, json: bool },
+    Insights { json: bool, record: bool },
+    Reflect { json: bool },
+    Goals { json: bool },
+    Decision(Box<crate::knowledge::engineering::DecisionInput>),
+    Plan { topic: String, json: bool },
+    Verify { tests: bool, json: bool },
+    Health { json: bool },
+    History { query: String, json: bool },
+}
+
+/// `neura knowledge ...` — unified knowledge-source layer. Repositories (and
+/// future sources) are ingested as semantic concepts in the existing memory
+/// graph; status/sync expose the incremental pipeline.
+pub async fn run_knowledge_command(cmd: KnowledgeSubcommand) -> Result<()> {
+    use crate::knowledge::{self, IngestOptions, KnowledgeSource, repo::RepositorySource};
+    use memory::MemoryManager;
+
+    let manager = MemoryManager::new();
+
+    match cmd {
+        KnowledgeSubcommand::Ingest { path, full, json } => {
+            let root = std::path::PathBuf::from(&path);
+            if !root.is_dir() {
+                anyhow::bail!("not a directory: {path}");
+            }
+            let mut source = RepositorySource::new(root);
+            let opts = IngestOptions {
+                full,
+                ..Default::default()
+            };
+            let report = knowledge::ingest_source(&manager, &mut source, opts).await?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            } else {
+                println!("{}", report.render(&source.display_name()));
+                if report.items_deferred > 0 {
+                    println!(
+                        "{} items deferred; run `neura knowledge sync` (or let the sleep cycle) to continue.",
+                        report.items_deferred
+                    );
+                }
+                println!(
+                    "Concepts now flow through the normal memory pipeline: `neura memory sleep`, `neura memory reason concept <text>`, `neura memory graph`."
+                );
+            }
+        }
+
+        KnowledgeSubcommand::Status { json } => {
+            let graph = manager.load_project_graph()?;
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&graph.metadata.knowledge_sources)?
+                );
+            } else {
+                print!("{}", knowledge::render_sources_status(&graph));
+                let queued = knowledge::evidence::queued_len();
+                if queued > 0 {
+                    println!("{queued} tool outcome(s) queued for evidence folding.");
+                }
+            }
+        }
+
+        KnowledgeSubcommand::Sync { json } => {
+            let mut graph = manager.load_project_graph()?;
+            if graph.metadata.knowledge_sources.is_empty() {
+                println!("No knowledge sources registered. Run `neura knowledge ingest [path]`.");
+                return Ok(());
+            }
+            let reports =
+                knowledge::refresh_sources_in_graph(&mut graph, IngestOptions::default()).await;
+            manager.save_project_graph(&graph)?;
+            if json {
+                let map: std::collections::BTreeMap<_, _> = reports.into_iter().collect();
+                println!("{}", serde_json::to_string_pretty(&map)?);
+            } else {
+                for (source_id, report) in &reports {
+                    println!("{}", report.render(source_id));
+                }
+            }
+        }
+
+        KnowledgeSubcommand::Reason { query, json } => {
+            let mut graph = manager.load_project_graph()?;
+            let trace = knowledge::reasoning::reason(&mut graph, &query);
+            if json {
+                println!("{}", serde_json::to_string_pretty(&trace)?);
+            } else {
+                print!("{}", knowledge::reasoning::render_trace(&trace));
+            }
+        }
+
+        KnowledgeSubcommand::Impact { target, json } => {
+            let mut graph = manager.load_project_graph()?;
+            let seeds = knowledge::reasoning::find_seeds(&graph, &target, 3);
+            if seeds.is_empty() {
+                println!("No concepts matched '{target}'.");
+                return Ok(());
+            }
+            let ids: Vec<String> = seeds.iter().map(|s| s.id.clone()).collect();
+            let model = knowledge::reasoning::impact_for(&graph, &ids, 3);
+            // Impact queries are retrievals; count them like any other.
+            graph.metadata.retrieval_count += 1;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&model)?);
+            } else {
+                print!("{}", knowledge::reasoning::render_impact(&model));
+            }
+        }
+
+        KnowledgeSubcommand::Insights { json, record } => {
+            let graph = manager.load_project_graph()?;
+            let insights = knowledge::insights::architecture_insights(&graph);
+            if json {
+                println!("{}", serde_json::to_string_pretty(&insights)?);
+            } else {
+                print!("{}", knowledge::insights::render_insights(&insights));
+            }
+            if record {
+                let n = knowledge::insights::record_insights_as_evidence(&insights)?;
+                println!("\nRecorded {n} observation(s) to the evidence ledger.");
+            }
+        }
+
+        KnowledgeSubcommand::Reflect { json } => {
+            let pending = knowledge::reasoning::pending_prediction_count();
+            let blocks = crate::evidence_ledger::query_ledger(crate::evidence_ledger::LedgerQuery {
+                kind: Some(crate::evidence_ledger::EvidenceKind::Reflection),
+                limit: 10,
+                ..Default::default()
+            })
+            .unwrap_or_default();
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "pending_predictions": pending,
+                        "recent_reflections": blocks,
+                    }))?
+                );
+            } else {
+                println!("Pending architectural predictions: {pending}");
+                if blocks.is_empty() {
+                    println!(
+                        "No reflections recorded yet. Predictions are scored when tool \
+                         evidence is folded in (memory sleep / knowledge sync)."
+                    );
+                } else {
+                    println!("Recent prediction-vs-reality reflections:");
+                    for b in blocks.iter().rev() {
+                        println!(
+                            "  #{} {} — {} (precision {})",
+                            b.index,
+                            b.subject,
+                            b.summary,
+                            b.score
+                                .map(|s| format!("{s:.2}"))
+                                .unwrap_or_else(|| "n/a".to_string()),
+                        );
+                    }
+                }
+            }
+        }
+
+        KnowledgeSubcommand::Goals { json } => {
+            let mut graph = manager.load_project_graph()?;
+            let (seen, links) = knowledge::engineering::sync_goals_into_graph(&mut graph, None)?;
+            manager.save_project_graph(&graph)?;
+            let goal_ids = knowledge::engineering::active_goal_ids(&graph);
+            if json {
+                let goals: Vec<_> = goal_ids
+                    .iter()
+                    .filter_map(|id| graph.get_memory(id))
+                    .collect();
+                println!("{}", serde_json::to_string_pretty(&goals)?);
+            } else {
+                println!(
+                    "Goal concepts in the graph: {seen} ({links} architectural link(s) refreshed)."
+                );
+                if goal_ids.is_empty() {
+                    println!(
+                        "No goal concepts yet. Create goals with the goal tool / side panel; \
+                         they mirror into the graph automatically on sleep/sync."
+                    );
+                }
+                for id in &goal_ids {
+                    if let Some(m) = graph.get_memory(id) {
+                        println!("  [{:.2}] {}", m.confidence, m.content.lines().next().unwrap_or(""));
+                        let related: Vec<String> = graph
+                            .ranked_relations(id)
+                            .into_iter()
+                            .take(3)
+                            .map(|(kind, other, _, _)| {
+                                format!(
+                                    "{} {}",
+                                    kind.label(),
+                                    knowledge::reasoning::concept_label(&graph, &other)
+                                )
+                            })
+                            .collect();
+                        if !related.is_empty() {
+                            println!("      ↳ {}", related.join(" · "));
+                        }
+                    }
+                }
+            }
+        }
+
+        KnowledgeSubcommand::Decision(input) => {
+            let mut graph = manager.load_project_graph()?;
+            let id = knowledge::engineering::record_decision(&mut graph, &input)?;
+            manager.save_project_graph(&graph)?;
+            println!("Recorded decision as concept {id} (tag `decision`), linked into the graph and the evidence ledger.");
+            let related: Vec<String> = graph
+                .ranked_relations(&id)
+                .into_iter()
+                .take(4)
+                .map(|(kind, other, _, _)| {
+                    format!(
+                        "{} {}",
+                        kind.label(),
+                        knowledge::reasoning::concept_label(&graph, &other)
+                    )
+                })
+                .collect();
+            if !related.is_empty() {
+                println!("Linked: {}", related.join(" · "));
+            }
+        }
+
+        KnowledgeSubcommand::Plan { topic, json } => {
+            let mut graph = manager.load_project_graph()?;
+            let plan = knowledge::engineering::decompose(&mut graph, &topic)?;
+            manager.save_project_graph(&graph)?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&plan)?);
+            } else {
+                print!("{}", knowledge::engineering::render_plan(&plan));
+            }
+        }
+
+        KnowledgeSubcommand::Verify { tests, json } => {
+            let root = std::env::current_dir()?;
+            let report = knowledge::verify::run_verification(&manager, &root, tests).await?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            } else {
+                print!("{}", knowledge::verify::render_report(&report));
+            }
+            if !report.passed {
+                std::process::exit(1);
+            }
+        }
+
+        KnowledgeSubcommand::Health { json } => {
+            let graph = manager.load_project_graph()?;
+            let report = knowledge::insights::health_report(&graph);
+            if json {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            } else {
+                print!("{}", knowledge::insights::render_health(&report));
+            }
+        }
+
+        KnowledgeSubcommand::History { query, json } => {
+            let graph = manager.load_project_graph()?;
+            if query.trim().is_empty() {
+                // Per-source architectural evolution timeline.
+                if json {
+                    let map: std::collections::BTreeMap<_, _> = graph
+                        .metadata
+                        .knowledge_sources
+                        .iter()
+                        .map(|(id, s)| (id.clone(), s.history.clone()))
+                        .collect();
+                    println!("{}", serde_json::to_string_pretty(&map)?);
+                } else {
+                    for (id, state) in &graph.metadata.knowledge_sources {
+                        println!("{id}:");
+                        for p in &state.history {
+                            println!(
+                                "  {} · {} items, {} active concepts (+{} ~{} retired {})",
+                                p.at.format("%Y-%m-%d %H:%M"),
+                                p.items,
+                                p.active_concepts,
+                                p.concepts_created,
+                                p.concepts_updated,
+                                p.concepts_retired
+                            );
+                        }
+                    }
+                }
+            } else {
+                // Concept timeline: when it appeared, how it evolved, why.
+                let seeds = knowledge::reasoning::find_seeds(&graph, &query, 3);
+                if seeds.is_empty() {
+                    println!("No concepts matched '{query}'.");
+                    return Ok(());
+                }
+                for seed in seeds {
+                    let Some(m) = graph.get_memory(&seed.id) else { continue };
+                    println!("{}", knowledge::reasoning::concept_label(&graph, &seed.id));
+                    println!(
+                        "  appeared {} · last evolved {} · strength {} · confidence {:.2}{}",
+                        m.created_at.format("%Y-%m-%d"),
+                        m.updated_at.format("%Y-%m-%d"),
+                        m.strength,
+                        m.confidence,
+                        if m.active { "" } else { " · RETIRED" }
+                    );
+                    for ev in &m.evidence {
+                        let what = ev.note.clone().unwrap_or_else(|| ev.id.clone());
+                        println!("  {} · {}", ev.at.format("%Y-%m-%d %H:%M"), what);
+                    }
+                    if json {
+                        println!("{}", serde_json::to_string_pretty(&m)?);
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Graph reasoning operations for `neura memory reason ...`.
+fn run_memory_reason(manager: &memory::MemoryManager, args: &[String]) -> Result<()> {
+    use crate::memory_graph::MemoryGraph;
+
+    let project = manager
+        .load_project_graph()
+        .unwrap_or_else(|_| MemoryGraph::new());
+    let global = manager
+        .load_global_graph()
+        .unwrap_or_else(|_| MemoryGraph::new());
+
+    // Locate which graph owns a memory id.
+    let locate = |id: &str| -> Option<&MemoryGraph> {
+        if project.get_memory(id).is_some() {
+            Some(&project)
+        } else if global.get_memory(id).is_some() {
+            Some(&global)
+        } else {
+            None
+        }
+    };
+    let short = |g: &MemoryGraph, id: &str| -> String {
+        g.get_memory(id)
+            .map(|m| m.content.chars().take(72).collect::<String>())
+            .unwrap_or_else(|| id.to_string())
+    };
+
+    let op = args[0].as_str();
+    match op {
+        "why" | "explain" => {
+            let id = args.get(1).ok_or_else(|| anyhow::anyhow!("usage: why <memory-id>"))?;
+            let Some(g) = locate(id) else {
+                println!("No memory found with id '{id}'");
+                return Ok(());
+            };
+            println!("Why '{}' matters:", short(g, id));
+            println!("  importance: {:.3}", g.importance(id));
+            let m = g.get_memory(id).unwrap();
+            println!("  confidence: {:.3}  (evidence: {})", m.confidence, m.evidence.len());
+            let relations = g.ranked_relations(id);
+            if relations.is_empty() {
+                println!("  (no semantic relations yet)");
+            } else {
+                println!("  supported / related by:");
+                for (kind, target, weight, conf) in relations.iter().take(10) {
+                    println!(
+                        "    --{}--> [{:.2}|c{:.2}] {}",
+                        kind.label(),
+                        weight,
+                        conf,
+                        short(g, target)
+                    );
+                }
+            }
+            let contra = g.contradictions_of(id);
+            if !contra.is_empty() {
+                println!("  ⚠ contradicted by:");
+                for c in contra {
+                    println!("    {}", short(g, &c));
+                }
+            }
+        }
+        "path" => {
+            let (a, b) = (
+                args.get(1).ok_or_else(|| anyhow::anyhow!("usage: path <a> <b>"))?,
+                args.get(2).ok_or_else(|| anyhow::anyhow!("usage: path <a> <b>"))?,
+            );
+            let Some(g) = locate(a).filter(|_| locate(b).is_some()) else {
+                println!("Both memories must exist in the same store.");
+                return Ok(());
+            };
+            match g.shortest_semantic_path(a, b, 6) {
+                Some(path) => {
+                    println!("Reasoning path ({} hops):", path.len().saturating_sub(1));
+                    for (node, kind) in path {
+                        match kind {
+                            Some(k) => println!("   --{}--> {}", k.label(), short(g, &node)),
+                            None => println!("   {}", short(g, &node)),
+                        }
+                    }
+                }
+                None => println!("No semantic path within 6 hops."),
+            }
+        }
+        "compare" => {
+            let (a, b) = (
+                args.get(1).ok_or_else(|| anyhow::anyhow!("usage: compare <a> <b>"))?,
+                args.get(2).ok_or_else(|| anyhow::anyhow!("usage: compare <a> <b>"))?,
+            );
+            let Some(g) = locate(a).filter(|_| locate(b).is_some()) else {
+                println!("Both memories must exist in the same store.");
+                return Ok(());
+            };
+            let (direct, tags, neighbours) = g.compare_memories(a, b);
+            println!("Comparing:");
+            println!("   A: {}", short(g, a));
+            println!("   B: {}", short(g, b));
+            match direct {
+                Some(k) => println!("  direct relation: {}", k.label()),
+                None => println!("  direct relation: none"),
+            }
+            println!("  shared tags: {}", if tags.is_empty() { "(none)".into() } else { tags.join(", ") });
+            if neighbours.is_empty() {
+                println!("  shared neighbours: (none)");
+            } else {
+                println!("  shared neighbours:");
+                for n in neighbours.iter().take(8) {
+                    println!("    {}", short(g, n));
+                }
+            }
+        }
+        "contradictions" => {
+            if let Some(id) = args.get(1) {
+                let Some(g) = locate(id) else {
+                    println!("No memory found with id '{id}'");
+                    return Ok(());
+                };
+                let contra = g.contradictions_of(id);
+                if contra.is_empty() {
+                    println!("No contradictions for '{}'.", short(g, id));
+                } else {
+                    println!("Contradictions of '{}':", short(g, id));
+                    for c in contra {
+                        println!("   {}", short(g, &c));
+                    }
+                }
+            } else {
+                let mut found = false;
+                for g in [&project, &global] {
+                    if let Some((a, b, conf)) = g.strongest_contradiction() {
+                        println!(
+                            "Strongest contradiction (confidence {:.2}):\n   {}\n   vs\n   {}",
+                            conf,
+                            short(g, &a),
+                            short(g, &b)
+                        );
+                        found = true;
+                    }
+                }
+                if !found {
+                    println!("No contradictions recorded in the graph.");
+                }
+            }
+        }
+        "concept" => {
+            if args.len() < 2 {
+                return Err(anyhow::anyhow!("usage: concept <text...>"));
+            }
+            let query = args[1..].join(" ");
+            match manager.find_similar_with_cascade(&query, 0.3, 8) {
+                Ok(hits) if !hits.is_empty() => {
+                    println!("Concept '{}' — {} related memories:", query, hits.len());
+                    for (entry, score) in &hits {
+                        println!("   [{:.2}] {}", score, entry.content.chars().take(72).collect::<String>());
+                    }
+                    // Anchor on the top hit and show its strongest relations.
+                    if let Some((top, _)) = hits.first()
+                        && let Some(g) = locate(&top.id)
+                    {
+                        let relations = g.ranked_relations(&top.id);
+                        if !relations.is_empty() {
+                            println!("  anchored on top hit, related concepts:");
+                            for (kind, target, weight, _) in relations.iter().take(6) {
+                                println!("    --{}--> [{:.2}] {}", kind.label(), weight, short(g, target));
+                            }
+                        }
+                    }
+                }
+                Ok(_) => println!("No memories matched concept '{}'.", query),
+                Err(e) => println!("Concept search failed: {e}"),
+            }
+        }
+        other => {
+            println!(
+                "Unknown reason op '{other}'. Try: why <id> | path <a> <b> | compare <a> <b> | contradictions [id] | concept <text..>"
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Graph-integrity report for `neura memory health`.
+fn run_memory_health(
+    project: &[crate::memory_graph::GraphIssue],
+    global: &[crate::memory_graph::GraphIssue],
+    json: bool,
+) -> Result<()> {
+    use std::collections::BTreeMap;
+
+    let summarize = |issues: &[crate::memory_graph::GraphIssue]| -> BTreeMap<String, usize> {
+        let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+        for i in issues {
+            *counts.entry(i.category().to_string()).or_default() += 1;
+        }
+        counts
+    };
+
+    if json {
+        let obj = serde_json::json!({
+            "healthy": project.is_empty() && global.is_empty(),
+            "project": {
+                "issues": project.iter().map(|i| i.to_string()).collect::<Vec<_>>(),
+                "by_category": summarize(project),
+            },
+            "global": {
+                "issues": global.iter().map(|i| i.to_string()).collect::<Vec<_>>(),
+                "by_category": summarize(global),
+            },
+        });
+        println!("{}", serde_json::to_string_pretty(&obj)?);
+        return Ok(());
+    }
+
+    for (label, issues) in [("project", project), ("global", global)] {
+        if issues.is_empty() {
+            println!("{label} graph: ✓ healthy (no integrity issues)");
+        } else {
+            println!("{label} graph: ⚠ {} issue(s)", issues.len());
+            for (cat, n) in summarize(issues) {
+                println!("   {n:>3}  {cat}");
+            }
+            for i in issues.iter().take(20) {
+                println!("     - {i}");
+            }
+            if issues.len() > 20 {
+                println!("     … and {} more", issues.len() - 20);
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Diagnostics for `neura memory report <kind>`.
+fn run_memory_report(manager: &memory::MemoryManager, args: &[String]) -> Result<()> {
+    use crate::memory_graph::{EdgeKind, MemoryGraph};
+
+    let project = manager.load_project_graph().unwrap_or_else(|_| MemoryGraph::new());
+    let global = manager.load_global_graph().unwrap_or_else(|_| MemoryGraph::new());
+    let graphs: [(&str, &MemoryGraph); 2] = [("project", &project), ("global", &global)];
+    let short = |g: &MemoryGraph, id: &str| -> String {
+        g.get_memory(id)
+            .map(|m| m.content.chars().take(72).collect::<String>())
+            .unwrap_or_else(|| id.to_string())
+    };
+
+    match args[0].as_str() {
+        "consolidations" | "consolidation" => {
+            let mut any = false;
+            for (label, g) in graphs {
+                let recs = &g.metadata.consolidations;
+                if recs.is_empty() {
+                    continue;
+                }
+                any = true;
+                println!("{label} — {} consolidation(s):", recs.len());
+                for r in recs.iter().rev().take(20) {
+                    println!(
+                        "   [{}] {} ({} sources) -> {}",
+                        r.at.format("%Y-%m-%d %H:%M"),
+                        if r.concept.is_empty() { "concept" } else { &r.concept },
+                        r.sources.len(),
+                        short(g, &r.semantic_id)
+                    );
+                }
+            }
+            if !any {
+                println!("No consolidations recorded yet.");
+            }
+        }
+        "contradictions" => {
+            let mut any = false;
+            for (label, g) in graphs {
+                let mut seen: std::collections::HashSet<(String, String)> = Default::default();
+                for (from, edges) in &g.edges {
+                    for e in edges {
+                        if e.kind != EdgeKind::Contradicts {
+                            continue;
+                        }
+                        let key = if *from < e.target {
+                            (from.clone(), e.target.clone())
+                        } else {
+                            (e.target.clone(), from.clone())
+                        };
+                        if !seen.insert(key) {
+                            continue;
+                        }
+                        any = true;
+                        let reason = e
+                            .meta
+                            .evidence
+                            .last()
+                            .and_then(|ev| ev.note.clone())
+                            .unwrap_or_else(|| "(no reason recorded)".into());
+                        println!("[{label}] c{:.2}", e.meta.confidence);
+                        println!("   {}", short(g, from));
+                        println!("   vs {}", short(g, &e.target));
+                        println!("   why: {reason}");
+                    }
+                }
+            }
+            if !any {
+                println!("No contradictions discovered in the graph.");
+            }
+        }
+        "confidence" => {
+            let mut buckets = [0usize; 10];
+            let mut total = 0usize;
+            for (_, g) in graphs {
+                for m in g.all_memories() {
+                    let idx = ((m.confidence.clamp(0.0, 0.999) * 10.0) as usize).min(9);
+                    buckets[idx] += 1;
+                    total += 1;
+                }
+            }
+            println!("Confidence distribution ({total} memories):");
+            for (i, count) in buckets.iter().enumerate() {
+                let lo = i as f32 / 10.0;
+                let hi = (i as f32 + 1.0) / 10.0;
+                let bar = "#".repeat((*count).min(50));
+                println!("   {lo:.1}-{hi:.1} | {count:>4} {bar}");
+            }
+        }
+        "communities" => {
+            let mut comms: Vec<(String, String, u32)> = Vec::new();
+            for (label, g) in graphs {
+                for (id, c) in &g.clusters {
+                    if id.starts_with("cluster:comm-") {
+                        comms.push((
+                            label.to_string(),
+                            c.name.clone().unwrap_or_else(|| id.clone()),
+                            c.member_count,
+                        ));
+                    }
+                }
+            }
+            comms.sort_by(|a, b| b.2.cmp(&a.2));
+            if comms.is_empty() {
+                println!("No concept communities detected yet (run `neura memory sleep`).");
+            } else {
+                println!("Largest concept communities:");
+                for (label, name, n) in comms.iter().take(15) {
+                    println!("   [{label}] {n:>3} members — {name}");
+                }
+            }
+        }
+        "important" => {
+            for (label, g) in graphs {
+                let ranking = g.importance_ranking(10);
+                if ranking.is_empty() {
+                    continue;
+                }
+                println!("{label} — most important memories:");
+                for (id, score) in ranking {
+                    println!("   [{score:.3}] {}", short(g, &id));
+                }
+            }
+        }
+        "evidence" => {
+            let id = args
+                .get(1)
+                .ok_or_else(|| anyhow::anyhow!("usage: report evidence <memory-id>"))?;
+            let Some(g) = graphs.iter().map(|(_, g)| *g).find(|g| g.get_memory(id).is_some())
+            else {
+                println!("No memory found with id '{id}'");
+                return Ok(());
+            };
+            let m = g.get_memory(id).unwrap();
+            println!("Evidence chain for '{}':", short(g, id));
+            println!("  confidence: {:.3}", m.confidence);
+            if m.evidence.is_empty() {
+                println!("  (no fact-level evidence recorded)");
+            } else {
+                for ev in &m.evidence {
+                    let note = ev.note.clone().unwrap_or_default();
+                    println!("   - {:?} {} {}", ev.kind, ev.id, note);
+                }
+            }
+            let sources = g.derived_sources(id);
+            if !sources.is_empty() {
+                println!("  derived from {} episode(s):", sources.len());
+                for s in sources {
+                    println!("     · {}", short(g, &s));
+                }
+            }
+        }
+        "sleep" => {
+            let mut any = false;
+            for (label, g) in graphs {
+                if let Some(r) = &g.metadata.last_sleep {
+                    any = true;
+                    println!("{label} — last sleep {}:", r.at.map(|a| a.format("%Y-%m-%d %H:%M").to_string()).unwrap_or_default());
+                    println!("   linked {}  weakened {}  pruned {}", r.linked, r.weakened, r.pruned);
+                    println!(
+                        "   communities {}  consolidated {}  contradictions {}  concept-embeds {}  decayed {}",
+                        r.communities,
+                        r.consolidated,
+                        r.contradictions_found,
+                        r.concept_embeddings_refreshed,
+                        r.confidence_decayed
+                    );
+                }
+            }
+            if !any {
+                println!("No sleep cycle has run yet.");
+            }
+        }
+        "health" => {
+            let (p, gl) = manager.validate_graphs()?;
+            run_memory_health(&p, &gl, false)?;
+        }
+        other => {
+            println!(
+                "Unknown report '{other}'. Try: consolidations | contradictions | confidence | communities | important | evidence <id> | sleep | health"
+            );
+        }
+    }
+    Ok(())
+}
+
+pub async fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
     use memory::{MemoryEntry, MemoryManager};
 
     let manager = MemoryManager::new();
@@ -217,13 +982,16 @@ pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
 
         MemorySubcommand::Search { query, semantic } => {
             if semantic {
-                match manager.find_similar(&query, 0.3, 20) {
+                // Use the graph cascade path so tag/link/cluster traversal
+                // contributes (falls back to plain embedding hits when the
+                // graph has no extra neighbours).
+                match manager.find_similar_with_cascade(&query, 0.3, 20) {
                     Ok(results) => {
                         if results.is_empty() {
                             println!("No memories found matching '{}'", query);
                         } else {
                             println!(
-                                "Found {} memories matching '{}' (semantic):\n",
+                                "Found {} memories matching '{}' (semantic + graph cascade):\n",
                                 results.len(),
                                 query
                             );
@@ -367,15 +1135,155 @@ pub fn run_memory_command(cmd: MemorySubcommand) -> Result<()> {
                 }
             }
 
+            // Aggregate edge-type + link metadata across both stores.
+            let mut edge_kinds: std::collections::BTreeMap<&'static str, usize> =
+                std::collections::BTreeMap::new();
+            let mut clusters = 0usize;
+            let mut retrievals = 0u64;
+            let mut links_discovered = 0u64;
+            for graph in [manager.load_project_graph(), manager.load_global_graph()]
+                .into_iter()
+                .flatten()
+            {
+                for (label, n) in graph.edge_type_counts() {
+                    *edge_kinds.entry(label).or_insert(0) += n;
+                }
+                clusters += graph.clusters.len();
+                retrievals += graph.metadata.retrieval_count;
+                links_discovered += graph.metadata.link_discovery_count;
+            }
+
             println!("Memory Statistics:");
             println!("  Project memories: {}", project_count);
             println!("  Global memories:  {}", global_count);
             println!("  Total:            {}", project_count + global_count);
             println!("  Unique tags:      {}", total_tags.len());
+            println!("  Clusters:         {}", clusters);
+            println!("\nGraph edges (by semantic type):");
+            if edge_kinds.is_empty() {
+                println!("  (none yet)");
+            } else {
+                for (label, n) in &edge_kinds {
+                    println!("  {:<13} {}", format!("{label}:"), n);
+                }
+            }
+            println!("\nGraph activity:");
+            println!("  cascade retrievals: {}", retrievals);
+            println!("  links discovered:   {}", links_discovered);
             println!("\nBy category:");
             for (cat, count) in &categories {
                 println!("  {}: {}", cat, count);
             }
+        }
+
+        MemorySubcommand::Graph { max_nodes, mermaid } => {
+            let project = manager
+                .load_project_graph()
+                .unwrap_or_else(|_| crate::memory_graph::MemoryGraph::new());
+            let global = manager
+                .load_global_graph()
+                .unwrap_or_else(|_| crate::memory_graph::MemoryGraph::new());
+
+            if !mermaid {
+                for (label, graph) in [("project", &project), ("global", &global)] {
+                    if graph.memory_count() == 0 {
+                        continue;
+                    }
+                    let e = graph.edge_type_counts();
+                    println!(
+                        "── {label} graph ── {} memories, {} tags, {} clusters",
+                        graph.memory_count(),
+                        graph.tags.len(),
+                        graph.clusters.len(),
+                    );
+                    let edge_summary = e
+                        .iter()
+                        .map(|(k, n)| format!("{k}={n}"))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    println!(
+                        "   edges: {}",
+                        if edge_summary.is_empty() {
+                            "(none)".to_string()
+                        } else {
+                            edge_summary
+                        }
+                    );
+                    println!(
+                        "   activity: retrievals={} links_discovered={}",
+                        graph.metadata.retrieval_count, graph.metadata.link_discovery_count
+                    );
+                    let hubs = graph.top_hubs(5);
+                    if !hubs.is_empty() {
+                        println!("   top hubs:");
+                        for (id, degree) in hubs {
+                            let content = graph
+                                .get_memory(&id)
+                                .map(|m| m.content.chars().take(56).collect::<String>())
+                                .unwrap_or_else(|| id.clone());
+                            println!("     ({degree}) {content}");
+                        }
+                    }
+                    println!();
+                }
+            }
+
+            // Mermaid diagram of the richer (project) graph, then global if present.
+            for (label, graph) in [("project", &project), ("global", &global)] {
+                if graph.memory_count() == 0 {
+                    continue;
+                }
+                let diagram = graph.to_mermaid(max_nodes);
+                // Only print a diagram if it has at least one edge line.
+                if diagram.lines().count() > 1 {
+                    if !mermaid {
+                        println!("```mermaid  # {label} associations");
+                    }
+                    print!("{diagram}");
+                    if !mermaid {
+                        println!("```\n");
+                    }
+                }
+            }
+        }
+
+        MemorySubcommand::Sleep { json } => {
+            let report = manager.run_full_sleep_cycle().await?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            } else {
+                println!("Sleep cycle complete:");
+                println!("  associations linked/strengthened: {}", report.linked);
+                println!("  associations weakened:            {}", report.weakened);
+                println!("  associations pruned:              {}", report.pruned);
+                println!("  concept communities:              {}", report.communities);
+                println!("  semantic consolidations:          {}", report.consolidated);
+                println!("  contradictions discovered:        {}", report.contradictions_found);
+                println!(
+                    "  concept embeddings refreshed:     {}",
+                    report.concept_embeddings_refreshed
+                );
+                println!("  memories with confidence decayed: {}", report.confidence_decayed);
+                if report.knowledge_concepts_refreshed > 0 {
+                    println!(
+                        "  knowledge concepts refreshed:     {}",
+                        report.knowledge_concepts_refreshed
+                    );
+                }
+            }
+        }
+
+        MemorySubcommand::Reason { args } => {
+            run_memory_reason(&manager, &args)?;
+        }
+
+        MemorySubcommand::Health { json } => {
+            let (project, global) = manager.validate_graphs()?;
+            run_memory_health(&project, &global, json)?;
+        }
+
+        MemorySubcommand::Report { args } => {
+            run_memory_report(&manager, &args)?;
         }
 
         MemorySubcommand::ClearTest => {
@@ -993,6 +1901,21 @@ fn emit_ndjson_event(
                 "type": "error",
                 "message": message,
                 "retry_after_secs": retry_after_secs,
+            }),
+        ),
+        ServerEvent::SubtextLatent {
+            phase,
+            token,
+            latent,
+            text,
+        } => write_json_line(
+            stdout,
+            &serde_json::json!({
+                "type": "subtext_latent",
+                "phase": phase,
+                "token": token,
+                "latent": latent,
+                "text": text,
             }),
         ),
         ServerEvent::Ack { .. } | ServerEvent::Done { .. } | ServerEvent::Pong { .. } => Ok(()),

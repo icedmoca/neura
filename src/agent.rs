@@ -1,10 +1,12 @@
 #![cfg_attr(test, allow(clippy::await_holding_lock))]
 
 pub mod codebase_model;
+mod cognition_triggers;
 mod compaction;
 mod context_compiler;
 mod environment;
 mod interrupts;
+pub(crate) mod latent_hydration;
 mod messages;
 mod prompting;
 mod provider;
@@ -365,6 +367,7 @@ impl Agent {
         self.last_status_detail = None;
         self.pending_alerts.clear();
         self.current_turn_system_reminder = None;
+        crate::agent::latent_hydration::clear(&self.session.id);
         self.reset_tool_output_tracking();
         if let Ok(mut queue) = self.soft_interrupt_queue.lock() {
             queue.clear();

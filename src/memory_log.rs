@@ -101,6 +101,13 @@ fn write_log(event: &str, detail: Option<serde_json::Value>) {
     }
 }
 
+/// Log a knowledge-layer event (source ingestion, concept abstraction, tool
+/// evidence) to the same memory-events JSONL stream, keeping the unified
+/// knowledge pipeline observable through the existing reporting surface.
+pub fn log_knowledge(event: &str, detail: serde_json::Value) {
+    write_log(event, Some(detail));
+}
+
 /// Log a memory event from the in-memory event system.
 pub fn log_event(kind: &MemoryEventKind) {
     let (event, detail) = match kind {
@@ -159,6 +166,11 @@ pub fn log_event(kind: &MemoryEventKind) {
             })),
         ),
 
+        MemoryEventKind::CascadeExpanded { added } => (
+            "cascade_expanded",
+            Some(serde_json::json!({ "added": added })),
+        ),
+
         MemoryEventKind::MaintenanceStarted { verified, rejected } => (
             "maintenance_started",
             Some(serde_json::json!({
@@ -170,6 +182,11 @@ pub fn log_event(kind: &MemoryEventKind) {
         MemoryEventKind::MaintenanceLinked { links } => (
             "maintenance_linked",
             Some(serde_json::json!({ "links": links })),
+        ),
+
+        MemoryEventKind::EpisodicPromoted { id } => (
+            "episodic_promoted",
+            Some(serde_json::json!({ "id": id })),
         ),
 
         MemoryEventKind::MaintenanceConfidence { boosted, decayed } => (

@@ -263,6 +263,11 @@ impl Agent {
                 std::collections::HashMap::new();
             let store_reasoning_content = self.provider.name() == "openrouter";
             let mut reasoning_content = String::new();
+            // Capture the remote model's surfaced reasoning for the 🛰 observer
+            // stream + cross-turn latent hydration (independent of the
+            // openrouter-only history round-trip above).
+            let mut remote_reflection = String::new();
+            let mut remote_reflection_emitted = 0usize;
             let mut openai_native_compaction: Option<(String, usize)> = None;
             let mut tool_id_to_name: std::collections::HashMap<String, String> =
                 std::collections::HashMap::new();
@@ -325,6 +330,27 @@ impl Agent {
                         }
                         if store_reasoning_content {
                             reasoning_content.push_str(&thinking_text);
+                        }
+                        remote_reflection.push_str(&thinking_text);
+                        if remote_reflection.len() >= remote_reflection_emitted + 40 {
+                            remote_reflection_emitted = remote_reflection.len();
+                            let tail: String = remote_reflection
+                                .chars()
+                                .rev()
+                                .take(160)
+                                .collect::<Vec<_>>()
+                                .into_iter()
+                                .rev()
+                                .collect();
+                            let tail = tail.trim();
+                            if !tail.is_empty() {
+                                let _ = event_tx.send(ServerEvent::SubtextLatent {
+                                    phase: "remote:thinking".to_string(),
+                                    token: None,
+                                    latent: Vec::new(),
+                                    text: format!("[remote-thought] {tail}"),
+                                });
+                            }
                         }
                     }
                     StreamEvent::ThinkingDone { duration_secs } => {
@@ -713,6 +739,15 @@ impl Agent {
             } else {
                 None
             };
+
+            if !remote_reflection.trim().is_empty() {
+                crate::agent::latent_hydration::record(
+                    &self.session.id,
+                    "remote",
+                    remote_reflection.trim(),
+                    &[],
+                );
+            }
 
             if let Some((encrypted_content, compacted_count)) = openai_native_compaction.take() {
                 self.apply_openai_native_compaction(encrypted_content, compacted_count)?;

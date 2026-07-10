@@ -38,18 +38,29 @@ impl SubtextChatMessage {
 }
 
 /// Request body expected by Subtext's websocket server.
+///
+/// The upstream server ignores any frame whose `type` is not `"chat"`
+/// (`if req.get("type") != "chat": continue`), so the discriminator must always
+/// be sent on the wire.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SubtextChatRequest {
+    #[serde(rename = "type")]
+    pub request_type: String,
     pub messages: Vec<SubtextChatMessage>,
     pub max_tokens: usize,
 }
 
 impl SubtextChatRequest {
-    pub fn single_user(content: impl Into<String>, max_tokens: usize) -> Self {
+    pub fn new(messages: Vec<SubtextChatMessage>, max_tokens: usize) -> Self {
         Self {
-            messages: vec![SubtextChatMessage::user(content)],
+            request_type: "chat".to_string(),
+            messages,
             max_tokens,
         }
+    }
+
+    pub fn single_user(content: impl Into<String>, max_tokens: usize) -> Self {
+        Self::new(vec![SubtextChatMessage::user(content)], max_tokens)
     }
 }
 
@@ -72,18 +83,54 @@ pub enum SubtextEvent {
     Unknown(serde_json::Value),
 }
 
-/// A Subtext latent frame. The upstream server currently sends fields including
-/// `phase`, `pos`, `out`, and a ranked set of decoded latent token strings.
-/// `extra` preserves any upstream fields we do not yet model.
+/// A ranked latent "silent word" decoded from the model's residual stream.
+/// Upstream sends `{"w": word, "p": strength, "d": depth}` objects under
+/// `thoughts`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SubtextThought {
+    #[serde(alias = "word", alias = "token")]
+    pub w: String,
+    #[serde(default)]
+    pub p: Option<f64>,
+    #[serde(default)]
+    pub d: Option<f64>,
+}
+
+/// A Subtext latent frame. The upstream server sends fields including `phase`,
+/// the surface token (`tok` while reading, `out` while thinking), and a ranked
+/// set of decoded latent thoughts under `thoughts`. `extra` preserves any
+/// upstream fields we do not yet model.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SubtextLatentFrame {
     pub phase: Option<String>,
     pub pos: Option<usize>,
+    /// Surface token being emitted. `tok` is used during the reading phase and
+    /// `out` during the thinking/speaking phase; both map here.
+    #[serde(default, alias = "tok")]
     pub out: Option<String>,
+    /// Structured latent thoughts (current upstream format).
+    #[serde(default)]
+    pub thoughts: Vec<SubtextThought>,
+    /// Legacy/plain-string latent list, kept for forward/backward compatibility.
     #[serde(default, alias = "top", alias = "tokens", alias = "latent")]
     pub latent_tokens: Vec<String>,
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
+}
+
+impl SubtextLatentFrame {
+    /// Ranked latent words for display, regardless of upstream wire shape.
+    pub fn latent_words(&self) -> Vec<String> {
+        if !self.thoughts.is_empty() {
+            return self
+                .thoughts
+                .iter()
+                .map(|thought| thought.w.trim().to_string())
+                .filter(|word| !word.is_empty())
+                .collect();
+        }
+        self.latent_tokens.clone()
+    }
 }
 
 impl SubtextEvent {
@@ -93,7 +140,7 @@ impl SubtextEvent {
             .and_then(|v| v.as_str())
             .unwrap_or_default();
         match event_type {
-            "ready" => SubtextEvent::Ready {
+            "ready" | "hello" => SubtextEvent::Ready {
                 model: value
                     .get("model")
                     .and_then(|v| v.as_str())
@@ -203,9 +250,10 @@ mod tests {
         tokio::spawn(async move {
             let (stream, _) = listener.accept().await.unwrap();
             let mut socket = accept_async(stream).await.unwrap();
+            // Real Subtext greets with `hello`, not `ready`.
             socket
                 .send(Message::Text(
-                    serde_json::json!({"type":"ready","model":"mock","vocab":2})
+                    serde_json::json!({"type":"hello","model":"mock","n_layers":4,"layers":[1,2]})
                         .to_string()
                         .into(),
                 ))
@@ -213,15 +261,20 @@ mod tests {
                 .unwrap();
             let request = socket.next().await.unwrap().unwrap().into_text().unwrap();
             let request: SubtextChatRequest = serde_json::from_str(&request).unwrap();
+            // The server ignores anything whose `type` is not `chat`.
+            assert_eq!(request.request_type, "chat");
             assert_eq!(request.max_tokens, 8);
+            // Reading phase uses `tok` and structured `thoughts` objects.
             socket
                 .send(Message::Text(
                     serde_json::json!({
                         "type":"frame",
                         "phase":"reading",
-                        "pos":0,
-                        "out":"hello",
-                        "top":["greeting", "intent"]
+                        "tok":"hello",
+                        "thoughts":[
+                            {"w":"greeting","p":0.9,"d":0.5},
+                            {"w":"intent","p":0.4,"d":0.6}
+                        ]
                     })
                     .to_string()
                     .into(),
@@ -259,6 +312,8 @@ mod tests {
             panic!("expected frame");
         };
         assert_eq!(frame.phase.as_deref(), Some("reading"));
-        assert_eq!(frame.latent_tokens, vec!["greeting", "intent"]);
+        // `tok` maps onto `out`, and structured thoughts decode into words.
+        assert_eq!(frame.out.as_deref(), Some("hello"));
+        assert_eq!(frame.latent_words(), vec!["greeting", "intent"]);
     }
 }

@@ -59,6 +59,15 @@ pub struct MemoryEntry {
     /// Confidence score (0.0-1.0) - decays over time, boosted by use
     #[serde(default = "default_confidence")]
     pub confidence: f32,
+    /// Evidence justifying this fact: WHY it exists / why we believe it.
+    /// "Never store confidence without evidence." Bounded in size.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub evidence: Vec<crate::memory_graph::EvidenceRef>,
+    /// Graph-neighborhood ("concept") embedding (Phase 3): an embedding of this
+    /// memory *together with* its semantic neighbors, relationships, community
+    /// label and supporting facts. Preferred for concept-first retrieval.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub concept_embedding: Option<Vec<f32>>,
 }
 
 fn default_confidence() -> f32 {
@@ -90,7 +99,31 @@ impl MemoryEntry {
             reinforcements: Vec::new(),
             embedding: None,
             confidence: 1.0,
+            evidence: Vec::new(),
+            concept_embedding: None,
         }
+    }
+
+    /// Record a new observation that supports this fact: append evidence
+    /// (bounded), bump consolidation strength, and raise confidence as a
+    /// saturating function of the accumulated evidence. This is the mechanism
+    /// behind episodic→semantic formation — repeated observations make a fact
+    /// progressively more certain, but confidence is never set without a
+    /// concrete reason attached.
+    pub fn record_evidence(&mut self, ev: crate::memory_graph::EvidenceRef) {
+        const MAX_FACT_EVIDENCE: usize = 12;
+        self.evidence.push(ev);
+        if self.evidence.len() > MAX_FACT_EVIDENCE {
+            let overflow = self.evidence.len() - MAX_FACT_EVIDENCE;
+            self.evidence.drain(0..overflow);
+        }
+        self.strength = self.strength.saturating_add(1);
+        let evidence_confidence =
+            crate::memory_graph::EdgeMeta::confidence_from_evidence(self.strength);
+        if evidence_confidence > self.confidence {
+            self.confidence = evidence_confidence;
+        }
+        self.updated_at = Utc::now();
     }
 
     pub fn refresh_search_text(&mut self) {

@@ -2,6 +2,41 @@ use super::*;
 use crate::runtime_ledger::{self, RuntimeReceiptKind};
 
 impl Agent {
+    /// Phase D (opt-in, default OFF): fold a soft cognitive-state prior into
+    /// `current_turn_system_reminder` for the single-turn entry points that do
+    /// not otherwise assemble a reminder (`run_once` / `run_once_capture`). This
+    /// mirrors the streaming path (`run_once_streaming_mpsc`) so the trigger
+    /// behaves consistently across TUI, server, and CLI one-shot turns. No-op /
+    /// instant when `NEURA_COGNITION_TRIGGERS` is unset or the service is down.
+    async fn apply_cognition_prior(&mut self, user_message: &str) {
+        // Deterministic architectural prior from the project knowledge graph
+        // (unified knowledge layer): concepts, typed relations, and expected
+        // impact for the input. Instant no-op when the project has no
+        // registered knowledge sources; fail-quiet otherwise.
+        if self.memory_enabled
+            && let Some(brief) = crate::knowledge::reasoning::turn_brief(
+                self.working_dir().map(std::path::PathBuf::from),
+                user_message,
+            )
+            .await
+        {
+            self.append_turn_reminder(brief);
+        }
+        if let Some(note) =
+            crate::agent::cognition_triggers::maybe_cognition_reminder(user_message).await
+        {
+            self.append_turn_reminder(note);
+        }
+    }
+
+    fn append_turn_reminder(&mut self, note: String) {
+        let base = self.current_turn_system_reminder.take();
+        self.current_turn_system_reminder = Some(match base {
+            Some(b) if !b.trim().is_empty() => format!("{b}\n\n{note}"),
+            _ => note,
+        });
+    }
+
     /// Run a single turn with the given user message
     pub async fn run_once(&mut self, user_message: &str) -> Result<()> {
         crate::live_operational_fabric::emit_user_message("agent.run_once", user_message);
@@ -18,6 +53,7 @@ impl Agent {
         if trace_enabled() {
             eprintln!("[trace] session_id {}", self.session.id);
         }
+        self.apply_cognition_prior(user_message).await;
         let _ = self.run_turn(true).await?;
         Ok(())
     }
@@ -40,6 +76,7 @@ impl Agent {
         if trace_enabled() {
             eprintln!("[trace] session_id {}", self.session.id);
         }
+        self.apply_cognition_prior(user_message).await;
         self.run_turn(false).await
     }
 
@@ -111,8 +148,49 @@ impl Agent {
             );
         }
 
-        self.current_turn_system_reminder =
-            system_reminder.filter(|value| !value.trim().is_empty());
+        // Hydrate prior-turn latent reflections (companion Jacobian-lens words,
+        // OSS + remote reasoning) into this turn's system reminder as soft
+        // priors, so the primary model is conditioned on what was recently
+        // being thought about across all observer streams.
+        let hydrated_reminder = {
+            let base = system_reminder.filter(|value| !value.trim().is_empty());
+            let latent = crate::agent::latent_hydration::hydrate_block(&self.session.id, 1_200);
+            match (base, latent) {
+                (Some(base), Some(latent)) => Some(format!("{base}\n\n{latent}")),
+                (Some(base), None) => Some(base),
+                (None, latent) => latent,
+            }
+        };
+        // Deterministic architectural prior from the project knowledge graph
+        // (see apply_cognition_prior; this mirrors it for the streaming path).
+        let hydrated_reminder = if self.memory_enabled {
+            match crate::knowledge::reasoning::turn_brief(
+                self.working_dir().map(std::path::PathBuf::from),
+                user_message,
+            )
+            .await
+            {
+                Some(brief) => Some(match hydrated_reminder {
+                    Some(base) => format!("{base}\n\n{brief}"),
+                    None => brief,
+                }),
+                None => hydrated_reminder,
+            }
+        } else {
+            hydrated_reminder
+        };
+        // Phase D (opt-in, default OFF): fold in a soft cognitive-state trigger.
+        // No-op / instant when NEURA_COGNITION_TRIGGERS is unset or the fusion
+        // service is unreachable; only warn-level verify/retrieve moves surface.
+        let hydrated_reminder =
+            match crate::agent::cognition_triggers::maybe_cognition_reminder(user_message).await {
+                Some(note) => Some(match hydrated_reminder {
+                    Some(base) => format!("{base}\n\n{note}"),
+                    None => note,
+                }),
+                None => hydrated_reminder,
+            };
+        self.current_turn_system_reminder = hydrated_reminder;
 
         let mut blocks: Vec<ContentBlock> = images
             .into_iter()
@@ -343,7 +421,9 @@ impl Agent {
                 }),
             );
         }
+        let evidence_paths = crate::knowledge::evidence::candidate_paths(name, &input);
         let result = self.registry.execute(name, input, ctx).await;
+        crate::knowledge::evidence::note_tool_outcome_paths(name, evidence_paths, result.is_ok());
         if runtime_ledger::enabled() {
             runtime_ledger::append_receipt_best_effort(
                 RuntimeReceiptKind::ToolCall,

@@ -31,6 +31,8 @@ import webbrowser
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+import urllib.request
+import urllib.error
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -267,6 +269,77 @@ def neura_bin() -> str:
         seen.add(resolved)
         return resolved
     return str((ROOT / "target" / "debug" / "neura").resolve())
+
+
+def subtext_sidecar_target() -> tuple[str, str]:
+    """Resolve the local Neura OSS model endpoint + model name for the thought
+    observer. Mirrors the Rust sidecar env resolution (config.toml defaults)."""
+    base = (
+        os.environ.get("NEURA_SIDECAR_URL")
+        or os.environ.get("NEURA_LOCAL_MODEL_BASE_URL")
+        or "http://127.0.0.1:11434/v1"
+    ).rstrip("/")
+    model = (
+        os.environ.get("NEURA_SIDECAR_MODEL")
+        or os.environ.get("NEURA_LOCAL_MODEL")
+        or "neura-sidecar-20b"
+    )
+    return base, model
+
+
+def prewarm_subtext_sidecar() -> None:
+    """Best-effort: load the local observer model at startup so the first turn's
+    thought streams immediately instead of eating a ~30s cold model load (which
+    otherwise finishes after the answer and shows nothing live)."""
+    cfg = build_subtext_config()
+    if not cfg.get("enabled"):
+        return
+
+    def _warm() -> None:
+        base, model = subtext_sidecar_target()
+        # Use Ollama's NATIVE endpoint — the OpenAI-compat /v1 route ignores
+        # keep_alive, so only /api/chat can pin the model resident for 30m.
+        native = base[:-3] + "/api/chat" if base.endswith("/v1") else base + "/api/chat"
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": "ok"}],
+            "stream": False,
+            "keep_alive": "30m",
+            "options": {"num_predict": 1},
+        }
+        try:
+            req = urllib.request.Request(
+                native,
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                resp.read()
+            sys.stderr.write("SUBTEXT_SIDECAR_WARM=1\n")
+            sys.stderr.flush()
+        except Exception as exc:  # noqa: BLE001 — warmup is best-effort
+            sys.stderr.write(f"SUBTEXT_SIDECAR_WARM=0 ({exc})\n")
+            sys.stderr.flush()
+
+    threading.Thread(target=_warm, name="subtext-prewarm", daemon=True).start()
+
+
+def build_subtext_config() -> dict:
+    """Advertise the live thought-observer to the web UI.
+
+    The default observer streams terse "what is being thought about" narration
+    from the local Neura OSS model (Ollama) via /api/subtext-stream (SSE). The
+    browser no longer talks to any Qwen/Jacobian websocket.
+    """
+    base, model = subtext_sidecar_target()
+    enabled = os.environ.get("NEURA_SUBTEXT_ENABLED", "1").strip().lower() not in (
+        "0",
+        "false",
+        "off",
+        "no",
+    )
+    return {"mode": "stream", "endpoint": "/api/subtext-stream", "model": model, "base_url": base, "enabled": enabled}
 
 
 def server_identity() -> dict:
@@ -753,6 +826,9 @@ def generate_chat_title_with_neura(messages: list[dict]) -> str | None:
             text=True,
             timeout=NEURA_TITLE_TIMEOUT,
             cwd=str(Path.home()),
+            # Background utility turn: never fire the cognition-state probe here
+            # (it would pollute the signal + multiply concurrent /fuse load).
+            env={**os.environ, "NEURA_COGNITION_TRIGGERS": "0"},
         )
     except subprocess.TimeoutExpired:
         return None
@@ -1907,6 +1983,9 @@ def generate_dapp_with_neura(
                 text=True,
                 timeout=timeout,
                 cwd=normalize_project_path(project_path),
+                # Background dapp-generation turn: no cognition probe (avoids
+                # polluting the signal + piling concurrent /fuse captures).
+                env={**os.environ, "NEURA_COGNITION_TRIGGERS": "0"},
             )
         except subprocess.TimeoutExpired:
             return None
@@ -2419,6 +2498,337 @@ def build_sidecar_status() -> dict:
             "recent": recent_turns,
             "last_with_injection": last_turn_with_injection,
         },
+    }
+
+
+# ----------------------- cognition / knowledge state -------------------------
+#
+# Read-only views over the semantic memory graph, the evidence ledger, and the
+# knowledge event stream — the web UI's window into v0.12–v0.14 cognition.
+# Everything is derived from files the Rust side already writes; this server
+# never mutates cognitive state.
+
+MEMORY_PROJECTS_DIR = NEURA_HOME / "memory" / "projects"
+EVIDENCE_LEDGER_FILE = NEURA_HOME / "evidence_ledger_chain.json"
+_GRAPH_JSON_CACHE: dict[str, tuple[float, dict]] = {}
+MAX_GRAPH_BYTES = 64 * 1024 * 1024
+
+
+def _load_graph_json(path: Path) -> dict | None:
+    """mtime-cached parse of one project graph JSON."""
+    try:
+        stat = path.stat()
+    except OSError:
+        return None
+    if stat.st_size > MAX_GRAPH_BYTES:
+        return None
+    key = str(path)
+    cached = _GRAPH_JSON_CACHE.get(key)
+    if cached and cached[0] == stat.st_mtime:
+        return cached[1]
+    try:
+        data = json.loads(path.read_text(errors="replace"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    _GRAPH_JSON_CACHE[key] = (stat.st_mtime, data)
+    return data
+
+
+def _norm_path(p: str | None) -> str:
+    if not p:
+        return ""
+    try:
+        return str(Path(p).resolve())
+    except OSError:
+        return str(p)
+
+
+def discover_project_graph(project_path: str | None) -> tuple[Path, dict] | None:
+    """Find the memory graph for a project. The graph filename hash is not
+    reproducible here, so we match `knowledge_sources.locator` against the
+    project path; fallback: the most recently modified graph that has
+    knowledge sources (then any most recent graph)."""
+    target = _norm_path(project_path)
+    candidates = sorted(
+        MEMORY_PROJECTS_DIR.glob("*.json"),
+        key=lambda p: p.stat().st_mtime if p.exists() else 0,
+        reverse=True,
+    )
+    with_sources: tuple[Path, dict] | None = None
+    newest: tuple[Path, dict] | None = None
+    for path in candidates:
+        graph = _load_graph_json(path)
+        if graph is None:
+            continue
+        if newest is None:
+            newest = (path, graph)
+        sources = (graph.get("metadata") or {}).get("knowledge_sources") or {}
+        if sources and with_sources is None:
+            with_sources = (path, graph)
+        if target:
+            for state in sources.values():
+                if _norm_path(state.get("locator")) == target:
+                    return path, graph
+    return with_sources or newest
+
+
+def _first_line(text: str, limit: int = 96) -> str:
+    line = (text or "").splitlines()[0] if text else ""
+    return line[:limit]
+
+
+def _semantic_degree(edges_out: list[dict], incoming_count: int) -> int:
+    structural = {"has_tag", "in_cluster"}
+    out = sum(1 for e in edges_out if e.get("kind") not in structural)
+    return out + incoming_count
+
+
+def _graph_indices(graph: dict) -> tuple[dict, dict, dict]:
+    """(memories, edges_by_source, incoming_semantic_counts)."""
+    memories = graph.get("memories") or {}
+    edges = graph.get("edges") or {}
+    incoming: dict[str, int] = {}
+    structural = {"has_tag", "in_cluster"}
+    for source_id, edge_list in edges.items():
+        if source_id not in memories:
+            continue
+        for e in edge_list or []:
+            target = e.get("target")
+            if e.get("kind") in structural or target not in memories:
+                continue
+            incoming[target] = incoming.get(target, 0) + 1
+    return memories, edges, incoming
+
+
+def _intent_list(memories: dict, tag: str, limit: int = 12) -> list[dict]:
+    items = [
+        {
+            "id": mid,
+            "label": _first_line(m.get("content", ""), 120),
+            "confidence": m.get("confidence", 0.0),
+            "active": m.get("active", True),
+            "updated_at": m.get("updated_at"),
+        }
+        for mid, m in memories.items()
+        if m.get("active", True) and tag in (m.get("tags") or [])
+    ]
+    items.sort(key=lambda i: str(i.get("updated_at") or ""), reverse=True)
+    return items[:limit]
+
+
+def _ledger_blocks(limit: int = 60) -> list[dict]:
+    try:
+        data = json.loads(EVIDENCE_LEDGER_FILE.read_text(errors="replace"))
+        blocks = data.get("blocks") or []
+    except (OSError, ValueError):
+        return []
+    out = []
+    for b in blocks[-limit:]:
+        if isinstance(b, dict):
+            out.append(
+                {
+                    "index": b.get("index"),
+                    "timestamp_ms": b.get("timestamp_ms"),
+                    "kind": b.get("kind"),
+                    "subject": b.get("subject"),
+                    "summary": b.get("summary"),
+                    "score": b.get("score"),
+                    "passed": b.get("passed"),
+                }
+            )
+    return out
+
+
+def _knowledge_events(limit: int = 60) -> list[dict]:
+    mem_files = sorted(NEURA_LOGS_DIR.glob("memory-events-*.jsonl"))
+    events: list[dict] = []
+    for path in mem_files[-3:]:
+        events.extend(_tail_jsonl(path, 400))
+    picked = [
+        {
+            "timestamp": e.get("timestamp"),
+            "session_id": e.get("session_id"),
+            "event": e.get("event"),
+            "detail": e.get("detail"),
+        }
+        for e in events
+        if str(e.get("event", "")).startswith("knowledge_")
+    ]
+    return picked[-limit:]
+
+
+def build_knowledge_state(project_path: str | None) -> dict:
+    found = discover_project_graph(project_path)
+    if not found:
+        return {"available": False, "reason": "no project memory graph found"}
+    graph_path, graph = found
+    memories, edges, incoming = _graph_indices(graph)
+    meta = graph.get("metadata") or {}
+    clusters = graph.get("clusters") or {}
+
+    # ---- edge kind counts + confidence buckets ----
+    edge_kinds: dict[str, int] = {}
+    for source_id, edge_list in edges.items():
+        if source_id not in memories:
+            continue
+        for e in edge_list or []:
+            kind = e.get("kind", "?")
+            edge_kinds[kind] = edge_kinds.get(kind, 0) + 1
+    conf = {"low": 0, "mid": 0, "high": 0}
+    active_count = 0
+    for m in memories.values():
+        if not m.get("active", True):
+            continue
+        active_count += 1
+        c = m.get("confidence", 0.0)
+        conf["low" if c < 0.4 else "mid" if c < 0.7 else "high"] += 1
+
+    # ---- explorable node list (bounded, degree-ranked, no embeddings) ----
+    ranked = sorted(
+        memories.items(),
+        key=lambda kv: (
+            -_semantic_degree(edges.get(kv[0]) or [], incoming.get(kv[0], 0)),
+            kv[0],
+        ),
+    )
+    nodes = [
+        {
+            "id": mid,
+            "label": _first_line(m.get("content", "")),
+            "tags": (m.get("tags") or [])[:6],
+            "confidence": m.get("confidence", 0.0),
+            "active": m.get("active", True),
+            "degree": _semantic_degree(edges.get(mid) or [], incoming.get(mid, 0)),
+            "evidence_count": len(m.get("evidence") or []),
+        }
+        for mid, m in ranked[:500]
+    ]
+
+    # ---- knowledge sources + evolution history ----
+    sources = []
+    for source_id, state in (meta.get("knowledge_sources") or {}).items():
+        sources.append(
+            {
+                "id": source_id,
+                "kind": state.get("kind"),
+                "locator": state.get("locator"),
+                "items": len(state.get("fingerprints") or {}),
+                "concepts": len(state.get("unit_ids") or {}),
+                "pending_abstraction": len(state.get("pending_abstraction") or []),
+                "last_ingest": state.get("last_ingest"),
+                "last_report": state.get("last_report"),
+                "history": (state.get("history") or [])[-24:],
+            }
+        )
+
+    reflections = [b for b in _ledger_blocks(200) if b.get("kind") == "Reflection"][-12:]
+
+    return {
+        "available": True,
+        "graph_file": graph_path.name,
+        "generated_at_ms": int(time.time() * 1000),
+        "totals": {
+            "concepts": len(memories),
+            "active": active_count,
+            "tags": len(graph.get("tags") or {}),
+            "communities": len(clusters),
+            "edge_kinds": edge_kinds,
+            "confidence": conf,
+        },
+        "sources": sources,
+        "prediction_stats": meta.get("prediction_stats"),
+        "last_sleep": meta.get("last_sleep"),
+        "consolidations": (meta.get("consolidations") or [])[-8:],
+        "goals": _intent_list(memories, "goal"),
+        "decisions": _intent_list(memories, "decision"),
+        "plans": _intent_list(memories, "plan"),
+        "nodes": nodes,
+        "ledger": _ledger_blocks(40),
+        "reflections": reflections,
+        "events": _knowledge_events(60),
+    }
+
+
+def build_concept_detail(project_path: str | None, concept_id: str) -> dict:
+    found = discover_project_graph(project_path)
+    if not found:
+        return {"available": False}
+    _, graph = found
+    memories, edges, _incoming = _graph_indices(graph)
+    m = memories.get(concept_id)
+    if not isinstance(m, dict):
+        return {"available": False, "reason": "concept not found"}
+
+    structural = {"has_tag", "in_cluster"}
+    out_edges = []
+    communities = []
+    for e in edges.get(concept_id) or []:
+        kind = e.get("kind")
+        target = e.get("target", "")
+        if kind == "in_cluster":
+            communities.append(target.replace("cluster:", ""))
+            continue
+        if kind in structural or target not in memories:
+            continue
+        out_edges.append(
+            {
+                "kind": kind,
+                "target": target,
+                "label": _first_line(memories[target].get("content", "")),
+                "weight": e.get("weight", 1.0),
+                "confidence": e.get("confidence", 0.0),
+                "evidence_count": e.get("evidence_count", 0),
+            }
+        )
+    in_edges = []
+    for source_id, edge_list in edges.items():
+        if source_id not in memories or source_id == concept_id:
+            continue
+        for e in edge_list or []:
+            if e.get("target") == concept_id and e.get("kind") not in structural:
+                in_edges.append(
+                    {
+                        "kind": e.get("kind"),
+                        "source": source_id,
+                        "label": _first_line(memories[source_id].get("content", "")),
+                        "weight": e.get("weight", 1.0),
+                        "confidence": e.get("confidence", 0.0),
+                    }
+                )
+    out_edges.sort(key=lambda e: (-(e["weight"] * max(e["confidence"], 0.05)), e["target"]))
+    in_edges.sort(key=lambda e: (-(e["weight"] * max(e["confidence"], 0.05)), e["source"]))
+
+    evidence = [
+        {
+            "kind": ev.get("kind"),
+            "id": ev.get("id"),
+            "note": ev.get("note"),
+            "at": ev.get("at"),
+        }
+        for ev in (m.get("evidence") or [])
+    ]
+
+    return {
+        "available": True,
+        "id": concept_id,
+        "content": m.get("content", ""),
+        "tags": m.get("tags") or [],
+        "confidence": m.get("confidence", 0.0),
+        "strength": m.get("strength", 0),
+        "access_count": m.get("access_count", 0),
+        "active": m.get("active", True),
+        "superseded_by": m.get("superseded_by"),
+        "source": m.get("source"),
+        "created_at": m.get("created_at"),
+        "updated_at": m.get("updated_at"),
+        "communities": communities,
+        "evidence": evidence,
+        "edges_out": out_edges[:24],
+        "edges_in": in_edges[:24],
+        "has_embedding": bool(m.get("embedding")),
+        "has_concept_embedding": bool(m.get("concept_embedding")),
     }
 
 
@@ -2978,6 +3388,110 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _sse_write(self, obj) -> bool:
+        try:
+            self.wfile.write(b"data: " + json.dumps(obj).encode() + b"\n\n")
+            self.wfile.flush()
+            return True
+        except (BrokenPipeError, ConnectionResetError, TimeoutError, ValueError):
+            return False
+
+    def stream_subtext(self, body: dict) -> None:
+        """Stream live thought narration from the local Neura OSS model as SSE."""
+        message = (body.get("message") or "").strip()
+        context = body.get("context") or []
+        base, model = subtext_sidecar_target()
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+
+        if not message:
+            self._sse_write({"type": "done"})
+            return
+
+        transcript_lines = []
+        for turn in context[-4:]:
+            role = turn.get("role", "user")
+            text = (turn.get("content") or turn.get("text") or "").strip()
+            if text:
+                transcript_lines.append(f"{role}: {text}")
+        transcript_lines.append(f"user: {message}")
+        # We surface the model's own chain-of-thought (the `reasoning` field) as
+        # the live "thinking". So the task itself is simply to think about the
+        # user's latest message — that produces genuine first-person reasoning
+        # about the question rather than meta-notes about writing notes.
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are the inner monologue of the Neura assistant. Think "
+                        "concisely, in the first person, about the user's latest "
+                        "message: what they want, what matters, and how to respond. "
+                        "The assistant HAS live web search, fetch, and tool access, "
+                        "so assume it can look up current/real-time info — never "
+                        "conclude that it 'can't access live data'. Do not address "
+                        "the user; just think."
+                    ),
+                },
+                {"role": "user", "content": "\n".join(transcript_lines)},
+            ],
+            "max_tokens": 96,
+            "temperature": 0.3,
+            "stream": True,
+            # Ignored by the /v1 route (kept for forward-compat); warmth is held
+            # by the native-endpoint prewarm at startup.
+            "keep_alive": "30m",
+        }
+        req = urllib.request.Request(
+            base + "/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        accumulated = ""
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                for raw in resp:
+                    line = raw.decode("utf-8", "ignore").strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[len("data:"):].strip()
+                    if not data or data == "[DONE]":
+                        continue
+                    try:
+                        obj = json.loads(data)
+                        delta = obj["choices"][0].get("delta", {})
+                    except (ValueError, KeyError, IndexError):
+                        continue
+                    # gpt-oss via Ollama streams the live thinking in `reasoning`
+                    # (content stays empty until the thought resolves).
+                    piece = (
+                        delta.get("reasoning")
+                        or delta.get("reasoning_content")
+                        or delta.get("content")
+                        or ""
+                    )
+                    if not piece:
+                        continue
+                    accumulated += piece
+                    words = accumulated.split()[-8:]
+                    if not self._sse_write({
+                        "type": "frame",
+                        "phase": "thinking",
+                        "text": accumulated.strip(),
+                        "words": words,
+                    }):
+                        return
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as exc:
+            self._sse_write({"type": "error", "error": f"local model observer unavailable: {exc}"})
+        self._sse_write({"type": "done"})
+
     def stream_events(self):
         subscriber = subscribe_events()
         self.send_response(200)
@@ -3008,8 +3522,19 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if path == "/api/state":
             return self._send_json(build_state())
+        if path == "/api/knowledge":
+            query = parse_qs(urlparse(self.path).query)
+            project = (query.get("project") or [None])[0]
+            return self._send_json(build_knowledge_state(project))
+        if path == "/api/knowledge/concept":
+            query = parse_qs(urlparse(self.path).query)
+            project = (query.get("project") or [None])[0]
+            concept_id = (query.get("id") or [""])[0]
+            return self._send_json(build_concept_detail(project, concept_id))
         if path == "/api/sidecar-status":
             return self._send_json(build_sidecar_status())
+        if path == "/api/subtext-config":
+            return self._send_json(build_subtext_config())
         if path == "/api/projects":
             return self._send_json({"projects": list_projects()})
         if path == "/api/projects/suggest-path":
@@ -3251,6 +3776,13 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path == "/api/subtext-stream":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except Exception:
+                body = {}
+            return self.stream_subtext(body)
         if path == "/api/dapp/activate":
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -3442,6 +3974,10 @@ def detach_stdout_from_caller() -> None:
 def find_port(preferred: int) -> int:
     for port in range(preferred, preferred + 20):
         with socket.socket() as sock:
+            # Match ThreadingHTTPServer.allow_reuse_address so a port lingering
+            # in TIME_WAIT (e.g. right after a restart) is not falsely skipped —
+            # otherwise the server drifts to 8769 and the browser can't find it.
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 sock.bind(("127.0.0.1", port))
                 return port
@@ -3470,6 +4006,7 @@ def main() -> int:
     if args.open:
         threading.Timer(0.2, lambda: webbrowser.open(url)).start()
     initialize_live_updates()
+    prewarm_subtext_sidecar()
     ensure_dapp_library()
     ensure_dapp_themes()
     bin_path = neura_bin()

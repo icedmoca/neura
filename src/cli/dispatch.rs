@@ -5,8 +5,8 @@ use std::process::{Command as ProcessCommand, Stdio};
 use std::time::Instant;
 
 use super::args::{
-    AmbientCommand, Args, AuthCommand, Command, LatentCommand, MemoryCommand, ModelCommand,
-    ProviderCommand, RestartCommand, SelfImproveCommand, TranscriptModeArg,
+    AmbientCommand, Args, AuthCommand, Command, KnowledgeCommand, LatentCommand, MemoryCommand,
+    ModelCommand, ProviderCommand, RestartCommand, SelfImproveCommand, TranscriptModeArg,
 };
 use crate::agent::codebase_model::CodebaseModelBuilder;
 use crate::{
@@ -172,7 +172,10 @@ pub(crate) async fn run_main(mut args: Args) -> Result<()> {
             }
         },
         Some(Command::Memory(subcmd)) => {
-            commands::run_memory_command(map_memory_subcommand(subcmd))?;
+            commands::run_memory_command(map_memory_subcommand(subcmd)).await?;
+        }
+        Some(Command::Knowledge(subcmd)) => {
+            commands::run_knowledge_command(map_knowledge_subcommand(subcmd)).await?;
         }
         Some(Command::Latent(subcmd)) => {
             latent::run(map_latent_subcommand(subcmd))?;
@@ -530,6 +533,58 @@ fn map_latent_subcommand(subcmd: LatentCommand) -> latent::LatentCommand {
     }
 }
 
+fn map_knowledge_subcommand(subcmd: KnowledgeCommand) -> commands::KnowledgeSubcommand {
+    match subcmd {
+        KnowledgeCommand::Ingest { path, full, json } => {
+            commands::KnowledgeSubcommand::Ingest { path, full, json }
+        }
+        KnowledgeCommand::Status { json } => commands::KnowledgeSubcommand::Status { json },
+        KnowledgeCommand::Sync { json } => commands::KnowledgeSubcommand::Sync { json },
+        KnowledgeCommand::Reason { query, json } => commands::KnowledgeSubcommand::Reason {
+            query: query.join(" "),
+            json,
+        },
+        KnowledgeCommand::Impact { target, json } => commands::KnowledgeSubcommand::Impact {
+            target: target.join(" "),
+            json,
+        },
+        KnowledgeCommand::Insights { json, record } => {
+            commands::KnowledgeSubcommand::Insights { json, record }
+        }
+        KnowledgeCommand::Reflect { json } => commands::KnowledgeSubcommand::Reflect { json },
+        KnowledgeCommand::Goals { json } => commands::KnowledgeSubcommand::Goals { json },
+        KnowledgeCommand::Decision {
+            decision,
+            reasoning,
+            alternatives,
+            tradeoffs,
+            assumptions,
+            confidence,
+        } => commands::KnowledgeSubcommand::Decision(Box::new(
+            crate::knowledge::engineering::DecisionInput {
+                decision: decision.join(" "),
+                reasoning,
+                alternatives,
+                tradeoffs,
+                assumptions,
+                confidence,
+            },
+        )),
+        KnowledgeCommand::Plan { topic, json } => commands::KnowledgeSubcommand::Plan {
+            topic: topic.join(" "),
+            json,
+        },
+        KnowledgeCommand::Verify { tests, json } => {
+            commands::KnowledgeSubcommand::Verify { tests, json }
+        }
+        KnowledgeCommand::Health { json } => commands::KnowledgeSubcommand::Health { json },
+        KnowledgeCommand::History { query, json } => commands::KnowledgeSubcommand::History {
+            query: query.join(" "),
+            json,
+        },
+    }
+}
+
 fn map_memory_subcommand(subcmd: MemoryCommand) -> commands::MemorySubcommand {
     match subcmd {
         MemoryCommand::List { scope, tag } => commands::MemorySubcommand::List { scope, tag },
@@ -549,6 +604,13 @@ fn map_memory_subcommand(subcmd: MemoryCommand) -> commands::MemorySubcommand {
             overwrite,
         },
         MemoryCommand::Stats => commands::MemorySubcommand::Stats,
+        MemoryCommand::Graph { max_nodes, mermaid } => {
+            commands::MemorySubcommand::Graph { max_nodes, mermaid }
+        }
+        MemoryCommand::Sleep { json } => commands::MemorySubcommand::Sleep { json },
+        MemoryCommand::Reason { args } => commands::MemorySubcommand::Reason { args },
+        MemoryCommand::Health { json } => commands::MemorySubcommand::Health { json },
+        MemoryCommand::Report { args } => commands::MemorySubcommand::Report { args },
         MemoryCommand::ClearTest => commands::MemorySubcommand::ClearTest,
         MemoryCommand::SidecarEnsure { json } => commands::MemorySubcommand::SidecarEnsure { json },
         MemoryCommand::Eval { json } => commands::MemorySubcommand::Eval { json },

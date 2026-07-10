@@ -56,3 +56,6 @@ promoted-memory.jsonl
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Repo-local runtime state (created by neura when run inside the repo)
+/.neura/

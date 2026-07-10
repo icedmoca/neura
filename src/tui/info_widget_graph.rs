@@ -224,14 +224,7 @@ fn bound_topology_size(
 }
 
 fn edge_kind_name(kind: &EdgeKind) -> &'static str {
-    match kind {
-        EdgeKind::HasTag => "has_tag",
-        EdgeKind::InCluster => "in_cluster",
-        EdgeKind::RelatesTo { .. } => "relates_to",
-        EdgeKind::Supersedes => "supersedes",
-        EdgeKind::Contradicts => "contradicts",
-        EdgeKind::DerivedFrom => "derived_from",
-    }
+    kind.label()
 }
 
 pub(crate) fn graph_node_score(node: &GraphNode) -> f32 {

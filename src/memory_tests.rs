@@ -8,6 +8,41 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 static PENDING_MEMORY_TEST_LOCK: Mutex<()> = Mutex::new(());
 
+#[test]
+fn mmr_select_prefers_diversity_over_near_duplicates() {
+    // Three "A-like" memories (near-identical embeddings) and one distinct "B".
+    // A relevance-ordered take(2) would pick two A's; MMR should keep one A and
+    // the diverse B.
+    let mk = |content: &str, emb: Vec<f32>| {
+        let mut m = MemoryEntry::new(MemoryCategory::Fact, content);
+        m.embedding = Some(emb);
+        m
+    };
+    let items = vec![
+        mk("A1", vec![1.0, 0.0, 0.0]),
+        mk("A2", vec![0.99, 0.01, 0.0]),
+        mk("A3", vec![0.98, 0.02, 0.0]),
+        mk("B", vec![0.0, 1.0, 0.0]),
+    ];
+
+    let picked = crate::memory::mmr_select(items, 2, 0.5);
+    let contents: Vec<&str> = picked.iter().map(|m| m.content.as_str()).collect();
+    assert_eq!(picked.len(), 2);
+    assert!(contents.contains(&"A1"), "most-relevant kept: {contents:?}");
+    assert!(
+        contents.contains(&"B"),
+        "diverse memory chosen over near-duplicate: {contents:?}"
+    );
+
+    // k >= len is a no-op passthrough.
+    let all = crate::memory::mmr_select(
+        vec![MemoryEntry::new(MemoryCategory::Fact, "only")],
+        5,
+        0.7,
+    );
+    assert_eq!(all.len(), 1);
+}
+
 fn with_temp_home<F, T>(f: F) -> T
 where
     F: FnOnce(&Path) -> T,
@@ -350,6 +385,84 @@ fn graph_based_memory_operations() {
         // Clean up
         manager.forget(&id1).expect("forget 1");
         manager.forget(&id2).expect("forget 2");
+    });
+}
+
+#[test]
+fn cascade_expand_pulls_tag_and_link_neighbours_and_persists_count() {
+    with_temp_home(|_home| {
+        let manager = MemoryManager::new_test();
+
+        let seed = manager
+            .remember_project(MemoryEntry::new(
+                MemoryCategory::Fact,
+                "Neura uses a local sidecar model for tokenization",
+            ))
+            .expect("seed");
+        let tag_sibling = manager
+            .remember_project(MemoryEntry::new(
+                MemoryCategory::Fact,
+                "The sidecar tokenizes and detokenizes streamed context",
+            ))
+            .expect("tag sibling");
+        let link_sibling = manager
+            .remember_project(MemoryEntry::new(
+                MemoryCategory::Preference,
+                "User prefers streaming reasoning in the UI",
+            ))
+            .expect("link sibling");
+        let unrelated = manager
+            .remember_project(MemoryEntry::new(
+                MemoryCategory::Fact,
+                "Completely unrelated note about gardening tomatoes",
+            ))
+            .expect("unrelated");
+
+        // seed <-> tag_sibling share a tag; seed -> link_sibling via RelatesTo.
+        manager.tag_memory(&seed, "sidecar").expect("tag seed");
+        manager.tag_memory(&tag_sibling, "sidecar").expect("tag sibling");
+        manager
+            .link_memories(&seed, &link_sibling, 0.7)
+            .expect("link");
+
+        // Cascade out from the seed only.
+        let extra = manager
+            .cascade_expand(std::slice::from_ref(&seed), &[1.0], 2, 10)
+            .expect("cascade");
+        let ids: Vec<String> = extra.iter().map(|(e, _)| e.id.clone()).collect();
+
+        assert!(
+            ids.contains(&tag_sibling),
+            "cascade should pull tag sibling via shared tag: {:?}",
+            ids
+        );
+        assert!(
+            ids.contains(&link_sibling),
+            "cascade should pull link sibling via RelatesTo: {:?}",
+            ids
+        );
+        assert!(
+            !ids.contains(&seed),
+            "seed must be excluded from its own expansion"
+        );
+        assert!(
+            !ids.contains(&unrelated),
+            "unrelated memory must not be pulled in: {:?}",
+            ids
+        );
+
+        // retrieval_count is persisted (cascade_expand saves the graph).
+        let graph = manager.load_project_graph().expect("reload graph");
+        assert!(
+            graph.metadata.retrieval_count >= 1,
+            "retrieval_count should persist after cascade, got {}",
+            graph.metadata.retrieval_count
+        );
+
+        manager.forget(&seed).ok();
+        manager.forget(&tag_sibling).ok();
+        manager.forget(&link_sibling).ok();
+        manager.forget(&unrelated).ok();
     });
 }
 

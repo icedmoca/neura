@@ -144,13 +144,15 @@ fn arm_auto_restore_from_recent_crashes_captures_dead_active_sessions() {
     let snapshot = arm_auto_restore_from_recent_crashes()
         .expect("arm crash snapshot")
         .expect("expected crash snapshot");
-    assert!(snapshot.auto_restore_on_next_start);
+    // Crash-synthesized snapshots must NOT be armed for auto-restore — startup
+    // only notifies about them; it never auto-spawns a window per session.
+    assert!(!snapshot.auto_restore_on_next_start);
     assert_eq!(snapshot.sessions.len(), 1);
     assert_eq!(snapshot.sessions[0].session_id, crashed.id);
     assert_eq!(snapshot.sessions[0].working_dir.as_deref(), Some("/tmp"));
 
     let persisted = load_snapshot().expect("load persisted snapshot");
-    assert!(persisted.auto_restore_on_next_start);
+    assert!(!persisted.auto_restore_on_next_start);
     assert_eq!(persisted.sessions.len(), 1);
 
     let refreshed = Session::load(&crashed.id).expect("reload crashed session");

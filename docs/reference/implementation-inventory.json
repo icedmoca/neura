@@ -25,6 +25,10 @@
       "module": "workspace_map_widget"
     },
     {
+      "file": "src/agent.rs",
+      "module": "codebase_model"
+    },
+    {
       "file": "src/ambient.rs",
       "module": "runner"
     },
@@ -122,6 +126,10 @@
     },
     {
       "file": "src/cli/mod.rs",
+      "module": "latent"
+    },
+    {
+      "file": "src/cli/mod.rs",
       "module": "login"
     },
     {
@@ -149,8 +157,36 @@
       "module": "tui_launch"
     },
     {
+      "file": "src/knowledge/mod.rs",
+      "module": "engineering"
+    },
+    {
+      "file": "src/knowledge/mod.rs",
+      "module": "evidence"
+    },
+    {
+      "file": "src/knowledge/mod.rs",
+      "module": "insights"
+    },
+    {
+      "file": "src/knowledge/mod.rs",
+      "module": "reasoning"
+    },
+    {
+      "file": "src/knowledge/mod.rs",
+      "module": "repo"
+    },
+    {
+      "file": "src/knowledge/mod.rs",
+      "module": "verify"
+    },
+    {
       "file": "src/lib.rs",
       "module": "adaptive_cognition"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "adversarial_eval"
     },
     {
       "file": "src/lib.rs",
@@ -171,6 +207,14 @@
     {
       "file": "src/lib.rs",
       "module": "auth"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "autonomous_improvement"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "backend_work"
     },
     {
       "file": "src/lib.rs",
@@ -222,6 +266,10 @@
     },
     {
       "file": "src/lib.rs",
+      "module": "directive_memory"
+    },
+    {
+      "file": "src/lib.rs",
       "module": "embedding"
     },
     {
@@ -231,6 +279,14 @@
     {
       "file": "src/lib.rs",
       "module": "env"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "evidence_ledger"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "evidence_replay"
     },
     {
       "file": "src/lib.rs",
@@ -258,7 +314,35 @@
     },
     {
       "file": "src/lib.rs",
-      "module": "neura_memory"
+      "module": "knowledge"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "latency"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "latent_learning"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "latent_learning_background"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "latent_memory"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "latent_operational_recurrence"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "live_operational_fabric"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "local_memory_sidecar"
     },
     {
       "file": "src/lib.rs",
@@ -274,6 +358,10 @@
     },
     {
       "file": "src/lib.rs",
+      "module": "long_horizon_pressure"
+    },
+    {
+      "file": "src/lib.rs",
       "module": "mcp"
     },
     {
@@ -283,6 +371,10 @@
     {
       "file": "src/lib.rs",
       "module": "memory_agent"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "memory_eval"
     },
     {
       "file": "src/lib.rs",
@@ -306,11 +398,27 @@
     },
     {
       "file": "src/lib.rs",
+      "module": "neura_ui"
+    },
+    {
+      "file": "src/lib.rs",
       "module": "notifications"
     },
     {
       "file": "src/lib.rs",
+      "module": "operational_eval"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "operational_policy"
+    },
+    {
+      "file": "src/lib.rs",
       "module": "operational_repair_learning"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "patch_proposal"
     },
     {
       "file": "src/lib.rs",
@@ -323,6 +431,18 @@
     {
       "file": "src/lib.rs",
       "module": "platform"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "policy_outcome_credit"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "policy_runtime"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "policy_shadow_simulation"
     },
     {
       "file": "src/lib.rs",
@@ -362,11 +482,35 @@
     },
     {
       "file": "src/lib.rs",
+      "module": "runtime_governor"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "runtime_ledger"
+    },
+    {
+      "file": "src/lib.rs",
       "module": "runtime_memory_log"
     },
     {
       "file": "src/lib.rs",
       "module": "safety"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "self_improvement"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "self_improvement_daemon"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "self_model"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "semantic_operational_layer"
     },
     {
       "file": "src/lib.rs",
@@ -414,6 +558,10 @@
     },
     {
       "file": "src/lib.rs",
+      "module": "subtext_client"
+    },
+    {
+      "file": "src/lib.rs",
       "module": "telegram"
     },
     {
@@ -423,6 +571,10 @@
     {
       "file": "src/lib.rs",
       "module": "todo"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "token_abstraction"
     },
     {
       "file": "src/lib.rs",
@@ -451,6 +603,10 @@
     {
       "file": "src/lib.rs",
       "module": "video_export"
+    },
+    {
+      "file": "src/lib.rs",
+      "module": "work_queue"
     },
     {
       "file": "src/mcp/mod.rs",
@@ -486,11 +642,11 @@
     },
     {
       "file": "src/provider/mod.rs",
-      "module": "neura"
+      "module": "models"
     },
     {
       "file": "src/provider/mod.rs",
-      "module": "models"
+      "module": "neura"
     },
     {
       "file": "src/provider/mod.rs",
@@ -732,6 +888,26 @@
     {
       "command": "/judge",
       "description": "Launch a one-shot headed judge session",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/login",
+      "description": "Login to a provider",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/memory",
+      "description": "Toggle memory feature",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/model",
+      "description": "List or switch models",
+      "file": "src/tui/app/state_ui_input_helpers.rs"
+    },
+    {
+      "command": "/models",
+      "description": "Alias for /model",
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
@@ -1110,26 +1286,6 @@
       "file": "src/tui/app/state_ui_input_helpers.rs"
     },
     {
-      "command": "/login",
-      "description": "Login to a provider",
-      "file": "src/tui/app/state_ui_input_helpers.rs"
-    },
-    {
-      "command": "/memory",
-      "description": "Toggle memory feature",
-      "file": "src/tui/app/state_ui_input_helpers.rs"
-    },
-    {
-      "command": "/model",
-      "description": "List or switch models",
-      "file": "src/tui/app/state_ui_input_helpers.rs"
-    },
-    {
-      "command": "/models",
-      "description": "Alias for /model",
-      "file": "src/tui/app/state_ui_input_helpers.rs"
-    },
-    {
       "command": "/observe",
       "description": "Show the latest tool context in the side panel",
       "file": "src/tui/app/state_ui_input_helpers.rs"
@@ -1296,12 +1452,12 @@
       "file": "src/bin/harness.rs"
     },
     {
-      "binary": "neura-bench",
-      "file": "src/bin/neura_bench.rs"
-    },
-    {
       "binary": "mermaid-side-panel-probe",
       "file": "src/bin/mermaid_side_panel_probe.rs"
+    },
+    {
+      "binary": "neura-bench",
+      "file": "src/bin/neura_bench.rs"
     },
     {
       "binary": "session-memory-bench",
@@ -1386,10 +1542,6 @@
       "provider_file": "src/provider/gemini_tests.rs"
     },
     {
-      "name": "neura",
-      "provider_file": "src/provider/neura.rs"
-    },
-    {
       "name": "mod",
       "provider_file": "src/provider/mod.rs"
     },
@@ -1404,6 +1556,10 @@
     {
       "name": "multi_provider",
       "provider_file": "src/provider/multi_provider.rs"
+    },
+    {
+      "name": "neura",
+      "provider_file": "src/provider/neura.rs"
     },
     {
       "name": "openai",

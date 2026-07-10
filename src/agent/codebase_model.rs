@@ -74,7 +74,6 @@ pub struct CodebaseModelBuilder {
     max_file_bytes: usize,
 }
 
-
 /// Build the codebase model for `root` and save it to the default Neura
 /// snapshot path: `.neura/codebase-model.json`.
 pub fn refresh_default_codebase_model(root: impl Into<PathBuf>) -> Result<CodebaseModel> {
@@ -98,10 +97,12 @@ impl CodebaseModelBuilder {
     }
 
     pub fn build(&self) -> Result<CodebaseModel> {
-        let root = self
-            .root
-            .canonicalize()
-            .with_context(|| format!("failed to canonicalize codebase root {}", self.root.display()))?;
+        let root = self.root.canonicalize().with_context(|| {
+            format!(
+                "failed to canonicalize codebase root {}",
+                self.root.display()
+            )
+        })?;
 
         let mut files = Vec::new();
         visit_files(&root, &root, self.max_file_bytes, &mut files)?;
@@ -123,11 +124,16 @@ impl CodebaseModel {
     pub fn save_json(&self, path: impl AsRef<Path>) -> Result<()> {
         let path = path.as_ref();
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("failed to create codebase model directory {}", parent.display()))?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!(
+                    "failed to create codebase model directory {}",
+                    parent.display()
+                )
+            })?;
         }
 
-        let json = serde_json::to_string_pretty(self).context("failed to serialize codebase model")?;
+        let json =
+            serde_json::to_string_pretty(self).context("failed to serialize codebase model")?;
         fs::write(path, json)
             .with_context(|| format!("failed to write codebase model {}", path.display()))
     }
@@ -161,8 +167,15 @@ impl CodebaseModel {
     }
 }
 
-fn visit_files(root: &Path, dir: &Path, max_file_bytes: usize, files: &mut Vec<CodeFileModel>) -> Result<()> {
-    for entry in fs::read_dir(dir).with_context(|| format!("failed to read directory {}", dir.display()))? {
+fn visit_files(
+    root: &Path,
+    dir: &Path,
+    max_file_bytes: usize,
+    files: &mut Vec<CodeFileModel>,
+) -> Result<()> {
+    for entry in
+        fs::read_dir(dir).with_context(|| format!("failed to read directory {}", dir.display()))?
+    {
         let entry = entry?;
         let path = entry.path();
         let file_name = entry.file_name();
@@ -239,11 +252,13 @@ fn extract_symbols(language: CodeLanguage, content: &str) -> Vec<CodeSymbol> {
     content
         .lines()
         .enumerate()
-        .filter_map(|(index, line)| extract_symbol(language, line).map(|(kind, name)| CodeSymbol {
-            name,
-            kind,
-            line: index + 1,
-        }))
+        .filter_map(|(index, line)| {
+            extract_symbol(language, line).map(|(kind, name)| CodeSymbol {
+                name,
+                kind,
+                line: index + 1,
+            })
+        })
         .collect()
 }
 
@@ -306,7 +321,9 @@ fn extract_script_symbol(line: &str) -> Option<(SymbolKind, String)> {
 
 fn identifier(text: &str) -> Option<String> {
     let ident = text
-        .split(|character: char| !(character == '_' || character == '-' || character.is_ascii_alphanumeric()))
+        .split(|character: char| {
+            !(character == '_' || character == '-' || character.is_ascii_alphanumeric())
+        })
         .find(|part| !part.is_empty())?;
     Some(ident.to_string())
 }
@@ -325,7 +342,8 @@ fn extract_imports(language: CodeLanguage, content: &str) -> Vec<String> {
             CodeLanguage::TypeScript | CodeLanguage::JavaScript => {
                 if let Some(import_path) = line.split(" from ").nth(1).and_then(quoted_path) {
                     imports.insert(import_path);
-                } else if let Some(import_path) = line.strip_prefix("import ").and_then(quoted_path) {
+                } else if let Some(import_path) = line.strip_prefix("import ").and_then(quoted_path)
+                {
                     imports.insert(import_path);
                 }
             }
@@ -446,10 +464,11 @@ fn build_symbol_index(files: &[CodeFileModel]) -> BTreeMap<String, Vec<String>> 
     let mut index: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for file in files {
         for symbol in &file.symbols {
-            index
-                .entry(symbol.name.clone())
-                .or_default()
-                .push(format!("{}:{}", file.path.display(), symbol.line));
+            index.entry(symbol.name.clone()).or_default().push(format!(
+                "{}:{}",
+                file.path.display(),
+                symbol.line
+            ));
         }
     }
     index
@@ -469,7 +488,10 @@ mod tests {
             root.join("src/lib.rs"),
             "use crate::ui::button;\npub struct AppState;\npub fn run() {}\n",
         )?;
-        fs::write(root.join("src/ui/button.tsx"), "export function Button() { return null }\n")?;
+        fs::write(
+            root.join("src/ui/button.tsx"),
+            "export function Button() { return null }\n",
+        )?;
         fs::write(root.join("target/generated.rs"), "pub fn ignored() {}\n")?;
 
         let model = CodebaseModelBuilder::new(root).build()?;
@@ -478,11 +500,13 @@ mod tests {
         assert!(model.symbol_index.contains_key("AppState"));
         assert!(model.symbol_index.contains_key("Button"));
         assert!(!model.symbol_index.contains_key("ignored"));
-        assert!(model
-            .dependencies
-            .iter()
-            .any(|dependency| dependency.from == PathBuf::from("src/lib.rs")
-                && dependency.to == PathBuf::from("src/ui/button.tsx")));
+        assert!(
+            model
+                .dependencies
+                .iter()
+                .any(|dependency| dependency.from == PathBuf::from("src/lib.rs")
+                    && dependency.to == PathBuf::from("src/ui/button.tsx"))
+        );
         assert!(model.project_brief().contains("indexed symbols"));
 
         let snapshot_path = root.join(".neura/codebase-model.json");

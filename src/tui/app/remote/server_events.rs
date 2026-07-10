@@ -1180,6 +1180,41 @@ pub(in crate::tui::app) fn handle_server_event(
             app.set_status_notice("⌨ Interactive terminal detected (command will timeout)");
             false
         }
+        ServerEvent::SubtextLatent {
+            phase,
+            latent,
+            text,
+            ..
+        } => {
+            // Live "silent thoughts" from the thought observers. Surfaced as a
+            // transient status line so the user can watch what is being thought
+            // about, without polluting the chat transcript. The phase is tagged
+            // by source ("companion:*", "oss:*", "remote:*") so each stream gets
+            // a distinct glyph: 🧠 = real Jacobian-lens latent words from the
+            // companion model, 💭 = the OSS model's verbal reasoning, 🛰 = the
+            // remote model's surfaced reasoning.
+            let source = phase.split(':').next().unwrap_or("");
+            let glyph = match source {
+                "companion" => "🧠",
+                "remote" => "🛰",
+                "logit" => "🔬",
+                _ => "💭",
+            };
+            let is_status = phase.contains("connecting")
+                || phase.contains("ready")
+                || phase.contains("unavailable")
+                || phase.contains("start")
+                || phase.contains("error");
+            let notice = if !latent.is_empty() {
+                format!("{glyph} {}", latent.join(" · "))
+            } else if is_status {
+                format!("{glyph} {text}")
+            } else {
+                format!("{glyph} {text}")
+            };
+            app.set_status_notice(notice);
+            true
+        }
         _ => false,
     }
 }

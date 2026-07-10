@@ -270,6 +270,13 @@ impl Agent {
                 std::collections::HashMap::new();
             let store_reasoning_content = self.provider.name() == "openrouter";
             let mut reasoning_content = String::new();
+            // Capture the remote model's surfaced reasoning for the thought
+            // observer (🛰 stream) and cross-turn latent hydration. This is
+            // independent of `store_reasoning_content` (which only feeds the
+            // openrouter history round-trip) — we want it for every provider
+            // that emits thinking deltas.
+            let mut remote_reflection = String::new();
+            let mut remote_reflection_emitted = 0usize;
             let mut openai_native_compaction: Option<(String, usize)> = None;
             // Track tool_use_id -> name for tool results
             let mut tool_id_to_name: std::collections::HashMap<String, String> =
@@ -333,6 +340,30 @@ impl Agent {
                         }
                         if store_reasoning_content {
                             reasoning_content.push_str(&thinking_text);
+                        }
+                        // Surface a live 🛰 "remote reasoning" latent frame,
+                        // throttled so we don't flood the event stream (the TUI
+                        // renders it as a transient status line).
+                        remote_reflection.push_str(&thinking_text);
+                        if remote_reflection.len() >= remote_reflection_emitted + 40 {
+                            remote_reflection_emitted = remote_reflection.len();
+                            let tail: String = remote_reflection
+                                .chars()
+                                .rev()
+                                .take(160)
+                                .collect::<Vec<_>>()
+                                .into_iter()
+                                .rev()
+                                .collect();
+                            let tail = tail.trim();
+                            if !tail.is_empty() {
+                                let _ = event_tx.send(ServerEvent::SubtextLatent {
+                                    phase: "remote:thinking".to_string(),
+                                    token: None,
+                                    latent: Vec::new(),
+                                    text: format!("[remote-thought] {tail}"),
+                                });
+                            }
                         }
                     }
                     StreamEvent::ThinkingDone { duration_secs } => {
@@ -706,6 +737,18 @@ impl Agent {
             } else {
                 None
             };
+
+            // Persist the remote model's surfaced reasoning so the next turn can
+            // hydrate "what the remote model was recently thinking" alongside the
+            // companion latent + OSS verbal reflections (fused via the ctx-vault).
+            if !remote_reflection.trim().is_empty() {
+                crate::agent::latent_hydration::record(
+                    &self.session.id,
+                    "remote",
+                    remote_reflection.trim(),
+                    &[],
+                );
+            }
 
             if let Some((encrypted_content, compacted_count)) = openai_native_compaction.take() {
                 self.apply_openai_native_compaction(encrypted_content, compacted_count)?;

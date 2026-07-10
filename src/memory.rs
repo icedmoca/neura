@@ -210,6 +210,106 @@ pub fn memory_sidecar_enabled() -> bool {
     crate::config::config().agents.memory_sidecar_enabled
 }
 
+/// Pick a human concept label for a consolidation group: the most common tag
+/// among members that isn't a structural tag. Deterministic.
+fn dominant_group_tag(group: &[String], graph: &crate::memory_graph::MemoryGraph) -> String {
+    use std::collections::BTreeMap;
+    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+    for id in group {
+        if let Some(m) = graph.get_memory(id) {
+            for t in &m.tags {
+                if t == "semantic" || t == "consolidated" {
+                    continue;
+                }
+                *counts.entry(t.clone()).or_default() += 1;
+            }
+        }
+    }
+    counts
+        .into_iter()
+        .max_by(|a, b| a.1.cmp(&b.1).then_with(|| b.0.cmp(&a.0)))
+        .map(|(t, _)| t)
+        .unwrap_or_else(|| "concept".to_string())
+}
+
+/// Merge several episodic memories into a single semantic statement using the
+/// sidecar LLM. Falls back to the longest constituent when the sidecar is off
+/// or fails — consolidation is a graph operation; the text is best-effort.
+async fn summarize_group_with_sidecar(contents: &[String], sidecar_on: bool) -> Option<String> {
+    let fallback = || {
+        contents
+            .iter()
+            .max_by_key(|c| c.trim().len())
+            .map(|c| c.trim().to_string())
+            .filter(|c| !c.is_empty())
+    };
+    if !sidecar_on {
+        return fallback();
+    }
+    let mut prompt = String::from(
+        "These memories describe the same concept. Write ONE concise sentence that \
+         captures the shared fact. Preserve specifics; do not invent. Reply with only the sentence:\n",
+    );
+    for (i, c) in contents.iter().enumerate() {
+        prompt.push_str(&format!("{}. {}\n", i + 1, c.trim()));
+    }
+    let sidecar = Sidecar::new();
+    match sidecar
+        .complete(
+            "You consolidate memories into a single factual sentence. \
+             Reply with ONLY that sentence, no preamble.",
+            &prompt,
+        )
+        .await
+    {
+        Ok(text) => {
+            let text = text.trim().trim_matches('"').trim().to_string();
+            if text.is_empty() || text.len() > 600 {
+                fallback()
+            } else {
+                Some(text)
+            }
+        }
+        Err(_) => fallback(),
+    }
+}
+
+/// Ask the sidecar whether two semantic memories contradict. Returns a short
+/// reason when they do, or `None` when they are consistent / the sidecar is
+/// unavailable. Never mutates anything; the caller records graph knowledge.
+async fn review_contradiction_with_sidecar(a: &str, b: &str) -> Option<String> {
+    let prompt = format!(
+        "Statement A: {}\nStatement B: {}\n\nDo these two statements directly contradict each \
+         other? If YES, reply with 'YES: <one short reason>'. If they are consistent or unrelated, \
+         reply with exactly 'NO'.",
+        a.trim(),
+        b.trim()
+    );
+    let sidecar = Sidecar::new();
+    let resp = sidecar
+        .complete(
+            "You detect factual contradictions between two statements. Be strict: only report a \
+             contradiction when both cannot be true at once. Reply 'YES: reason' or 'NO'.",
+            &prompt,
+        )
+        .await
+        .ok()?;
+    let resp = resp.trim();
+    let upper = resp.to_uppercase();
+    if upper.starts_with("YES") {
+        let reason = resp
+            .splitn(2, ':')
+            .nth(1)
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .unwrap_or("LLM flagged a contradiction")
+            .to_string();
+        Some(format!("contradiction: {reason}"))
+    } else {
+        None
+    }
+}
+
 fn emit_memory_activity(event_tx: Option<&MemoryEventSink>) {
     let (Some(event_tx), Some(activity)) = (event_tx, activity_snapshot()) else {
         return;
@@ -2044,6 +2144,243 @@ impl MemoryManager {
         ))
     }
 
+    /// Hebbian reinforcement of a co-relevance association between two
+    /// memories. Strengthens (or creates) a symmetric `RelatesTo` link.
+    pub fn reinforce_link(&self, from_id: &str, to_id: &str, delta: f32) -> Result<()> {
+        let mut graph = self.load_project_graph()?;
+        if graph.memories.contains_key(from_id) && graph.memories.contains_key(to_id) {
+            graph.reinforce_link(from_id, to_id, delta);
+            return self.save_project_graph(&graph);
+        }
+        let mut graph = self.load_global_graph()?;
+        if graph.memories.contains_key(from_id) && graph.memories.contains_key(to_id) {
+            graph.reinforce_link(from_id, to_id, delta);
+            return self.save_global_graph(&graph);
+        }
+        Err(anyhow::anyhow!(
+            "Both memories must be in the same store (project or global)"
+        ))
+    }
+
+    /// Grow associations from shared tags on both stores. Returns total pairs
+    /// linked/strengthened.
+    pub fn bootstrap_cooccurrence_links(&self, min_overlap: f32) -> Result<usize> {
+        let mut total = 0usize;
+        let mut project = self.load_project_graph()?;
+        let p = project.bootstrap_cooccurrence_links(min_overlap);
+        if p > 0 {
+            self.save_project_graph(&project)?;
+            total += p;
+        }
+        let mut global = self.load_global_graph()?;
+        let g = global.bootstrap_cooccurrence_links(min_overlap);
+        if g > 0 {
+            self.save_global_graph(&global)?;
+            total += g;
+        }
+        Ok(total)
+    }
+
+    /// Fade unreinforced associations on both stores. Returns `(weakened, pruned)`.
+    pub fn decay_relates_to(&self, factor: f32, floor: f32) -> Result<(usize, usize)> {
+        let mut project = self.load_project_graph()?;
+        let (pw, pp) = project.decay_relates_to(factor, floor);
+        if pw > 0 {
+            self.save_project_graph(&project)?;
+        }
+        let mut global = self.load_global_graph()?;
+        let (gw, gp) = global.decay_relates_to(factor, floor);
+        if gw > 0 {
+            self.save_global_graph(&global)?;
+        }
+        Ok((pw + gw, pp + gp))
+    }
+
+    /// Run one offline consolidation ("sleep") pass over both stores and
+    /// persist the results. Returns the combined report.
+    pub fn run_sleep_cycle(&self) -> Result<crate::memory_graph::SleepReport> {
+        use crate::memory_graph::{SleepConfig, SleepReport};
+        let cfg = SleepConfig::default();
+        let mut total = SleepReport::default();
+
+        for is_project in [true, false] {
+            let mut graph = if is_project {
+                self.load_project_graph()?
+            } else {
+                self.load_global_graph()?
+            };
+            if graph.memory_count() == 0 {
+                continue;
+            }
+            let r = graph.run_sleep_cycle(cfg);
+            total.linked += r.linked;
+            total.weakened += r.weakened;
+            total.pruned += r.pruned;
+            total.communities += r.communities;
+            total.confidence_decayed += r.confidence_decayed;
+            if is_project {
+                self.save_project_graph(&graph)?;
+            } else {
+                self.save_global_graph(&graph)?;
+            }
+        }
+        Ok(total)
+    }
+
+    /// Full cognitive-maintenance sleep cycle (Phase 4). Runs the deterministic
+    /// graph steps (Hebbian links, association decay, edge pruning, community
+    /// detection, importance-aware confidence decay, stats) and then the
+    /// LLM/embedder steps (semantic consolidation, contradiction review, concept
+    /// embedding refresh). Persists results and stores the report on the graph.
+    pub async fn run_full_sleep_cycle(&self) -> Result<crate::memory_graph::SleepReport> {
+        use crate::memory_graph::SleepConfig;
+        let cfg = SleepConfig::default();
+        let sidecar_on = memory_sidecar_enabled();
+        let embed_on = crate::embedding::is_model_available() && !self.test_mode;
+        let mut total = crate::memory_graph::SleepReport::default();
+
+        for is_project in [true, false] {
+            let mut graph = if is_project {
+                self.load_project_graph()?
+            } else {
+                self.load_global_graph()?
+            };
+            // Unified knowledge layer: refresh registered sources first so
+            // graph maintenance (links, communities, consolidation, concept
+            // embeddings) runs over up-to-date repository knowledge, and fold
+            // queued tool-outcome evidence into the affected concepts.
+            let mut knowledge_refreshed = 0usize;
+            if is_project && !self.test_mode {
+                let opts = crate::knowledge::IngestOptions::default();
+                for (source_id, r) in
+                    crate::knowledge::refresh_sources_in_graph(&mut graph, opts).await
+                {
+                    knowledge_refreshed += r.concepts_created + r.concepts_updated;
+                    crate::logging::info(&format!(
+                        "sleep: knowledge refresh {}",
+                        r.render(&source_id)
+                    ));
+                }
+            }
+
+            if graph.memory_count() == 0 {
+                continue;
+            }
+
+            // Deterministic graph steps: links, decay, prune, community, confidence.
+            let mut report = graph.run_sleep_cycle(cfg);
+            report.knowledge_concepts_refreshed = knowledge_refreshed;
+
+            // --- Semantic consolidation (LLM merge text, graph-side idempotent) ---
+            let groups = graph.consolidation_candidates(2);
+            let mut consolidated = 0usize;
+            for group in groups {
+                let contents: Vec<String> = group
+                    .iter()
+                    .filter_map(|id| graph.get_memory(id))
+                    .map(|m| m.content.clone())
+                    .collect();
+                if contents.len() < 2 {
+                    continue;
+                }
+                let concept = dominant_group_tag(&group, &graph);
+                let summary = summarize_group_with_sidecar(&contents, sidecar_on).await;
+                if let Some(summary) = summary
+                    && graph.apply_consolidation(&group, &summary, &concept).is_some()
+                {
+                    consolidated += 1;
+                }
+            }
+
+            // --- Contradiction review (LLM, graph knowledge only) ---
+            let mut contradictions = 0usize;
+            if sidecar_on {
+                let pairs = graph.contradiction_candidates(0.6, 24);
+                // Snapshot contents up front to avoid borrowing across the await.
+                let mut jobs: Vec<(String, String, String, String)> = Vec::new();
+                for (a, b) in pairs {
+                    if let (Some(ma), Some(mb)) = (graph.get_memory(&a), graph.get_memory(&b)) {
+                        jobs.push((a.clone(), b.clone(), ma.content.clone(), mb.content.clone()));
+                    }
+                }
+                for (a, b, ta, tb) in jobs {
+                    if let Some(reason) = review_contradiction_with_sidecar(&ta, &tb).await {
+                        graph.apply_contradiction(&a, &b, &reason);
+                        contradictions += 1;
+                    }
+                }
+            }
+
+            // --- Concept (graph-neighborhood) embedding refresh ---
+            let refreshed = if embed_on {
+                graph.refresh_concept_embeddings(|t| crate::embedding::embed(t).ok())
+            } else {
+                0
+            };
+
+            report.consolidated = consolidated;
+            report.contradictions_found = contradictions;
+            report.concept_embeddings_refreshed = refreshed;
+            report.at = Some(Utc::now());
+            graph.metadata.last_sleep = Some(report.clone());
+
+            if is_project {
+                self.save_project_graph(&graph)?;
+            } else {
+                self.save_global_graph(&graph)?;
+            }
+
+            total.linked += report.linked;
+            total.weakened += report.weakened;
+            total.pruned += report.pruned;
+            total.communities += report.communities;
+            total.consolidated += report.consolidated;
+            total.contradictions_found += report.contradictions_found;
+            total.concept_embeddings_refreshed += report.concept_embeddings_refreshed;
+            total.confidence_decayed += report.confidence_decayed;
+            total.knowledge_concepts_refreshed += report.knowledge_concepts_refreshed;
+        }
+        total.at = Some(Utc::now());
+        Ok(total)
+    }
+
+    /// Validate graph integrity across both stores (Phase 6). Returns
+    /// `(project_issues, global_issues)`.
+    pub fn validate_graphs(
+        &self,
+    ) -> Result<(
+        Vec<crate::memory_graph::GraphIssue>,
+        Vec<crate::memory_graph::GraphIssue>,
+    )> {
+        let project = self.load_project_graph()?.validate();
+        let global = self.load_global_graph()?.validate();
+        Ok((project, global))
+    }
+
+    /// Recompute concept communities on both stores (label propagation) and
+    /// persist. Returns total communities formed.
+    pub fn recompute_communities(&self, min_size: usize) -> Result<usize> {
+        let mut total = 0usize;
+        for is_project in [true, false] {
+            let mut graph = if is_project {
+                self.load_project_graph()?
+            } else {
+                self.load_global_graph()?
+            };
+            if graph.memory_count() == 0 {
+                continue;
+            }
+            let n = graph.detect_communities(min_size, 8);
+            if is_project {
+                self.save_project_graph(&graph)?;
+            } else {
+                self.save_global_graph(&graph)?;
+            }
+            total += n;
+        }
+        Ok(total)
+    }
+
     /// Get memories related to a given memory via graph traversal
     pub fn get_related(&self, memory_id: &str, depth: usize) -> Result<Vec<MemoryEntry>> {
         // Find which store contains the memory
@@ -2168,6 +2505,84 @@ impl MemoryManager {
         Ok(results)
     }
 
+    /// Expand a seed set of memory IDs by walking the graph (tags, `RelatesTo`
+    /// links, clusters) and return *related* memories that are NOT already
+    /// seeds. This is the live wiring for graph-native retrieval: embedding
+    /// search finds the seeds, then the graph pulls in neighbours the raw
+    /// vector search would miss (e.g. two memories that share a tag or were
+    /// linked by co-relevance on a prior turn).
+    ///
+    /// Runs against both the project and global graphs, persisting each so the
+    /// graph's `retrieval_count` reflects real usage. Results are deduped by id
+    /// (best score wins) and truncated to `max_results`.
+    pub fn cascade_expand(
+        &self,
+        seed_ids: &[String],
+        seed_scores: &[f32],
+        depth: usize,
+        max_results: usize,
+    ) -> Result<Vec<(MemoryEntry, f32)>> {
+        if seed_ids.is_empty() || max_results == 0 {
+            return Ok(Vec::new());
+        }
+
+        let seed_set: std::collections::HashSet<&str> =
+            seed_ids.iter().map(String::as_str).collect();
+        let mut best: std::collections::HashMap<String, (MemoryEntry, f32)> =
+            std::collections::HashMap::new();
+
+        for is_project in [true, false] {
+            let mut graph = if is_project {
+                self.load_project_graph()?
+            } else {
+                self.load_global_graph()?
+            };
+
+            // Only seeds that live in this graph can start a walk here.
+            let mut ids: Vec<String> = Vec::new();
+            let mut scores: Vec<f32> = Vec::new();
+            for (id, score) in seed_ids.iter().zip(seed_scores.iter()) {
+                if graph.memories.contains_key(id) {
+                    ids.push(id.clone());
+                    scores.push(*score);
+                }
+            }
+            if ids.is_empty() {
+                continue;
+            }
+
+            let cascade = graph.cascade_retrieve(&ids, &scores, depth, max_results * 2);
+            for (id, score) in cascade {
+                if seed_set.contains(id.as_str()) {
+                    continue;
+                }
+                if let Some(entry) = graph.get_memory(&id)
+                    && entry.active
+                {
+                    best.entry(id)
+                        .and_modify(|(_, s)| {
+                            if score > *s {
+                                *s = score;
+                            }
+                        })
+                        .or_insert_with(|| (entry.clone(), score));
+                }
+            }
+
+            // Persist so retrieval_count / graph metadata reflect real usage.
+            let _ = if is_project {
+                self.save_project_graph(&graph)
+            } else {
+                self.save_global_graph(&graph)
+            };
+        }
+
+        let mut merged: Vec<(MemoryEntry, f32)> = best.into_values().collect();
+        merged.sort_by(|a, b| b.1.total_cmp(&a.1));
+        merged.truncate(max_results);
+        Ok(merged)
+    }
+
     /// Get graph statistics for display
     pub fn graph_stats(&self) -> Result<(usize, usize, usize, usize)> {
         let project = self.load_project_graph()?;
@@ -2180,6 +2595,65 @@ impl MemoryManager {
 
         Ok((memories, tags, edges, clusters))
     }
+}
+
+/// Maximal Marginal Relevance selection: pick `k` entries that balance
+/// relevance (their existing order — most relevant first) against novelty
+/// (low embedding similarity to already-picked entries). `lambda` weights
+/// relevance vs. diversity (1.0 = pure relevance, 0.0 = pure diversity).
+///
+/// Prevents injecting several near-duplicate memories. Returns the selection in
+/// the original relevance order. A no-op when `items.len() <= k`.
+pub fn mmr_select(items: Vec<MemoryEntry>, k: usize, lambda: f32) -> Vec<MemoryEntry> {
+    if k == 0 {
+        return Vec::new();
+    }
+    if items.len() <= k {
+        return items;
+    }
+
+    let n = items.len();
+    // Relevance proxy from the incoming order (sidecar already ranked these).
+    let rel: Vec<f32> = (0..n).map(|i| 1.0 - (i as f32) / (n as f32)).collect();
+
+    let sim = |a: &MemoryEntry, b: &MemoryEntry| -> f32 {
+        match (&a.embedding, &b.embedding) {
+            (Some(ea), Some(eb)) => crate::embedding::cosine_similarity(ea, eb).max(0.0),
+            _ => 0.0,
+        }
+    };
+
+    let mut selected: Vec<usize> = Vec::with_capacity(k);
+    let mut remaining: Vec<usize> = (0..n).collect();
+
+    while selected.len() < k && !remaining.is_empty() {
+        let mut best_pos = 0usize;
+        let mut best_score = f32::MIN;
+        for (pos, &c) in remaining.iter().enumerate() {
+            let max_sim = selected
+                .iter()
+                .map(|&s| sim(&items[c], &items[s]))
+                .fold(0.0_f32, f32::max);
+            let score = lambda * rel[c] - (1.0 - lambda) * max_sim;
+            if score > best_score {
+                best_score = score;
+                best_pos = pos;
+            }
+        }
+        selected.push(remaining.remove(best_pos));
+    }
+
+    // Preserve original relevance ordering among the winners.
+    selected.sort_unstable();
+    let mut items = items;
+    let keep: std::collections::HashSet<usize> = selected.into_iter().collect();
+    let mut out = Vec::with_capacity(keep.len());
+    for (i, entry) in items.drain(..).enumerate() {
+        if keep.contains(&i) {
+            out.push(entry);
+        }
+    }
+    out
 }
 
 /// Embedding similarity threshold (0.0 - 1.0)

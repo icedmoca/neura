@@ -87,6 +87,7 @@ pub(crate) fn initial_title(args: &Args) -> String {
         Some(Command::Auth(_)) => "neura auth".to_string(),
         Some(Command::Provider(_)) => "neura provider".to_string(),
         Some(Command::Memory(_)) => "neura memory".to_string(),
+        Some(Command::Knowledge(_)) => "neura knowledge".to_string(),
         Some(Command::Latent(_)) => "neura latent".to_string(),
         Some(Command::SelfImprove(_)) => "neura self-improve".to_string(),
         Some(Command::Ambient(subcommand)) => match subcommand {

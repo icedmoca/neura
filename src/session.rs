@@ -15,8 +15,8 @@ pub use active_pids::{active_session_ids, find_active_session_id_by_pid};
 mod crash;
 mod render;
 pub use crash::{
-    CrashedSessionsInfo, detect_crashed_sessions, find_recent_crashed_sessions,
-    find_session_by_name_or_id, recover_crashed_sessions,
+    CrashedSessionsInfo, close_all_open_sessions, detect_crashed_sessions,
+    find_recent_crashed_sessions, find_session_by_name_or_id, recover_crashed_sessions,
 };
 pub use render::{
     RenderedImage, RenderedImageSource, RenderedMessage, has_rendered_images, render_images,

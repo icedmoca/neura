@@ -48,7 +48,26 @@ const MAX_MEMORIES_PER_TURN: usize = 5;
 const TURN_RESET_INTERVAL: usize = 50;
 
 /// How often to run periodic cluster refinement in post-retrieval maintenance.
-const CLUSTER_REFINEMENT_INTERVAL: u64 = 50;
+/// Low so co-relevance clusters actually form on modest memory sets — cluster
+/// assignment is idempotent for a stable member set (stable cluster id), so
+/// running most qualifying maintenance ticks just keeps clusters fresh rather
+/// than churning.
+const CLUSTER_REFINEMENT_INTERVAL: u64 = 2;
+
+/// How often to grow associations from shared tags (structural bootstrap).
+const COOCCURRENCE_LINK_INTERVAL: u64 = 3;
+/// Minimum tag Jaccard overlap to link two memories structurally.
+const COOCCURRENCE_MIN_OVERLAP: f32 = 0.34;
+/// How often to run the association-decay pass.
+const LINK_DECAY_INTERVAL: u64 = 20;
+/// Multiplier applied to every RelatesTo weight on each decay pass.
+const LINK_DECAY_FACTOR: f32 = 0.95;
+/// Prune RelatesTo edges once their weight falls below this.
+const LINK_DECAY_FLOOR: f32 = 0.15;
+/// How often to recompute concept communities (label propagation).
+const COMMUNITY_DETECT_INTERVAL: u64 = 8;
+/// Minimum members for a detected community to be materialized as a cluster.
+const MIN_COMMUNITY_SIZE: usize = 3;
 
 /// Global memory agent instance
 static MEMORY_AGENT: tokio::sync::OnceCell<MemoryAgentHandle> = tokio::sync::OnceCell::const_new();
@@ -606,11 +625,62 @@ impl MemoryAgent {
         }
 
         // Step 2: Find similar memories by embedding
-        let candidates = memory_manager.find_similar_with_embedding(
+        let mut candidates = memory_manager.find_similar_with_embedding(
             &context_embedding,
             memory::EMBEDDING_SIMILARITY_THRESHOLD,
             memory::EMBEDDING_MAX_HITS,
         )?;
+
+        // Step 2b: Graph cascade expansion. Walk tags / RelatesTo links /
+        // clusters out from the embedding seeds so related memories the raw
+        // vector search missed become candidates too. The sidecar relevance
+        // filter (Step 3) still decides what actually surfaces, so this widens
+        // recall without hurting precision. Bounded so we don't balloon the
+        // (per-candidate) sidecar cost.
+        if !candidates.is_empty() {
+            let seed_ids: Vec<String> = candidates.iter().map(|(e, _)| e.id.clone()).collect();
+            let seed_scores: Vec<f32> = candidates.iter().map(|(_, s)| *s).collect();
+            const CASCADE_DEPTH: usize = 2;
+            const CASCADE_MAX_EXTRA: usize = 6;
+            match memory_manager.cascade_expand(
+                &seed_ids,
+                &seed_scores,
+                CASCADE_DEPTH,
+                CASCADE_MAX_EXTRA,
+            ) {
+                Ok(extra) if !extra.is_empty() => {
+                    let have: std::collections::HashSet<String> =
+                        candidates.iter().map(|(e, _)| e.id.clone()).collect();
+                    let mut added = 0usize;
+                    for (entry, score) in extra {
+                        if !have.contains(&entry.id) {
+                            candidates.push((entry, score));
+                            added += 1;
+                        }
+                    }
+                    if added > 0 {
+                        crate::logging::info(&format!(
+                            "[{}] Graph cascade added {} related candidate(s) beyond embedding hits",
+                            session_id, added
+                        ));
+                        memory::add_event(MemoryEventKind::CascadeExpanded { added });
+                    }
+                }
+                Ok(_) => {}
+                Err(e) => {
+                    crate::logging::info(&format!("Graph cascade expansion failed: {}", e));
+                }
+            }
+        }
+
+        // Phase 5 (concept-first): boost consolidated *concept* memories so the
+        // graph's distilled semantic nodes are the primary retrieval targets,
+        // with episodes surfacing as supporting provenance rather than the lead.
+        for (entry, score) in candidates.iter_mut() {
+            if entry.tags.iter().any(|t| t == "semantic") {
+                *score = (*score * 1.2).min(1.0);
+            }
+        }
 
         let embedding_latency = start.elapsed().as_millis() as u64;
         memory::add_event(MemoryEventKind::EmbeddingComplete {
@@ -656,9 +726,29 @@ impl MemoryAgent {
 
         let candidate_ids: Vec<String> = new_candidates.iter().map(|(e, _)| e.id.clone()).collect();
 
-        let relevant = self
-            .evaluate_candidates(session_id, &context, new_candidates)
-            .await?;
+        let relevant = {
+            let approved = self
+                .evaluate_candidates(session_id, &context, new_candidates)
+                .await?;
+            // MMR: pick a diverse, non-redundant subset so we don't inject
+            // several near-duplicate memories (embedding-aware). No-op when the
+            // approved set already fits within the per-turn budget.
+            let mut selected = memory::mmr_select(approved, MAX_MEMORIES_PER_TURN, 0.72);
+            // Phase 5 (evidence ranking): inject concepts and best-evidenced
+            // memories first, so the strongest, most-explainable knowledge leads.
+            selected.sort_by(|a, b| {
+                let ca = a.tags.iter().any(|t| t == "semantic");
+                let cb = b.tags.iter().any(|t| t == "semantic");
+                cb.cmp(&ca)
+                    .then_with(|| b.evidence.len().cmp(&a.evidence.len()))
+                    .then_with(|| {
+                        b.confidence
+                            .partial_cmp(&a.confidence)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    })
+            });
+            selected
+        };
 
         let verified_ids: Vec<String> = relevant.iter().map(|e| e.id.clone()).collect();
         let rejected_ids: Vec<String> = candidate_ids
@@ -1186,6 +1276,55 @@ impl MemoryAgent {
                 }
             }
 
+            // 6b. Structural association growth from shared tags (cold-start /
+            // continuous). Runs every few ticks regardless of verified count so
+            // the graph keeps knitting even on quiet turns.
+            if tick.is_multiple_of(COOCCURRENCE_LINK_INTERVAL) {
+                match memory_manager.bootstrap_cooccurrence_links(COOCCURRENCE_MIN_OVERLAP) {
+                    Ok(n) if n > 0 => {
+                        memory::add_event(MemoryEventKind::MaintenanceLinked { links: n });
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        crate::logging::info(&format!("Tag co-occurrence linking failed: {}", e))
+                    }
+                }
+            }
+
+            // 6c. Fade unreinforced associations so stale links don't dominate.
+            if tick.is_multiple_of(LINK_DECAY_INTERVAL) {
+                if let Ok((weakened, pruned)) =
+                    memory_manager.decay_relates_to(LINK_DECAY_FACTOR, LINK_DECAY_FLOOR)
+                    && (weakened > 0 || pruned > 0)
+                {
+                    crate::logging::info(&format!(
+                        "Association decay: weakened {} link(s), pruned {}",
+                        weakened, pruned
+                    ));
+                }
+            }
+
+            // 6d. Concept community detection (label propagation) — higher-level
+            // semantic organization emerges automatically from the graph.
+            if tick.is_multiple_of(COMMUNITY_DETECT_INTERVAL) {
+                match memory_manager.recompute_communities(MIN_COMMUNITY_SIZE) {
+                    Ok(n) if n > 0 => {
+                        memory::add_event(MemoryEventKind::MaintenanceCluster {
+                            clusters: n,
+                            members: 0,
+                        });
+                        crate::logging::info(&format!(
+                            "Community detection formed {} concept cluster(s)",
+                            n
+                        ));
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        crate::logging::info(&format!("Community detection failed: {}", e))
+                    }
+                }
+            }
+
             // 7. Periodic garbage collection: prune low-confidence memories
             let mut pruned = 0usize;
             if tick.is_multiple_of(CLUSTER_REFINEMENT_INTERVAL * 5) {
@@ -1578,23 +1717,25 @@ fn infer_candidate_tag(context: &str) -> Option<String> {
         .map(|(tag, _)| tag)
 }
 
-/// Discover links between co-relevant memories
+/// Discover links between co-relevant memories.
+///
+/// Hebbian: every time two memories are relevant together we *strengthen* their
+/// symmetric `RelatesTo` association rather than stamping a fixed weight. Links
+/// that keep co-activating rise toward 1.0 (and thus dominate cascade traversal);
+/// links that stop co-activating fade via the periodic decay pass.
 async fn discover_links(manager: &MemoryManager, memory_ids: &[String]) -> Result<usize> {
-    // For each pair of co-relevant memories, create a RelatesTo link
-    // Use a moderate weight since we're inferring the relationship
-    const LINK_WEIGHT: f32 = 0.6;
+    /// Per-co-activation weight bump.
+    const REINFORCE_DELTA: f32 = 0.25;
     let mut linked = 0usize;
 
     for i in 0..memory_ids.len() {
         for j in (i + 1)..memory_ids.len() {
             let from = &memory_ids[i];
             let to = &memory_ids[j];
-
-            // Try to link (may fail if memories are in different stores)
-            match manager.link_memories(from, to, LINK_WEIGHT) {
+            match manager.reinforce_link(from, to, REINFORCE_DELTA) {
                 Ok(()) => linked += 1,
                 Err(e) => {
-                    // This is expected for cross-store memories, just log at debug level
+                    // Expected for cross-store memories; log at debug level.
                     crate::logging::info(&format!("Could not link {} -> {}: {}", from, to, e));
                 }
             }
@@ -1606,30 +1747,43 @@ async fn discover_links(manager: &MemoryManager, memory_ids: &[String]) -> Resul
 
 /// Boost a memory's confidence score
 fn boost_memory_confidence(manager: &MemoryManager, memory_id: &str, amount: f32) -> Result<()> {
-    // Load project graph first
-    let mut graph = manager.load_project_graph()?;
-    if graph.get_memory(memory_id).is_some() {
-        if let Some(entry) = graph.get_memory_mut(memory_id) {
-            entry.boost_confidence(amount);
-            let conf = entry.confidence;
-            manager.save_project_graph(&graph)?;
-            crate::logging::info(&format!(
-                "Boosted confidence for {} to {:.2}",
-                memory_id, conf
-            ));
-        }
-        return Ok(());
-    }
+    use crate::memory_graph::EvidenceRef;
 
-    // Try global
-    let mut graph = manager.load_global_graph()?;
-    if graph.get_memory(memory_id).is_some() {
+    for is_project in [true, false] {
+        let mut graph = if is_project {
+            manager.load_project_graph()?
+        } else {
+            manager.load_global_graph()?
+        };
+        if graph.get_memory(memory_id).is_none() {
+            continue;
+        }
+
+        // Small additive nudge (keeps prior behaviour for lightly-seen memories)…
         if let Some(entry) = graph.get_memory_mut(memory_id) {
             entry.boost_confidence(amount);
-            let conf = entry.confidence;
+        }
+        // …plus an episodic observation: repeated relevance is evidence that
+        // raises evidence-backed confidence and can promote the fact to
+        // semantic once enough observations accumulate.
+        let promoted = graph.record_fact_observation(
+            memory_id,
+            EvidenceRef::observation("re-surfaced as relevant"),
+        );
+        let conf = graph.get_memory(memory_id).map(|m| m.confidence).unwrap_or(0.0);
+
+        if is_project {
+            manager.save_project_graph(&graph)?;
+        } else {
             manager.save_global_graph(&graph)?;
+        }
+
+        if promoted {
+            memory::add_event(MemoryEventKind::EpisodicPromoted {
+                id: memory_id.to_string(),
+            });
             crate::logging::info(&format!(
-                "Boosted confidence for {} to {:.2}",
+                "Memory {} promoted episodic→semantic (confidence {:.2})",
                 memory_id, conf
             ));
         }
