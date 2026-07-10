@@ -160,6 +160,7 @@ fn build_resume_command_uses_imported_neura_session_for_codex() {
     assert_eq!(
         args,
         vec![
+            "--fresh-spawn".to_string(),
             "--resume".to_string(),
             crate::import::imported_codex_session_id("codex-session-123")
         ]

@@ -16,6 +16,7 @@ pub(in crate::tui::app) fn handle_server_event(
     if matches!(
         &event,
         ServerEvent::TextDelta { .. }
+            | ServerEvent::ReasoningDelta { .. }
             | ServerEvent::TextReplace { .. }
             | ServerEvent::ToolStart { .. }
             | ServerEvent::ToolInput { .. }
@@ -65,6 +66,21 @@ pub(in crate::tui::app) fn handle_server_event(
             }
             app.last_stream_activity = Some(Instant::now());
             eager_stream_redraw && needs_redraw
+        }
+        ServerEvent::ReasoningDelta { text } => {
+            // Live model reasoning: render through the dedicated thought-line
+            // path (same visual as the legacy 💭 TextDelta lines) — never
+            // appended to the streamed answer text.
+            if !crate::config::config().display.show_thinking {
+                return false;
+            }
+            if let Some(chunk) = app.stream_buffer.flush() {
+                app.append_streaming_text(&chunk);
+            }
+            for line in text.lines().filter(|l| !l.trim().is_empty()) {
+                app.insert_thought_line(format!("💭 {}", line.trim()));
+            }
+            eager_stream_redraw
         }
         ServerEvent::TextReplace { text } => {
             app.stream_buffer.flush();

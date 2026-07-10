@@ -134,10 +134,40 @@ def inject_dapp_context(message: str, context_prefix: str) -> str:
     return context_prefix + message
 
 
+def strip_reasoning_leak(text: str) -> str:
+    """Remove model reasoning that some local servers fuse into the answer.
+
+    gpt-oss/Harmony models emit an `analysis` channel before the `final`
+    channel; when the serving template doesn't split channels the answer
+    arrives as one blob ("…analysis…assistantfinalAnswer" or with literal
+    `<|channel|>final<|message|>` markers). Keep only the final channel when
+    such a marker is present; also drop 💭-prefixed legacy thinking lines.
+    """
+    if not text:
+        return text
+    explicit = "<|channel|>final<|message|>"
+    idx = text.rfind(explicit)
+    if idx >= 0:
+        text = text[idx + len(explicit):].lstrip()
+    else:
+        # The stripped-token leak form glues "assistantfinal" directly onto
+        # the end of the analysis ("…concisely.assistantfinalAnswer"). Only
+        # treat it as a marker when it is glued (non-whitespace before it),
+        # so ordinary prose containing the word sequence survives.
+        idx = text.rfind("assistantfinal")
+        if idx > 0 and not text[idx - 1].isspace():
+            text = text[idx + len("assistantfinal"):].lstrip()
+    if "💭" in text:
+        kept = [line for line in text.splitlines() if not line.lstrip().startswith("💭")]
+        text = "\n".join(kept).strip()
+    return text
+
+
 def sanitize_chat_display_text(text: str) -> str:
     """Strip internal Neura UI prefixes from messages shown in chat."""
     if not text:
         return text
+    text = strip_reasoning_leak(text)
     if "You generate contextual Neura project dapp files from chat transcripts" in text:
         if "Reply with ONLY valid JSON" in text:
             return ""

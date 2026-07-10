@@ -3088,13 +3088,130 @@ def run_chat_turn(session_id: str | None, message: str, working_dir: str | None 
         "title": title,
         "titleLocked": locked,
         "titleSource": source,
-        "text": report.get("text", ""),
+        "text": de.sanitize_chat_display_text(report.get("text", "")),
         "model": report.get("model"),
         "usage": report.get("usage"),
     }
     schedule_chat_title_refresh(sid or None)
     schedule_dapp_generation(sid or None, cwd, message)
     return result
+
+
+def stream_chat_turn(handler, session_id: str | None, message: str, working_dir: str | None) -> None:
+    """Drive one agent turn via `neura run --ndjson`, relaying every runtime
+    event to the browser as SSE the moment it happens: text deltas, reasoning
+    deltas (💭 J-space thinking, kept separate from the answer), subtext
+    latent frames, tool start/exec/done, memory injection, token usage. The
+    final `done` event is augmented with the normalized fields /api/chat
+    returns so the UI can finalize the bubble identically."""
+    cwd = chat_turn_cwd(session_id, working_dir)
+    agent_message = message
+    try:
+        if not is_dapp_skip_message(message):
+            ctx = build_chat_dapp_context(cwd, session_id)
+            if ctx:
+                agent_message = de.inject_dapp_context(message, ctx)
+    except Exception:
+        agent_message = message
+
+    def send(obj: dict) -> bool:
+        try:
+            handler.wfile.write(f"data: {json.dumps(obj)}\n\n".encode("utf-8"))
+            handler.wfile.flush()
+            return True
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            return False
+
+    handler.send_response(200)
+    handler.send_header("Content-Type", "text/event-stream")
+    handler.send_header("Cache-Control", "no-cache")
+    handler.send_header("Connection", "keep-alive")
+    handler.end_headers()
+
+    bin_path = neura_bin()
+    if not Path(bin_path).is_file():
+        send({"type": "error", "message": f"neura binary not found at {bin_path}"})
+        return
+    cmd = [bin_path, "run", "--ndjson", "--no-update", "--no-selfdev"]
+    if session_id:
+        cmd.append(f"--resume={session_id}")
+    cmd += ["--", agent_message]
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            cwd=cwd,
+            bufsize=1,
+        )
+    except Exception as exc:
+        send({"type": "error", "message": f"failed to launch neura: {exc}"})
+        return
+
+    watchdog = threading.Timer(NEURA_RUN_TIMEOUT, proc.kill)
+    watchdog.daemon = True
+    watchdog.start()
+    sid = session_id or ""
+    saw_done = False
+    try:
+        for line in proc.stdout or []:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            kind = event.get("type")
+            if kind in ("start", "session", "done") and event.get("session_id"):
+                sid = event["session_id"]
+            if kind == "done":
+                saw_done = True
+                event["text"] = de.sanitize_chat_display_text(event.get("text") or "")
+                animal = session_animal(sid) if sid else ""
+                data = read_session_snapshot(sid) if sid else None
+                title, locked, source = (
+                    resolve_chat_title(sid, data)
+                    if sid
+                    else (default_chat_title(animal), False, "default")
+                )
+                event.update(
+                    {
+                        "name": animal,
+                        "serverName": SERVER_NAME,
+                        "title": title,
+                        "titleLocked": locked,
+                        "titleSource": source,
+                    }
+                )
+            if not send(event):
+                proc.kill()
+                return
+    finally:
+        watchdog.cancel()
+        try:
+            if proc.stdout:
+                proc.stdout.close()
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=10)
+        except Exception:
+            proc.kill()
+
+    if not saw_done:
+        code = proc.returncode
+        send(
+            {
+                "type": "error",
+                "message": f"turn ended without a result (neura exited {code}); it may have timed out after {NEURA_RUN_TIMEOUT}s",
+            }
+        )
+    schedule_chat_title_refresh(sid or None)
+    schedule_dapp_generation(sid or None, cwd, message)
 
 
 # ------------------------------- dapp workspace ----------------------------
@@ -3925,7 +4042,7 @@ class Handler(SimpleHTTPRequestHandler):
             # Defer slightly so this response reaches the browser before we die.
             threading.Timer(0.35, shutdown_everything).start()
             return
-        if path != "/api/chat":
+        if path not in ("/api/chat", "/api/chat/stream"):
             return self.send_error(404, "Unknown Neura API endpoint")
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -3945,6 +4062,9 @@ class Handler(SimpleHTTPRequestHandler):
                 working_dir = ensure_default_project()["path"]
             except Exception:
                 working_dir = default_workspace_path()
+
+        if path == "/api/chat/stream":
+            return stream_chat_turn(self, session_id, message, working_dir)
 
         result = run_chat_turn(session_id, message, working_dir=working_dir)
         status = 200 if "error" not in result else 502

@@ -1742,6 +1742,14 @@ fn emit_ndjson_event(
                 &serde_json::json!({ "type": "text_replace", "text": text }),
             )
         }
+        ServerEvent::ReasoningDelta { text } => {
+            // Deliberately NOT accumulated into state.text: reasoning is
+            // observable in the stream but never part of the answer.
+            write_json_line(
+                stdout,
+                &serde_json::json!({ "type": "reasoning_delta", "text": text }),
+            )
+        }
         ServerEvent::ToolStart { id, name } => write_json_line(
             stdout,
             &serde_json::json!({ "type": "tool_start", "id": id, "name": name }),

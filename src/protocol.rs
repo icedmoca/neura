@@ -577,6 +577,12 @@ pub enum ServerEvent {
     #[serde(rename = "text_delta")]
     TextDelta { text: String },
 
+    /// Streaming model-reasoning delta. Kept separate from `TextDelta` so
+    /// thinking can be displayed live without ever fusing into the final
+    /// answer text (clients decide how/whether to render it).
+    #[serde(rename = "reasoning_delta")]
+    ReasoningDelta { text: String },
+
     /// Replace the current turn's streamed text content
     /// Used when text-wrapped tool calls are recovered: the garbled text
     /// shown during streaming is replaced with the clean prefix text.

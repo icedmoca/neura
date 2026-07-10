@@ -2169,3 +2169,28 @@ body { position: relative; }
 .cog-sleep { display: flex; flex-direction: column; gap: 4px; }
 .cog-sleep__row { display: flex; gap: 12px; align-items: baseline; border-bottom: 1px dashed var(--border); padding: 3px 0; }
 .cog-sleep__count { min-width: 48px; text-align: right; font-weight: 700; }
+
+/* ===================== live turn activity (streaming) ===================== */
+
+.livetools { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0 8px; }
+.livetools__chip {
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.livetools__chip--running { color: var(--fg); border-color: var(--fg); animation: livetool-pulse 1.2s ease-in-out infinite; }
+.livetools__chip--done { color: var(--muted); }
+.livetools__chip--error { color: var(--fg); border-style: dashed; }
+@keyframes livetool-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+.reasoning { margin: 6px 0 0 8px; border: 1px dashed var(--border); background: var(--surface); }
+.reasoning__summary { cursor: pointer; padding: 4px 8px; color: var(--muted); font-size: 11px; }
+.reasoning__body {
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: pre-wrap;
+  max-height: 140px;
+  overflow-y: auto;
+}

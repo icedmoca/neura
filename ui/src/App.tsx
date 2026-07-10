@@ -216,6 +216,11 @@ function App() {
   const [latentPhase, setLatentPhase] = useState<string | null>(null);
   const [lastThought, setLastThought] = useState<{ text: string; words: string[] } | null>(null);
   const latentTextRef = useRef<string>("");
+  // Live turn activity from /api/chat/stream: tool chips + reasoning stream.
+  const [liveTools, setLiveTools] = useState<{ id: string; name: string; status: "running" | "done" | "error" }[]>([]);
+  const [liveReasoning, setLiveReasoning] = useState("");
+  const liveReasoningRef = useRef("");
+  const currentSendRef = useRef<string | null>(null);
   const subtextConfigRef = useRef<{ endpoint: string; enabled: boolean; model?: string } | null>(null);
   const subtextAbortRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -1021,6 +1026,57 @@ function App() {
     })();
   }, []);
 
+  const finalizeTurn = useCallback((
+    json: ChatTurnResult,
+    sessionId: string | null,
+    projectPath: string | null,
+    originalText: string,
+  ) => {
+    if (json.session_id) setActiveId(json.session_id);
+    if (json.title) setActiveTitle(json.title);
+    const reply = json.text ?? "";
+    setMessages((m) => {
+      const last = m[m.length - 1];
+      if (last?.role === "assistant") {
+        if (last.text === reply) return m;
+        return [...m.slice(0, -1), { role: "assistant", text: reply }];
+      }
+      return [...m, { role: "assistant", text: reply }];
+    });
+    void loadProjects();
+    void loadChats(activeProjectPathRef.current);
+    if (projectPath && reply.trim()) {
+      setDappGenerating(true);
+    }
+    if (projectPath && json.session_id && !sessionId) {
+      prefetchDapp(projectPath, json.session_id, originalText);
+    }
+  }, [loadChats, loadProjects, prefetchDapp]);
+
+  /** Legacy non-streaming turn (fallback when /api/chat/stream is unavailable). */
+  const sendViaJson = useCallback(async (
+    text: string,
+    sessionId: string | null,
+    projectPath: string | null,
+  ): Promise<string | null> => {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        message: text,
+        working_dir: sessionId ? undefined : projectPath ?? undefined,
+      }),
+    });
+    const json = (await res.json()) as ChatTurnResult;
+    if (json.error) {
+      setError(json.error);
+      return sessionId;
+    }
+    finalizeTurn(json, sessionId, projectPath, text);
+    return json.session_id ?? sessionId;
+  }, [finalizeTurn]);
+
   const sendMessage = useCallback(async (
     text: string,
     sessionId: string | null,
@@ -1034,11 +1090,38 @@ function App() {
     setSending(true);
     setError(null);
     setDappLibraryHit(null);
+    setLiveTools([]);
+    liveReasoningRef.current = "";
+    setLiveReasoning("");
+    currentSendRef.current = text;
     if (projectPath && sessionId) {
       prefetchDapp(projectPath, sessionId, text);
     }
+
+    let streamedText = "";
+    const updateLiveAssistant = (value: string) => {
+      setMessages((m) => {
+        const last = m[m.length - 1];
+        if (last?.role === "assistant") {
+          return [...m.slice(0, -1), { role: "assistant", text: value }];
+        }
+        return [...m, { role: "assistant", text: value }];
+      });
+    };
+    const upsertTool = (id: string, name: string, status: "running" | "done" | "error") => {
+      setLiveTools((tools) => {
+        const idx = tools.findIndex((t) => t.id === id);
+        if (idx >= 0) {
+          const next = tools.slice();
+          next[idx] = { id, name, status };
+          return next;
+        }
+        return [...tools, { id, name, status }].slice(-10);
+      });
+    };
+
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1047,39 +1130,106 @@ function App() {
           working_dir: sessionId ? undefined : projectPath ?? undefined,
         }),
       });
-      const json = (await res.json()) as ChatTurnResult;
-      if (json.error) {
-        setError(json.error);
-      } else {
-        if (json.session_id) setActiveId(json.session_id);
-        if (json.title) setActiveTitle(json.title);
-        const reply = json.text ?? "";
-        setMessages((m) => {
-          const last = m[m.length - 1];
-          if (last?.role === "assistant") {
-            if (last.text === reply) return m;
-            return [...m.slice(0, -1), { role: "assistant", text: reply }];
+      if (!res.ok || !res.body) {
+        // Older server without the stream endpoint — fall back.
+        return await sendViaJson(text, sessionId, projectPath);
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let resultSid: string | null = sessionId;
+      let sawDone = false;
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) >= 0) {
+          const rawEvent = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          const dataLine = rawEvent.split("\n").find((l) => l.startsWith("data:"));
+          if (!dataLine) continue;
+          let event: Record<string, unknown>;
+          try {
+            event = JSON.parse(dataLine.slice(5).trim());
+          } catch {
+            continue;
           }
-          return [...m, { role: "assistant", text: reply }];
-        });
-        void loadProjects();
-        void loadChats(activeProjectPathRef.current);
-        if (projectPath && reply.trim()) {
-          setDappGenerating(true);
-        }
-        if (projectPath && json.session_id && !sessionId) {
-          prefetchDapp(projectPath, json.session_id, text);
+          const kind = event.type as string | undefined;
+          switch (kind) {
+            case "start":
+            case "session":
+              if (typeof event.session_id === "string") resultSid = event.session_id;
+              break;
+            case "text_delta":
+              streamedText += String(event.text ?? "");
+              updateLiveAssistant(streamedText);
+              break;
+            case "text_replace":
+              streamedText = String(event.text ?? "");
+              updateLiveAssistant(streamedText);
+              break;
+            case "reasoning_delta": {
+              liveReasoningRef.current += String(event.text ?? "");
+              const tail = liveReasoningRef.current;
+              setLiveReasoning(tail.length > 900 ? `…${tail.slice(-900)}` : tail);
+              break;
+            }
+            case "tool_start":
+            case "tool_exec":
+              upsertTool(String(event.id ?? event.name ?? "tool"), String(event.name ?? "tool"), "running");
+              break;
+            case "tool_done":
+              upsertTool(
+                String(event.id ?? event.name ?? "tool"),
+                String(event.name ?? "tool"),
+                event.error ? "error" : "done",
+              );
+              break;
+            case "memory_injected":
+              upsertTool("memory", `memory ×${String(event.count ?? "?")}`, "done");
+              break;
+            case "subtext_latent": {
+              // Real observer frames (J-space / logit-lens / OSS / stage).
+              const phase = typeof event.phase === "string" ? event.phase : null;
+              if (phase) setLatentPhase(phase);
+              const latent = Array.isArray(event.latent) ? (event.latent as string[]) : [];
+              if (latent.length > 0) setLatentWords(latent.slice(-12));
+              if (typeof event.text === "string" && event.text.trim()) {
+                latentTextRef.current = event.text;
+              }
+              break;
+            }
+            case "done": {
+              sawDone = true;
+              const json = event as unknown as ChatTurnResult;
+              finalizeTurn(json, sessionId, projectPath, text);
+              resultSid = json.session_id ?? resultSid;
+              break;
+            }
+            case "error":
+              setError(String(event.message ?? "turn failed"));
+              break;
+            default:
+              break;
+          }
         }
       }
-      return json.session_id ?? sessionId;
+      if (!sawDone && streamedText) {
+        // Connection ended early: keep what streamed rather than losing it.
+        updateLiveAssistant(streamedText);
+      }
+      return resultSid;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       return sessionId;
     } finally {
       setSending(false);
       stopSubtextObserver();
+      setLiveTools([]);
+      currentSendRef.current = null;
     }
-  }, [loadChats, loadProjects, prefetchDapp, startSubtextObserver, stopSubtextObserver]);
+  }, [finalizeTurn, prefetchDapp, sendViaJson, startSubtextObserver, stopSubtextObserver]);
 
   const pumpSendQueue = useCallback(async () => {
     if (pumpQueueRef.current) return;
@@ -1120,6 +1270,12 @@ function App() {
     }
 
     if (sending) {
+      // Re-pressing send with the same text while a turn runs used to queue
+      // duplicate turns (each re-asking the model). Ignore exact duplicates
+      // of the in-flight or already-queued message.
+      if (text === currentSendRef.current || pendingSendRef.current.includes(text)) {
+        return;
+      }
       pendingSendRef.current.push(text);
       setQueuedCount(pendingSendRef.current.length);
       setMessages((m) => [...m, { role: "user", text }]);
@@ -1356,6 +1512,22 @@ function App() {
               <span className="msg__who">{activeTitle}</span>
               <div className="msg__body msg__body--thinking">thinking…</div>
             </div>
+          )}
+          {sending && liveTools.length > 0 && (
+            <div className="livetools" title="Tools running in this turn">
+              {liveTools.map((t) => (
+                <span key={t.id} className={`livetools__chip livetools__chip--${t.status}`}>
+                  {t.status === "running" ? "▸ " : t.status === "error" ? "✕ " : "✓ "}
+                  {t.name}
+                </span>
+              ))}
+            </div>
+          )}
+          {sending && liveReasoning && (
+            <details className="reasoning" open>
+              <summary className="reasoning__summary">💭 model reasoning (live — not part of the answer)</summary>
+              <div className="reasoning__body">{liveReasoning}</div>
+            </details>
           )}
           {sending && (latentWords.length > 0 || latentPhase) && (
             <div className="subtext" title="Live latent thoughts from the local Subtext observer">

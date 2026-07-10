@@ -276,6 +276,23 @@ install_binary() {
   finish_status 'binary' "$(bar 100) installed version $version"
 }
 
+install_subtext() {
+  # Vendored Subtext (Jacobian-lens thought streaming) -- copied into the
+  # runtime home so the observer autostarts it. Python env / model weights
+  # are created lazily on first use; Neura degrades gracefully without them.
+  printf '\n%b%s%b\n' "$C_BOLD" 'Subtext (latent thought streaming)' "$C_RESET"
+  local subtext_dir="$NEURA_HOME/vendor/subtext"
+  if [ -d "$SRC_DIR/vendor/subtext" ]; then
+    run_logged subtext 'installing vendored Subtext' bash -c \
+      'rm -rf "$0.tmp" && mkdir -p "$0.tmp" && cp -R "$1/vendor/subtext/." "$0.tmp/" && rm -rf "$0" && mv "$0.tmp" "$0"' \
+      "$subtext_dir" "$SRC_DIR"
+    finish_status 'subtext' "$(bar 100) installed to $subtext_dir"
+  else
+    check_line subtext skip 'not included in this checkout'
+    finish_status 'subtext' "$(bar 100) skipped"
+  fi
+}
+
 install_chromium_bridge() {
   printf '\n%b%s%b\n' "$C_BOLD" 'Browser integration' "$C_RESET"
   if [ "$SKIP_CHROMIUM_MCP" = "1" ]; then
@@ -340,6 +357,7 @@ main() {
   download_model
   build_neura
   install_binary
+  install_subtext
   install_chromium_bridge
   write_launchers
   printf '\n%b%s%b\n' "$C_GREEN" 'Neura installed successfully.' "$C_RESET"

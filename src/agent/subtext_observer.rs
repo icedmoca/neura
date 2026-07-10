@@ -223,6 +223,38 @@ fn maybe_spawn_logitlens_observer(
     });
 }
 
+/// Last-resort deterministic narrator: when no Subtext service, logit-lens,
+/// or local model is reachable, narrate the actual pipeline stages so the
+/// thought stream is never empty. Labels are honest (`[stage]`) — these are
+/// pipeline facts, not model internals.
+async fn run_stage_narration(
+    event_sender: &mpsc::UnboundedSender<ServerEvent>,
+    preview: &str,
+) {
+    let stages: [(&str, String); 4] = [
+        (
+            "stage:reading",
+            format!("[stage] reading the request: “{preview}”"),
+        ),
+        (
+            "stage:recall",
+            "[stage] recalling memory + project knowledge for context".to_string(),
+        ),
+        (
+            "stage:reasoning",
+            "[stage] provider is reasoning over the assembled context".to_string(),
+        ),
+        (
+            "stage:responding",
+            "[stage] streaming the response and executing any tools".to_string(),
+        ),
+    ];
+    for (phase, text) in stages {
+        send_subtext_latent(event_sender, phase.to_string(), None, Vec::new(), text);
+        tokio::time::sleep(Duration::from_millis(650)).await;
+    }
+}
+
 fn spawn_local_model_observer(
     session_id: String,
     messages: &[Message],
@@ -232,19 +264,18 @@ fn spawn_local_model_observer(
     if request_messages.is_empty() {
         return;
     }
+    let preview: String = request_messages
+        .last()
+        .map(|m| m.content.chars().take(72).collect())
+        .unwrap_or_default();
     // Prefer the same local sidecar the memory system uses (e.g. Ollama on
     // :11434), so the fallback observer targets a model that is actually
     // running rather than the LM Studio default port.
     let sidecar = crate::sidecar::SidecarConfig::from_env();
     tokio::spawn(async move {
         if !sidecar.enabled {
-            send_subtext_latent(
-                &event_sender,
-                "oss:unavailable".to_string(),
-                None,
-                Vec::new(),
-                "[oss] local model observer disabled (NEURA_SIDECAR_ENABLED)".to_string(),
-            );
+            // Never go silent: degrade to deterministic stage narration.
+            run_stage_narration(&event_sender, &preview).await;
             return;
         }
         let model = sidecar.model.clone();
@@ -298,6 +329,8 @@ fn spawn_local_model_observer(
                     Vec::new(),
                     format!("[oss] Neura OSS model observer unavailable: {error}"),
                 );
+                // Never go silent: degrade to deterministic stage narration.
+                run_stage_narration(&event_sender, &preview).await;
                 return;
             }
         };
@@ -519,6 +552,16 @@ fn find_subtext_root() -> Option<PathBuf> {
     let home = std::env::var_os("HOME").map(PathBuf::from);
     let cwd = std::env::current_dir().ok();
     let mut candidates = Vec::new();
+    // Vendored copy — Subtext ships with Neura (vendor/subtext), installed to
+    // $NEURA_HOME/vendor/subtext by install.sh. Checked first so the bundled
+    // integration wins unless SUBTEXT_PATH points elsewhere.
+    let neura_home = std::env::var_os("NEURA_HOME")
+        .map(PathBuf::from)
+        .or_else(|| home.clone().map(|h| h.join(".neura")));
+    if let Some(neura_home) = &neura_home {
+        candidates.push(neura_home.join("vendor/subtext"));
+        candidates.push(neura_home.join("build-src/neura/vendor/subtext"));
+    }
     if let Some(home) = home {
         candidates.push(home.join("Subtext"));
         candidates.push(home.join("subtext"));

@@ -322,12 +322,12 @@ impl Agent {
                 match event {
                     StreamEvent::ThinkingStart | StreamEvent::ThinkingEnd => {}
                     StreamEvent::ThinkingDelta(thinking_text) => {
-                        // Only send thinking content if enabled in config
-                        if crate::config::config().display.show_thinking {
-                            let _ = event_tx.send(ServerEvent::TextDelta {
-                                text: format!("💭 {}\n", thinking_text),
-                            });
-                        }
+                        // Reasoning streams as its own event kind so clients
+                        // can show it live without it ever fusing into the
+                        // final answer text.
+                        let _ = event_tx.send(ServerEvent::ReasoningDelta {
+                            text: thinking_text.clone(),
+                        });
                         if store_reasoning_content {
                             reasoning_content.push_str(&thinking_text);
                         }
