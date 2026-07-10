@@ -2246,3 +2246,13 @@ body { position: relative; }
 .thought__entry { display: flex; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--border); align-items: baseline; }
 .thought__entry:last-child { border-bottom: none; }
 .thought__time { color: var(--muted); font-size: 11px; min-width: 52px; }
+
+/* stop button sits left of the (disabled) send button instead of under it */
+.send-btn--stop {
+  right: 48px;
+  margin-right: 0;
+  background: transparent;
+  color: var(--fg);
+  z-index: 3;
+}
+.send-btn--stop:hover { background: var(--fg); color: var(--bg); }
