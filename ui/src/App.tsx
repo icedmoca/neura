@@ -145,6 +145,12 @@ const CognitionIcon = () => (
   </svg>
 );
 
+const StopIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <rect x="6" y="6" width="12" height="12" />
+  </svg>
+);
+
 const PowerIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 2v10" /><path d="M18.4 6.6a9 9 0 1 1-12.8 0" />
@@ -221,6 +227,11 @@ function App() {
   const [liveReasoning, setLiveReasoning] = useState("");
   const liveReasoningRef = useRef("");
   const currentSendRef = useRef<string | null>(null);
+  // Latest readable narration sentence from subtext frames (word chips are
+  // only shown when a frame carries true latent words and no sentence).
+  const [latentLine, setLatentLine] = useState("");
+  const [turnNote, setTurnNote] = useState<string | null>(null);
+  const sendingSessionRef = useRef<string | null>(null);
   const subtextConfigRef = useRef<{ endpoint: string; enabled: boolean; model?: string } | null>(null);
   const subtextAbortRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -1002,6 +1013,7 @@ function App() {
             if (frame.type === "frame") {
               if (typeof frame.text === "string" && frame.text.trim()) {
                 latentTextRef.current = frame.text;
+                setLatentLine(frame.text.trim());
               }
               if (Array.isArray(frame.words) && frame.words.length) {
                 setLatentWords(frame.words.slice(-12));
@@ -1093,7 +1105,10 @@ function App() {
     setLiveTools([]);
     liveReasoningRef.current = "";
     setLiveReasoning("");
+    setLatentLine("");
+    setTurnNote(null);
     currentSendRef.current = text;
+    sendingSessionRef.current = sessionId;
     if (projectPath && sessionId) {
       prefetchDapp(projectPath, sessionId, text);
     }
@@ -1159,7 +1174,25 @@ function App() {
           switch (kind) {
             case "start":
             case "session":
-              if (typeof event.session_id === "string") resultSid = event.session_id;
+              if (typeof event.session_id === "string") {
+                resultSid = event.session_id;
+                sendingSessionRef.current = event.session_id;
+              }
+              break;
+            case "busy":
+              // A turn is already running for this session: keep the message
+              // in the queue rather than double-running it.
+              setTurnNote("previous turn still running — message queued");
+              if (!pendingSendRef.current.includes(text)) {
+                pendingSendRef.current.unshift(text);
+                setQueuedCount(pendingSendRef.current.length);
+              }
+              break;
+            case "queued":
+              setTurnNote(String(event.note ?? "queued behind other turns…"));
+              break;
+            case "status_detail":
+              setTurnNote(String(event.detail ?? ""));
               break;
             case "text_delta":
               streamedText += String(event.text ?? "");
@@ -1197,6 +1230,7 @@ function App() {
               if (latent.length > 0) setLatentWords(latent.slice(-12));
               if (typeof event.text === "string" && event.text.trim()) {
                 latentTextRef.current = event.text;
+                setLatentLine(event.text.trim());
               }
               break;
             }
@@ -1290,6 +1324,21 @@ function App() {
     if (sending || pendingSendRef.current.length === 0) return;
     void pumpSendQueue();
   }, [sending, pumpSendQueue]);
+
+  const cancelTurn = useCallback(async () => {
+    const sid = sendingSessionRef.current ?? activeIdRef.current;
+    if (!sid) return;
+    setTurnNote("stopping…");
+    try {
+      await fetch("/api/chat/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sid }),
+      });
+    } catch {
+      /* best-effort; the stream also cancels when the reader closes */
+    }
+  }, []);
 
   const onKey = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     markTyping();
@@ -1510,7 +1559,7 @@ function App() {
           {sending && !streamingAssistant && (
             <div className="msg msg--assistant">
               <span className="msg__who">{activeTitle}</span>
-              <div className="msg__body msg__body--thinking">thinking…</div>
+              <div className="msg__body msg__body--thinking">{turnNote || "thinking…"}</div>
             </div>
           )}
           {sending && liveTools.length > 0 && (
@@ -1529,20 +1578,32 @@ function App() {
               <div className="reasoning__body">{liveReasoning}</div>
             </details>
           )}
-          {sending && (latentWords.length > 0 || latentPhase) && (
+          {sending && (latentLine || latentWords.length > 0 || latentPhase) && (
             <div className="subtext" title="Live latent thoughts from the local Subtext observer">
               <span className="subtext__label">
-                💭 {latentPhase ? latentPhase : "latent"}
+                💭 {latentPhase ? latentPhase.replace(/^(stage|oss|companion|subtext):/, "") : "latent"}
               </span>
-              <span className="subtext__words">
-                {latentWords.length > 0
-                  ? latentWords.map((w, i) => (
-                      <span key={`${w}-${i}`} className="subtext__word">
-                        {w}
-                      </span>
-                    ))
-                  : <span className="subtext__word subtext__word--muted">listening…</span>}
-              </span>
+              {latentLine ? (
+                // A readable narration sentence beats a strip of word salad.
+                <span className="subtext__line">{latentLine}</span>
+              ) : (
+                <span className="subtext__words">
+                  {latentWords.length > 0
+                    ? latentWords.map((w, i) => (
+                        <span key={`${w}-${i}`} className="subtext__word">
+                          {w}
+                        </span>
+                      ))
+                    : <span className="subtext__word subtext__word--muted">listening…</span>}
+                </span>
+              )}
+              {latentLine && latentWords.length > 0 && (
+                <span className="subtext__words subtext__words--secondary">
+                  {latentWords.slice(-6).map((w, i) => (
+                    <span key={`${w}-${i}`} className="subtext__word">{w}</span>
+                  ))}
+                </span>
+              )}
             </div>
           )}
           {!sending && lastThought && (
@@ -1606,6 +1667,16 @@ function App() {
                 onKeyDown={onKey}
                 rows={1}
               />
+              {sending && (
+                <button
+                  type="button"
+                  className="send-btn send-btn--stop"
+                  onClick={() => void cancelTurn()}
+                  title="Stop generating"
+                >
+                  <StopIcon />
+                </button>
+              )}
               <button
                 type="button"
                 className="send-btn"

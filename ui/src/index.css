@@ -2194,3 +2194,9 @@ body { position: relative; }
   max-height: 140px;
   overflow-y: auto;
 }
+
+/* subtext narration line (readable sentence over word-salad chips) */
+.subtext__line { color: var(--fg); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60ch; }
+.subtext__words--secondary { opacity: 0.55; }
+.send-btn--stop { margin-right: 4px; }
+.cog-tl__count { color: var(--muted); font-size: 10px; }

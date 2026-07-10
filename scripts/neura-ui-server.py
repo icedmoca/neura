@@ -3097,13 +3097,147 @@ def run_chat_turn(session_id: str | None, message: str, working_dir: str | None 
     return result
 
 
+# --------------------- shared-server web transport -------------------------
+#
+# The web chat drives Neura's long-running shared server over its existing
+# Unix-socket protocol (the same Agent sessions, streaming events, interrupt
+# handling, memory, tools, and Subtext frames the TUI uses). No second chat
+# runtime: this file only translates protocol events to the SSE contract the
+# frontend already speaks. The old per-turn `neura run --ndjson` subprocess
+# remains solely as a fallback when the shared server cannot be reached.
+
+NEURA_SERVE_BOOT_TIMEOUT = float(os.environ.get("NEURA_SERVE_BOOT_TIMEOUT", "25"))
+WEB_TURN_CONCURRENCY = max(1, int(os.environ.get("NEURA_WEB_TURN_CONCURRENCY", "3")))
+_TURN_SLOTS = threading.BoundedSemaphore(WEB_TURN_CONCURRENCY)
+# session_id -> live turn connection (for /api/chat/cancel)
+_ACTIVE_TURNS: dict[str, "SharedTurnConn"] = {}
+_ACTIVE_TURNS_LOCK = threading.Lock()
+_SERVE_BOOT_LOCK = threading.Lock()
+
+# Protocol events relayed to the browser verbatim (same names the frontend
+# already consumes from the ndjson path). Everything else — history dumps,
+# swarm/comm chatter, acks — is intentionally not forwarded.
+_RELAY_EVENT_KINDS = {
+    "text_delta",
+    "reasoning_delta",
+    "text_replace",
+    "tool_start",
+    "tool_input",
+    "tool_exec",
+    "tool_done",
+    "subtext_latent",
+    "memory_injected",
+    "tokens",
+    "status_detail",
+    "connection_type",
+    "connection_phase",
+    "compaction",
+    "message_end",
+    "interrupted",
+}
+
+
+def neura_socket_path() -> Path:
+    custom = os.environ.get("NEURA_SOCKET", "").strip()
+    if custom:
+        return Path(custom)
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir()
+    return Path(runtime) / "neura.sock"
+
+
+class SharedTurnConn:
+    """One turn's connection to the shared server: line-delimited JSON with a
+    write lock so /api/chat/cancel can inject a cancel from another thread."""
+
+    def __init__(self, sock: socket.socket):
+        self.sock = sock
+        self.reader = sock.makefile("r", encoding="utf-8", errors="replace")
+        self._write_lock = threading.Lock()
+        self._next_id = 100
+
+    def request(self, obj: dict) -> None:
+        with self._write_lock:
+            self.sock.sendall((json.dumps(obj) + "\n").encode("utf-8"))
+
+    def cancel(self) -> None:
+        self._next_id += 1
+        self.request({"type": "cancel", "id": self._next_id})
+
+    def close(self) -> None:
+        try:
+            self.reader.close()
+        except Exception:
+            pass
+        try:
+            self.sock.close()
+        except Exception:
+            pass
+
+
+def connect_shared_server(allow_bootstrap: bool = True) -> SharedTurnConn | None:
+    """Connect to the shared server socket, starting `neura serve` once if
+    needed. Returns None when the server is unreachable (caller falls back)."""
+    path = neura_socket_path()
+
+    def attempt() -> SharedTurnConn | None:
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(30)
+            sock.connect(str(path))
+            return SharedTurnConn(sock)
+        except OSError:
+            return None
+
+    conn = attempt()
+    if conn or not allow_bootstrap:
+        return conn
+
+    bin_path = neura_bin()
+    if not Path(bin_path).is_file():
+        return None
+    with _SERVE_BOOT_LOCK:
+        conn = attempt()
+        if conn:
+            return conn
+        try:
+            subprocess.Popen(
+                [bin_path, "serve", "--no-update"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except Exception:
+            return None
+        deadline = time.monotonic() + NEURA_SERVE_BOOT_TIMEOUT
+        while time.monotonic() < deadline:
+            conn = attempt()
+            if conn:
+                return conn
+            time.sleep(0.3)
+    return None
+
+
+def cancel_active_turn(session_id: str) -> bool:
+    with _ACTIVE_TURNS_LOCK:
+        conn = _ACTIVE_TURNS.get(session_id)
+    if not conn:
+        return False
+    try:
+        conn.cancel()
+        return True
+    except Exception:
+        return False
+
+
 def stream_chat_turn(handler, session_id: str | None, message: str, working_dir: str | None) -> None:
-    """Drive one agent turn via `neura run --ndjson`, relaying every runtime
-    event to the browser as SSE the moment it happens: text deltas, reasoning
-    deltas (💭 J-space thinking, kept separate from the answer), subtext
-    latent frames, tool start/exec/done, memory injection, token usage. The
-    final `done` event is augmented with the normalized fields /api/chat
-    returns so the UI can finalize the bubble identically."""
+    """Drive one agent turn and relay every runtime event to the browser as
+    SSE the moment it happens: text deltas, reasoning deltas (💭 kept separate
+    from the answer), subtext latent frames, tool start/exec/done, memory
+    injection, token usage. Primary transport is the long-running shared
+    server (warm sessions, no process cold start); the `neura run --ndjson`
+    subprocess is used only when the server is unavailable. The final `done`
+    event carries the same normalized fields /api/chat returns."""
     cwd = chat_turn_cwd(session_id, working_dir)
     agent_message = message
     try:
@@ -3128,6 +3262,201 @@ def stream_chat_turn(handler, session_id: str | None, message: str, working_dir:
     handler.send_header("Connection", "keep-alive")
     handler.end_headers()
 
+    # One in-flight turn per session; the frontend keeps its own queue.
+    if session_id:
+        with _ACTIVE_TURNS_LOCK:
+            if session_id in _ACTIVE_TURNS:
+                send({"type": "busy", "session_id": session_id})
+                return
+
+    # Global backpressure: bounded concurrent web turns.
+    got_slot = _TURN_SLOTS.acquire(blocking=False)
+    if not got_slot:
+        send({"type": "queued", "note": f"waiting for a turn slot (max {WEB_TURN_CONCURRENCY} concurrent)"})
+        _TURN_SLOTS.acquire()
+    try:
+        started = time.monotonic()
+        conn = connect_shared_server()
+        if conn is not None:
+            _stream_turn_shared_server(
+                handler, send, conn, session_id, message, agent_message, cwd, started
+            )
+        else:
+            send({"type": "status_detail", "detail": "shared server unavailable — subprocess fallback"})
+            _stream_turn_subprocess(handler, send, session_id, message, agent_message, cwd)
+    finally:
+        _TURN_SLOTS.release()
+
+
+def _finalize_done_payload(sid: str, text: str, extra: dict | None = None) -> dict:
+    animal = session_animal(sid) if sid else ""
+    data = read_session_snapshot(sid) if sid else None
+    title, locked, source = (
+        resolve_chat_title(sid, data) if sid else (default_chat_title(animal), False, "default")
+    )
+    payload = {
+        "type": "done",
+        "session_id": sid,
+        "text": de.sanitize_chat_display_text(text),
+        "name": animal,
+        "serverName": SERVER_NAME,
+        "title": title,
+        "titleLocked": locked,
+        "titleSource": source,
+    }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def _stream_turn_shared_server(
+    handler,
+    send,
+    conn: SharedTurnConn,
+    session_id: str | None,
+    message: str,
+    agent_message: str,
+    cwd: str,
+    started: float,
+) -> None:
+    sid = session_id or ""
+    registered_sid: str | None = None
+    text = ""
+    usage = None
+    interrupted = False
+    first_event_ms: int | None = None
+    deadline = time.monotonic() + NEURA_RUN_TIMEOUT
+    instance = f"webui-{os.getpid()}"
+    try:
+        if session_id:
+            conn.request(
+                {
+                    "type": "resume_session",
+                    "id": 1,
+                    "session_id": session_id,
+                    "client_instance_id": instance,
+                    "client_has_local_history": True,
+                    "allow_session_takeover": False,
+                }
+            )
+        else:
+            conn.request(
+                {
+                    "type": "subscribe",
+                    "id": 1,
+                    "working_dir": cwd,
+                    "client_instance_id": instance,
+                    "client_has_local_history": True,
+                }
+            )
+        # The subscribe/resume path doesn't emit a session event; ask for
+        # state (which carries session_id) before the turn starts.
+        conn.request({"type": "state", "id": 3})
+        conn.request({"type": "message", "id": 2, "content": agent_message})
+
+        while True:
+            if time.monotonic() > deadline:
+                send({"type": "error", "message": f"turn timed out after {NEURA_RUN_TIMEOUT}s"})
+                try:
+                    conn.cancel()
+                except Exception:
+                    pass
+                return
+            try:
+                line = conn.reader.readline()
+            except (TimeoutError, socket.timeout):
+                # Keepalive: detect a gone browser so we can cancel server work.
+                if not send({"type": "ping"}):
+                    try:
+                        conn.cancel()
+                    except Exception:
+                        pass
+                    return
+                continue
+            if not line:
+                send({"type": "error", "message": "shared server closed the connection"})
+                return
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            kind = event.get("type")
+            if first_event_ms is None:
+                first_event_ms = int((time.monotonic() - started) * 1000)
+
+            if kind in ("session", "state"):
+                new_sid = str(event.get("session_id") or "")
+                if new_sid:
+                    sid = new_sid
+                    with _ACTIVE_TURNS_LOCK:
+                        if registered_sid and registered_sid in _ACTIVE_TURNS:
+                            del _ACTIVE_TURNS[registered_sid]
+                        _ACTIVE_TURNS[sid] = conn
+                        registered_sid = sid
+                    if not send({"type": "session", "session_id": sid}):
+                        conn.cancel()
+                        return
+                continue
+            if kind == "text_delta":
+                text += str(event.get("text") or "")
+            elif kind == "text_replace":
+                text = str(event.get("text") or "")
+            elif kind == "tokens":
+                usage = event
+            elif kind == "interrupted":
+                interrupted = True
+            elif kind == "error":
+                send({"type": "error", "message": str(event.get("message") or "turn failed")})
+                return
+            elif kind == "done":
+                if event.get("id") == 2 or interrupted:
+                    stats = {
+                        "usage": usage,
+                        "transport": "shared-server",
+                        "first_event_ms": first_event_ms,
+                        "total_ms": int((time.monotonic() - started) * 1000),
+                        "interrupted": interrupted,
+                    }
+                    send(_finalize_done_payload(sid, text, stats))
+                    return
+                continue
+
+            if kind in _RELAY_EVENT_KINDS and not send(event):
+                # Browser went away mid-turn: stop the server-side work.
+                try:
+                    conn.cancel()
+                except Exception:
+                    pass
+                return
+            if kind == "interrupted":
+                # Cancelled turns still finalize with whatever streamed.
+                send(
+                    _finalize_done_payload(
+                        sid,
+                        text,
+                        {
+                            "interrupted": True,
+                            "transport": "shared-server",
+                            "total_ms": int((time.monotonic() - started) * 1000),
+                        },
+                    )
+                )
+                return
+    finally:
+        with _ACTIVE_TURNS_LOCK:
+            if registered_sid and _ACTIVE_TURNS.get(registered_sid) is conn:
+                del _ACTIVE_TURNS[registered_sid]
+        conn.close()
+        schedule_chat_title_refresh(sid or None)
+        schedule_dapp_generation(sid or None, cwd, message)
+
+
+def _stream_turn_subprocess(handler, send, session_id: str | None, message: str, agent_message: str, cwd: str) -> None:
     bin_path = neura_bin()
     if not Path(bin_path).is_file():
         send({"type": "error", "message": f"neura binary not found at {bin_path}"})
@@ -4042,6 +4371,17 @@ class Handler(SimpleHTTPRequestHandler):
             # Defer slightly so this response reaches the browser before we die.
             threading.Timer(0.35, shutdown_everything).start()
             return
+        if path == "/api/chat/cancel":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except Exception as exc:
+                return self._send_json({"error": f"bad request: {exc}"}, status=400)
+            sid = (body.get("session_id") or "").strip()
+            if not sid:
+                return self._send_json({"error": "session_id is required"}, status=400)
+            ok = cancel_active_turn(sid)
+            return self._send_json({"ok": ok, "cancelled": ok})
         if path not in ("/api/chat", "/api/chat/stream"):
             return self.send_error(404, "Unknown Neura API endpoint")
         try:

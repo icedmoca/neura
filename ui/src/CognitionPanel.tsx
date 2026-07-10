@@ -143,7 +143,50 @@ function stageFor(kind: string): string {
   if (k.includes("reflection")) return "reflection";
   if (k.includes("insight")) return "observation";
   if (k.includes("abstracted") || k.includes("sleep")) return "sleep";
+  if (k.includes("selfimprovement") || k.includes("rankedtask") || k.includes("patchgate")) return "improvement";
+  if (k.includes("adversarialeval") || k.includes("operationaleval")) return "evaluation";
   return "memory";
+}
+
+/** Turn raw event details into a sentence a person can read at a glance. */
+function humanizeDetail(title: string, detail: unknown): string {
+  if (detail == null) return "";
+  if (typeof detail === "string") return detail.slice(0, 160);
+  if (typeof detail !== "object") return String(detail);
+  const d = detail as Record<string, unknown>;
+  const n = (key: string): number => Number(d[key] ?? 0);
+  const t = title.toLowerCase();
+  if (t.includes("ingest")) {
+    const parts: string[] = [];
+    if (n("concepts_created")) parts.push(`+${n("concepts_created")} concepts`);
+    if (n("concepts_updated")) parts.push(`${n("concepts_updated")} updated`);
+    if (n("concepts_retired")) parts.push(`${n("concepts_retired")} retired`);
+    if (n("edges_added")) parts.push(`+${n("edges_added")} edges`);
+    if (parts.length === 0) parts.push("no changes");
+    return `${parts.join(", ")} · ${n("items_changed")} item(s) in ${n("duration_ms")}ms`;
+  }
+  if (t.includes("reflection")) {
+    return `${n("confirmed")}/${n("predicted_concepts")} predicted concepts confirmed (${Math.round(n("precision") * 100)}% precision)`;
+  }
+  if (t.includes("prediction")) {
+    const concepts = Array.isArray(d.predicted_concepts) ? d.predicted_concepts.length : 0;
+    const preview = typeof d.query_preview === "string" ? ` for “${d.query_preview.slice(0, 48)}”` : "";
+    return `expects ${concepts} concept(s) to be touched${preview}`;
+  }
+  if (t.includes("plan")) {
+    const topic = typeof d.topic === "string" ? `“${d.topic}” — ` : "";
+    return `${topic}${n("stages")} stage(s), complexity ${n("complexity").toFixed(1)}, uncertainty ${n("uncertainty").toFixed(2)}`;
+  }
+  if (t.includes("decision")) {
+    return typeof d.decision === "string" ? `“${d.decision}”` : "";
+  }
+  if (t.includes("turn_brief")) return `architectural context injected (${n("chars")} chars)`;
+  if (t.includes("goal_sync")) return `${n("goals")} goal(s), ${n("links")} architectural link(s)`;
+  if (t.includes("verification")) return `${d.passed ? "passed" : "failed"} (${n("checks")} checks)`;
+  if (t.includes("insights")) return `${n("count")} observation(s) recorded`;
+  if (t.includes("tool_evidence")) return `${n("applied")} tool outcome(s) folded into concepts`;
+  const s = JSON.stringify(d);
+  return s.length > 140 ? `${s.slice(0, 140)}…` : s;
 }
 
 function pct(v: number | null | undefined): string {
@@ -336,14 +379,16 @@ export function CognitionPanel({
   }, [data?.nodes, search]);
 
   const timeline = useMemo(() => {
-    const items: { at: number; stage: string; title: string; detail: string }[] = [];
+    const items: { at: number; stage: string; title: string; detail: string; count: number }[] = [];
     for (const e of data?.events ?? []) {
       const at = e.timestamp ? new Date(e.timestamp).getTime() : 0;
+      const title = (e.event ?? "").replace("knowledge_", "");
       items.push({
         at,
         stage: stageFor(e.event ?? ""),
-        title: (e.event ?? "").replace("knowledge_", ""),
-        detail: e.detail ? JSON.stringify(e.detail).slice(0, 140) : "",
+        title,
+        detail: humanizeDetail(title, e.detail),
+        count: 1,
       });
     }
     for (const b of data?.ledger ?? []) {
@@ -352,9 +397,24 @@ export function CognitionPanel({
         stage: stageFor(b.kind ?? ""),
         title: `${b.kind} #${b.index}`,
         detail: b.summary ?? "",
+        count: 1,
       });
     }
-    return items.sort((a, b) => b.at - a.at).slice(0, 60);
+    items.sort((a, b) => b.at - a.at);
+    // Collapse runs of near-identical entries (maintenance passes repeat the
+    // same ingest/eval lines many times) into one row with a ×N badge.
+    const collapsed: typeof items = [];
+    for (const item of items) {
+      const prev = collapsed[collapsed.length - 1];
+      const prevTitle = prev?.title.replace(/ #\d+$/, "");
+      const itemTitle = item.title.replace(/ #\d+$/, "");
+      if (prev && prev.stage === item.stage && prevTitle === itemTitle && prev.detail === item.detail) {
+        prev.count += 1;
+        continue;
+      }
+      collapsed.push({ ...item });
+    }
+    return collapsed.slice(0, 60);
   }, [data?.events, data?.ledger]);
 
   const goal = data?.goals?.[0];
@@ -579,8 +639,11 @@ export function CognitionPanel({
                 <div key={i} className="cog-tl">
                   <span className="cog-tl__time">{shortTime(undefined, item.at)}</span>
                   <span className={`cog-tl__stage cog-tl__stage--${item.stage}`}>{item.stage}</span>
-                  <span className="cog-tl__title">{item.title}</span>
-                  <span className="cog-tl__detail cog-muted">{item.detail}</span>
+                  <span className="cog-tl__title">
+                    {item.title}
+                    {item.count > 1 && <span className="cog-tl__count"> ×{item.count}</span>}
+                  </span>
+                  <span className="cog-tl__detail cog-muted" title={item.detail}>{item.detail}</span>
                 </div>
               ))}
             </div>
