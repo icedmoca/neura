@@ -3328,6 +3328,12 @@ def _stream_turn_shared_server(
     usage = None
     interrupted = False
     first_event_ms: int | None = None
+    # Live harmony-leak splitter: some local model templates fuse the
+    # analysis channel into streamed content. When a final-channel marker
+    # shows up, everything before it moves to the reasoning display and the
+    # visible bubble is replaced with the clean final text.
+    leak_scan = True
+    harmony_markers = ("<|channel|>final<|message|>", "assistantfinal")
     deadline = time.monotonic() + NEURA_RUN_TIMEOUT
     instance = f"webui-{os.getpid()}"
     try:
@@ -3405,8 +3411,22 @@ def _stream_turn_shared_server(
                         conn.cancel()
                         return
                 continue
+            skip_relay = False
             if kind == "text_delta":
                 text += str(event.get("text") or "")
+                if leak_scan:
+                    for marker in harmony_markers:
+                        idx = text.rfind(marker)
+                        glued = idx > 0 and (marker.startswith("<|") or not text[idx - 1].isspace())
+                        if glued:
+                            reasoning, text = text[:idx], text[idx + len(marker):].lstrip()
+                            leak_scan = False
+                            send({"type": "reasoning_delta", "text": reasoning})
+                            send({"type": "text_replace", "text": text})
+                            skip_relay = True
+                            break
+                    if leak_scan and len(text) > 6000:
+                        leak_scan = False
             elif kind == "text_replace":
                 text = str(event.get("text") or "")
             elif kind == "tokens":
@@ -3429,6 +3449,8 @@ def _stream_turn_shared_server(
                     return
                 continue
 
+            if skip_relay:
+                continue
             if kind in _RELAY_EVENT_KINDS and not send(event):
                 # Browser went away mid-turn: stop the server-side work.
                 try:

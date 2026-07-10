@@ -335,7 +335,7 @@ fn spawn_local_model_observer(
             }
         };
 
-        let final_thought = stream_openai_thoughts(&event_sender, response).await;
+        let final_thought = polish_thought(&stream_openai_thoughts(&event_sender, response).await);
         // Persist the turn's OSS reflection for next-turn ctx hydration.
         if !final_thought.trim().is_empty() {
             crate::agent::latent_hydration::record(
@@ -343,6 +343,15 @@ fn spawn_local_model_observer(
                 "oss",
                 final_thought.trim(),
                 &[],
+            );
+            // A final polished frame so UIs land on a readable sentence
+            // instead of the raw rambling stream tail.
+            send_subtext_latent(
+                &event_sender,
+                "oss:thought".to_string(),
+                None,
+                Vec::new(),
+                final_thought.clone(),
             );
         }
         send_subtext_latent(
@@ -424,6 +433,33 @@ async fn stream_openai_thoughts(
         emit_thought_progress(event_sender, &accumulated);
     }
     accumulated
+}
+
+/// Compact a raw narration / thinking stream into a presentable thought:
+/// strip harmony channel markers a weak local model may leak into its own
+/// output, collapse whitespace, and end at a sentence boundary within ~240
+/// chars — a mid-token truncation reads like a bug to the user.
+fn polish_thought(raw: &str) -> String {
+    let mut text = raw;
+    for marker in ["<|channel|>final<|message|>", "assistantfinal"] {
+        if let Some(idx) = text.rfind(marker) {
+            let after = &text[idx + marker.len()..];
+            if after.trim().len() >= 12 {
+                text = after;
+            } else {
+                text = &text[..idx];
+            }
+        }
+    }
+    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.chars().count() <= 240 {
+        return collapsed;
+    }
+    let head: String = collapsed.chars().take(240).collect();
+    match head.rfind(['.', '!', '?']) {
+        Some(i) if i > 60 => head[..=i].to_string(),
+        _ => format!("{}…", head.trim_end()),
+    }
 }
 
 /// Emit a latent frame from the accumulated thought text so far. `latent`

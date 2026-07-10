@@ -2241,3 +2241,8 @@ body { position: relative; }
 @keyframes thinking-orbit {
   to { --thinking-orbit-angle: 360deg; }
 }
+
+/* thought history entries */
+.thought__entry { display: flex; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--border); align-items: baseline; }
+.thought__entry:last-child { border-bottom: none; }
+.thought__time { color: var(--muted); font-size: 11px; min-width: 52px; }

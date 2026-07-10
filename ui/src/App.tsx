@@ -222,6 +222,8 @@ function App() {
   const [latentPhase, setLatentPhase] = useState<string | null>(null);
   const [lastThought, setLastThought] = useState<{ text: string; words: string[] } | null>(null);
   const latentTextRef = useRef<string>("");
+  // Per-chat history of the observer's polished thoughts (newest first).
+  const [thoughtLog, setThoughtLog] = useState<{ text: string; at: number }[]>([]);
   // Live turn activity from /api/chat/stream: tool chips + reasoning stream.
   const [liveTools, setLiveTools] = useState<{ id: string; name: string; status: "running" | "done" | "error" }[]>([]);
   const [liveReasoning, setLiveReasoning] = useState("");
@@ -951,10 +953,45 @@ function App() {
     const partial = latentTextRef.current.trim();
     if (partial) {
       setLastThought({ text: partial, words: partial.split(/\s+/).slice(-16) });
+      appendThought(partial);
     }
     setLatentWords([]);
     setLatentPhase(null);
   }, []);
+
+  /** Compact a raw narration into a readable thought (sentence-bounded). */
+  const trimThought = useCallback((raw: string): string => {
+    const collapsed = raw.split(/\s+/).join(" ").trim();
+    if (collapsed.length <= 280) return collapsed;
+    const head = collapsed.slice(0, 280);
+    const cut = Math.max(head.lastIndexOf(". "), head.lastIndexOf("! "), head.lastIndexOf("? "));
+    return cut > 60 ? head.slice(0, cut + 1) : `${head.trimEnd()}…`;
+  }, []);
+
+  const thoughtStorageKey = (sid: string | null) => `neura-thoughts-${sid ?? "draft"}`;
+
+  const appendThought = useCallback((raw: string) => {
+    const text = trimThought(raw);
+    if (!text) return;
+    setThoughtLog((log) => {
+      if (log[0]?.text === text) return log;
+      const next = [{ text, at: Date.now() }, ...log].slice(0, 20);
+      try {
+        sessionStorage.setItem(thoughtStorageKey(activeIdRef.current), JSON.stringify(next));
+      } catch { /* storage full/blocked — history stays in-memory */ }
+      return next;
+    });
+  }, [trimThought]);
+
+  useEffect(() => {
+    // Chat switched: load that chat's thought history.
+    try {
+      const raw = sessionStorage.getItem(thoughtStorageKey(activeId));
+      setThoughtLog(raw ? JSON.parse(raw) : []);
+    } catch {
+      setThoughtLog([]);
+    }
+  }, [activeId]);
 
   const startSubtextObserver = useCallback((text: string) => {
     const cfg = subtextConfigRef.current;
@@ -1023,6 +1060,7 @@ function App() {
               const finalText = latentTextRef.current.trim();
               if (finalText) {
                 setLastThought({ text: finalText, words: finalText.split(/\s+/).slice(-16) });
+                appendThought(finalText);
               }
               return;
             }
@@ -1231,6 +1269,8 @@ function App() {
               if (typeof event.text === "string" && event.text.trim()) {
                 latentTextRef.current = event.text;
                 setLatentLine(event.text.trim());
+                // The observer's final polished thought lands in the history.
+                if (phase === "oss:thought") appendThought(event.text);
               }
               break;
             }
@@ -1618,10 +1658,21 @@ function App() {
               )}
             </div>
           )}
-          {!sending && lastThought && (
-            <details className="thought" open>
-              <summary className="thought__summary">💭 thought</summary>
-              <div className="thought__body">{lastThought.text}</div>
+          {!sending && thoughtLog.length > 0 && (
+            <details className="thought">
+              <summary className="thought__summary">
+                💭 thoughts ({thoughtLog.length}) — {trimThought(thoughtLog[0].text).slice(0, 72)}
+              </summary>
+              <div className="thought__body">
+                {thoughtLog.map((t, i) => (
+                  <div key={t.at + i} className="thought__entry">
+                    <span className="thought__time">
+                      {new Date(t.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <span>{t.text}</span>
+                  </div>
+                ))}
+              </div>
             </details>
           )}
         </div>
@@ -1650,7 +1701,7 @@ function App() {
           <div
             className={[
               "composer",
-              streamingAssistant ? "composer--busy" : "",
+              sending ? "composer--busy" : "",
               voiceActive ? "composer--voice" : "",
             ].filter(Boolean).join(" ")}
           >
