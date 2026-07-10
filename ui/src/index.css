@@ -2200,3 +2200,44 @@ body { position: relative; }
 .subtext__words--secondary { opacity: 0.55; }
 .send-btn--stop { margin-right: 4px; }
 .cog-tl__count { color: var(--muted); font-size: 10px; }
+
+/* animated thinking ring: white/blue/black orbit while the model thinks
+   (the composer ring now runs only while the actual answer streams) */
+@property --thinking-orbit-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.msg__body--thinking {
+  position: relative;
+  border-color: transparent;
+}
+.msg__body--thinking::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  padding: 2px;
+  --thinking-orbit-angle: 0deg;
+  background: conic-gradient(
+    from var(--thinking-orbit-angle),
+    transparent 0deg 255deg,
+    #000000 255deg 280deg,
+    #3b82f6 280deg 315deg,
+    #ffffff 315deg 340deg,
+    transparent 340deg 360deg
+  );
+  animation: thinking-orbit 1.3s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+@keyframes thinking-orbit {
+  to { --thinking-orbit-angle: 360deg; }
+}

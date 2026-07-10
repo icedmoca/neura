@@ -1242,11 +1242,23 @@ function App() {
               break;
             }
             case "error":
+              sawDone = true;
               setError(String(event.message ?? "turn failed"));
               break;
             default:
               break;
           }
+          if (sawDone) break;
+        }
+        if (sawDone) {
+          // The turn is over: stop reading immediately so the composer
+          // unlocks even if the transport lingers before closing.
+          try {
+            await reader.cancel();
+          } catch {
+            /* already closed */
+          }
+          break;
         }
       }
       if (!sawDone && streamedText) {
@@ -1638,7 +1650,7 @@ function App() {
           <div
             className={[
               "composer",
-              sending ? "composer--busy" : "",
+              streamingAssistant ? "composer--busy" : "",
               voiceActive ? "composer--voice" : "",
             ].filter(Boolean).join(" ")}
           >

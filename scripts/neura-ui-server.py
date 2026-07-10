@@ -3259,8 +3259,11 @@ def stream_chat_turn(handler, session_id: str | None, message: str, working_dir:
     handler.send_response(200)
     handler.send_header("Content-Type", "text/event-stream")
     handler.send_header("Cache-Control", "no-cache")
-    handler.send_header("Connection", "keep-alive")
+    # SSE bodies have no length framing: the browser only knows the turn is
+    # over when the socket closes, so this response must not be kept alive.
+    handler.send_header("Connection", "close")
     handler.end_headers()
+    handler.close_connection = True
 
     # One in-flight turn per session; the frontend keeps its own queue.
     if session_id:
