@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# Managed installer for Neura's vendored Subtext (J-space thought streaming).
+#
+# Creates a private virtualenv next to the vendored copy, installs the Python
+# dependencies (torch, transformers, jlens, …), and optionally pre-downloads
+# the model + Jacobian-lens weights so the first observer launch is instant.
+# Idempotent: re-running upgrades/completes whatever is missing.
+#
+# Usage:
+#   scripts/setup-subtext            # venv + deps
+#   scripts/setup-subtext --models   # also pre-download Qwen + lens weights
+#   scripts/setup-subtext --status   # report what's installed
+set -euo pipefail
+
+NEURA_HOME="${NEURA_HOME:-$HOME/.neura}"
+SUBTEXT_DIR="${NEURA_SUBTEXT_DIR:-$NEURA_HOME/vendor/subtext}"
+VENV="$SUBTEXT_DIR/.venv"
+LOG="$NEURA_HOME/logs/subtext-setup.log"
+mkdir -p "$NEURA_HOME/logs"
+
+say() { printf '%s\n' "$*"; printf '%s\n' "$*" >> "$LOG"; }
+
+status() {
+  local ok_venv=no ok_deps=no ok_model=no ok_lens=no
+  [ -x "$VENV/bin/python" ] && ok_venv=yes
+  if [ "$ok_venv" = yes ] && "$VENV/bin/python" -c "import torch, transformers, jlens" >/dev/null 2>&1; then
+    ok_deps=yes
+  fi
+  local hub="${HF_HOME:-$HOME/.cache/huggingface}/hub"
+  [ -d "$hub/models--Qwen--Qwen3.5-4B" ] && ok_model=yes
+  [ -d "$hub/models--neuronpedia--jacobian-lens" ] && ok_lens=yes
+  echo "subtext dir : $SUBTEXT_DIR"
+  echo "virtualenv  : $ok_venv"
+  echo "python deps : $ok_deps (torch/transformers/jlens)"
+  echo "qwen weights: $ok_model"
+  echo "lens weights: $ok_lens"
+  if [ "$ok_deps" = yes ]; then
+    echo "ready       : yes — the observer will auto-start server.py on demand"
+  else
+    echo "ready       : no — run scripts/setup-subtext"
+  fi
+}
+
+if [ "${1:-}" = "--status" ]; then status; exit 0; fi
+
+if [ ! -f "$SUBTEXT_DIR/server.py" ]; then
+  say "vendored Subtext not found at $SUBTEXT_DIR — run install.sh first"
+  exit 1
+fi
+
+say "== Subtext managed setup $(date -Is) =="
+
+if [ ! -x "$VENV/bin/python" ]; then
+  say "creating virtualenv at $VENV"
+  python3 -m venv "$VENV" >> "$LOG" 2>&1
+fi
+
+say "installing python dependencies (torch + transformers + jlens — this can take a while)"
+"$VENV/bin/pip" install --upgrade pip >> "$LOG" 2>&1
+"$VENV/bin/pip" install -r "$SUBTEXT_DIR/requirements.txt" >> "$LOG" 2>&1
+say "dependencies installed"
+
+if [ "${1:-}" = "--models" ] || [ "${NEURA_SUBTEXT_MODELS:-0}" = "1" ]; then
+  say "pre-downloading model + lens weights from Hugging Face (several GB)"
+  "$VENV/bin/python" - <<'PY' >> "$LOG" 2>&1
+from huggingface_hub import snapshot_download, hf_hub_download
+snapshot_download("Qwen/Qwen3.5-4B")
+hf_hub_download(
+    "neuronpedia/jacobian-lens",
+    "qwen3.5-4b/jlens/Salesforce-wikitext/Qwen3.5-4B_jacobian_lens_n1000.pt",
+    revision="qwen-n1000",
+)
+print("weights ready")
+PY
+  say "weights downloaded"
+fi
+
+say "== setup complete =="
+status

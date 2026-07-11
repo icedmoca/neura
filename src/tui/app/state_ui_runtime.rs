@@ -395,6 +395,10 @@ fn format_interlang_footer() -> Option<String> {
         .and_then(|v| v.as_i64())
         .unwrap_or(0)
         .max(0) as u64;
+    // Nothing saved yet: an "IL … saved 0" suffix is noise, not information.
+    if last == 0 && avoided == 0 {
+        return None;
+    }
     let approx = if status
         .get("exact_tokenizer")
         .and_then(|v| v.as_bool())

@@ -3218,6 +3218,49 @@ def connect_shared_server(allow_bootstrap: bool = True) -> SharedTurnConn | None
     return None
 
 
+def keep_shared_server_warm(stop: threading.Event) -> None:
+    """Hold a persistent client connection to the shared server so its
+    5-minute idle shutdown never triggers while the web UI is running —
+    every web turn then hits a warm server (1-2ms to first event) instead of
+    paying a bootstrap. Bootstraps the server on UI startup too."""
+    backoff = 2.0
+    while not stop.is_set():
+        conn = connect_shared_server(allow_bootstrap=True)
+        if conn is None:
+            stop.wait(min(backoff, 60.0))
+            backoff = min(backoff * 2, 60.0)
+            continue
+        backoff = 2.0
+        try:
+            ping_id = 1
+            while not stop.is_set():
+                ping_id += 1
+                conn.request({"type": "ping", "id": ping_id})
+                # Drain the pong (and anything else broadcast on this conn).
+                conn.sock.settimeout(10)
+                try:
+                    conn.reader.readline()
+                except (TimeoutError, socket.timeout):
+                    pass
+                stop.wait(60.0)
+        except OSError:
+            pass  # server restarted/reloaded — reconnect
+        finally:
+            conn.close()
+
+
+_KEEPALIVE_STOP = threading.Event()
+
+
+def start_shared_server_keepalive() -> None:
+    if os.environ.get("NEURA_WEB_KEEPALIVE", "1").strip() in ("0", "false", "off"):
+        return
+    thread = threading.Thread(
+        target=keep_shared_server_warm, args=(_KEEPALIVE_STOP,), daemon=True
+    )
+    thread.start()
+
+
 def cancel_active_turn(session_id: str) -> bool:
     with _ACTIVE_TURNS_LOCK:
         conn = _ACTIVE_TURNS.get(session_id)
@@ -3328,6 +3371,30 @@ def _stream_turn_shared_server(
     usage = None
     interrupted = False
     first_event_ms: int | None = None
+    # Deep per-turn latency breakdown, derived from the event stream itself:
+    # first model token, memory injection, and per-tool wall time.
+    first_token_ms: int | None = None
+    first_reasoning_ms: int | None = None
+    memory_ms: int | None = None
+    memory_count = 0
+    tool_starts: dict[str, tuple[str, float]] = {}
+    tool_spans: list[dict] = []
+
+    def elapsed_ms() -> int:
+        return int((time.monotonic() - started) * 1000)
+
+    def build_timings() -> dict:
+        return {
+            "transport": "shared-server",
+            "first_event_ms": first_event_ms,
+            "first_token_ms": first_token_ms,
+            "first_reasoning_ms": first_reasoning_ms,
+            "memory_ms": memory_ms,
+            "memory_count": memory_count,
+            "tools": tool_spans,
+            "total_ms": elapsed_ms(),
+        }
+
     # Live harmony-leak splitter: some local model templates fuse the
     # analysis channel into streamed content. When a final-channel marker
     # shows up, everything before it moves to the reasoning display and the
@@ -3412,7 +3479,28 @@ def _stream_turn_shared_server(
                         return
                 continue
             skip_relay = False
+            if kind == "reasoning_delta" and first_reasoning_ms is None:
+                first_reasoning_ms = elapsed_ms()
+            elif kind == "memory_injected":
+                memory_ms = memory_ms if memory_ms is not None else elapsed_ms()
+                memory_count += int(event.get("count") or 0)
+            elif kind in ("tool_start", "tool_exec"):
+                key = str(event.get("id") or event.get("name") or "tool")
+                tool_starts.setdefault(key, (str(event.get("name") or "tool"), time.monotonic()))
+            elif kind == "tool_done":
+                key = str(event.get("id") or event.get("name") or "tool")
+                if key in tool_starts:
+                    name, t_start = tool_starts.pop(key)
+                    tool_spans.append(
+                        {
+                            "name": name,
+                            "ms": int((time.monotonic() - t_start) * 1000),
+                            "error": bool(event.get("error")),
+                        }
+                    )
             if kind == "text_delta":
+                if first_token_ms is None:
+                    first_token_ms = elapsed_ms()
                 text += str(event.get("text") or "")
                 if leak_scan:
                     for marker in harmony_markers:
@@ -3438,13 +3526,8 @@ def _stream_turn_shared_server(
                 return
             elif kind == "done":
                 if event.get("id") == 2 or interrupted:
-                    stats = {
-                        "usage": usage,
-                        "transport": "shared-server",
-                        "first_event_ms": first_event_ms,
-                        "total_ms": int((time.monotonic() - started) * 1000),
-                        "interrupted": interrupted,
-                    }
+                    stats = build_timings()
+                    stats.update({"usage": usage, "interrupted": interrupted, "timings": build_timings()})
                     send(_finalize_done_payload(sid, text, stats))
                     return
                 continue
@@ -3460,17 +3543,9 @@ def _stream_turn_shared_server(
                 return
             if kind == "interrupted":
                 # Cancelled turns still finalize with whatever streamed.
-                send(
-                    _finalize_done_payload(
-                        sid,
-                        text,
-                        {
-                            "interrupted": True,
-                            "transport": "shared-server",
-                            "total_ms": int((time.monotonic() - started) * 1000),
-                        },
-                    )
-                )
+                stats = build_timings()
+                stats.update({"interrupted": True, "timings": build_timings()})
+                send(_finalize_done_payload(sid, text, stats))
                 return
     finally:
         with _ACTIVE_TURNS_LOCK:
@@ -4492,6 +4567,7 @@ def main() -> int:
         threading.Timer(0.2, lambda: webbrowser.open(url)).start()
     initialize_live_updates()
     prewarm_subtext_sidecar()
+    start_shared_server_keepalive()
     ensure_dapp_library()
     ensure_dapp_themes()
     bin_path = neura_bin()

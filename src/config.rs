@@ -11,6 +11,13 @@ static CONFIG: OnceLock<Config> = OnceLock::new();
 
 /// Get the global config instance (loaded once on first access)
 pub fn config() -> &'static Config {
+    // Unit tests must not observe the developer's real ~/.neura/config.toml:
+    // machine-local settings (sidecar model, display toggles, …) would leak
+    // into rendered output and make layout tests machine-dependent. Config
+    // parsing itself is covered by tests that load explicit files.
+    if cfg!(test) {
+        return CONFIG.get_or_init(Config::default);
+    }
     CONFIG.get_or_init(Config::load)
 }
 

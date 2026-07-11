@@ -18,6 +18,16 @@ use std::thread;
 #[cfg(unix)]
 use std::time::{Duration, Instant};
 
+/// These tests mutate process-global env (PATH, NEURA_*); parallel test
+/// threads were clobbering each other's fake launchers. Serialize them.
+#[cfg(unix)]
+static ENV_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(unix)]
+fn env_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    ENV_TEST_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 #[cfg(unix)]
 struct EnvVarGuard {
     key: &'static str,
@@ -83,6 +93,7 @@ fn wait_for_lines(path: &Path, min_lines: usize) -> Vec<String> {
 #[cfg(unix)]
 #[test]
 fn spawn_resume_in_new_terminal_uses_handterm_exec_mode() {
+    let _env = env_test_guard();
     let temp = tempfile::tempdir().expect("temp dir");
     let output_path = temp.path().join("resume-launch.txt");
     write_fake_handterm(&temp, &output_path);
@@ -116,6 +127,7 @@ fn spawn_resume_in_new_terminal_uses_handterm_exec_mode() {
 #[cfg(unix)]
 #[test]
 fn resumed_window_title_includes_server_name_when_registry_matches_socket() {
+    let _env = env_test_guard();
     let _guard = crate::storage::lock_test_env();
     let temp_home = tempfile::tempdir().expect("temp home");
     let temp_runtime = tempfile::tempdir().expect("temp runtime");
@@ -152,6 +164,7 @@ fn resumed_window_title_includes_server_name_when_registry_matches_socket() {
 #[cfg(unix)]
 #[test]
 fn spawn_selfdev_in_new_terminal_uses_handterm_exec_mode() {
+    let _env = env_test_guard();
     let temp = tempfile::tempdir().expect("temp dir");
     let output_path = temp.path().join("selfdev-launch.txt");
     write_fake_handterm(&temp, &output_path);

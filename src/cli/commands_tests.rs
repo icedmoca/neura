@@ -125,6 +125,16 @@ fn test_parse_tailscale_dns_name_invalid_json() {
 
 #[test]
 fn configured_auth_test_targets_only_include_configured_supported_providers() {
+    // OpenRouter availability is resolved from the environment/key files at
+    // call time (not from the AuthStatus fixture), so the test must control
+    // it explicitly instead of depending on the machine it runs on.
+    static OPENROUTER_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _env = OPENROUTER_ENV_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let prev = std::env::var_os("OPENROUTER_API_KEY");
+    crate::env::set_var("OPENROUTER_API_KEY", "test-key-for-target-resolution");
+
     let status = AuthStatus {
         anthropic: ProviderAuth {
             state: AuthState::Available,
@@ -140,6 +150,10 @@ fn configured_auth_test_targets_only_include_configured_supported_providers() {
     };
 
     let targets = configured_auth_test_targets(&status);
+    match prev {
+        Some(value) => crate::env::set_var("OPENROUTER_API_KEY", value),
+        None => crate::env::remove_var("OPENROUTER_API_KEY"),
+    }
 
     assert!(targets.contains(&ResolvedAuthTestTarget::Detailed(AuthTestTarget::Claude)));
     assert!(targets.contains(&ResolvedAuthTestTarget::Detailed(AuthTestTarget::Copilot)));

@@ -233,6 +233,7 @@ function App() {
   // only shown when a frame carries true latent words and no sentence).
   const [latentLine, setLatentLine] = useState("");
   const [turnNote, setTurnNote] = useState<string | null>(null);
+  const [turnStats, setTurnStats] = useState<string | null>(null);
   const sendingSessionRef = useRef<string | null>(null);
   const subtextConfigRef = useRef<{ endpoint: string; enabled: boolean; model?: string } | null>(null);
   const subtextAbortRef = useRef<AbortController | null>(null);
@@ -1145,6 +1146,7 @@ function App() {
     setLiveReasoning("");
     setLatentLine("");
     setTurnNote(null);
+    setTurnStats(null);
     currentSendRef.current = text;
     sendingSessionRef.current = sessionId;
     if (projectPath && sessionId) {
@@ -1279,6 +1281,19 @@ function App() {
               const json = event as unknown as ChatTurnResult;
               finalizeTurn(json, sessionId, projectPath, text);
               resultSid = json.session_id ?? resultSid;
+              // Deep latency breakdown from the bridge → one muted stats line.
+              const t = (event as Record<string, unknown>).timings as
+                | { total_ms?: number; first_token_ms?: number; memory_count?: number; tools?: { name: string; ms: number }[] }
+                | undefined;
+              if (t?.total_ms != null) {
+                const parts = [`${(t.total_ms / 1000).toFixed(1)}s`];
+                if (t.first_token_ms != null) parts.push(`first token ${(t.first_token_ms / 1000).toFixed(1)}s`);
+                for (const tool of (t.tools ?? []).slice(0, 4)) {
+                  parts.push(`${tool.name} ${(tool.ms / 1000).toFixed(1)}s`);
+                }
+                if (t.memory_count) parts.push(`memory ×${t.memory_count}`);
+                setTurnStats(parts.join(" · "));
+              }
               break;
             }
             case "error":
@@ -1656,6 +1671,11 @@ function App() {
                   ))}
                 </span>
               )}
+            </div>
+          )}
+          {!sending && turnStats && (
+            <div className="turnstats" title="Latency breakdown for the last turn">
+              ⏱ {turnStats}
             </div>
           )}
           {!sending && thoughtLog.length > 0 && (

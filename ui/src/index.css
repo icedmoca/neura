@@ -2256,3 +2256,6 @@ body { position: relative; }
   z-index: 3;
 }
 .send-btn--stop:hover { background: var(--fg); color: var(--bg); }
+
+/* per-turn latency stats line */
+.turnstats { margin: 2px 0 0 8px; color: var(--muted); font-size: 11px; }

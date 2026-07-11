@@ -420,10 +420,9 @@ pub fn record_stats(stats: InterlangStats) {
     if stats.is_zero() {
         return;
     }
-    let Some(home) = std::env::var_os("HOME") else {
+    let Some(path) = stats_path() else {
         return;
     };
-    let path = std::path::Path::new(&home).join(".neura/interlang-stats.jsonl");
     let timestamp_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis())
@@ -464,6 +463,15 @@ pub fn record_stats(stats: InterlangStats) {
 }
 
 pub fn stats_path() -> Option<std::path::PathBuf> {
+    if let Some(path) = std::env::var_os("NEURA_INTERLANG_STATS_PATH") {
+        return Some(std::path::PathBuf::from(path));
+    }
+    // Unit tests must never read the developer's real ~/.neura stats file:
+    // footers and info panels would otherwise render machine-dependent
+    // "IL saved …" data and every layout-sensitive test becomes flaky.
+    if cfg!(test) {
+        return None;
+    }
     std::env::var_os("HOME")
         .map(|home| std::path::Path::new(&home).join(".neura/interlang-stats.jsonl"))
 }
